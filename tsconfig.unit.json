@@ -1,0 +1,37 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "module": "CommonJS",
+    "moduleResolution": "node",
+    "noEmit": false,
+    "outDir": ".unit-test-dist",
+    "rootDir": ".",
+    "isolatedModules": false,
+    "allowImportingTsExtensions": false,
+    "esModuleInterop": true
+  },
+  "include": [
+    "src/editor/**/*.ts",
+    "src/store/index.ts",
+    "src/types/**/*.ts",
+    "src/lib/aliasGraphExpansion.ts",
+    "src/lib/atomLabelPresentation.ts",
+    "src/lib/atomIdentity.ts",
+    "src/lib/atomLabels.ts",
+    "src/lib/chemdrawMetrics.ts",
+    "src/lib/chemdrawDocumentCommands.ts",
+    "src/lib/chemdrawModel.ts",
+    "src/lib/chemicalText.ts",
+    "src/lib/electronAnnotations.ts",
+    "src/lib/elements.ts",
+    "src/lib/graph.ts",
+    "src/lib/keyboard.ts",
+    "src/lib/renderGeometry.ts",
+    "src/lib/settings.ts",
+    "src/lib/shorthand.ts",
+    "src/lib/svgExport.ts",
+    "src/lib/textRunPresentation.ts",
+    "src/lib/viewer3d.ts",
+    "src/utils/cdxml.ts"
+  ]
+}

@@ -1,0 +1,23 @@
+xtb v6.7.1 — Extended Tight-Binding Program Package
+https://github.com/grimme-lab/xtb
+
+Copyright (C) 2017-2024 Stefan Grimme, Christoph Bannwarth, and contributors
+Mulliken Center for Theoretical Chemistry, University of Bonn
+
+GNU Lesser General Public License v3.0 (LGPL-3.0)
+
+xtb is free software: you can redistribute it and/or modify it under the
+terms of the GNU Lesser General Public License as published by the Free
+Software Foundation, either version 3 of the License, or (at your option)
+any later version.
+
+xtb is distributed in the hope that it will be useful, but WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License for
+more details.
+
+Full license text: https://www.gnu.org/licenses/lgpl-3.0.html
+
+ChemEditor invokes xtb as an unmodified external subprocess for vibrational
+frequency prediction. The xtb binary is not linked into ChemEditor and is
+distributed separately in accordance with the LGPL.

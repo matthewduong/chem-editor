@@ -1,0 +1,30 @@
+[project]
+name = "chem-engine"
+version = "0.1.0"
+description = "Python sidecar for ChemEditor — conformer generation and file I/O via RDKit"
+requires-python = ">=3.12,<3.14"
+dependencies = [
+    "rdkit>=2025.9.6",
+    "numpy>=2.0.0",
+]
+
+[dependency-groups]
+build = [
+    "pyinstaller>=6.19.0",
+]
+nmr-dft = [
+    "pyscf==2.12.1",
+    "pyscf-properties>=0.1.0",
+]
+
+[tool.ruff]
+line-length = 120
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "F",   # pyflakes (unused imports, undefined names)
+    "I",   # isort (import ordering)
+    "UP",  # pyupgrade (modern Python syntax)
+    "B",   # flake8-bugbear (common bugs)
+]

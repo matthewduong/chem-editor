@@ -1,0 +1,2347 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage{geometry}
+\geometry{margin=2.5cm}
+
+\usepackage[hidelinks,
+  colorlinks=true,
+  linkcolor=blue!70!black,
+  urlcolor=blue!70!black,
+  citecolor=blue!70!black,
+  pdftitle={ChemEditor Engineering Guide},
+  pdfauthor={ChemEditor},
+]{hyperref}
+
+\usepackage{amsmath}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{parskip}
+\usepackage{titlesec}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage{graphicx}
+
+% ── Code listing style ──────────────────────────────────────────────────────
+\definecolor{codebg}{HTML}{F5F5F5}
+\definecolor{codeframe}{HTML}{CCCCCC}
+\definecolor{kwcolor}{HTML}{0000CC}
+\definecolor{cmtcolor}{HTML}{007700}
+\definecolor{strcolor}{HTML}{CC0000}
+
+\lstset{
+  backgroundcolor=\color{codebg},
+  frame=single,
+  framerule=0.4pt,
+  rulecolor=\color{codeframe},
+  basicstyle=\ttfamily\small,
+  keywordstyle=\color{kwcolor}\bfseries,
+  commentstyle=\color{cmtcolor}\itshape,
+  stringstyle=\color{strcolor},
+  breaklines=true,
+  breakatwhitespace=true,
+  tabsize=2,
+  showstringspaces=false,
+  captionpos=b,
+  upquote=true,
+}
+
+% ── Custom language definitions ───────────────────────────────────────────
+\lstdefinelanguage{TypeScript}{
+  keywords={const,let,var,function,return,if,else,for,while,class,interface,
+            type,import,export,from,default,async,await,new,this,null,
+            undefined,true,false,extends,implements,typeof,instanceof,in,
+            of,try,catch,throw,void,any,string,number,boolean,never,
+            unknown,readonly,as,keyof,Record,Set,Map,Promise,Array,
+            useCallback,useEffect,useMemo,useRef,useState,forwardRef,
+            useImperativeHandle,lazy,Suspense},
+  sensitive=true,
+  comment=[l]{//},
+  morecomment=[s]{/*}{*/},
+  morestring=[b]',
+  morestring=[b]",
+  morestring=[b]`,
+}
+
+\lstdefinelanguage{Rust}{
+  keywords={fn,let,mut,const,use,pub,mod,impl,struct,enum,trait,for,in,
+            if,else,while,loop,match,return,self,Self,super,crate,async,
+            await,move,ref,where,type,dyn,unsafe,extern,static,Some,None,
+            Ok,Err,true,false,String,Vec,Option,Result},
+  sensitive=true,
+  comment=[l]{//},
+  morecomment=[s]{/*}{*/},
+  morestring=[b]",
+}
+
+% ── Section formatting ───────────────────────────────────────────────────
+\titleformat{\section}{\large\bfseries}{}{0em}{}[\titlerule]
+\titleformat{\subsection}{\normalsize\bfseries}{}{0em}{}
+\titleformat{\subsubsection}{\normalsize\itshape\bfseries}{}{0em}{}
+
+% ── Header / footer ──────────────────────────────────────────────────────
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\textit{ChemEditor --- Engineering Guide}}
+\fancyhead[R]{\small\textit{\today}}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+% ── Convenience macros ───────────────────────────────────────────────────
+% Inline code with underscores and special chars
+\newcommand{\ci}[1]{\lstinline|#1|}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\begin{document}
+
+\begin{center}
+  {\LARGE\bfseries ChemEditor --- Engineering Guide}\\[0.6em]
+  {\large A pedagogical deep-dive for people fluent in Python/Julia/C++ who\\
+  have never used Tauri, React, Rust, or TypeScript}\\[1em]
+  \textit{\today}
+\end{center}
+
+\noindent\textbf{How to use this document.}
+This guide is the long-form conceptual architecture reference.
+For current setup instructions, package scripts, ChemDraw fidelity workflows, and NMR data
+maintenance, start with the Markdown docs under \texttt{development/}, especially
+\texttt{development/README.md} and \texttt{development/getting-started.md}.
+
+\tableofcontents
+\newpage
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{What Is This Project?}
+\label{sec:what}
+
+ChemEditor is a \textbf{native desktop molecule drawing editor} --- think a lightweight
+ChemDraw --- built with a web UI inside a Tauri shell. You draw chemical structures
+with your mouse; the app converts them in real time to molecular representations,
+supports ChemDraw-compatible CDXML import and export, and can generate and inspect 3D
+conformers. The current operational details of the build, sidecar, and fidelity harness
+live in the Markdown docs under \texttt{development/}; this document focuses on the
+architectural ideas behind the implementation.
+
+\subsection{Why These Technology Choices?}
+
+\begin{table}[h!]
+\centering
+\begin{tabularx}{\textwidth}{@{} l l X @{}}
+\toprule
+\textbf{Need} & \textbf{Choice} & \textbf{Why} \\
+\midrule
+Native desktop app & Tauri & Small binary ($\sim$10\,MB); uses the OS's built-in web
+  renderer --- no bundled Chromium like Electron \\
+Interactive drawing canvas & React + react-konva & Konva is an HTML5 Canvas library
+  wrapped in React; lets you describe canvas geometry declaratively \\
+Real-time SMILES / 2D structure & RDKit WASM & RDKit compiled to WebAssembly runs
+  in-process --- no network round-trips, no subprocess latency \\
+3D conformer generation & Python sidecar (RDKit) & Heavy ETKDGv3 computation; Python's
+  RDKit is the gold standard; \texttt{uv} manages the environment cleanly \\
+3D viewer & Custom Three.js viewer & Direct control over camera, lighting,
+  measurements, conformer alignment, and future volumetric rendering \\
+NMR shift prediction & HOSE lookup DB + rule corrections & Offline HOSE database
+  generated from NMRShiftDB2 (ODbL) and queried in the Python sidecar \\
+ChemDraw compatibility & Custom CDXML writer & CDXML is XML; we write it ourselves
+  to control atom/bond format and coordinate system precisely \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{The Technology Stack At a Glance}
+\label{sec:stack}
+
+If you know Python, Julia, or C++, each piece of this stack has a near-perfect analogy:
+
+\begin{table}[h!]
+\centering
+\begin{tabularx}{\textwidth}{@{} l l X @{}}
+\toprule
+\textbf{Technology} & \textbf{What it is} & \textbf{Analogy} \\
+\midrule
+\textbf{Tauri} & Framework for native desktop apps with a web UI
+  & Python + PyQt, but the UI is an HTML page and the backend is Rust \\
+\textbf{React} & UI library that re-renders when data changes
+  & Jinja2 templates that re-run themselves whenever a variable changes \\
+\textbf{TypeScript} & JavaScript with type annotations
+  & Python with \texttt{typing} --- but types are enforced at compile time \\
+\textbf{Rust} & Systems language for the Tauri backend
+  & C++ without undefined behaviour, with ownership enforced by the compiler \\
+\textbf{Vite} & JavaScript build tool and dev server
+  & CMake for JavaScript; bundles source files into optimised output \\
+\textbf{pnpm} & JavaScript package manager
+  & \texttt{pip} --- installs packages from a registry into \texttt{node\_modules/} \\
+\textbf{Cargo} & Rust package manager and build system
+  & \texttt{pip} + CMake combined; reads \texttt{Cargo.toml}, compiles everything \\
+\textbf{Zustand} & Global state library for React
+  & A Python class where every attribute setter notifies all subscribers \\
+\textbf{react-konva} & React bindings for the Konva Canvas 2D library
+  & \texttt{matplotlib} but interactive --- describes shapes on an HTML5 canvas \\
+\textbf{RDKit WASM} & RDKit compiled to WebAssembly
+  & RDKit, but running inside the browser sandbox without a server \\
+\textbf{Three.js viewer} & Custom WebGL small-molecule viewer
+  & A focused in-app molecular renderer built directly on top of \texttt{three.js} \\
+\textbf{uv} & Fast Python package and project manager
+  & \texttt{pip} + \texttt{venv} + \texttt{pyproject.toml} all in one tool \\
+\textbf{PyInstaller} & Packages Python scripts into standalone executables
+  & Like \texttt{cx\_Freeze} --- produces a single binary with Python bundled inside \\
+\textbf{HOSE lookup DB} & Precomputed NMR environment database
+  & Canonical local-environment lookup table for fast laptop-scale prediction without a
+    neural inference runtime \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Tauri In Depth}
+\label{sec:tauri}
+
+\subsection{What Tauri Is}
+
+Tauri lets you build a native desktop application where the UI is rendered by the
+operating system's built-in web engine (WebKit on Linux/macOS, WebView2 on Windows)
+and the backend logic runs as a compiled Rust binary.
+
+The result is a \texttt{.deb}/\texttt{.rpm} (on Linux) that weighs $\sim$10\,MB instead
+of Electron's $\sim$200\,MB, because you are not bundling a copy of Chrome. The web
+engine is already on every modern OS; Tauri just uses it.
+
+\subsection{The Two-Process Model}
+
+\begin{lstlisting}[language={}]
++------------------------------------------+
+|  WebView (your React app)                |
+|  Runs JavaScript, renders HTML/CSS       |
+|  Has NO file system access by default    |
+|  Lives in a security sandbox             |
++---------------------+--------------------+
+                      |  IPC (invoke / emit)
+                      |  serialised JSON
++---------------------v--------------------+
+|  Rust backend (src-tauri/src/)           |
+|  Has full OS access                      |
+|  Manages plugins: fs, dialog, shell      |
+|  Runs the Python sidecar as a subprocess |
++------------------------------------------+
+\end{lstlisting}
+
+Think of it like a Python web app where the browser is the frontend and a
+Flask/FastAPI server is the backend --- except everything runs in the same desktop
+process with no HTTP socket. Communication is via IPC, and the ``server'' is a
+compiled Rust binary rather than a Python process.
+
+\subsection{IPC: Calling Rust from JavaScript}
+
+The core pattern is: annotate a Rust function with \lstinline|#[tauri::command]|,
+then call it from TypeScript with \lstinline|invoke()|.
+
+\textbf{Rust side}:
+\begin{lstlisting}[language=Rust]
+#[tauri::command]
+async fn generate_conformers(
+    app: tauri::AppHandle,
+    smiles: String,
+    force_field: Option<String>,
+    max_conformers: Option<i32>,
+) -> Result<serde_json::Value, String> {
+    // ... do work ...
+}
+\end{lstlisting}
+
+\textbf{TypeScript side}:
+\begin{lstlisting}[language=TypeScript]
+import { invoke } from '@tauri-apps/api/core';
+
+const result = await invoke('generate_conformers', {
+  smiles: 'CCO',
+  forceField: 'MMFF94s',
+  maxConformers: 5,
+});
+\end{lstlisting}
+
+Tauri automatically converts the function name from \texttt{snake\_case} to
+\texttt{camelCase}. Arguments are serialised to JSON at the TypeScript boundary and
+deserialised back to Rust types automatically via the \texttt{serde} crate. You never
+write serialisation code.
+
+The command must be registered at startup; \lstinline|generate_handler!| is a Rust
+macro that builds the dispatch table at compile time:
+
+\begin{lstlisting}[language=Rust]
+// src-tauri/src/lib.rs
+tauri::Builder::default()
+    .invoke_handler(tauri::generate_handler![
+        generate_conformers,
+        parse_chemical_file,
+        export_chemical_file
+    ])
+\end{lstlisting}
+
+\subsection{Tauri Plugins}
+
+Tauri itself only handles IPC. Additional OS capabilities come from plugins
+initialised in the same \texttt{Builder} chain:
+
+\begin{table}[h!]
+\centering
+\begin{tabularx}{\textwidth}{@{} l l X @{}}
+\toprule
+\textbf{Plugin} & \textbf{What it gives us} & \textbf{Analogous Python call} \\
+\midrule
+\texttt{tauri-plugin-fs}     & Read/write files on disk & \texttt{open()} / \texttt{pathlib} \\
+\texttt{tauri-plugin-dialog} & Native OS open/save file dialogs & \texttt{tkinter.filedialog} \\
+\texttt{tauri-plugin-shell}  & Spawn subprocesses; manage sidecars & \texttt{subprocess.Popen} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Configuration: tauri.conf.json}
+
+\begin{lstlisting}[language={}]
+{
+  "app": {
+    "windows": [{ "title": "ChemEditor", "width": 800, "height": 600,
+                  "decorations": false }],
+    "security": { "csp": null }
+  },
+  "bundle": {
+    "targets": ["deb", "rpm"],
+    "externalBin": ["bin/chem-engine"]
+  }
+}
+\end{lstlisting}
+
+Key fields:
+\begin{itemize}[leftmargin=1.5em]
+  \item \lstinline|"decorations": false| --- removes the OS title bar. We draw our
+        own minimize/maximize/close buttons in \texttt{App.tsx}.
+  \item \lstinline|"csp": null| --- disables the Content Security Policy, letting
+        RDKit WASM and the viewer's dynamically loaded assets run without additional
+        CSP plumbing.
+  \item \lstinline|"externalBin"| --- tells Tauri to bundle the named binary
+        alongside the app. The actual file on disk must be named with the full Rust
+        target triple (explained in the Build System section).
+\end{itemize}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Rust Crash Course}
+\label{sec:rust}
+
+You don't need to write Rust to work on this project, but you need to read
+\texttt{src-tauri/src/lib.rs}. Here is the minimum you need.
+
+\subsection{Syntax Basics}
+
+\begin{lstlisting}[language=Rust]
+// fn = function (like def in Python, or just a function in Julia)
+fn add(x: i32, y: i32) -> i32 {
+    x + y   // No semicolon = implicit return. Identical to Julia's convention.
+}
+
+// async fn = coroutine (like Python's async def)
+async fn fetch_data() -> String {
+    some_async_call().await  // .await comes after the expression, not before
+}
+
+// let = variable binding (like Python's = or Julia's assignment)
+let x: i32 = 42;   // type annotation after colon, like Python's x: int = 42
+let y = 42;         // type is inferred -- Rust has full type inference like Julia
+\end{lstlisting}
+
+\subsection{Attributes (Decorators) and Macros}
+
+Rust has no decorators, but it has \textbf{attributes} --- compile-time metadata
+that tools like Tauri read to generate boilerplate. They look like Python decorators:
+
+\begin{lstlisting}[language=Rust]
+#[tauri::command]   // like @tauri.command -- marks this fn as callable-from-JS
+async fn my_command(input: String) -> Result<String, String> { ... }
+
+#[cfg_attr(mobile, tauri::mobile_entry_point)]  // conditional attribute
+pub fn run() { ... }
+\end{lstlisting}
+
+The \lstinline|#[...]| syntax is an \textbf{attribute}. Macros invoked with \lstinline|!|
+are a separate thing:
+\begin{lstlisting}[language=Rust]
+tauri::generate_handler![cmd_a, cmd_b]  // the ! makes this a macro call
+println!("hello {}", name)              // also a macro -- Rust's print
+\end{lstlisting}
+
+Think of macros as code-generation functions that run at compile time, before the
+compiler processes your code.
+
+\subsection{Result: Error Handling Without Exceptions}
+
+Python uses exceptions. Rust uses \lstinline|Result<T, E>|, which forces you to handle
+errors explicitly as a value:
+
+\begin{lstlisting}[language=Rust]
+// Result<Value, String> is like Union[dict, str] in Python:
+// either a successful value (Ok) or an error message (Err)
+
+Ok(my_value)             // equivalent to: return my_value
+Err("something failed")  // equivalent to: raise Exception("something failed")
+\end{lstlisting}
+
+Tauri serialises \lstinline|Ok(v)| as the JSON response, and \lstinline|Err(s)| as an
+error that becomes a JavaScript exception on the calling side.
+
+The \lstinline|?| operator is syntactic sugar for ``return Err if this failed,
+otherwise unwrap the Ok'':
+\begin{lstlisting}[language=Rust]
+let output = some_operation()?;
+// Equivalent to:
+// let output = match some_operation() {
+//     Ok(v)  => v,
+//     Err(e) => return Err(e.into()),
+// };
+\end{lstlisting}
+
+\subsection{Option}
+
+\lstinline|Option<T>| means ``might not be present'':
+\begin{lstlisting}[language=Rust]
+Option<String>   // Python: Optional[str]
+Some("hello")    // Python: "hello"
+None             // Python: None
+value.unwrap_or_else(|| "default".to_string())  // Python: value or "default"
+\end{lstlisting}
+
+\subsection{serde\_json::Value}
+
+This is Rust's equivalent of Python's \texttt{Any}-typed JSON:
+\begin{lstlisting}[language=Rust]
+serde_json::Value  // Python: dict | list | str | int | float | bool | None
+\end{lstlisting}
+You can deserialise arbitrary JSON into it and the type system is satisfied.
+
+\subsection{String vs \&str}
+
+\begin{itemize}[leftmargin=1.5em]
+  \item \lstinline|String| --- owned, heap-allocated string (like Python's \texttt{str})
+  \item \lstinline|&str| --- borrowed reference to a string slice (like C++'s
+        \texttt{std::string\_view})
+\end{itemize}
+
+For Tauri command parameters, always use \lstinline|String| --- Tauri's deserialiser
+needs owned values. String literals like \lstinline|"hello"| in code are \lstinline|&str|.
+
+\subsection{Closures}
+
+\begin{lstlisting}[language=Rust]
+// Rust closure                   // Python lambda
+let sq = |x: i32| x * x;        // sq = lambda x: x * x
+let add = |a, b| a + b;          // add = lambda a, b: a + b
+\end{lstlisting}
+
+The \lstinline||| delimiters hold the parameter list; the body follows. Multi-line
+closures use \lstinline|{}|:
+\begin{lstlisting}[language=Rust]
+let result = vec![1, 2, 3].iter().map(|x| x * 2).collect::<Vec<_>>();
+// Python: result = [x * 2 for x in [1, 2, 3]]
+\end{lstlisting}
+
+\subsection{lib.rs Walkthrough}
+
+\texttt{src-tauri/src/lib.rs} defines three public commands and one private helper.
+
+\textbf{\lstinline|generate_conformers|} --- Takes a SMILES string, a force field
+name, and a max-conformers count. Calls \lstinline|run_engine| with the
+\lstinline|conformer| subcommand. Returns JSON
+\lstinline|{conformers: [...], bonds: [...]}|.
+
+\textbf{\lstinline|parse_chemical_file|} --- Takes file content as a string and a
+format specifier (\lstinline|"mol"|, \lstinline|"pdb"|, \lstinline|"xyz"|, etc.).
+Passes the content via stdin to the sidecar's \lstinline|parse| subcommand.
+Returns \lstinline|{molblock, smiles}|.
+
+\textbf{\lstinline|export_chemical_file|} --- Takes a V2000 Molblock string and a
+format. For RXN export also takes an optional JSON string of arrow data.
+Returns \lstinline|{content: "..."}| with the formatted file text.
+
+\textbf{\lstinline|run_engine|} --- The shared helper. It tries two paths:
+
+\textit{Production path:} \lstinline|app.shell().sidecar("chem-engine")| asks Tauri to
+locate the bundled binary named \lstinline|chem-engine-<target-triple>|. This binary
+is a self-contained PyInstaller executable.
+
+\textit{Development path:} If \lstinline|sidecar()| fails (because the binary hasn't
+been built yet), the code falls back to:
+\begin{lstlisting}[language=Rust]
+std::process::Command::new("uv")
+    .arg("run").arg("--project").arg(&project_path)
+    .arg("python").arg(&script_path)
+    .args(args)
+\end{lstlisting}
+This calls \lstinline|uv run python chem-engine.py| directly --- no binary required
+during development.
+
+After spawning, the helper optionally writes \lstinline|stdin_content| to the
+process's stdin, then collects all stdout bytes. On exit it parses stdout as JSON
+using \lstinline|serde_json::from_slice|. If parsing fails or the process exited
+non-zero, it returns an \lstinline|Err|.
+
+\textbf{\texttt{src-tauri/src/main.rs}} contains:
+\begin{lstlisting}[language=Rust]
+#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+
+fn main() {
+    chem_editor_lib::run()
+}
+\end{lstlisting}
+
+The \lstinline|windows_subsystem = "windows"| attribute suppresses the console
+window that would otherwise appear behind the main window in production builds on
+Windows. \lstinline|cfg_attr| means ``only apply this attribute when
+\lstinline|debug_assertions| are off'' --- i.e., release builds only.
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{TypeScript Crash Course}
+\label{sec:ts}
+
+\subsection{TypeScript = JavaScript + Type Annotations}
+
+If you know Python's \texttt{typing} module, TypeScript's type system will feel
+familiar --- except the types are enforced at compile time (like C++), not stripped
+at runtime (like Python's type hints are by default).
+
+\begin{lstlisting}[language=TypeScript]
+// TypeScript                    // Python equivalent
+const x: number = 42;           // x: int = 42
+let name: string = "caffeine";  // name: str = "caffeine"
+
+function add(a: number, b: number): number {
+  return a + b;
+}
+// Python: def add(a: int, b: int) -> int: return a + b
+\end{lstlisting}
+
+\subsection{interface $\approx$ TypedDict}
+
+\begin{lstlisting}[language=TypeScript]
+// TypeScript
+interface Atom {
+  id: string;
+  x: number;
+  y: number;
+  element: string;
+  charge?: number;   // ? means optional -- like Optional[int] in Python
+}
+
+// Python equivalent
+from typing import TypedDict, Optional
+class Atom(TypedDict):
+    id: str
+    x: float
+    y: float
+    element: str
+    charge: Optional[int]
+\end{lstlisting}
+
+\subsection{Union Types and Literal Types}
+
+\begin{lstlisting}[language=TypeScript]
+type ArrowType = 'reaction' | 'equilibrium' | 'retrosynthetic' | 'curved';
+// Python: ArrowType = Literal['reaction', 'equilibrium', 'retrosynthetic', 'curved']
+
+type Tool = 'select' | 'atom' | 'bond' | 'eraser' | 'fragment' | 'arrow';
+\end{lstlisting}
+
+\subsection{const and let}
+
+\begin{lstlisting}[language=TypeScript]
+const PI = 3.14159;  // Immutable binding -- like Julia's const.
+                     // Note: const objects can have their fields mutated;
+                     // only the binding itself is immutable.
+let x = 5;           // Mutable -- like a normal variable.
+// var also exists but is deprecated; never use it in modern TypeScript.
+\end{lstlisting}
+
+\subsection{Arrow Functions}
+
+\begin{lstlisting}[language=TypeScript]
+const square = (x: number): number => x * x;
+// Python: square = lambda x: x * x
+
+const add = (a: number, b: number): number => {
+  return a + b;
+};
+
+// Without return type annotation (inferred):
+const greet = (name: string) => `Hello, ${name}`;
+// Python: f"Hello, {name}"
+\end{lstlisting}
+
+\subsection{Modules}
+
+\begin{lstlisting}[language=TypeScript]
+// Named imports (most common)
+import { Atom, Bond } from '../types/chemistry';
+// Python: from chemistry import Atom, Bond
+
+// Default import
+import React from 'react';
+
+// Named export
+export function graphToMolblock(...) { ... }
+export const MOLBLOCK_SCALE = 30;
+
+// Type-only import (erased at runtime, used only for type checking)
+import type { Atom } from '../types/chemistry';
+\end{lstlisting}
+
+\subsection{async/await}
+
+Identical concept to Python's asyncio:
+\begin{lstlisting}[language=TypeScript]
+// TypeScript
+const result = await invoke('generate_conformers', { smiles });
+
+// Python
+// result = await generate_conformers(smiles)
+\end{lstlisting}
+
+\subsection{Generics}
+
+\begin{lstlisting}[language=TypeScript]
+Set<string>              // Python: set[str]
+Map<string, number>      // Python: dict[str, int]
+Promise<Value>           // Python: Coroutine[..., Value]
+Array<Atom>              // Python: list[Atom]
+Record<string, number>   // Python: dict[str, int]
+\end{lstlisting}
+
+\subsection{Nullish Coalescing and Optional Chaining}
+
+These appear frequently in the codebase:
+\begin{lstlisting}[language=TypeScript]
+const smi = mol?.get_smiles() ?? '';
+// Equivalent to:
+// const smi = (mol !== null && mol !== undefined) ? mol.get_smiles() : '';
+// Python: smi = mol.get_smiles() if mol is not None else ''
+\end{lstlisting}
+
+\lstinline|?.| short-circuits and returns \lstinline|undefined| if the left side is
+\lstinline|null| or \lstinline|undefined|, rather than throwing. \lstinline|??| returns
+the right side only if the left is \lstinline|null| or \lstinline|undefined| (unlike
+\lstinline||||, which also fires for \lstinline|0|, \lstinline|""|, \lstinline|false|).
+
+\subsection{Destructuring}
+
+\begin{lstlisting}[language=TypeScript]
+// Object destructuring -- pull named fields out
+const { atoms, bonds } = useStore.getState();
+// Python: state = useStore.getState(); atoms = state.atoms; bonds = state.bonds
+
+// Array destructuring -- pull by position
+const [count, setCount] = useState(0);
+
+// With renaming
+const { x: atomX, y: atomY } = atom;
+// Python: atomX = atom.x; atomY = atom.y
+\end{lstlisting}
+
+\subsection{Template Literals}
+
+\begin{lstlisting}[language=TypeScript]
+const msg = `Target: ${triple}`;
+// Python: f"Target: {triple}"
+\end{lstlisting}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{React Crash Course}
+\label{sec:react}
+
+\subsection{What React Does}
+
+React keeps a UI in sync with data. You describe \textit{what the UI should look like
+given the current data}, and React figures out the minimum DOM changes needed to make
+it so. You never manually update the UI --- you update the data, and the UI follows.
+
+This is like writing a Julia Makie \lstinline|@lift| expression: you say ``this plot
+depends on these observables'', and Makie re-renders automatically when they change.
+React is the same idea, but for HTML.
+
+\subsection{Components}
+
+A component is just a function that returns UI:
+
+\begin{lstlisting}[language=TypeScript]
+function MoleculePreview({ smiles }: { smiles: string }) {
+  return <div>{smiles}</div>;
+}
+// The argument is called "props" and is a plain object.
+// { smiles } is destructuring -- pulling the smiles field out.
+\end{lstlisting}
+
+\subsection{JSX}
+
+JSX looks like HTML but it is TypeScript:
+\begin{lstlisting}[language=TypeScript]
+<Circle x={10} y={20} radius={5} fill="white" />
+// Compiles to: React.createElement(Circle, { x: 10, y: 20, radius: 5, fill: "white" })
+\end{lstlisting}
+
+Curly braces \lstinline|{}| inside JSX mean ``evaluate this TypeScript expression here'':
+\begin{lstlisting}[language=TypeScript]
+<div style={{ color: isDarkMode ? '#fff' : '#000' }}>
+  {atoms.length} atoms
+</div>
+\end{lstlisting}
+
+Note the double braces: the outer \lstinline|{}| means ``JS expression'' and the inner
+\lstinline|{}| is an object literal.
+
+\subsection{useState: Reactive Variables}
+
+\begin{lstlisting}[language=TypeScript]
+const [count, setCount] = useState(0);
+// count    -- the current value (read-only inside the component)
+// setCount -- function to update it (causes React to re-render)
+setCount(count + 1);
+setCount(prev => prev + 1);  // functional update -- preferred when new value
+                              // depends on old
+\end{lstlisting}
+
+This is like a Julia \texttt{Observable}: changing it triggers any code that depends
+on it. The key rule is: \textbf{you must call the setter function to change state ---
+you cannot do \lstinline|count++|}. React won't know the variable changed unless you
+tell it via the setter.
+
+\subsection{useEffect: Side Effects on State Changes}
+
+\begin{lstlisting}[language=TypeScript]
+useEffect(() => {
+  // Runs whenever `smiles` changes
+  fetchConformers(smiles).then(setData);
+
+  // Optional cleanup: runs before the next effect AND on unmount
+  return () => abortController.abort();
+}, [smiles]);  // dependency array
+\end{lstlisting}
+
+Think of it as a slot/signal connection in Qt, or a \lstinline|Makie.on(observable)|
+callback. The dependency array controls when it fires:
+\begin{itemize}[leftmargin=1.5em]
+  \item \lstinline|[smiles]| --- re-runs when \lstinline|smiles| changes
+  \item \lstinline|[]| --- runs once on mount (component creation)
+  \item omitted --- runs after every render (almost always wrong)
+\end{itemize}
+
+\subsection{useMemo: Memoized Computation}
+
+\begin{lstlisting}[language=TypeScript]
+const molblock = useMemo(
+  () => graphToMolblock(atoms, bonds, width, height),
+  [atoms, bonds, width, height]
+);
+\end{lstlisting}
+
+This is \texttt{functools.lru\_cache} for React: only recomputes when the listed
+dependencies change. Without \lstinline|useMemo|, the function would re-run on every
+render even if the inputs hadn't changed.
+
+\subsection{Custom Hooks}
+
+Any function starting with \lstinline|use| that calls other hooks is a ``custom hook''
+--- reusable stateful logic:
+
+\begin{lstlisting}[language=TypeScript]
+function useBondTool() {
+  const [isDragging, setIsDragging] = useState(false);
+  const onMouseDown = useCallback((pos) => { ... }, []);
+  return { isDragging, onMouseDown };
+}
+
+// Usage in ChemCanvas:
+const { isDragging, onMouseDown } = useBondTool();
+\end{lstlisting}
+
+This is like extracting a Python mixin or a Julia module --- packaging stateful logic
+so it can be reused or tested independently.
+
+\subsection{useRef: Mutable Values That Don't Trigger Re-render}
+
+\begin{lstlisting}[language=TypeScript]
+const stageRef = useRef<Stage | null>(null);
+stageRef.current = new Stage(...);   // mutate freely
+\end{lstlisting}
+
+\lstinline|useRef| holds a mutable value in \lstinline|.current| that persists across
+renders but does \textbf{not} cause a re-render when changed. Use it for DOM references
+and for values that callbacks need to read without stale closure issues (covered next).
+
+\subsection{The Stale Closure Problem --- and Why Every Tool Hook Uses Dual State + Ref}
+\label{sec:staleclosure}
+
+This is one of the most important React concepts for understanding the tool hooks.
+
+In JavaScript, closures capture variables \textbf{by value at the time the function is
+created}. When you create a \lstinline|useCallback| with \lstinline|[]|
+(no dependencies), that callback is created once and never re-created. This means it
+captures the initial values of any variables it references --- and if those variables
+change later, the callback still sees the old values.
+
+Example of the problem:
+\begin{lstlisting}[language=TypeScript]
+const [count, setCount] = useState(0);
+
+// This callback is created once because deps = []
+const onMouseDown = useCallback(() => {
+  console.log(count);  // ALWAYS prints 0, even after setCount(5)!
+}, []);               // count is "stale" inside here
+\end{lstlisting}
+
+The standard fix is to keep a \lstinline|useRef| in sync with the state, and read
+from the ref inside callbacks:
+\begin{lstlisting}[language=TypeScript]
+const [count, setCount] = useState(0);
+const countRef = useRef(0);
+
+// Setter that keeps both in sync:
+const setCountBoth = (v: number) => { countRef.current = v; setCount(v); };
+
+// Now callbacks can read the live value via ref:
+const onMouseDown = useCallback(() => {
+  console.log(countRef.current);  // Always sees the current value
+}, []);                            // No stale closure
+\end{lstlisting}
+
+\textbf{This pattern appears in every tool hook.} In \lstinline|useBondTool|:
+\begin{lstlisting}[language=TypeScript]
+const [activeAtomId, setActiveAtomId] = useState<string | null>(null);
+const activeAtomIdRef = useRef<string | null>(null);
+
+// Single setter that syncs both:
+const setActive = (id: string | null) => {
+  activeAtomIdRef.current = id;   // ref: for callbacks to read
+  setActiveAtomId(id);            // state: to trigger re-render
+};
+\end{lstlisting}
+
+The \lstinline|useState| variable triggers re-renders (so the canvas updates). The
+\lstinline|useRef| variable is read inside \lstinline|onMouseMove|/\lstinline|onMouseUp|
+callbacks without stale closures. Both must be updated together whenever the value
+changes.
+
+\subsection{forwardRef and useImperativeHandle}
+
+React components normally communicate via props (parent passes data down) and callbacks
+(child calls parent's functions). But sometimes a parent needs to call a method on a
+child imperatively --- for example, ``save the canvas to disk right now.''
+
+React's answer is \lstinline|forwardRef| + \lstinline|useImperativeHandle|.
+
+\textbf{Step 1} --- Define what methods the parent can call:
+\begin{lstlisting}[language=TypeScript]
+export interface ChemCanvasRef {
+  saveNative:    () => Promise<void>;
+  exportPNG:     () => Promise<void>;
+  getMolblock:   () => string;
+  loadFromSmiles:(smiles: string) => void;
+  cleanUp:       () => void;
+}
+\end{lstlisting}
+
+\textbf{Step 2} --- Wrap the component in \lstinline|forwardRef|, which lets it
+receive a \lstinline|ref| from its parent:
+\begin{lstlisting}[language=TypeScript]
+export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, ref) => {
+  //                                                                         ^^^
+  //                         The ref comes in as the second argument
+
+  useImperativeHandle(ref, () => ({
+    saveNative:  async () => { /* ... */ },
+    getMolblock: () => graphToMolblock(atoms, bonds, width, height),
+    // ...
+  }));
+
+  return <Stage>...</Stage>;
+});
+\end{lstlisting}
+
+\textbf{Step 3} --- The parent creates a ref and passes it to the component:
+\begin{lstlisting}[language=TypeScript]
+// In App.tsx:
+const canvasRef = useRef<ChemCanvasRef>(null);
+
+<ChemCanvas ref={canvasRef} width={w} height={h} />
+
+// Now the parent can call methods imperatively:
+await canvasRef.current?.saveNative();
+const molblock = canvasRef.current?.getMolblock();
+\end{lstlisting}
+
+Both \lstinline|ChemCanvas| and \lstinline|Molecule3DThreePanel| use this pattern.
+\lstinline|Molecule3DThreePanel| exposes \lstinline|captureViewer()| so the parent can
+export a high-resolution PNG from the active Three.js renderer.
+
+\subsection{lazy() and Suspense --- Deferred Loading}
+
+The 3D viewer bundle is sizeable. We don't want it loaded until the user actually
+opens the viewer, so React's \lstinline|lazy()| and \lstinline|Suspense| defer it:
+
+\begin{lstlisting}[language=TypeScript]
+// In App.tsx -- lazy import:
+const Molecule3DThreePanel = lazy(() => import("./components/Molecule3DThreePanel"));
+//                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+//                              This file is not loaded until the viewer is first rendered.
+
+// In JSX -- Suspense wraps the lazy component:
+<Suspense fallback={null}>
+  <Molecule3DThreePanel ref={molecule3DRef} smiles={viewerSmiles} ... />
+</Suspense>
+\end{lstlisting}
+
+When \lstinline|Molecule3DThreePanel| first needs to render, React dynamically downloads its
+JavaScript bundle, executes it, then renders the component. While loading, it shows
+the \lstinline|fallback| (here \lstinline|null| --- nothing).
+
+\subsection{Zustand: Global State}
+
+React's \lstinline|useState| is local to one component. For state that multiple
+components need, we use Zustand. It behaves like a global mutable object with
+change notifications:
+
+\begin{lstlisting}[language=TypeScript]
+// Read individual fields (component re-renders only when this field changes):
+const tool  = useStore(s => s.tool);
+const atoms = useStore(s => s.atoms);
+
+// Read multiple fields:
+const { atoms, bonds } = useStore(s => ({ atoms: s.atoms, bonds: s.bonds }));
+
+// Call actions from anywhere, even outside React components:
+useStore.getState().setTool('bond');
+useStore.getState().pushToHistory({ atoms, bonds, arrows });
+\end{lstlisting}
+
+The selector function \lstinline|s => s.tool| lets Zustand only notify this component
+when \lstinline|tool| changes, not when any other field changes. Without selectors,
+every store update would re-render every subscriber.
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Project Architecture Deep Dive}
+\label{sec:arch}
+
+\subsection{7a. The Data Model (src/types/chemistry.ts)}
+
+The entire canvas is represented as a chemical graph. This file is tiny but
+foundational --- every other file depends on these types:
+
+\begin{lstlisting}[language=TypeScript]
+interface Atom {
+  id: string;        // UUID -- stable identity across renders, undo/redo, re-parses
+  x: number;         // canvas pixel position; origin = top-left corner
+  y: number;
+  element: string;   // "C", "N", "O", "Ph", "OMe", "tBu", etc.
+                     // Can be a shorthand label, not just an element symbol
+  label?: string;    // display override (kept for CDXML compatibility)
+  charge?: number;   // formal charge (+1, -1, +2, etc.)
+  electrons?: number; // number of lone pair electrons for display (0, 2, 4)
+}
+
+interface Bond {
+  id: string;
+  from: string;    // atom ID of first endpoint
+  to: string;      // atom ID of second endpoint
+  order: number;   // 1=single, 2=double, 3=triple
+  stereo?: number; // 0=none, 1=wedge (bold), 6=hash (dashed)
+                   // These are V2000 MDL format codes -- see section 7e
+}
+
+interface Arrow {
+  id: string;
+  type: ArrowType;  // 'reaction' | 'equilibrium' | 'retrosynthetic' | ...
+  x1: number; y1: number;  // tail point (canvas px)
+  x2: number; y2: number;  // head point (canvas px)
+  cpx: number; cpy: number; // Bezier control point (for curved arrows)
+  label?: string;           // reaction condition text, e.g. "H2O, 80C"
+}
+
+interface CanvasState {
+  atoms: Atom[];
+  bonds: Bond[];
+  arrows: Arrow[];
+}
+\end{lstlisting}
+
+\lstinline|CanvasState| is the single source of truth. Everything else --- SMILES, the
+2D SVG preview, the 3D viewer, CDXML output --- is derived from this. Think of it like
+a Julia \lstinline|struct| that you pass to all downstream functions.
+
+The spectrum prediction panels define their own result types:
+
+\begin{lstlisting}[language=TypeScript]
+// A single NMR chemical shift prediction for one (set of equivalent) nucleus/nuclei
+interface NmrPeak {
+  shift: number;    // chemical shift in ppm
+  atom_idx: number; // 0-based heavy-atom index in the RDKit molecule
+  count: number;    // number of equivalent nuclei (e.g. 3 for a methyl 1H)
+}
+
+// Full NMR prediction result returned by the sidecar's predict_nmr command
+interface NmrSpectrum {
+  peaks_1h:  NmrPeak[];   // proton shifts (H atoms grouped by attached heavy atom)
+  peaks_13c: NmrPeak[];   // carbon shifts (one entry per heavy C atom)
+}
+\end{lstlisting}
+
+\textbf{A note on \lstinline|electrons|}: stores lone pair electrons for display (shown
+as dots). Zero means no dots, 2 means one pair, 4 means two pairs. Purely cosmetic ---
+RDKit ignores it when generating SMILES.
+
+\textbf{On \lstinline|element| vs \lstinline|label|}: \lstinline|element| is what the
+atom \textit{is} chemically. For shorthand groups like \lstinline|OMe| or \lstinline|Ph|,
+\lstinline|element| stores the shorthand string and \texttt{graph.ts} has a lookup table
+(\lstinline|SHORTHAND_DATA|) that maps each shorthand to its heavy-atom lead element
+for the V2000 Molblock.
+
+\subsection{7b. Global State (src/store/index.ts)}
+
+The Zustand store holds all application state in one place, divided into four logical
+groups.
+
+\textbf{Canvas state} --- the chemical graph and its history:
+\begin{lstlisting}[language=TypeScript]
+atoms: Atom[];
+bonds: Bond[];
+arrows: Arrow[];
+history: CanvasState[];    // undo/redo snapshots
+historyIndex: number;      // current position in history
+selectedAtomIds: Set<string>;
+selectedArrowIds: Set<string>;
+lastInteractedAtomId: string | null;  // used for viewer focus (see 7e)
+canvasSize: { width: number; height: number };
+\end{lstlisting}
+
+\textbf{Editor state} --- current tool settings:
+\begin{lstlisting}[language=TypeScript]
+tool: Tool;           // 'bond' | 'atom' | 'select' | 'eraser' | ...
+element: string;      // currently selected atom element ("C", "N", etc.)
+bondOrder: number;    // 1, 2, or 3
+stereo: number;       // 0=plain, 1=wedge, 6=hash
+arrowType: ArrowType;
+currentCharge: number;
+lonePairMode: boolean;    // charge tool placing lone pairs, not charges
+selectedFragment: string; // SMILES of current ring template
+showHydrogens: boolean;
+\end{lstlisting}
+
+\textbf{Viewer state} --- 2D/3D preview panel:
+\begin{lstlisting}[language=TypeScript]
+viewerSmiles: string;    // SMILES currently shown in the viewer
+editableSmiles: string;  // SMILES in the text input bar (can differ while typing)
+isInputFocused: boolean; // whether the SMILES text input has focus (blocks hotkeys)
+previewMode: '2D' | '3D';
+showViewer: boolean;
+viewerMode: ViewerMode;  // 'pinned' | 'floating' | 'split'
+viewerPos: { x: number; y: number };
+viewerSize: { width: number; height: number };
+splitWidth: number;
+nmrSpectrum: NmrSpectrum | null;  // most recent NMR prediction (null until first prediction)
+\end{lstlisting}
+
+\textbf{Undo/redo} works by maintaining a snapshot list.
+\lstinline|pushToHistory| appends the new \lstinline|CanvasState| to
+\lstinline|history| (truncating any redo branch) and atomically updates the live
+atoms/bonds/arrows. \lstinline|undo| decrements \lstinline|historyIndex| and restores
+that snapshot:
+
+\begin{lstlisting}[language=TypeScript]
+pushToHistory: (newState) => set((s) => {
+  const hist = s.history.slice(0, s.historyIndex + 1); // discard redo branches
+  hist.push(newState);
+  if (hist.length > 50) hist.shift(); // keep at most 50 levels
+  return {
+    history: hist,
+    historyIndex: hist.length - 1,
+    atoms: newState.atoms,
+    bonds: newState.bonds,
+    arrows: newState.arrows,
+  };
+}),
+
+undo: () => set((s) => {
+  if (s.historyIndex > 0) {
+    const prev = s.history[s.historyIndex - 1];
+    return { historyIndex: s.historyIndex - 1, ...prev };
+  }
+  if (s.historyIndex === 0)
+    return { historyIndex: -1, atoms: [], bonds: [], arrows: [] };
+  return {};
+}),
+\end{lstlisting}
+
+There are two distinct ways to update the canvas state:
+\begin{itemize}[leftmargin=1.5em]
+  \item \lstinline|pushToHistory(state)| --- commits a change, adds it to the undo
+        stack. Use for user-driven actions like drawing a bond or moving atoms.
+  \item \lstinline|setCurrentCanvasState(state)| --- updates the live state
+        \textit{without} pushing to history. Use for in-progress mouse-drag previews
+        that shouldn't create intermediate undo entries.
+\end{itemize}
+
+\subsection{7c. App.tsx: Root Component}
+
+\lstinline|App.tsx| is the outermost React component. It owns layout, menus, keyboard
+shortcuts, file operations, the viewer layout system, and the window controls. It does
+not do chemistry --- it delegates all of that to \lstinline|ChemCanvas|.
+
+\subsubsection{The Theme System}
+
+There are no CSS theme files, no CSS variables, and no theme library. The theme is a
+plain JavaScript object:
+
+\begin{lstlisting}[language=TypeScript]
+const theme = {
+  bg:      isDarkMode ? '#1e1e1e' : '#ebebeb',
+  sidebar: isDarkMode ? '#252526' : '#f3f3f3',
+  header:  isDarkMode ? '#333333' : '#ffffff',
+  text:    isDarkMode ? '#cccccc' : '#444444',
+  border:  isDarkMode ? '#444444' : '#dcdcdc',
+  canvas:  isDarkMode ? '#1e1e1e' : '#f5f5f5',
+};
+\end{lstlisting}
+
+This object is then passed directly into inline \lstinline|style| props throughout the
+JSX:
+\begin{lstlisting}[language=TypeScript]
+<div style={{ background: theme.bg, color: theme.text,
+              border: `1px solid ${theme.border}` }}>
+\end{lstlisting}
+
+The advantage: no CSS specificity to fight, no class name collisions, and the
+relationship between \lstinline|isDarkMode| and every colour is explicit and local.
+
+\subsubsection{The Frameless Window}
+
+\lstinline|tauri.conf.json| sets \lstinline|"decorations": false|, removing the OS
+title bar. The header div has \lstinline|data-tauri-drag-region|:
+\begin{lstlisting}[language=TypeScript]
+<div data-tauri-drag-region style={{ background: theme.header, height: '36px' }}>
+\end{lstlisting}
+
+This attribute is a Tauri hook. Any element with it can be used to drag the window ---
+Tauri intercepts mouse events on such elements and routes them to the OS window manager.
+
+The window control buttons call into Tauri's window API:
+\begin{lstlisting}[language=TypeScript]
+import { getCurrentWindow } from '@tauri-apps/api/window';
+const appWindow = getCurrentWindow();
+
+<button onClick={() => appWindow.minimize()}>        // minimize
+<button onClick={() => appWindow.toggleMaximize()}>  // maximize
+<button onClick={() => appWindow.close()}>           // close
+\end{lstlisting}
+
+\subsubsection{Keyboard Shortcuts}
+
+\lstinline|App.tsx| registers global keyboard shortcuts via a \lstinline|useEffect|
+with a \lstinline|keydown| listener on \lstinline|window|:
+
+\begin{lstlisting}[language=TypeScript]
+useEffect(() => {
+  const handler = (e: KeyboardEvent) => {
+    // Guard: if the SMILES text input is focused, let keystrokes go to it
+    if (useStore.getState().isInputFocused) return;
+
+    if (e.ctrlKey || e.metaKey) {
+      if (e.key === 's') { e.preventDefault(); handleSaveNative(); }  // Ctrl+S
+      if (e.key === 'o') { e.preventDefault(); handleOpen(); }        // Ctrl+O
+      if (e.key === 'z') { e.preventDefault(); undo(); }              // Ctrl+Z
+      if (e.key === 'y') { e.preventDefault(); redo(); }              // Ctrl+Y
+      if (e.key === 'a') { e.preventDefault(); selectAll(); }         // Ctrl+A
+      if (e.key === 'k') { e.preventDefault(); canvasRef.current?.cleanUp(); }
+    }
+    if (e.key === 'Escape') { deselectAll(); closeAllMenus(); }
+  };
+  window.addEventListener('keydown', handler);
+  return () => window.removeEventListener('keydown', handler);
+}, [handleSaveNative, handleOpen]);
+\end{lstlisting}
+
+The \lstinline|isInputFocused| guard is important: without it, pressing \texttt{C} to
+switch to carbon would also type ``C'' into the SMILES text box when it's focused.
+
+Additional hotkeys live in \lstinline|ChemCanvas.tsx|:
+
+\begin{tabularx}{\linewidth}{@{} l X @{}}
+\toprule
+\textbf{Key(s)} & \textbf{Action} \\
+\midrule
+\texttt{c n o f s p b i l h} & Switch hovered atom to C, N, O, F, S, P, Br, I, Cl, H \\
+\texttt{m e a d} & Switch hovered atom to Me, Et, Ph, D (deuterium) \\
+\texttt{1 2 3} & Set bond order to single/double/triple \\
+\texttt{w} & Wedge bond (bold) \\
+\texttt{4 5 6 7 8} & Place cyclobutane/cyclopentane/cyclohexane/etc.\ ring \\
+\texttt{a} & Place benzene ring \\
+\texttt{Delete / Backspace} & Remove selected atoms and their bonds \\
+\bottomrule
+\end{tabularx}
+
+\subsubsection{The Viewer Layout Modes}
+
+The 2D/3D viewer can appear in three modes controlled by \lstinline|viewerMode|:
+
+\begin{itemize}[leftmargin=1.5em]
+  \item \textbf{\lstinline|split|} --- The viewer occupies a right panel; a draggable
+        divider separates it from the canvas. The canvas width shrinks accordingly.
+  \item \textbf{\lstinline|pinned|} --- The viewer is an overlay panel docked to the
+        right edge of the canvas with a resize handle.
+  \item \textbf{\lstinline|floating|} --- The viewer is a free-floating overlay that
+        can be dragged anywhere on the canvas.
+\end{itemize}
+
+\subsubsection{The SMILES Bar}
+
+There are two distinct SMILES strings in the store:
+\begin{itemize}[leftmargin=1.5em]
+  \item \lstinline|viewerSmiles| --- the SMILES of the currently focused fragment,
+        drives the 2D/3D viewer. Updated automatically as atoms are drawn.
+  \item \lstinline|editableSmiles| --- the SMILES in the text input. Normally mirrors
+        \lstinline|viewerSmiles|, but can diverge while the user types. Pressing Enter
+        calls \lstinline|loadFromSmiles()| on the canvas, which parses the SMILES via
+        RDKit and loads the result onto the canvas.
+\end{itemize}
+
+\subsubsection{Fragment Ring Templates}
+
+The sidebar has a RING section with buttons for common ring systems. Each button calls:
+\begin{lstlisting}[language=TypeScript]
+setTool('fragment');
+setSelectedFragment('c1ccccc1');  // benzene, or C1CCCCC1, etc.
+\end{lstlisting}
+
+When a fragment is placed, \lstinline|placeFragmentAt()| in \lstinline|ChemCanvas.tsx|
+handles the geometry:
+\begin{enumerate}[leftmargin=1.5em]
+  \item Ask RDKit to generate a fresh 2D embedding of the SMILES;
+        parse the resulting atom coordinates from the molblock.
+  \item If clicking on an \textbf{existing bond}: align the fragment so that
+        edge[0]--edge[1] maps onto that bond's vector; rotate to minimise overlap.
+  \item If clicking on an \textbf{existing atom}: align fragment[0] to that atom;
+        choose the rotation that points into the largest angular gap in existing bonds.
+  \item If clicking on \textbf{empty space}: place the fragment centred at the click.
+  \item Merge overlapping atoms (the atom you clicked becomes the ring junction),
+        add new atoms and bonds, push to history.
+\end{enumerate}
+
+\subsection{7d. The Drawing Engine (ChemCanvas.tsx)}
+
+\lstinline|ChemCanvas.tsx| owns the canvas rendering, hit testing, zoom/pan,
+keyboard handling, and the SMILES update pipeline.
+
+\subsubsection{react-konva}
+
+Konva is a Canvas 2D drawing library. react-konva provides React-style JSX bindings.
+Instead of calling the Canvas 2D API imperatively:
+
+\begin{lstlisting}[language=TypeScript]
+// Plain Canvas 2D API (without react-konva)
+ctx.beginPath();
+ctx.arc(atom.x, atom.y, 8, 0, Math.PI * 2);
+ctx.fillStyle = "white";
+ctx.fill();
+ctx.stroke();
+\end{lstlisting}
+
+You write declarative JSX:
+\begin{lstlisting}[language=TypeScript]
+<Circle x={atom.x} y={atom.y} radius={8} fill="white" stroke="black" />
+\end{lstlisting}
+
+The Konva rendering tree:
+\begin{lstlisting}[language=TypeScript]
+<Stage width={width} height={height}>    // the canvas element
+  <Layer>                                // a drawing layer
+    <Line points={[x1,y1, x2,y2]} stroke="black" strokeWidth={2} />
+    <Circle x={50} y={50} radius={8} fill="white" />
+    <Text x={50} y={50} text="C" />
+    <Shape sceneFunc={(ctx, shape) => { /* raw Canvas 2D */ }} />
+  </Layer>
+</Stage>
+\end{lstlisting}
+
+\lstinline|Shape| with \lstinline|sceneFunc| is the escape hatch for drawing wedge bonds
+and arrows that require complex paths.
+
+\subsubsection{Zoom and Pan}
+
+The entire canvas contents are wrapped in a Konva transform:
+\begin{lstlisting}[language=TypeScript]
+const [stageScale, setStageScale] = useState(1);
+const [stagePos, setStagePos] = useState({ x: 0, y: 0 });
+\end{lstlisting}
+
+All atom coordinates are passed as-is to Konva; the stage applies
+\lstinline|scaleX={stageScale} scaleY={stageScale} x={stagePos.x} y={stagePos.y}|
+globally. When converting mouse pixel coordinates to logical coordinates:
+\begin{lstlisting}[language=TypeScript]
+const getRelativePointerPosition = () => {
+  const pointer = stage.getPointerPosition();   // pixel position on screen
+  return {
+    x: (pointer.x - stagePos.x) / stageScale,  // logical x
+    y: (pointer.y - stagePos.y) / stageScale,  // logical y
+  };
+};
+\end{lstlisting}
+
+The hit radius for atoms scales inversely with zoom:
+\begin{lstlisting}[language=TypeScript]
+const findAtomAt = (x: number, y: number) => {
+  const r = 15 / stageScale;   // constant pixel radius regardless of zoom
+  return atoms.find(a => Math.sqrt((a.x-x)**2 + (a.y-y)**2) < r) ?? null;
+};
+\end{lstlisting}
+
+\subsubsection{Hit Testing}
+
+Three hit-test functions:
+
+\textbf{\lstinline|findAtomAt(x, y)|} --- Euclidean distance from cursor to atom
+centre, within radius \lstinline|15/scale|.
+
+\textbf{\lstinline|findBondAt(x, y)|} --- Point-to-line-segment distance. For each
+bond, project the cursor onto the segment clamped to $[0,1]$, compute distance, return
+the nearest bond within \lstinline|10/scale|.
+
+\textbf{\lstinline|findArrowAt(x, y)|} --- For straight arrows: same point-to-segment
+as bonds. For curved arrows: sample 20 points along the Bezier curve
+($t = 0, 0.05, \ldots, 1.0$) and check if any sample is within \lstinline|12/scale|
+of the cursor.
+
+\subsubsection{useBondTool in Detail}
+
+Bond drawing has three phases:
+
+\textbf{Mouse down:} If you clicked on an existing atom, start dragging from it. If on
+an existing bond, cycle or set its order/stereo. If on empty space, create a new carbon
+atom at that position and start dragging from it.
+
+\textbf{Mouse move:} Compute the current bond preview. The angle is snapped to
+$15^\circ$ increments ($\pi/12$ radians):
+\begin{lstlisting}[language=TypeScript]
+const dx = pos.x - start.x, dy = pos.y - start.y;
+const angle = Math.round(Math.atan2(dy, dx) / (Math.PI / 12)) * (Math.PI / 12);
+\end{lstlisting}
+
+\textbf{Mouse up:} If the drag was shorter than 5 pixels (essentially a click), auto-place
+a bond in the chemically natural direction --- find the largest angular gap between
+existing bonds and bisect it:
+\begin{lstlisting}[language=TypeScript]
+const gaps = [];
+for (let i = 0; i < angles.length; i++) {
+  let gap = angles[(i+1) % angles.length] - angles[i];
+  if (gap <= 0) gap += 2 * Math.PI;
+  gaps.push({ gap, bisector: angles[i] + gap / 2 });
+}
+const best = gaps.sort((a, b) => b.gap - a.gap)[0];
+finalAngle = best.bisector;
+\end{lstlisting}
+
+\subsubsection{useSelectTool in Detail}
+
+The select tool handles four distinct interactions:
+\begin{enumerate}[leftmargin=1.5em]
+  \item \textbf{Click on atom} --- select it (or shift-click to add/remove from selection)
+  \item \textbf{Click on bond} --- if both endpoints are already selected, cycle bond
+        order; otherwise select both endpoints
+  \item \textbf{Drag selected atoms} --- translate all selected atoms by the mouse
+        delta, using \lstinline|setCurrentCanvasState| (no history entry until mouse-up)
+  \item \textbf{Rubber-band selection} --- click on empty space, drag to draw a box,
+        select all atoms within the box
+\end{enumerate}
+
+There is also a \textbf{rotation handle}: when atoms are selected, a small circle appears
+60\,px above the centroid. Dragging it rotates the selection around its centroid. With
+Shift held, rotation snaps to $15^\circ$ increments. During drag,
+\lstinline|setCurrentCanvasState| is called on every mouse move; on mouse-up,
+\lstinline|pushToHistory| commits the final state as a single undo entry.
+
+\subsubsection{useAtomTool in Detail}
+
+The atom tool behaves similarly to the bond tool, but clicking on an existing atom
+(without dragging) opens an \textbf{inline text editor}:
+
+\begin{lstlisting}[language=TypeScript]
+if (dist < 5 && !preview.targetId) {
+  if (activeAtomWasExisting.current) {
+    setEditingAtomId(start.id);   // triggers a text input in ChemCanvas
+    setEditingValue(start.element);
+  }
+}
+\end{lstlisting}
+
+\lstinline|ChemCanvas| renders a positioned \lstinline|<input>| element over the atom
+when \lstinline|editingAtomId| is set. Pressing Enter commits the new label and pushes
+to history. This lets you type arbitrary shorthand labels directly onto atoms.
+
+\subsection{7e. SMILES Generation Pipeline}
+
+\begin{lstlisting}[language={}]
+canvas atoms/bonds
+      |
+      v  hashCanvasState(atoms, bonds)  -- cheap string hash
+      |  if hash unchanged: skip (memoization)
+      |  (200ms debounce: only runs 200ms after the last change)
+      |
+      v  graphToMolblock(atoms, bonds, width, height)  [src/lib/graph.ts]
+      |
+      v  V2000 Molblock string
+      |
+      +---> rdkit.get_mol(molblock) -> mol.get_smiles() -> editableSmiles (Structure Input bar)
+      |
+      v  getConnectedComponents(atoms, bonds)
+      |  identify which fragment to show in the viewer
+      |  (priority: selected atom's fragment > last interacted > first component)
+      |
+      v  graphToMolblock(fragment atoms/bonds) -> rdkit.get_mol() -> mol.get_smiles()
+      |
+      v  viewerSmiles -> Molecule.tsx (2D SVG) + Molecule3DThreePanel.tsx (3D)
+\end{lstlisting}
+
+The SMILES update is triggered by a \lstinline|useEffect| watching \lstinline|atoms|,
+\lstinline|bonds|, \lstinline|rdkit|, \lstinline|width|, and \lstinline|height|. It is
+\textbf{debounced by 200\,ms}: a \lstinline|setTimeout| is set on each change, and
+the previous timer is cancelled via the \lstinline|useEffect| cleanup return. SMILES is
+not recomputed while the user is actively dragging.
+
+\subsubsection{hashCanvasState}
+
+\begin{lstlisting}[language=TypeScript]
+export function hashCanvasState(atoms: Atom[], bonds: Bond[]): string {
+  let h = `${atoms.length}:${bonds.length}`;
+  for (const a of atoms)
+    h += `|${a.id}${a.x.toFixed(1)}${a.y.toFixed(1)}${a.element}${a.charge ?? 0}`;
+  for (const b of bonds)
+    h += `|${b.from}${b.to}${b.order}${b.stereo ?? 0}`;
+  return h;
+}
+\end{lstlisting}
+
+This is a cheap string concatenation hash. The \lstinline|.toFixed(1)| means positions
+that differ by less than 0.1\,px are treated as identical (minor floating-point drift
+won't trigger SMILES recomputation).
+
+\subsubsection{getConnectedComponents and Viewer Focus}
+
+When there are multiple disconnected structures on the canvas (e.g.\ a reaction scheme),
+the \textbf{viewer} should show just one fragment --- whichever the user is working on.
+\lstinline|getConnectedComponents| finds the connected components via BFS:
+
+\begin{lstlisting}[language=TypeScript]
+export function getConnectedComponents(atoms: Atom[], bonds: Bond[]): Set<string>[] {
+  const adj = buildAdjacencyMap(atoms, bonds);
+  const visited = new Set<string>();
+  const components: Set<string>[] = [];
+  for (const a of atoms) {
+    if (visited.has(a.id)) continue;
+    const comp = new Set<string>();
+    const q = [a.id];
+    while (q.length) {
+      const curr = q.shift()!;
+      comp.add(curr);
+      for (const n of adj.get(curr) ?? []) {
+        if (!visited.has(n)) { visited.add(n); q.push(n); }
+      }
+    }
+    components.push(comp);
+  }
+  return components;
+}
+\end{lstlisting}
+
+Viewer focus logic: (1) if any atom is selected, show its fragment; (2) else if there's
+a \lstinline|lastInteractedAtomId|, show its fragment; (3) else show the first component.
+
+\subsubsection{graphToMolblock and the V2000 Format}
+
+The key transformation is coordinate scaling:
+
+\begin{lstlisting}[language=TypeScript]
+// Canvas pixels -> Angstroms, centred at the canvas midpoint
+const x_ang = (atom.x - canvasWidth  / 2) / MOLBLOCK_SCALE;  // MOLBLOCK_SCALE = 30
+const y_ang = -(atom.y - canvasHeight / 2) / MOLBLOCK_SCALE;  // Y flipped: canvas Y grows down
+\end{lstlisting}
+
+\texttt{MOLBLOCK\_SCALE = 30} means 30 canvas pixels $= 1$\,\AA. The V2000 format is
+fixed-width text:
+
+\begin{lstlisting}[language={}]
+\n  ChemEditor\n\n
+  3  2  0  0  0  0  0  0  0  0999 V2000
+    0.0000    0.0000    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0
+    1.5000    0.0000    0.0000 O   0  0  0  0  0  0  0  0  0  0  0  0
+  1  2  1  0  0  0  0   <- bond: atom1, atom2, order, stereo
+M  CHG  1   2  -1       <- charge block
+M  END
+\end{lstlisting}
+
+\textbf{V2000 stereo codes} (MDL-format integers):
+\begin{itemize}[leftmargin=1.5em]
+  \item \lstinline|stereo = 0| --- no stereo (plain line)
+  \item \lstinline|stereo = 1| --- wedge bond (bold triangle, towards viewer)
+  \item \lstinline|stereo = 6| --- hash bond (dashed lines, away from viewer)
+\end{itemize}
+
+\textbf{Shorthand handling}: \lstinline|SHORTHAND_DATA| maps labels like
+\lstinline|"OMe"|, \lstinline|"Ph"|, \lstinline|"tBu"| to their heavy-atom lead
+element. When writing the Molblock:
+\begin{lstlisting}[language=TypeScript]
+const elem = SHORTHAND_DATA[atom.element]?.lead ?? atom.element;
+// "OMe" -> "O", "Ph" -> "C", "tBu" -> "C", "N" -> "N"
+\end{lstlisting}
+
+\subsubsection{molblockToState --- The Inverse Function}
+
+\lstinline|molblockToState| is the reverse of \lstinline|graphToMolblock|. It is used
+when loading files and when the user types a SMILES into the bar:
+
+\begin{lstlisting}[language=TypeScript]
+export function molblockToState(
+  mb: string,
+  canvasWidth: number,
+  canvasHeight: number,
+  existingArrows: Arrow[] = []
+): CanvasState {
+  const ls = mb.split('\n');
+  const cL = ls[3];
+  const nA = parseInt(cL.substring(0, 3).trim());
+  const nB = parseInt(cL.substring(3, 6).trim());
+
+  const atoms: Atom[] = [];
+  for (let i = 0; i < nA; i++) {
+    const l = ls[i + 4];
+    atoms.push({
+      id: crypto.randomUUID(),  // fresh UUIDs for all atoms
+      x: canvasWidth  / 2 + parseFloat(l.substring(0,  10)) * MOLBLOCK_SCALE,
+      y: canvasHeight / 2 - parseFloat(l.substring(10, 20)) * MOLBLOCK_SCALE,
+      element: l.substring(31, 34).trim(),
+    });
+  }
+  // ... parse bonds, charge block ...
+  return { atoms, bonds, arrows: existingArrows };
+}
+\end{lstlisting}
+
+Note that \lstinline|existingArrows| are passed through unchanged --- MOL/SDF files
+have no concept of reaction arrows, so existing arrows are preserved.
+
+\subsection{7f. 2D Preview (Molecule.tsx)}
+
+\lstinline|Molecule.tsx| takes a SMILES string and renders it as an image.
+The RDKit WASM API generates SVG:
+
+\begin{lstlisting}[language=TypeScript]
+const svg = useMemo(() => {
+  if (!rdkit || !smiles) return null;
+  const mol = rdkit.get_mol(smiles);
+  if (!mol) return "Invalid SMILES";
+
+  const params = {
+    width: Math.round(width),
+    height: Math.round(height),
+    backgroundColour: [1, 1, 1, 0],   // transparent (RGBA, 0-1 range)
+    bondLineWidth: 2.0,
+    symbolColour: isDarkMode ? [1, 1, 1, 1] : [0, 0, 0, 1],
+    ...(isDarkMode && { atomColourPalette: { 6: [0.75, 0.75, 0.75] } }),
+    // ^ In dark mode, override C (element 6) to grey so bonds are visible
+  };
+
+  let svgString = mol.get_svg_with_highlights(JSON.stringify(params));
+  mol.delete();   // must free WASM heap memory manually
+  return svgString;
+}, [rdkit, smiles, width, height, isDarkMode]);
+\end{lstlisting}
+
+The SVG string is then turned into an image using the \textbf{Blob URL} pattern:
+
+\begin{lstlisting}[language=TypeScript]
+useEffect(() => {
+  if (!svg || !svg.startsWith('<')) { setImgUrl(null); return; }
+  const blob = new Blob([svg], { type: 'image/svg+xml' });
+  const url = URL.createObjectURL(blob);
+  setImgUrl(url);
+  return () => URL.revokeObjectURL(url);  // cleanup when svg changes
+}, [svg]);
+
+// In JSX:
+<img src={imgUrl} width={width} height={height} />
+\end{lstlisting}
+
+\textbf{Why Blob URL instead of \lstinline|dangerouslySetInnerHTML|?} The Blob URL
+approach creates a temporary \lstinline|blob:| URL that the browser loads as an image.
+This handles SVG rendering more consistently, and \lstinline|URL.revokeObjectURL| cleans
+up memory cleanly when SMILES changes. Without \lstinline|revokeObjectURL|, every SMILES
+change would leave an orphaned Blob in browser memory.
+
+\subsubsection{The useRDKit Singleton}
+
+\begin{lstlisting}[language=TypeScript]
+let rdkitPromise: Promise<any> | null = null;   // module-level variable
+
+export function useRDKit() {
+  const [rdkit, setRdkit] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!rdkitPromise) {
+      // First call: start loading WASM. Store the Promise at module level.
+      rdkitPromise = window.initRDKitModule({
+        locateFile: () => '/rdkit/RDKit_minimal.wasm',
+      });
+    }
+    // All subsequent calls: attach to the already-started promise.
+    rdkitPromise.then((instance) => {
+      setRdkit(instance);
+      setLoading(false);
+    });
+  }, []);
+
+  return { rdkit, loading };
+}
+\end{lstlisting}
+
+The module-level \lstinline|rdkitPromise| variable is what makes this a singleton. No
+matter how many components call \lstinline|useRDKit()| ---
+\lstinline|ChemCanvas|, \lstinline|Molecule|, \lstinline|App| --- the WASM is only loaded
+once. Without this, each component would start its own $\sim$1\,second WASM
+initialisation.
+
+\subsection{7g. 3D Viewer (Molecule3DThreePanel.tsx + Molecule3DThree.tsx)}
+
+The 3D viewer is now split into two layers:
+\begin{itemize}[leftmargin=1.5em]
+  \item \texttt{Molecule3DThreePanel.tsx} handles viewer orchestration: conformer
+        loading, viewer controls, the conformer strip, and the \texttt{forwardRef}
+        bridge used by \texttt{App.tsx}.
+  \item \texttt{Molecule3DThree.tsx} is the low-level \texttt{three.js} renderer:
+        scene setup, lighting, camera controls, mesh generation, highlighting,
+        measurement interaction, and screenshot capture.
+\end{itemize}
+
+\subsubsection{The Full Data Flow}
+
+\begin{lstlisting}[language={}]
+viewerSmiles (SMILES string)
+      |
+      v  useMolecule3DData({ smiles, forceField, maxConformers, ... })
+      |
+      v  fetchConformers(smiles, forceField, limit)
+      |    Check module-level cache: Map<"smiles|ff|max", Viewer3DMolecule[]>
+      |    Cache miss -> invoke('generate_conformers', { smiles, ... })
+      |               -> Rust IPC -> Python sidecar subprocess
+      |
+      v  Python returns JSON:
+      |  {
+      |    conformers: [
+      |      { atoms: [{x,y,z,element}, ...], energy: -45.2, delta_e: 0.0 },
+      |      ...
+      |    ],
+      |    bonds: [{a1: 0, a2: 1, order: 1}, ...]  // shared across conformers
+      |  }
+      |
+      v  alignViewerMoleculeToReference(previous, next)
+      |    Keep conformer switches visually stable when topology matches
+      |
+      v  Molecule3DThree.tsx
+      |    build atom/bond meshes
+      |    fit the camera to the visual bounds
+      |    update the directional light rig relative to the camera
+      |
+      v  WebGL rendered in the containerRef <div>
+\end{lstlisting}
+
+\subsubsection{Conformer Caching}
+
+The cache still lives at module level (outside the component function), so it persists
+across renders and even if the viewer is closed and reopened. The current
+implementation also keeps an in-flight promise cache so repeated requests for the same
+structure do not start duplicate sidecar work:
+
+\begin{lstlisting}[language=TypeScript]
+const conformerCache = new Map<string, Viewer3DMolecule[]>();
+const inFlightConformerCache = new Map<string, Promise<Viewer3DMolecule[]>>();
+
+async function fetchConformers(smiles, forceField, maxConformers) {
+  const key = `${smiles}|${forceField}|${maxConformers}`;
+  const cached = conformerCache.get(key);
+  if (cached) return cached;
+  if (inFlightConformerCache.has(key)) return inFlightConformerCache.get(key)!;
+
+  const request = invoke('generate_conformers', { smiles, forceField, maxConformers });
+  inFlightConformerCache.set(key, request);
+  // ... process result ...
+}
+\end{lstlisting}
+
+\subsubsection{Orientation Stability}
+
+The current viewer keeps orientation stable in two ways:
+\begin{itemize}[leftmargin=1.5em]
+  \item When the same topology is shown with a different conformer, coordinates are
+        pre-aligned to the previous conformer before rendering.
+  \item When the topology changes, the camera is re-fit to the new molecule's visual
+        bounds.
+\end{itemize}
+
+\begin{lstlisting}[language=TypeScript]
+if (viewer3dHasMatchingTopology(previousMolecule, molecule)) {
+  molecule = alignViewerMoleculeToReference(previousMolecule, molecule);
+}
+\end{lstlisting}
+
+\subsubsection{Three.js Scene Setup}
+
+The renderer is initialised imperatively:
+\begin{lstlisting}[language=TypeScript]
+const renderer = new THREE.WebGLRenderer({
+  antialias: true,
+  alpha: false,
+  preserveDrawingBuffer: true,
+});
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(fov, aspect, 0.01, 1000);
+const controls = new TrackballControls(camera, renderer.domElement);
+\end{lstlisting}
+
+The scene also owns a camera-relative light rig (ambient, hemisphere, key, fill, rim)
+so the model stays readable as the user rotates it.
+
+\subsubsection{captureViewer via forwardRef}
+
+\lstinline|Molecule3DThree| uses \lstinline|forwardRef| to expose
+\lstinline|captureViewer()| to its parent:
+\begin{lstlisting}[language=TypeScript]
+useImperativeHandle(ref, () => ({
+  captureViewer: () => {
+    const originalPixelRatio = renderer.getPixelRatio();
+    const exportPixelRatio = Math.min(4, Math.max(originalPixelRatio, 3));
+    renderer.setPixelRatio(exportPixelRatio);
+    renderer.render(scene, camera);
+    const image = renderer.domElement.toDataURL('image/png');
+    renderer.setPixelRatio(originalPixelRatio);
+    return image;
+  },
+}));
+\end{lstlisting}
+
+The temporary pixel-ratio bump makes exported PNGs much sharper than the live viewport.
+
+\subsubsection{Measurement Tools}
+
+Measurements are implemented directly with Three.js raycasting and overlay groups:
+\begin{lstlisting}[language=TypeScript]
+raycaster.setFromCamera(pointer, camera);
+const atomHit = raycaster.intersectObjects(atomMeshes, false)[0];
+// Collect atoms for distance / angle / dihedral,
+// then draw highlight geometry into a dedicated overlay group.
+\end{lstlisting}
+
+The measurement visuals are not DOM overlays; they are actual Three.js objects that
+share the molecule's coordinate frame.
+
+\subsubsection{Resize Handling}
+
+The viewer still needs explicit resize handling because the WebGL renderer and camera
+aspect must track the panel size:
+
+\begin{lstlisting}[language=TypeScript]
+useEffect(() => {
+  renderer.setSize(width, height);
+  camera.aspect = width / height;
+  camera.updateProjectionMatrix();
+  controls.handleResize?.();
+}, [width, height]);
+\end{lstlisting}
+
+This resize/update pass also reapplies the viewer background and re-fits the camera
+after representation or panel-size changes.
+
+\subsection{7h. The Python Sidecar}
+
+\subsubsection{What a Sidecar Is}
+
+A ``sidecar'' in Tauri terminology is an external binary that Tauri manages as a
+subprocess. It is bundled inside the final app package and Tauri handles finding and
+spawning it. This is the mechanism for running code in languages other than
+Rust/JavaScript from within a Tauri app.
+
+\subsubsection{The Naming Convention --- Platform Triples}
+
+Tauri requires the sidecar binary to be named with the full Rust target triple appended:
+
+\begin{lstlisting}[language={}]
+chem-engine-x86_64-unknown-linux-gnu     (Linux x86_64)
+chem-engine-aarch64-unknown-linux-gnu    (Linux ARM64)
+chem-engine-x86_64-apple-darwin         (macOS Intel)
+chem-engine-aarch64-apple-darwin        (macOS Apple Silicon)
+chem-engine-x86_64-pc-windows-msvc.exe  (Windows)
+\end{lstlisting}
+
+Find your machine's triple:
+\begin{lstlisting}[language=bash]
+rustc -vV | grep host
+# host: x86_64-unknown-linux-gnu
+\end{lstlisting}
+
+If the file is named incorrectly, \lstinline|app.shell().sidecar("chem-engine")| returns
+\lstinline|Err(...)| and the Rust code silently falls through to the development fallback
+(\lstinline|uv run python|). There's no crash, just a missing binary.
+
+\subsubsection{build-sidecar.js}
+
+\lstinline|build-sidecar.js| automates the full sidecar build pipeline in seven steps:
+
+\begin{enumerate}[leftmargin=1.5em]
+  \item \textbf{Detect target triple} from \lstinline|rustc -vV| (e.g.
+        \lstinline|x86_64-unknown-linux-gnu|).
+  \item \textbf{Ensure \texttt{src-tauri/bin/} exists}.
+  \item \textbf{Download xtb} $\sim$60\,MB tarball from GitHub Releases (Linux x86\_64
+        only; other platforms use the system xtb on PATH).
+  \item \textbf{Build the HOSE NMR database} (\lstinline|nmr_hose_db.json|) from
+        \lstinline|development/nmr_model/data/nmrshiftdb2withsignals.sd| when the source
+        data is newer than the bundled JSON.
+  \item \textbf{Incremental check}: skip PyInstaller if the sidecar binary is newer
+        than \lstinline|chem-engine.py|, the xtb binary, and the bundled data files.
+  \item \textbf{Run PyInstaller} via \lstinline|uv run --group build pyinstaller|, passing
+        \lstinline|--add-binary| / \lstinline|--add-data| flags for xtb,
+        \lstinline|nmr_refs.json|, and \lstinline|nmr_hose_db.json|.
+  \item \textbf{Rename} \lstinline|dist/chem-engine| to
+        \lstinline|bin/chem-engine-<triple>| (Tauri's required naming).
+\end{enumerate}
+
+PyInstaller's \lstinline|--onefile| flag bundles the Python interpreter, all
+\lstinline|rdkit| / \lstinline|numpy| dependencies,
+\lstinline|chem-engine.py|, the xtb binary, and the bundled NMR data files into a single
+self-extracting binary ($\sim$130--150\,MB). On first run, PyInstaller extracts its
+contents to a temporary directory (\lstinline|sys._MEIPASS|) --- which is why the first
+invocation of the sidecar is slightly slower.
+
+\subsubsection{The stdin/stdout JSON Protocol}
+
+The sidecar communicates via stdin (input to the Python process) and stdout (output from
+it). Trivially testable from the terminal:
+
+\begin{lstlisting}[language=bash]
+# Test conformer generation
+uv run python src-tauri/bin/chem-engine.py conformer "CCO" --ff MMFF94s --max 3
+
+# Test file parsing (molecule content goes on stdin)
+cat molecule.mol | uv run python src-tauri/bin/chem-engine.py parse mol
+
+# Test RXN export
+cat molecule.mol | uv run python src-tauri/bin/chem-engine.py export rxn --arrows '[]'
+\end{lstlisting}
+
+\subsubsection{Conformer Generation Pipeline}
+
+\begin{lstlisting}[language=Python]
+def generate_conformers(smiles, pool_size=50, max_output=10,
+                        energy_window=10.0, rmsd_threshold=0.5,
+                        force_field='MMFF94s'):
+    mol = Chem.MolFromSmiles(smiles)
+    mol = Chem.AddHs(mol)           # explicit H for correct 3D geometry
+
+    params = AllChem.ETKDGv3()
+    params.randomSeed = 0xf00d      # reproducible results
+    conf_ids = AllChem.EmbedMultipleConfs(mol, numConfs=pool_size, params=params)
+
+    ff_results = AllChem.MMFFOptimizeMoleculeConfs(
+        mol, mmffVariant='MMFF94s', maxIters=500)
+    # returns list of (converged, energy) tuples
+
+    # Filter: keep only converged conformers, sorted by energy
+    data_pool = sorted(
+        [{"conf_id": i, "energy": e}
+         for i, (conv, e) in zip(conf_ids, ff_results) if conv == 0],
+        key=lambda x: x["energy"]
+    )
+
+    # Deduplicate: keep conformers >0.5 A RMSD apart AND within 10 kcal/mol
+    unique = [data_pool[0]]
+    for item in data_pool[1:]:
+        if item["energy"] - data_pool[0]["energy"] > energy_window: break
+        is_unique = all(
+            AllChem.GetBestRMS(mol, mol, item["conf_id"], kept["conf_id"])
+            >= rmsd_threshold
+            for kept in unique
+        )
+        if is_unique: unique.append(item)
+        if len(unique) >= max_output: break
+\end{lstlisting}
+
+\subsubsection{NMR Prediction via HOSE Lookup (predict\_nmr)}
+
+The NMR panel now uses a classical HOSE-code predictor rather than an ONNX neural model.
+An offline build step converts NMRShiftDB2 into a compact JSON lookup database keyed by
+canonical local atom environments. At runtime, the sidecar:
+
+\begin{enumerate}[leftmargin=1.5em]
+  \item Generates HOSE codes for each carbon atom and each proton-bearing heavy atom.
+  \item Looks up the most specific matching sphere in \lstinline|nmr_hose_db.json|.
+  \item Falls back through lower HOSE spheres as needed.
+  \item Blends the HOSE median with deterministic chemistry corrections for aromatic,
+        vinylic, benzylic, alpha-to-hetero, and carbonyl-adjacent environments.
+  \item Applies fast multiplicity / J-coupling heuristics for \textsuperscript{1}H,
+        including split methylene and simple alkene cases.
+  \item Returns structured \lstinline|signals_1h| / \lstinline|signals_13c| payloads for
+        the custom React plotter.
+\end{enumerate}
+
+\textbf{Runtime data files.}
+PyInstaller sets \lstinline|sys._MEIPASS| to its unpacked temp directory.
+The sidecar reads \lstinline|nmr_hose_db.json| and \lstinline|nmr_refs.json| from there in
+production, or from \lstinline|src-tauri/bin/| in development.
+
+\textbf{Offline database build.}
+\lstinline|development/build_nmr_hose_db.py| reads
+\lstinline|development/nmr_model/data/nmrshiftdb2withsignals.sd| and writes
+\lstinline|src-tauri/bin/nmr_hose_db.json|. This step is triggered automatically by
+\lstinline|pnpm sync:sidecar| and \lstinline|pnpm build:sidecar| when the source SDF is newer
+than the bundled JSON.
+
+\subsection{7i. ChemDraw Compatibility (src/utils/cdxml.ts)}
+
+CDXML is ChemDraw's XML-based file format. The crucial coordinate convention:
+ChemDraw uses \textbf{30 points per bond length unit}. Our canvas uses
+\lstinline|MOLBLOCK_SCALE = 30| pixels per \AA. This is not a coincidence --- the
+canvas scale was chosen to match ChemDraw. Canvas pixel coordinates map directly to
+ChemDraw point coordinates without any rescaling:
+
+\begin{lstlisting}[language=TypeScript]
+// Canvas pixels === ChemDraw points (both use 30 units/Angstrom)
+// Only an offset is needed to centre the canvas on the ChemDraw page:
+const CDXML_CENTER_X = 306.0;  // ChemDraw default page centre
+const CDXML_CENTER_Y = 396.0;
+
+function atomToXML(atom: Atom, canvasWidth: number, canvasHeight: number): string {
+  const cdx = CDXML_CENTER_X + (atom.x - canvasWidth  / 2);
+  const cdy = CDXML_CENTER_Y + (atom.y - canvasHeight / 2);
+  return `<n id="..." p="${cdx.toFixed(2)} ${cdy.toFixed(2)}" Element="..." ... />`;
+}
+\end{lstlisting}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Build System}
+\label{sec:build}
+
+\subsection{vite.config.ts}
+
+\begin{lstlisting}[language=TypeScript]
+export default defineConfig(async () => ({
+  plugins: [react()],   // enables JSX compilation and fast refresh
+  clearScreen: false,   // don't clear the terminal -- Tauri and Vite share it
+  server: {
+    port: 1420,         // Tauri expects the frontend at this port
+    strictPort: true,   // fail if 1420 is in use rather than trying 1421, ...
+    hmr: host ? { protocol: "ws", host, port: 1421 } : undefined,
+    watch: { ignored: ["**/src-tauri/**"] },  // don't watch Rust files
+  },
+}));
+\end{lstlisting}
+
+\textbf{Why port 1420?} \texttt{tauri.conf.json} has
+\lstinline|"devUrl": "http://localhost:1420"| --- this is the URL the Tauri WebView
+loads in development mode. They must match.
+
+\subsection{pnpm dev --- Development Mode, Step by Step}
+
+\begin{lstlisting}[language={}]
+1. "predev" script runs first (package.json):
+   mkdir -p public/rdkit
+   cp node_modules/@rdkit/rdkit/dist/RDKit_minimal.{js,wasm} public/rdkit/
+
+   WHY: Vite only serves files from the project root. @rdkit/rdkit lives in
+   node_modules/ which Vite does not serve directly. Copying to public/rdkit/
+   makes these files available at /rdkit/RDKit_minimal.wasm in the browser.
+
+2. "dev" script runs:
+   vite
+
+   Vite starts an HTTP dev server at localhost:1420.
+   It processes TypeScript, JSX, CSS imports on demand.
+   It establishes a WebSocket for Hot Module Replacement (HMR):
+   when you save a .tsx file, Vite sends the changed module to the browser,
+   and React updates only the changed component without a full page reload.
+
+3. Separately, in another terminal:
+   pnpm tauri:dev
+
+   Cargo compiles src-tauri/src/ in debug mode (fast compile, slower runtime).
+   Tauri opens a native window with WebView pointed at http://localhost:1420.
+   Python sidecar: run_engine() falls back to "uv run python chem-engine.py"
+   because the PyInstaller binary hasn't been built yet.
+\end{lstlisting}
+
+\subsection{pnpm build:web --- Frontend + Sidecar Assets}
+
+\begin{lstlisting}[language={}]
+1. pnpm build:sidecar  ->  node src-tauri/build-sidecar.js
+   - Detects platform triple from `rustc -vV`
+   - Runs: uv run pyinstaller --onefile bin/chem-engine.py --clean --noconfirm
+     * PyInstaller finds all imports in chem-engine.py
+     * Bundles Python interpreter + rdkit + all dependencies
+     * Output: src-tauri/dist/chem-engine  (~120MB, self-extracting)
+   - Renames: dist/chem-engine -> bin/chem-engine-x86_64-unknown-linux-gnu
+
+2. tsc
+   - TypeScript type checker only. Does NOT produce JavaScript output.
+     (Vite handles transpilation; tsc here is just a type-safety gate.)
+   - Fails the build if any type errors are found.
+
+3. vite build
+   - Bundles all TypeScript/JSX into optimised ES modules.
+   - Applies tree-shaking (removes unused imports).
+   - Minifies JavaScript and CSS.
+   - Output: dist/ directory with index.html and hashed asset files.
+\end{lstlisting}
+
+\subsection{pnpm build / pnpm build:app / pnpm tauri:build --- Final Distributable}
+
+\begin{lstlisting}[language={}]
+pnpm build and pnpm build:app both resolve to pnpm tauri:build, which runs:
+
+node scripts/tauri-build.mjs
+   - On Linux, defaults to: pnpm tauri build --bundles deb,rpm
+   - If CHEM_EDITOR_BUNDLE_TARGETS is set, forwards that bundle list directly
+   - On macOS and Windows, runs the default Tauri bundle target set
+
+cargo tauri build, which:
+
+1. Runs the full Tauri build path using the current frontend dist and packaged sidecar.
+
+2. Compiles src-tauri/src/ with rustc --release
+   - Full optimisations, link-time optimisation (LTO)
+   - Takes 2-5 minutes on first build (Cargo caches subsequent builds)
+   - Output: src-tauri/target/release/chem-editor  (~5MB stripped binary)
+
+3. Packages everything into distributable formats:
+   src-tauri/target/release/bundle/deb/chem-editor_0.1.0_amd64.deb
+   src-tauri/target/release/bundle/rpm/chem-editor-0.1.0-1.x86_64.rpm
+
+   The bundle contains:
+   - The Rust binary (chem-editor)
+   - The built frontend (dist/ -- HTML, JS, CSS)
+   - The PyInstaller sidecar (bin/chem-engine-x86_64-unknown-linux-gnu)
+   - App icons
+\end{lstlisting}
+
+The final \texttt{.deb} installs ChemEditor as a standard desktop application. The
+PyInstaller binary is self-contained --- users do not need Python or RDKit installed.
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{File I/O Flow}
+\label{sec:fileio}
+
+\subsection{Opening a File}
+
+\begin{lstlisting}[language={}]
+User clicks File -> Open
+      |
+      v  open({ multiple: false, filters: [
+           { name: 'All Supported',
+             extensions: ['cdxml','mol','sdf','xyz','pdb','cif'] }
+         ] })
+         -- Tauri dialog plugin shows native OS file picker
+      |
+      v  readTextFile(filePath)
+         -- Tauri fs plugin reads the file as a UTF-8 string
+      |
+      v  Extension detection:
+
+         .cdxml -> cdxmlToState(content)
+                   [src/utils/cdxml.ts -- pure TypeScript XML parser]
+                   Returns CanvasState directly with atoms, bonds, AND arrows
+                   -> canvasRef.current.loadNative(content)
+
+         .mol / .sdf / .xyz / .pdb / .cif
+               -> invoke('parse_chemical_file', { content, format: ext })
+                  -> Rust IPC -> Python sidecar `parse` subcommand
+                  -> RDKit: Chem.MolFromMolBlock() / MolFromXYZBlock() / etc.
+                  -> If no 3D coords: AllChem.Compute2DCoords(mol)
+                  -> Returns { molblock: "...", smiles: "..." }
+               -> canvasRef.current.loadFromSmiles(result.molblock)
+      |
+      v  pushToHistory(newState)   -- commits to undo stack
+         Canvas re-renders; 200ms debounce fires -> SMILES updated
+\end{lstlisting}
+
+\subsection{Saving a File}
+
+\begin{lstlisting}[language={}]
+User presses Ctrl+S (default: saves as .cdxml)
+      |
+      v  save({ filters: [{ name: 'ChemDraw XML', extensions: ['cdxml'] }] })
+         -- Tauri dialog plugin shows native OS save dialog
+      |
+      v  canvasRef.current.saveNative()
+         ->  stateToCDXML(atoms, bonds, arrows)  [src/utils/cdxml.ts]
+         ->  writeTextFile(path, xml)  [Tauri fs plugin]
+
+File -> Export As -> Molfile:
+      v  canvasRef.current.getMolblock()
+         -> graphToMolblock(atoms, bonds, width, height)
+      v  invoke('export_chemical_file', { molblock, format: 'mol' })
+         -> Python: Chem.MolFromMolBlock(molblock) -> Chem.MolToMolBlock(mol)
+      v  writeTextFile(path, result.content)
+
+RXN export (unique -- requires arrow data):
+      v  invoke('export_chemical_file', {
+           molblock, format: 'rxn',
+           arrowsJson: JSON.stringify(arrows)
+         })
+         -> Python: Chem.GetMolFrags(mol) gets disconnected fragments
+         -> Compares each fragment centroid to the reaction arrow midpoint
+         -> Fragments left of midpoint -> reactants; right -> products
+         -> Writes "$RXN\n...\n$MOL\n..." format
+
+PNG export:
+      v  canvasRef.current.exportPNG()
+         -> stageRef.current.toDataURL()  [Konva: renders canvas to base64 PNG]
+         -> writeFile(path, Uint8Array from base64)  [binary write]
+
+SVG export:
+      v  canvasRef.current.exportSVG()
+         -> generateCanvasSVG(atoms, bonds, arrows, ...)  [src/lib/svgExport.ts]
+         -> writeTextFile(path, svg)
+
+3D viewer screenshot:
+      v  molecule3DRef.current.captureViewer()
+         -> Re-renders the Three.js scene at a higher temporary pixel ratio
+         -> Returns data URL (base64 PNG)
+      v  writeFile(path, Uint8Array from base64)
+\end{lstlisting}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Adding Features: A Practical Guide}
+\label{sec:adding}
+
+\subsection{How to Add a New Tauri Command}
+
+Suppose you want a command that computes molecular formula and weight from SMILES.
+
+\textbf{Step 1 --- Python sidecar} (\texttt{src-tauri/bin/chem-engine.py}):
+\begin{lstlisting}[language=Python]
+def get_mol_info(smiles):
+    from rdkit.Chem import rdMolDescriptors, Descriptors
+    mol = Chem.MolFromSmiles(smiles)
+    if not mol: return {"error": "Invalid SMILES"}
+    return {
+        "formula": rdMolDescriptors.CalcMolFormula(mol),
+        "mw": round(Descriptors.ExactMolWt(mol), 4),
+    }
+
+# In the argparse section:
+info_parser = subparsers.add_parser("info")
+info_parser.add_argument("smiles")
+
+# In the dispatch section:
+elif args.command == "info":
+    print(json.dumps(get_mol_info(args.smiles)))
+\end{lstlisting}
+
+\textbf{Step 2 --- Rust command} (\texttt{src-tauri/src/lib.rs}):
+\begin{lstlisting}[language=Rust]
+#[tauri::command]
+async fn get_mol_info(app: tauri::AppHandle, smiles: String)
+    -> Result<Value, String>
+{
+    run_engine(app, vec!["info".to_string(), smiles], None).await
+}
+
+// In the invoke_handler list:
+.invoke_handler(tauri::generate_handler![
+    generate_conformers, parse_chemical_file, export_chemical_file,
+    get_mol_info   // <- add here
+])
+\end{lstlisting}
+
+\textbf{Step 3 --- TypeScript} (wherever you need it):
+\begin{lstlisting}[language=TypeScript]
+import { invoke } from '@tauri-apps/api/core';
+
+const result: any = await invoke('get_mol_info', { smiles: 'CCO' });
+if (!result.error) {
+  console.log(result.formula);  // "C2H6O"
+  console.log(result.mw);       // 46.0419
+}
+\end{lstlisting}
+
+That is the complete cycle. No HTTP routes, no serialisation boilerplate.
+
+\subsection{How to Add a New Drawing Tool}
+
+\textbf{Step 1} --- Add the tool name to the \lstinline|Tool| union type in
+\texttt{src/store/index.ts}:
+\begin{lstlisting}[language=TypeScript]
+export type Tool = 'select' | 'atom' | 'bond' | 'eraser' | 'fragment'
+                 | 'arrow' | 'charge' | 'pan' | 'myTool';
+\end{lstlisting}
+
+\textbf{Step 2} --- Create a custom hook in \texttt{src/tools/useMyTool.ts}.
+Follow the dual state+ref pattern for any values your callbacks need to read:
+
+\begin{lstlisting}[language=TypeScript]
+export function useMyTool() {
+  // Any values read by onMouseMove/onMouseUp must be mirrored in refs:
+  const [active, setActive] = useState(false);
+  const activeRef = useRef(false);
+  const setActiveBoth = (v: boolean) => { activeRef.current = v; setActive(v); };
+
+  const onMouseDown = useCallback((pos: {x:number; y:number}, hitAtom: any) => {
+    const { atoms, bonds, arrows, pushToHistory } = useStore.getState();
+    // ... modify graph, push to history ...
+    setActiveBoth(true);
+  }, []);
+
+  const onMouseMove = useCallback((pos: {x:number; y:number}) => {
+    if (!activeRef.current) return;   // read ref, not state
+    // ... update preview using setCurrentCanvasState (no history) ...
+  }, []);
+
+  const onMouseUp = useCallback(() => {
+    if (!activeRef.current) return;
+    setActiveBoth(false);
+    const { atoms, bonds, arrows, pushToHistory } = useStore.getState();
+    pushToHistory({ atoms, bonds, arrows });  // commit the action
+  }, []);
+
+  const cleanup = useCallback(() => { setActiveBoth(false); }, []);
+
+  return { active, onMouseDown, onMouseMove, onMouseUp, cleanup };
+}
+\end{lstlisting}
+
+\textbf{Step 3} --- Instantiate and dispatch in \texttt{ChemCanvas.tsx}:
+\begin{lstlisting}[language=TypeScript]
+const myTool = useMyTool();
+
+// In the cleanup effect:
+if (prevToolRef.current !== tool) { myTool.cleanup(); /* ... */ }
+
+// In handleMouseDown:
+if (tool === 'myTool') myTool.onMouseDown(pos, hitAtom);
+\end{lstlisting}
+
+\textbf{Step 4} --- Add a toolbar button in \texttt{App.tsx}:
+\begin{lstlisting}[language=TypeScript]
+<div onClick={() => setTool('myTool')} style={toolBtnStyle(tool === 'myTool')}>
+  {/* icon */}
+</div>
+\end{lstlisting}
+
+\subsection{How to Add a New Atom Shorthand}
+
+In \texttt{src/lib/graph.ts}, add an entry to \lstinline|SHORTHAND_DATA|:
+\begin{lstlisting}[language=TypeScript]
+export const SHORTHAND_DATA: Record<string, { lead: string; valency: number }> = {
+  // ...existing entries...
+  'Ts':  { lead: 'S', valency: 2 },   // tosyl -- lead atom is S
+  'Boc': { lead: 'O', valency: 2 },   // tert-butyloxycarbonyl -- lead is O
+};
+\end{lstlisting}
+
+\lstinline|lead| is the element written to the V2000 Molblock. \lstinline|valency| is
+the number of bonds the shorthand group can form. To also add a hotkey, add to
+\lstinline|ATOM_HOTKEYS| in \texttt{ChemCanvas.tsx}:
+\begin{lstlisting}[language=TypeScript]
+const ATOM_HOTKEYS: Record<string, string> = {
+  // ...existing...
+  't': 'Ts',   // pressing 't' while hovering an atom switches it to Ts
+};
+\end{lstlisting}
+
+\subsection{How to Add a New Ring Template}
+
+In \texttt{App.tsx}, add to the \lstinline|FRAGMENTS| array:
+\begin{lstlisting}[language=TypeScript]
+const FRAGMENTS = [
+  // ...existing...
+  { id: 'indane', label: 'ind', smiles: 'C1CCc2ccccc21' },
+];
+\end{lstlisting}
+
+The SMILES string is passed to RDKit for coordinate generation.
+\lstinline|placeFragmentAt| handles placement automatically. To also add a keyboard
+shortcut, add to \lstinline|BOND_HOTKEYS| in \texttt{ChemCanvas.tsx}:
+\begin{lstlisting}[language=TypeScript]
+'i': { ring: 'C1CCc2ccccc21' },   // 'i' key places indane
+\end{lstlisting}
+
+\subsection{How to Add a New File Format}
+
+\textbf{For parsing (opening)}:
+\begin{enumerate}[leftmargin=1.5em]
+  \item Add the extension to the \lstinline|open()| dialog filter in \texttt{App.tsx}.
+  \item Add it to the \lstinline|['mol', 'sdf', 'xyz', ...]| branch.
+  \item In \texttt{chem-engine.py}, add a new branch to \lstinline|parse_file()|.
+\end{enumerate}
+
+\textbf{For exporting (saving)}:
+\begin{enumerate}[leftmargin=1.5em]
+  \item Add the format to the export submenu in \texttt{App.tsx}.
+  \item Add a handler in \lstinline|handleExport|.
+  \item In \texttt{chem-engine.py}, add a new branch to \lstinline|export_file()|:
+\end{enumerate}
+\begin{lstlisting}[language=Python]
+elif format == 'inchi':
+    from rdkit.Chem.inchi import MolToInchi
+    return {"content": MolToInchi(mol)}
+\end{lstlisting}
+
+If the format can be handled entirely in TypeScript, skip the Python steps and write
+a converter in \texttt{src/utils/}.
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Critical Files Reference}
+\label{sec:files}
+
+\begin{table}[h!]
+\centering
+\begin{tabularx}{\textwidth}{@{} l X @{}}
+\toprule
+\textbf{File} & \textbf{Purpose} \\
+\midrule
+\texttt{src/types/chemistry.ts} & Data model: \texttt{Atom}, \texttt{Bond}, \texttt{Arrow}, \texttt{CanvasState} \\
+\texttt{src/store/index.ts} & Zustand store: all global state and actions \\
+\texttt{src/lib/graph.ts} & \texttt{graphToMolblock}, \texttt{molblockToState}, \texttt{getConnectedComponents}, \texttt{hashCanvasState} \\
+\texttt{src/lib/svgExport.ts} & Canvas $\to$ SVG vector export \\
+\texttt{src/hooks/useRDKit.ts} & Singleton WASM loader \\
+\texttt{src/tools/useBondTool.ts} & Bond drawing logic (dual state+ref pattern) \\
+\texttt{src/tools/useSelectTool.ts} & Selection, drag-move, rubber-band, rotation \\
+\texttt{src/tools/useAtomTool.ts} & Atom placement and inline label editing \\
+\texttt{src/components/ChemCanvas.tsx} & Drawing engine: Konva canvas, hit testing, zoom/pan, SMILES pipeline \\
+\texttt{src/components/Molecule.tsx} & 2D SVG preview via RDKit WASM + Blob URL \\
+\texttt{src/components/Molecule3DThreePanel.tsx} & 3D viewer shell: controls, conformer strip, ref bridge to the renderer \\
+\texttt{src/components/Molecule3DThree.tsx} & Three.js renderer: scene, lights, meshes, measurement interaction, PNG capture \\
+\texttt{src/components/IrPanel.tsx} & IR spectrum panel: xtb prediction, Lorentzian broadening, SVG chart \\
+\texttt{src/components/MsPanel.tsx} & Mass spectrum panel: RDKit isotope pattern, SVG chart \\
+\texttt{src/components/NmrPanel.tsx} & NMR panel: custom HOSE/DFT viewer, reversed-axis SVG chart, peak/atom hover linkage \\
+\texttt{src/utils/cdxml.ts} & ChemDraw CDXML read/write \\
+\texttt{src/App.tsx} & Root component: layout, theme, menus, keyboard shortcuts, viewer modes \\
+\texttt{src-tauri/src/lib.rs} & Rust command handlers and sidecar runner \\
+\texttt{src-tauri/src/main.rs} & Rust entry point (\texttt{windows\_subsystem} attribute) \\
+\texttt{src-tauri/bin/chem-engine.py} & Python sidecar: conformers (ETKDGv3), IR (xtb), NMR (HOSE + optional DFT), parse, export \\
+\texttt{src-tauri/bin/nmr\_hose.py} & HOSE code generation, lookup, and fast proton/carbon heuristics \\
+\texttt{src-tauri/bin/nmr\_hose\_db.json} & Bundled HOSE lookup database generated from NMRShiftDB2 \\
+\texttt{src-tauri/build-sidecar.js} & PyInstaller build; downloads xtb, builds HOSE DB, handles triple-naming \\
+\texttt{development/build\_nmr\_hose\_db.py} & Offline HOSE DB build from NMRShiftDB2 \\
+\texttt{src-tauri/tauri.conf.json} & Window size, decorations, CSP, \texttt{externalBin} \\
+\texttt{vite.config.ts} & Dev server port 1420, HMR, ignored watch paths \\
+\texttt{package.json} & npm scripts (including predev RDKit copy), JS dependencies \\
+\texttt{src-tauri/Cargo.toml} & Rust dependencies (\texttt{tauri}, \texttt{serde\_json}, \texttt{tauri-plugin-*}) \\
+\bottomrule
+\end{tabularx}
+\caption{Critical files and their roles}
+\end{table}
+
+\end{document}

@@ -1,0 +1,572 @@
+import type { Atom, Bond } from '../types/chemistry';
+import { getAtomNodeText } from './atomIdentity';
+
+export interface ShorthandEntry {
+  lead: string;
+  valency: number;
+  subsSmiles?: string;
+  residueTemplateSmiles?: string;
+  reverse?: string;
+  colorMode?: 'monochrome' | 'attached-element';
+  /** Display label when the atom has ≥1 bond and the lead N bears an implicit H */
+  withH?: string;
+  /** Directionally-flipped form of withH */
+  reverseWithH?: string;
+}
+
+export const SHORTHAND_DATA: Record<string, ShorthandEntry> = {
+  // ── Alkyl chains ──────────────────────────────────────────────────────────
+  Me: { lead: 'C', valency: 1, subsSmiles: 'C' },
+  Et: { lead: 'C', valency: 1, subsSmiles: 'C(C)' },
+  Pr: { lead: 'C', valency: 1, subsSmiles: 'C(CC)' },
+  'n-Pr': { lead: 'C', valency: 1, subsSmiles: 'C(CC)' },
+  iPr: { lead: 'C', valency: 1, subsSmiles: 'C(C)(C)' },
+  'i-Pr': { lead: 'C', valency: 1, subsSmiles: 'C(C)(C)' },
+  Bu: { lead: 'C', valency: 1, subsSmiles: 'C(CCC)' },
+  'n-Bu': { lead: 'C', valency: 1, subsSmiles: 'C(CCC)' },
+  tBu: { lead: 'C', valency: 1, subsSmiles: 'C(C)(C)(C)' },
+  't-Bu': { lead: 'C', valency: 1, subsSmiles: 'C(C)(C)(C)' },
+  't-Butyl': { lead: 'C', valency: 1, subsSmiles: 'C(C)(C)(C)' },
+  sBu: { lead: 'C', valency: 1, subsSmiles: 'C(C)(CC)' },
+  's-Bu': { lead: 'C', valency: 1, subsSmiles: 'C(C)(CC)' },
+  's-Butyl': { lead: 'C', valency: 1, subsSmiles: 'C(C)(CC)' },
+  iBu: { lead: 'C', valency: 1, subsSmiles: 'C(CC(C)C)' },
+  'i-Bu': { lead: 'C', valency: 1, subsSmiles: 'C(CC(C)C)' },
+  Am: { lead: 'C', valency: 1, subsSmiles: 'C(CCCC)' },
+  'n-Am': { lead: 'C', valency: 1, subsSmiles: 'C(CCCC)' },
+  tAm: { lead: 'C', valency: 1, subsSmiles: 'C(C)(CC)(C)' },
+  't-Am': { lead: 'C', valency: 1, subsSmiles: 'C(C)(CC)(C)' },
+  sAm: { lead: 'C', valency: 1, subsSmiles: 'C(CCC)(C)' },
+  's-Am': { lead: 'C', valency: 1, subsSmiles: 'C(CCC)(C)' },
+  iAm: { lead: 'C', valency: 1, subsSmiles: 'C(CCC(C)C)' },
+  'i-Am': { lead: 'C', valency: 1, subsSmiles: 'C(CCC(C)C)' },
+  'neo-Am': { lead: 'C', valency: 1, subsSmiles: 'C(CC(C)(C)C)' },
+  Allyl: { lead: 'C', valency: 1, subsSmiles: 'C(C=C)' },
+  cyclopropyl: { lead: 'C', valency: 1, subsSmiles: 'C1(CC1)' },
+  'c-C3H5': { lead: 'C', valency: 1, subsSmiles: 'C1(CC1)' },
+  cyclobutyl: { lead: 'C', valency: 1, subsSmiles: 'C1(CCC1)' },
+  'c-C4H7': { lead: 'C', valency: 1, subsSmiles: 'C1(CCC1)' },
+  cyclopentyl: { lead: 'C', valency: 1, subsSmiles: 'C1(CCCC1)' },
+  'c-C5H9': { lead: 'C', valency: 1, subsSmiles: 'C1(CCCC1)' },
+  cyclohexyl: { lead: 'C', valency: 1, subsSmiles: 'C1(CCCCC1)' },
+  cHx: { lead: 'C', valency: 1, subsSmiles: 'C1(CCCCC1)' },
+  'c-Hx': { lead: 'C', valency: 1, subsSmiles: 'C1(CCCCC1)' },
+  'c-C6H11': { lead: 'C', valency: 1, subsSmiles: 'C1(CCCCC1)' },
+  cycloheptyl: { lead: 'C', valency: 1, subsSmiles: 'C1(CCCCCC1)' },
+  'c-C7H13': { lead: 'C', valency: 1, subsSmiles: 'C1(CCCCCC1)' },
+  cyclooctyl: { lead: 'C', valency: 1, subsSmiles: 'C1(CCCCCCC1)' },
+  'c-C8H15': { lead: 'C', valency: 1, subsSmiles: 'C1(CCCCCCC1)' },
+  'n-C3H7': { lead: 'C', valency: 1, subsSmiles: 'C(CC)' },
+  'n-C4H9': { lead: 'C', valency: 1, subsSmiles: 'C(CCC)' },
+  'n-C5H11': { lead: 'C', valency: 1, subsSmiles: 'C(CCCC)' },
+  'i-C3H7': { lead: 'C', valency: 1, subsSmiles: 'C(C)(C)' },
+  'i-C4H9': { lead: 'C', valency: 1, subsSmiles: 'C(CC(C)C)' },
+  'i-C5H11': { lead: 'C', valency: 1, subsSmiles: 'C(CCC(C)C)' },
+  's-C4H9': { lead: 'C', valency: 1, subsSmiles: 'C(C)(CC)' },
+  't-C4H9': { lead: 'C', valency: 1, subsSmiles: 'C(C)(C)(C)' },
+  's-C5H11': { lead: 'C', valency: 1, subsSmiles: 'C(CCC)(C)' },
+  't-C5H11': { lead: 'C', valency: 1, subsSmiles: 'C(C)(CC)(C)' },
+
+  // ── Aryl groups ───────────────────────────────────────────────────────────
+  Ph: { lead: 'C', valency: 1, subsSmiles: 'c1ccccc1' },
+  Phenyl: { lead: 'C', valency: 1, subsSmiles: 'c1ccccc1' },
+  Bn: { lead: 'C', valency: 1, subsSmiles: 'C(c1ccccc1)' },
+  Benzyl: { lead: 'C', valency: 1, subsSmiles: 'C(c1ccccc1)' },
+  PMB: { lead: 'C', valency: 1, subsSmiles: 'C(c1ccc(OC)cc1)' },
+  MPM: { lead: 'C', valency: 1, subsSmiles: 'C(c1ccc(OC)cc1)' },
+  PMBM: { lead: 'C', valency: 1, subsSmiles: 'C(c1ccc(OC)cc1)' },
+  PNB: { lead: 'C', valency: 1, subsSmiles: 'C(c1ccc([N+](=O)[O-])cc1)' },
+  Bz: { lead: 'C', valency: 1, subsSmiles: 'C(=O)(c1ccccc1)' },
+  Benzoyl: { lead: 'C', valency: 1, subsSmiles: 'C(=O)(c1ccccc1)' },
+  'o-Tolyl': { lead: 'C', valency: 1, subsSmiles: 'c1ccccc1(C)' },
+  'm-Tolyl': { lead: 'C', valency: 1, subsSmiles: 'c1cccc(C)c1' },
+  'p-Tolyl': { lead: 'C', valency: 1, subsSmiles: 'c1ccc(C)cc1' },
+  Mes: { lead: 'C', valency: 1, subsSmiles: 'c1c(C)cc(C)cc1C' },
+  Np: { lead: 'C', valency: 1, subsSmiles: 'c1ccc2ccccc2c1' },
+  Xyl: { lead: 'C', valency: 1, subsSmiles: 'c1c(C)cccc1C' },
+  Trt: { lead: 'C', valency: 1, subsSmiles: 'C(c1ccccc1)(c1ccccc1)(c1ccccc1)' },
+  MMTr: { lead: 'C', valency: 1, subsSmiles: 'C(c1ccccc1)(c1ccccc1)(c1ccc(OC)cc1)' },
+  DMTr: { lead: 'C', valency: 1, subsSmiles: 'C(c1ccc(OC)cc1)(c1ccc(OC)cc1)(c1ccccc1)' },
+  'trans-Cinnamyl': { lead: 'C', valency: 1, subsSmiles: 'C(/C=C/c1ccccc1)' },
+  'o-Phenylene': { lead: 'C', valency: 2, subsSmiles: 'c1ccccc1' },
+  'm-Phenylene': { lead: 'C', valency: 2, subsSmiles: 'c1ccccc1' },
+  'p-Phenylene': { lead: 'C', valency: 2, subsSmiles: 'c1ccccc1' },
+  'o-C6H4': { lead: 'C', valency: 2, subsSmiles: 'c1ccccc1' },
+  'm-C6H4': { lead: 'C', valency: 2, subsSmiles: 'c1ccccc1' },
+  'p-C6H4': { lead: 'C', valency: 2, subsSmiles: 'c1ccccc1' },
+
+  // ── Carbonyl / acyl groups ────────────────────────────────────────────────
+  Ac: { lead: 'C', valency: 1, subsSmiles: 'C(=O)(C)' },
+  Boc: { lead: 'C', valency: 1, subsSmiles: 'C(=O)(OC(C)(C)C)' },
+  't-Boc': { lead: 'C', valency: 1, subsSmiles: 'C(=O)(OC(C)(C)C)' },
+  't-BOC': { lead: 'C', valency: 1, subsSmiles: 'C(=O)(OC(C)(C)C)' },
+  Cbz: { lead: 'C', valency: 1, subsSmiles: 'C(=O)(OCc1ccccc1)' },
+  Z: { lead: 'C', valency: 1, subsSmiles: 'C(=O)(OCc1ccccc1)' },
+  Fmoc: { lead: 'C', valency: 1, subsSmiles: 'C(=O)(OCC1c2ccccc2-c2ccccc21)' },
+  Alloc: { lead: 'C', valency: 1, subsSmiles: 'C(=O)(OCC=C)' },
+  Troc: { lead: 'C', valency: 1, subsSmiles: 'C(=O)(OCC(Cl)(Cl)Cl)' },
+  Piv: { lead: 'C', valency: 1, subsSmiles: 'C(=O)(C(C)(C)C)' },
+  COOH: { lead: 'C', valency: 1, subsSmiles: 'C(=O)(O)', reverse: 'HOOC' },
+  COOMe: { lead: 'C', valency: 1, subsSmiles: 'C(=O)(OC)' },
+  COOEt: { lead: 'C', valency: 1, subsSmiles: 'C(=O)(OCC)' },
+  CONH2: { lead: 'C', valency: 1, subsSmiles: 'C(=O)(N)' },
+  CHO: { lead: 'C', valency: 1, subsSmiles: 'C(=O)', reverse: 'OHC' },
+  CN: { lead: 'C', valency: 1, subsSmiles: 'C#N', reverse: 'NC' },
+  Tfa: { lead: 'C', valency: 1, subsSmiles: 'C(=O)(C(F)(F)F)' },
+  TFA: { lead: 'C', valency: 1, subsSmiles: 'C(=O)(C(F)(F)F)' },
+  Pht: { lead: 'C', valency: 1, subsSmiles: 'C(=O)c1ccccc1C(=O)N' },
+  Bt: { lead: 'C', valency: 1, subsSmiles: 'c1ccc2nnnc2c1' },
+
+  // ── Nitrogen groups ───────────────────────────────────────────────────────
+  NO2: { lead: 'N', valency: 1, subsSmiles: '[N+](=O)[O-]' },
+  N3: { lead: 'N', valency: 1, subsSmiles: 'N=[N+]=[N-]' },
+  NHAc: { lead: 'N', valency: 1, subsSmiles: 'N(C(=O)C)', reverse: 'AcNH' },
+  NHBoc: { lead: 'N', valency: 1, subsSmiles: 'N(C(=O)OC(C)(C)C)', reverse: 'BocNH' },
+  NHCbz: { lead: 'N', valency: 1, subsSmiles: 'N(C(=O)OCc1ccccc1)', reverse: 'CbzNH' },
+  NHFmoc: {
+    lead: 'N',
+    valency: 1,
+    subsSmiles: 'N(C(=O)OCC1c2ccccc2-c2ccccc21)',
+    reverse: 'FmocNH',
+  },
+  NHTs: { lead: 'N', valency: 1, subsSmiles: 'N(S(=O)(=O)c1ccc(C)cc1)', reverse: 'TsNH' },
+  NHMs: { lead: 'N', valency: 1, subsSmiles: 'N(S(=O)(=O)C)', reverse: 'MsNH' },
+  NHNs: {
+    lead: 'N',
+    valency: 1,
+    subsSmiles: 'N(S(=O)(=O)c1ccc([N+](=O)[O-])cc1)',
+    reverse: 'NsNH',
+  },
+  NHBn: { lead: 'N', valency: 1, subsSmiles: 'N(Cc1ccccc1)', reverse: 'BnNH' },
+  NHPh: { lead: 'N', valency: 1, subsSmiles: 'N(c1ccccc1)', reverse: 'PhNH' },
+  NTs: {
+    lead: 'N',
+    valency: 1,
+    subsSmiles: 'N(S(=O)(=O)c1ccc(C)cc1)',
+    withH: 'NHTs',
+    reverseWithH: 'TsNH',
+  },
+  NMs: { lead: 'N', valency: 1, subsSmiles: 'N(S(=O)(=O)C)', withH: 'NHMs', reverseWithH: 'MsNH' },
+  NTf: {
+    lead: 'N',
+    valency: 1,
+    subsSmiles: 'N(S(=O)(=O)C(F)(F)F)',
+    withH: 'NHTf',
+    reverseWithH: 'TfNH',
+  },
+  NNs: {
+    lead: 'N',
+    valency: 1,
+    subsSmiles: 'N(S(=O)(=O)c1ccc([N+](=O)[O-])cc1)',
+    withH: 'NHNs',
+    reverseWithH: 'NsNH',
+  },
+  NMbs: {
+    lead: 'N',
+    valency: 1,
+    subsSmiles: 'N(S(=O)(=O)c1ccc(OC)cc1)',
+    withH: 'NHMbs',
+    reverseWithH: 'MbsNH',
+  },
+  NBn: { lead: 'N', valency: 1, subsSmiles: 'N(Cc1ccccc1)', withH: 'NHBn', reverseWithH: 'BnNH' },
+  NPh: { lead: 'N', valency: 1, subsSmiles: 'N(c1ccccc1)', withH: 'NHPh', reverseWithH: 'PhNH' },
+  NMe: { lead: 'N', valency: 1, subsSmiles: 'N(C)', withH: 'NHMe', reverseWithH: 'MeNH' },
+  NEt: { lead: 'N', valency: 1, subsSmiles: 'N(CC)', withH: 'NHEt', reverseWithH: 'EtNH' },
+  NMe2: { lead: 'N', valency: 1, subsSmiles: 'N(C)(C)' },
+  NEt2: { lead: 'N', valency: 1, subsSmiles: 'N(CC)(CC)' },
+  NAc: { lead: 'N', valency: 1, subsSmiles: 'N(C(=O)C)', withH: 'NHAc', reverseWithH: 'AcNH' },
+  NBoc: {
+    lead: 'N',
+    valency: 1,
+    subsSmiles: 'N(C(=O)OC(C)(C)C)',
+    withH: 'NHBoc',
+    reverseWithH: 'BocNH',
+  },
+  NCbz: {
+    lead: 'N',
+    valency: 1,
+    subsSmiles: 'N(C(=O)OCc1ccccc1)',
+    withH: 'NHCbz',
+    reverseWithH: 'CbzNH',
+  },
+  NBoc2: { lead: 'N', valency: 1, subsSmiles: 'N(C(=O)OC(C)(C)C)(C(=O)OC(C)(C)C)' },
+  Im: { lead: 'N', valency: 1, subsSmiles: 'n1ccnc1' },
+  Dns: { lead: 'N', valency: 1, subsSmiles: 'N(S(=O)(=O)c1ccc2cc(ccc2c1)N(C)C)' },
+  DNS: { lead: 'N', valency: 1, subsSmiles: 'N(S(=O)(=O)c1ccc2cc(ccc2c1)N(C)C)' },
+  DNP: { lead: 'N', valency: 1, subsSmiles: 'N(c1ccccc1([N+](=O)[O-])[N+](=O)[O-])' },
+  Dnp: { lead: 'N', valency: 1, subsSmiles: 'N(c1ccccc1([N+](=O)[O-])[N+](=O)[O-])' },
+
+  // ── Oxygen groups ─────────────────────────────────────────────────────────
+  OMe: { lead: 'O', valency: 1, subsSmiles: 'O(C)', reverse: 'MeO' },
+  OEt: { lead: 'O', valency: 1, subsSmiles: 'O(CC)', reverse: 'EtO' },
+  OBn: { lead: 'O', valency: 1, subsSmiles: 'O(Cc1ccccc1)', reverse: 'BnO' },
+  OAc: { lead: 'O', valency: 1, subsSmiles: 'O(C(C)=O)', reverse: 'AcO' },
+  OBoc: { lead: 'O', valency: 1, subsSmiles: 'O(C(=O)OC(C)(C)C)', reverse: 'BocO' },
+  OBz: { lead: 'O', valency: 1, subsSmiles: 'O(C(=O)c1ccccc1)', reverse: 'BzO' },
+  OTs: { lead: 'O', valency: 1, subsSmiles: 'O(S(=O)(=O)c1ccc(C)cc1)', reverse: 'TsO' },
+  OTf: { lead: 'O', valency: 1, subsSmiles: 'O(S(=O)(=O)C(F)(F)F)', reverse: 'TfO' },
+  OTBS: { lead: 'O', valency: 1, subsSmiles: 'O([Si](C)(C)C(C)(C)C)', reverse: 'TBSO' },
+  OTBDMS: { lead: 'O', valency: 1, subsSmiles: 'O([Si](C)(C)C(C)(C)C)', reverse: 'TBDMSO' },
+  OPMB: { lead: 'O', valency: 1, subsSmiles: 'O(Cc1ccc(OC)cc1)', reverse: 'PMBO' },
+  OTIPS: { lead: 'O', valency: 1, subsSmiles: 'O([Si](C(C)C)(C(C)C)(C(C)C))', reverse: 'TIPSO' },
+  OTBDPS: {
+    lead: 'O',
+    valency: 1,
+    subsSmiles: 'O([Si](C(C)(C)C)(c1ccccc1)(c1ccccc1))',
+    reverse: 'TBDPSO',
+  },
+  MOM: { lead: 'O', valency: 1, subsSmiles: 'O(COC)' },
+  MEM: { lead: 'O', valency: 1, subsSmiles: 'O(CCOCC)' },
+  BOM: { lead: 'O', valency: 1, subsSmiles: 'O(COCc1ccccc1)' },
+  SEM: { lead: 'O', valency: 1, subsSmiles: 'O(CCO[Si](C)(C)C)' },
+  THP: { lead: 'O', valency: 1, subsSmiles: 'O(C1CCCCO1)' },
+  Thp: { lead: 'O', valency: 1, subsSmiles: 'O(C1CCCCO1)' },
+
+  // ── Sulfonyl / sulfur groups ──────────────────────────────────────────────
+  Ms: { lead: 'S', valency: 1, subsSmiles: 'S(=O)(=O)C' },
+  Ts: { lead: 'S', valency: 1, subsSmiles: 'S(=O)(=O)c1ccc(C)cc1' },
+  Tos: { lead: 'S', valency: 1, subsSmiles: 'S(=O)(=O)c1ccc(C)cc1' },
+  Tf: { lead: 'S', valency: 1, subsSmiles: 'S(=O)(=O)C(F)(F)F' },
+  SO3H: { lead: 'S', valency: 1, subsSmiles: 'S(=O)(=O)O' },
+  Bs: { lead: 'S', valency: 1, subsSmiles: 'S(=O)(=O)c1ccc(Br)cc1' },
+  Ds: { lead: 'S', valency: 1, subsSmiles: 'S(=O)(=O)c1ccc2cc(ccc2c1)N(C)C' },
+
+  // ── Silicon protecting groups ─────────────────────────────────────────────
+  TMS: { lead: 'Si', valency: 1, subsSmiles: '[Si](C)(C)(C)' },
+  TBS: { lead: 'Si', valency: 1, subsSmiles: '[Si](C)(C)(C(C)(C)C)' },
+  TBDMS: { lead: 'Si', valency: 1, subsSmiles: '[Si](C)(C)(C(C)(C)C)' },
+  TIPS: { lead: 'Si', valency: 1, subsSmiles: '[Si](C(C)C)(C(C)C)(C(C)C)' },
+  TBDPS: { lead: 'Si', valency: 1, subsSmiles: '[Si](C(C)(C)C)(c1ccccc1)(c1ccccc1)' },
+  TDS: { lead: 'Si', valency: 1, subsSmiles: '[Si](C)(C(C)C(C)C)(C(C)C(C)C)' },
+  DEIPS: { lead: 'Si', valency: 1, subsSmiles: '[Si](CC)(CC)(C(C)C)' },
+  DMIPS: { lead: 'Si', valency: 1, subsSmiles: '[Si](C)(C)(C(C)C)' },
+  DPIPS: { lead: 'Si', valency: 1, subsSmiles: '[Si](c1ccccc1)(c1ccccc1)(C(C)C)' },
+  TIPDS: { lead: 'Si', valency: 2, subsSmiles: '[Si](C(C)C)(C(C)C)O[Si](C(C)C)(C(C)C)' },
+  DPTBS: { lead: 'Si', valency: 1, subsSmiles: '[Si](C(C)(C)C)(c1ccccc1)(c1ccccc1)' },
+  DTBMS: { lead: 'Si', valency: 1, subsSmiles: '[Si](C)(C(C)(C)C)(C(C)(C)C)' },
+  DTBS: { lead: 'Si', valency: 1, subsSmiles: '[SiH](C(C)(C)C)(C(C)(C)C)' },
+  TBMPS: { lead: 'Si', valency: 1, subsSmiles: '[Si](C)(C(C)(C)C)(c1ccccc1)' },
+  MDIPS: { lead: 'Si', valency: 1, subsSmiles: '[Si](C)(C(C)C)(C(C)C)' },
+  MDPS: { lead: 'Si', valency: 1, subsSmiles: '[Si](C)(c1ccccc1)(c1ccccc1)' },
+
+  // ── Amino acid residues (display only) ────────────────────────────────────
+  Ala: {
+    lead: 'C',
+    valency: 1,
+    subsSmiles: 'C(C(=O)O)(N)C',
+    residueTemplateSmiles: '[N:1][C:3](C)[C:2](=O)',
+  },
+  Arg: {
+    lead: 'C',
+    valency: 1,
+    subsSmiles: 'C(C(=O)O)(N)CCCNC(=N)N',
+    residueTemplateSmiles: '[N:1][C:3](CCCNC(=N)N)[C:2](=O)',
+  },
+  Asn: {
+    lead: 'C',
+    valency: 1,
+    subsSmiles: 'C(C(=O)O)(N)CC(=O)N',
+    residueTemplateSmiles: '[N:1][C:3](CC(=O)N)[C:2](=O)',
+  },
+  Asp: {
+    lead: 'C',
+    valency: 1,
+    subsSmiles: 'C(C(=O)O)(N)CC(=O)O',
+    residueTemplateSmiles: '[N:1][C:3](CC(=O)O)[C:2](=O)',
+  },
+  Cys: {
+    lead: 'C',
+    valency: 1,
+    subsSmiles: 'C(C(=O)O)(N)CS',
+    residueTemplateSmiles: '[N:1][C:3](CS)[C:2](=O)',
+  },
+  Gln: {
+    lead: 'C',
+    valency: 1,
+    subsSmiles: 'C(C(=O)O)(N)CCC(=O)N',
+    residueTemplateSmiles: '[N:1][C:3](CCC(=O)N)[C:2](=O)',
+  },
+  Glu: {
+    lead: 'C',
+    valency: 1,
+    subsSmiles: 'C(C(=O)O)(N)CCC(=O)O',
+    residueTemplateSmiles: '[N:1][C:3](CCC(=O)O)[C:2](=O)',
+  },
+  Gly: {
+    lead: 'C',
+    valency: 1,
+    subsSmiles: 'C(C(=O)O)N',
+    residueTemplateSmiles: '[N:1][CH2:3][C:2](=O)',
+  },
+  His: {
+    lead: 'C',
+    valency: 1,
+    subsSmiles: 'C(C(=O)O)(N)Cc1cnc[nH]1',
+    residueTemplateSmiles: '[N:1][C:3](Cc1cnc[nH]1)[C:2](=O)',
+  },
+  Ile: {
+    lead: 'C',
+    valency: 1,
+    subsSmiles: 'C(C(=O)O)(N)C(C)CC',
+    residueTemplateSmiles: '[N:1][C:3](C(C)CC)[C:2](=O)',
+  },
+  Leu: {
+    lead: 'C',
+    valency: 1,
+    subsSmiles: 'C(C(=O)O)(N)CC(C)C',
+    residueTemplateSmiles: '[N:1][C:3](CC(C)C)[C:2](=O)',
+  },
+  Lys: {
+    lead: 'C',
+    valency: 1,
+    subsSmiles: 'C(C(=O)O)(N)CCCCN',
+    residueTemplateSmiles: '[N:1][C:3](CCCCN)[C:2](=O)',
+  },
+  Met: {
+    lead: 'C',
+    valency: 1,
+    subsSmiles: 'C(C(=O)O)(N)CCSC',
+    residueTemplateSmiles: '[N:1][C:3](CCSC)[C:2](=O)',
+  },
+  Phe: {
+    lead: 'C',
+    valency: 1,
+    subsSmiles: 'C(C(=O)O)(N)Cc1ccccc1',
+    residueTemplateSmiles: '[N:1][C:3](Cc1ccccc1)[C:2](=O)',
+  },
+  Pro: {
+    lead: 'C',
+    valency: 1,
+    subsSmiles: 'C1CC(N)CC1C(=O)O',
+    residueTemplateSmiles: '[N:1]1[C:3](CCC1)[C:2](=O)',
+  },
+  Ser: {
+    lead: 'C',
+    valency: 1,
+    subsSmiles: 'C(C(=O)O)(N)CO',
+    residueTemplateSmiles: '[N:1][C:3](CO)[C:2](=O)',
+  },
+  Thr: {
+    lead: 'C',
+    valency: 1,
+    subsSmiles: 'C(C(=O)O)(N)C(O)C',
+    residueTemplateSmiles: '[N:1][C:3](C(O)C)[C:2](=O)',
+  },
+  Trp: {
+    lead: 'C',
+    valency: 1,
+    subsSmiles: 'C(C(=O)O)(N)Cc1c[nH]c2ccccc12',
+    residueTemplateSmiles: '[N:1][C:3](Cc1c[nH]c2ccccc12)[C:2](=O)',
+  },
+  Tyr: {
+    lead: 'C',
+    valency: 1,
+    subsSmiles: 'C(C(=O)O)(N)Cc1ccc(O)cc1',
+    residueTemplateSmiles: '[N:1][C:3](Cc1ccc(O)cc1)[C:2](=O)',
+  },
+  Val: {
+    lead: 'C',
+    valency: 1,
+    subsSmiles: 'C(C(=O)O)(N)C(C)C',
+    residueTemplateSmiles: '[N:1][C:3](C(C)C)[C:2](=O)',
+  },
+
+  // ── Miscellaneous ─────────────────────────────────────────────────────────
+  Ad: { lead: 'C', valency: 1, subsSmiles: 'C1C2CC3CC1CC(C2)C3' },
+  CoA: { lead: 'C', valency: 1, subsSmiles: 'C(C(=O)SCCNC(=O)CCNC(=O))' },
+  Dan: { lead: 'C', valency: 1, subsSmiles: 'c1ccc2cc(N)nc(N)c2c1' },
+  DEAE: { lead: 'N', valency: 1, subsSmiles: 'N(CC)(CC)CC' },
+  DMPM: { lead: 'C', valency: 1, subsSmiles: 'C(c1cc(OC)c(OC)cc1)' },
+  DMPS: { lead: 'C', valency: 1, subsSmiles: 'C(c1cc(OC)c(OC)cc1S)' },
+  SES: { lead: 'S', valency: 1, subsSmiles: 'S(=O)(=O)CC[Si](C)(C)C' },
+  PPi: { lead: 'P', valency: 1, subsSmiles: 'P(=O)(O)OP(=O)(O)O' },
+};
+
+const ATTACHED_ELEMENT_COLOR_SHORTHANDS = new Set([
+  'PMB',
+  'MPM',
+  'PMBM',
+  'PNB',
+  'Boc',
+  't-Boc',
+  't-BOC',
+  'Cbz',
+  'Z',
+  'Fmoc',
+  'Alloc',
+  'Troc',
+  'NHBoc',
+  'NHCbz',
+  'NHFmoc',
+  'NHTs',
+  'NHMs',
+  'NHNs',
+  'NHBn',
+  'NHPh',
+  'NTs',
+  'NMs',
+  'NTf',
+  'NNs',
+  'NMbs',
+  'NBn',
+  'NPh',
+  'NAc',
+  'NBoc',
+  'NCbz',
+  'OMe',
+  'OEt',
+  'OBn',
+  'OAc',
+  'OBoc',
+  'OBz',
+  'OTs',
+  'OTf',
+  'OTBS',
+  'OTBDMS',
+  'OPMB',
+  'OTIPS',
+  'OTBDPS',
+  'MOM',
+  'MEM',
+  'BOM',
+  'SEM',
+  'THP',
+  'Thp',
+  'Ms',
+  'Ts',
+  'Tos',
+  'Tf',
+  'Bs',
+  'Ds',
+  'SES',
+  'TMS',
+  'TBS',
+  'TBDMS',
+  'TIPS',
+  'TBDPS',
+  'TDS',
+  'DEIPS',
+  'DMIPS',
+  'DPIPS',
+  'TIPDS',
+  'DPTBS',
+  'DTBMS',
+  'DTBS',
+  'TBMPS',
+  'MDIPS',
+  'MDPS',
+]);
+
+for (const [key, entry] of Object.entries(SHORTHAND_DATA)) {
+  entry.colorMode = ATTACHED_ELEMENT_COLOR_SHORTHANDS.has(key) ? 'attached-element' : 'monochrome';
+}
+
+export const AMINO_ACID_SHORTHANDS = new Set(
+  Object.entries(SHORTHAND_DATA)
+    .filter(([, entry]) => Boolean(entry.residueTemplateSmiles))
+    .map(([label]) => label),
+);
+
+function countRingClosuresInSmiles(smiles: string): number {
+  const seen = new Set<string>();
+  let inBracket = false;
+  for (let i = 0; i < smiles.length; i++) {
+    const ch = smiles[i];
+    if (ch === '[') {
+      inBracket = true;
+      continue;
+    }
+    if (ch === ']') {
+      inBracket = false;
+      continue;
+    }
+    if (inBracket) continue;
+    if (ch === '%' && i + 2 < smiles.length) {
+      seen.add('%' + smiles[i + 1] + smiles[i + 2]);
+      i += 2;
+    } else if (/[1-9]/.test(ch)) {
+      seen.add(ch);
+    }
+  }
+  return seen.size;
+}
+
+function renumberRingClosures(sub: string, startNum: number): string {
+  const mapping = new Map<string, string>();
+  let counter = startNum;
+  let result = '';
+  let inBracket = false;
+  for (let i = 0; i < sub.length; i++) {
+    const ch = sub[i];
+    if (ch === '[') {
+      inBracket = true;
+      result += ch;
+      continue;
+    }
+    if (ch === ']') {
+      inBracket = false;
+      result += ch;
+      continue;
+    }
+    if (inBracket) {
+      result += ch;
+      continue;
+    }
+    if (ch === '%' && i + 2 < sub.length) {
+      const key = '%' + sub[i + 1] + sub[i + 2];
+      if (!mapping.has(key)) mapping.set(key, `%${counter++}`);
+      result += mapping.get(key);
+      i += 2;
+    } else if (/[1-9]/.test(ch)) {
+      if (!mapping.has(ch)) mapping.set(ch, `%${counter++}`);
+      result += mapping.get(ch);
+    } else {
+      result += ch;
+    }
+  }
+  return result;
+}
+
+export function expandShorthandSmiles(smiles: string, shorthandMap: Map<number, string>): string {
+  if (shorthandMap.size === 0) return smiles;
+  let result = smiles;
+  let ringCounter = 10;
+
+  for (const [mapNum, key] of shorthandMap) {
+    const entry = SHORTHAND_DATA[key];
+    if (!entry?.subsSmiles) continue;
+    const pattern = new RegExp(
+      `\\[${entry.lead}[^\\]]*:${mapNum}\\]|\\[${entry.lead.toLowerCase()}[^\\]]*:${mapNum}\\]`,
+      'g',
+    );
+    if (!pattern.test(result)) continue;
+    pattern.lastIndex = 0;
+    const sub = renumberRingClosures(entry.subsSmiles, ringCounter);
+    ringCounter += countRingClosuresInSmiles(entry.subsSmiles);
+    result = result.replace(pattern, sub);
+  }
+  return result;
+}
+
+export function getDirectionalLabel(atom: Atom, atoms: Atom[], bonds: Bond[]): string {
+  const key = getAtomNodeText(atom);
+  const entry = SHORTHAND_DATA[key];
+  if (!entry) return key;
+
+  const conn = bonds.filter((b) => b.from === atom.id || b.to === atom.id);
+  const totalBondOrder = conn.reduce((sum, bond) => sum + (bond.order || 1), 0);
+  const useBuiltInHydrogenLabel = Boolean(entry.withH && conn.length > 0 && totalBondOrder < 2);
+  const baseLabel = useBuiltInHydrogenLabel ? (entry.withH ?? key) : key;
+  const baseReverse = useBuiltInHydrogenLabel
+    ? (entry.reverseWithH ?? entry.withH ?? key)
+    : entry.reverse;
+
+  if (!baseReverse) return baseLabel;
+
+  const neighbors = conn
+    .map((b) => atoms.find((a) => a.id === (b.from === atom.id ? b.to : b.from)))
+    .filter(Boolean) as Atom[];
+
+  const dxSum = neighbors.reduce((s, n) => s + (n.x - atom.x), 0);
+  return dxSum > 0 ? baseReverse : baseLabel;
+}

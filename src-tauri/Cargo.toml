@@ -1,0 +1,29 @@
+[package]
+name = "chem-editor"
+version = "0.1.0"
+description = "Chemistry Drawing and Visualization"
+authors = ["Matthew Duong"]
+edition = "2021"
+
+[lib]
+name = "chem_editor_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-dialog = "2"
+tauri-plugin-fs = "2"
+tauri-plugin-clipboard-manager = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+arboard = { version = "3", default-features = false, features = ["wayland-data-control"] }
+base64 = "0.22"
+
+[lints.rust]
+unsafe_code = "forbid"
+
+[lints.clippy]
+pedantic = "warn"

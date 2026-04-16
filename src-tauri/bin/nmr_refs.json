@@ -1,0 +1,13 @@
+{
+  "_meta": {
+    "functional": "pbe0",
+    "geometry": "GFN2-xTB",
+    "generated_by": "development/precompute_nmr_refs.py"
+  },
+  "pbe0": {
+    "pcseg-1": {
+      "1H": 31.87224527317682,
+      "13C": 196.9540326369214
+    }
+  }
+}

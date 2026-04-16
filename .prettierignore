@@ -1,0 +1,17 @@
+# Artifacts
+dist/
+node_modules/
+.unit-test-dist/
+pnpm-lock.yaml
+
+# Assets
+public/rdkit/
+src/assets/
+
+# Python/Rust artifacts (already handled by ruff/cargo)
+src-tauri/target/
+src-tauri/gen/
+src-tauri/bin/
+src-tauri/.venv/
+.ruff_cache/
+.pnpm-store/
