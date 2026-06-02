@@ -332,7 +332,8 @@ export const ATOM_FRAGMENT_OPTIONS: Record<string, Array<{ minFV: number; smiles
 };
 
 export type CanvasToolShortcut = ShortcutDefinition & {
-  tool: 'select' | 'pan' | 'bond' | 'ring' | 'text' | 'arrow' | 'eraser';
+  tool: 'select' | 'pan' | 'bond' | 'ring' | 'text' | 'arrow' | 'eraser' | 'fragment';
+  selectedFragment?: string;
 };
 
 export const CANVAS_TOOL_SHORTCUTS: CanvasToolShortcut[] = [
@@ -340,37 +341,37 @@ export const CANVAS_TOOL_SHORTCUTS: CanvasToolShortcut[] = [
     id: 'canvas.tools.select',
     tool: 'select',
     label: 'Switch to selection tool',
-    description: 'Switch to the selection tool when no atom or bond is hovered.',
+    description: 'Switch to the selection tool. ChemDraw uses Spacebar for Marquee by default.',
     category: 'Tools',
     context: 'canvas',
-    defaultBinding: { key: 'v' },
+    defaultBinding: { key: '' },
   },
   {
     id: 'canvas.tools.pan',
     tool: 'pan',
     label: 'Switch to hand tool',
-    description: 'Switch to the hand/pan tool when no atom or bond is hovered.',
+    description: 'Switch to the hand/pan tool.',
     category: 'Tools',
     context: 'canvas',
-    defaultBinding: { key: 'h' },
+    defaultBinding: { key: '' },
   },
   {
     id: 'canvas.tools.bond',
     tool: 'bond',
-    label: 'Switch to bond tool',
-    description: 'Switch to the bond tool when no atom or bond is hovered.',
+    label: 'Switch to solid bond tool',
+    description: 'Switch to the solid bond tool when no atom or bond is hovered.',
     category: 'Tools',
     context: 'canvas',
-    defaultBinding: { key: 'b' },
+    defaultBinding: { key: 'x' },
   },
   {
     id: 'canvas.tools.ring',
     tool: 'ring',
     label: 'Switch to ring tool',
-    description: 'Switch to the ring tool when no atom or bond is hovered.',
+    description: 'Switch to the generic ring tool.',
     category: 'Tools',
     context: 'canvas',
-    defaultBinding: { key: 'r' },
+    defaultBinding: { key: '' },
   },
   {
     id: 'canvas.tools.text',
@@ -391,21 +392,61 @@ export const CANVAS_TOOL_SHORTCUTS: CanvasToolShortcut[] = [
     defaultBinding: { key: 'e' },
   },
   {
+    id: 'canvas.tools.benzene',
+    tool: 'fragment',
+    selectedFragment: 'c1ccccc1',
+    label: 'Switch to benzene tool',
+    description: 'Switch to the benzene fragment tool when no atom or bond is hovered.',
+    category: 'Tools',
+    context: 'canvas',
+    defaultBinding: { key: 'j' },
+  },
+  {
+    id: 'canvas.tools.cyclopentadiene',
+    tool: 'fragment',
+    selectedFragment: 'C1=CC=CC1',
+    label: 'Switch to cyclopentadiene tool',
+    description: 'Switch to the cyclopentadiene fragment tool when no atom or bond is hovered.',
+    category: 'Tools',
+    context: 'canvas',
+    defaultBinding: { key: 'j', shift: true },
+  },
+  {
+    id: 'canvas.tools.cyclohexane',
+    tool: 'fragment',
+    selectedFragment: 'C1CCCCC1',
+    label: 'Switch to cyclohexane tool',
+    description: 'Switch to the cyclohexane fragment tool when no atom or bond is hovered.',
+    category: 'Tools',
+    context: 'canvas',
+    defaultBinding: { key: 'u' },
+  },
+  {
+    id: 'canvas.tools.cyclopentane',
+    tool: 'fragment',
+    selectedFragment: 'C1CCCC1',
+    label: 'Switch to cyclopentane tool',
+    description: 'Switch to the cyclopentane fragment tool when no atom or bond is hovered.',
+    category: 'Tools',
+    context: 'canvas',
+    defaultBinding: { key: 'u', shift: true },
+  },
+  {
     id: 'canvas.tools.eraser',
     tool: 'eraser',
     label: 'Switch to eraser tool',
-    description: 'Switch to the eraser tool when no atom or bond is hovered.',
+    description: 'Switch to the eraser tool.',
     category: 'Tools',
     context: 'canvas',
-    defaultBinding: { key: 'x' },
+    defaultBinding: { key: '' },
   },
 ];
 
 const CANVAS_FIXED_SHORTCUTS: ShortcutDefinition[] = [
   {
     id: 'canvas.selection.component',
-    label: 'Select connected object',
-    description: 'Select the hovered atom, bond, arrow, text box, or connected component.',
+    label: 'Marquee/select connected object',
+    description: 'Switch to selection with no hotspot, or select the hovered connected object.',
     category: 'Selection',
     context: 'canvas',
     defaultBinding: { key: 'space' },

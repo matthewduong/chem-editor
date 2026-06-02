@@ -194,7 +194,7 @@ test('viewer preferences normalize hartree-fock orbital defaults and persisted v
     },
   });
 
-  assert.equal(normalized.version, 9);
+  assert.equal(normalized.version, 10);
   assert.equal(normalized.viewer.forceField, 'hartree-fock');
   assert.equal(normalized.viewer.orbitals.basis, '6-31G*');
   assert.equal(normalized.viewer.orbitals.opacity, 0.7);
@@ -244,7 +244,7 @@ test('legacy untouched drawing defaults migrate to the ACS 1996 baseline', () =>
     documentView: { atomColorViewMode: 'enhanced-defaults' },
   });
 
-  assert.equal(normalized.version, 9);
+  assert.equal(normalized.version, 10);
   assert.equal(normalized.drawing.bondLength, DEFAULT_DOCUMENT_STYLE_SETTINGS.bondLength);
   assert.equal(normalized.drawing.bondLineWidth, DEFAULT_DOCUMENT_STYLE_SETTINGS.bondLineWidth);
   assert.equal(
@@ -263,7 +263,7 @@ test('recent files normalize to a newest-first unique list', () => {
     ],
   });
 
-  assert.equal(normalized.version, 9);
+  assert.equal(normalized.version, 10);
   assert.deepEqual(
     normalized.recentFiles.map((entry) => entry.path),
     ['/tmp/a.cdxml', '/tmp/b.cdxml'],

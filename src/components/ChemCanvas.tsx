@@ -3123,6 +3123,9 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
       if (toolShortcut) {
         e.preventDefault();
         useStore.getState().setTool(toolShortcut.tool);
+        if (toolShortcut.selectedFragment) {
+          useStore.getState().setSelectedFragment(toolShortcut.selectedFragment);
+        }
         return;
       }
 

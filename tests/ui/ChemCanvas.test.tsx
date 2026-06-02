@@ -229,8 +229,12 @@ describe('ChemCanvas', () => {
       throw new Error('ChemCanvas did not register a keydown handler');
     }
 
-    const dispatchShortcut = (key: string, target: EventTarget) => {
-      const event = new KeyboardEvent('keydown', { key, bubbles: true });
+    const dispatchShortcut = (
+      key: string,
+      target: EventTarget,
+      options: KeyboardEventInit = {},
+    ) => {
+      const event = new KeyboardEvent('keydown', { key, bubbles: true, ...options });
       Object.defineProperty(event, 'target', {
         value: target,
         configurable: true,
@@ -239,19 +243,49 @@ describe('ChemCanvas', () => {
     };
 
     for (const [key, expectedTool] of [
-      ['v', 'select'],
-      ['h', 'pan'],
-      ['b', 'bond'],
-      ['r', 'ring'],
+      ['x', 'bond'],
       ['t', 'text'],
       ['e', 'arrow'],
-      ['x', 'eraser'],
     ] as const) {
       dispatchShortcut(key, surface);
       await waitFor(() => {
         expect(useStore.getState().tool).toBe(expectedTool);
       });
     }
+
+    dispatchShortcut('j', surface);
+    await waitFor(() => {
+      expect(useStore.getState().tool).toBe('fragment');
+      expect(useStore.getState().selectedFragment).toBe('c1ccccc1');
+    });
+
+    dispatchShortcut('J', surface, { shiftKey: true });
+    await waitFor(() => {
+      expect(useStore.getState().tool).toBe('fragment');
+      expect(useStore.getState().selectedFragment).toBe('C1=CC=CC1');
+    });
+
+    dispatchShortcut('u', surface);
+    await waitFor(() => {
+      expect(useStore.getState().tool).toBe('fragment');
+      expect(useStore.getState().selectedFragment).toBe('C1CCCCC1');
+    });
+
+    dispatchShortcut('U', surface, { shiftKey: true });
+    await waitFor(() => {
+      expect(useStore.getState().tool).toBe('fragment');
+      expect(useStore.getState().selectedFragment).toBe('C1CCCC1');
+    });
+
+    dispatchShortcut('v', surface);
+    await waitFor(() => {
+      expect(useStore.getState().tool).toBe('fragment');
+    });
+
+    dispatchShortcut(' ', surface);
+    await waitFor(() => {
+      expect(useStore.getState().tool).toBe('select');
+    });
 
     act(() => {
       useStore.setState({

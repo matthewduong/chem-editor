@@ -30,6 +30,7 @@ import {
 } from './chemdrawMetrics';
 import { ELEMENT_COLORS, ELEMENTS } from './elements';
 import {
+  areShortcutBindingsEqual,
   buildDefaultKeybindingPreferences,
   normalizeShortcutBinding,
   SHORTCUT_DEFINITIONS,
@@ -363,8 +364,10 @@ export const DEFAULT_TOOL_PALETTES: ToolPalettesPreferences = {
   },
 };
 
+const APP_PREFERENCES_VERSION = 10;
+
 export const DEFAULT_APP_PREFERENCES: AppPreferences = {
-  version: 9,
+  version: APP_PREFERENCES_VERSION,
   isDarkMode: false,
   showGrid: false,
   showHydrogens: true,
@@ -414,7 +417,7 @@ export const DEFAULT_APP_PREFERENCES: AppPreferences = {
 };
 
 interface PersistedSettingsPayload {
-  version: 7 | 8 | 9;
+  version: 7 | 8 | 9 | 10;
   appPreferences: AppPreferences;
 }
 
@@ -840,15 +843,35 @@ function normalizeToolPalettes(
 
 function normalizeKeybindingPreferences(
   value: Partial<KeybindingPreferences> | undefined,
+  sourceVersion: number | undefined,
 ): KeybindingPreferences {
   const defaults = buildDefaultKeybindingPreferences();
+  const legacyToolDefaults: Record<
+    string,
+    NonNullable<KeybindingPreferences['bindings'][string]>
+  > = {
+    'canvas.tools.select': { key: 'v' },
+    'canvas.tools.pan': { key: 'h' },
+    'canvas.tools.bond': { key: 'b' },
+    'canvas.tools.ring': { key: 'r' },
+    'canvas.tools.eraser': { key: 'x' },
+  };
+  const shouldMigrateLegacyToolDefaults =
+    typeof sourceVersion === 'number' && sourceVersion < APP_PREFERENCES_VERSION;
+
   return {
     bindings: Object.fromEntries(
-      SHORTCUT_DEFINITIONS.map((definition) => [
-        definition.id,
-        normalizeShortcutBinding(value?.bindings?.[definition.id]) ??
-          defaults.bindings[definition.id],
-      ]),
+      SHORTCUT_DEFINITIONS.map((definition) => {
+        const normalizedBinding = normalizeShortcutBinding(value?.bindings?.[definition.id]);
+        const legacyDefault = legacyToolDefaults[definition.id];
+        const binding =
+          shouldMigrateLegacyToolDefaults &&
+          legacyDefault &&
+          areShortcutBindingsEqual(normalizedBinding, legacyDefault)
+            ? defaults.bindings[definition.id]
+            : (normalizedBinding ?? defaults.bindings[definition.id]);
+        return [definition.id, binding];
+      }),
     ),
   };
 }
@@ -957,7 +980,7 @@ export function normalizeAppPreferences(
     : normalizeDocumentViewSettings(value?.documentView);
 
   return {
-    version: 9,
+    version: APP_PREFERENCES_VERSION,
     isDarkMode:
       typeof value?.isDarkMode === 'boolean'
         ? value.isDarkMode
@@ -1054,7 +1077,7 @@ export function normalizeAppPreferences(
     },
     ui: normalizeUiPreferences(value?.ui),
     toolPalettes: normalizeToolPalettes(value?.toolPalettes),
-    keybindings: normalizeKeybindingPreferences(value?.keybindings),
+    keybindings: normalizeKeybindingPreferences(value?.keybindings, value?.version),
     recentFiles: normalizeRecentFiles(value?.recentFiles),
   };
 }
@@ -1222,7 +1245,7 @@ export async function loadAppPreferences(): Promise<AppPreferences> {
 }
 
 export async function saveAppPreferences(appPreferences: AppPreferences): Promise<void> {
-  const payload: PersistedSettingsPayload = { version: 9, appPreferences };
+  const payload: PersistedSettingsPayload = { version: APP_PREFERENCES_VERSION, appPreferences };
   await invokeTauri('save_app_settings', { content: JSON.stringify(payload, null, 2) });
 }
 
