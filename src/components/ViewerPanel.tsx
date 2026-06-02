@@ -1,9 +1,23 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, type CSSProperties } from 'react';
 import type { Molecule3DRef } from './Molecule3DRef';
 import type { PreviewMode, ViewerMode } from '../store';
+import { IconButton, OptionButton, SegmentedControl } from './ui/Controls';
 
 const Molecule = lazy(() => import('./Molecule').then((m) => ({ default: m.Molecule })));
 const Molecule3DThreePanel = lazy(() => import('./Molecule3DThreePanel'));
+
+const PREVIEW_MODE_OPTIONS: Array<{ value: PreviewMode; label: string }> = [
+  { value: '2D', label: '2D' },
+  { value: '3D', label: '3D' },
+];
+
+const VIEWER_MODE_OPTIONS: ViewerMode[] = ['pinned', 'floating', 'split'];
+
+const VIEWER_MODE_LABELS: Record<ViewerMode, string> = {
+  pinned: 'Pinned',
+  floating: 'Floating',
+  split: 'Split',
+};
 
 export interface AppTheme {
   bg: string;
@@ -57,186 +71,76 @@ export function ViewerPanel({
   onScreenshot,
   molecule3DRef,
 }: ViewerPanelProps) {
+  const viewerPanelStyle = {
+    '--viewer-header-bg': theme.header,
+    '--viewer-border': theme.border,
+  } as CSSProperties;
+
   return (
-    <div
-      style={{
-        width: '100%',
-        height: '100%',
-        display: 'flex',
-        flexDirection: 'column',
-        overflow: 'hidden',
-      }}
-    >
+    <div className="viewer-panel" style={viewerPanelStyle}>
       <div
+        className="viewer-panel__header"
         onMouseDown={onStartDragging}
-        style={{
-          display: 'flex',
-          justifyContent: 'flex-end',
-          padding: '6px 10px',
-          gap: '10px',
-          background: theme.header,
-          borderBottom: `1px solid ${theme.border}`,
-          zIndex: 10,
-          alignItems: 'center',
-          cursor: viewerMode === 'split' ? 'default' : 'move',
-          flexShrink: 0,
-        }}
+        style={{ cursor: viewerMode === 'split' ? 'default' : 'move' }}
       >
-        <button
+        <IconButton
+          label="Save Image"
+          size="sm"
+          className="viewer-panel__save-button"
           onClick={(e) => {
             e.stopPropagation();
             onScreenshot();
           }}
           onMouseDown={(e) => e.stopPropagation()}
-          style={{
-            border: 'none',
-            background: 'transparent',
-            cursor: 'pointer',
-            color: theme.text,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            width: '28px',
-            height: '28px',
-            marginRight: 'auto',
-            opacity: 0.8,
-            borderRadius: '4px',
-          }}
-          title="Save Image"
         >
-          <svg
-            width="18"
-            height="18"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
-            <circle cx="12" cy="13" r="4"></circle>
-          </svg>
-        </button>
-        <div
-          style={{
-            display: 'flex',
-            background: isDarkMode ? '#333' : '#e0e0e0',
-            borderRadius: '6px',
-            padding: '2px',
-            height: '26px',
-            alignItems: 'center',
-            border: `1px solid ${theme.border}`,
-          }}
-        >
-          {(['2D', '3D'] as const).map((m) => (
-            <button
-              key={m}
-              onClick={(e) => {
-                e.stopPropagation();
-                setPreviewMode(m);
-              }}
-              onMouseDown={(e) => e.stopPropagation()}
-              style={{
-                fontSize: '10px',
-                padding: '0 6px',
-                height: '16px',
-                cursor: 'pointer',
-                background: previewMode === m ? '#007acc' : 'transparent',
-                border: 'none',
-                borderRadius: '2px',
-                color: previewMode === m ? '#fff' : theme.text,
-                fontWeight: previewMode === m ? 'bold' : 'normal',
-              }}
-            >
-              {m}
-            </button>
-          ))}
-        </div>
-        <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-          <button
+          <CameraIcon />
+        </IconButton>
+        <SegmentedControl
+          label="Preview mode"
+          value={previewMode}
+          options={PREVIEW_MODE_OPTIONS}
+          onChange={setPreviewMode}
+          onMouseDown={(e) => e.stopPropagation()}
+        />
+        <div className="viewer-panel__settings">
+          <IconButton
+            label="Viewer Settings"
             onClick={(e) => {
               e.stopPropagation();
               setIsSettingsOpen(!isSettingsOpen);
             }}
             onMouseDown={(e) => e.stopPropagation()}
-            style={{
-              border: 'none',
-              background: 'transparent',
-              cursor: 'pointer',
-              fontSize: '24px',
-              color: theme.text,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: '36px',
-              height: '36px',
-              borderRadius: '4px',
-              opacity: 0.8,
-            }}
-            title="Viewer Settings"
           >
-            ⚙
-          </button>
+            <SettingsIcon />
+          </IconButton>
           {isSettingsOpen && (
             <div
+              className="viewer-panel__settings-menu"
               onClick={(e) => e.stopPropagation()}
               onMouseDown={(e) => e.stopPropagation()}
-              style={{
-                position: 'absolute',
-                top: '32px',
-                right: 0,
-                background: theme.header,
-                border: `1px solid ${theme.border}`,
-                boxShadow: '0 2px 10px rgba(0,0,0,0.2)',
-                minWidth: '120px',
-                padding: '8px',
-                zIndex: 1000,
-                borderRadius: '4px',
-              }}
             >
-              <div
-                style={{ fontSize: '11px', fontWeight: 'bold', color: '#888', marginBottom: '8px' }}
-              >
-                LAYOUT
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                {(['pinned', 'floating', 'split'] as ViewerMode[]).map((m) => (
-                  <button
-                    key={m}
+              <div className="viewer-panel__settings-label">LAYOUT</div>
+              <div className="viewer-panel__settings-options">
+                {VIEWER_MODE_OPTIONS.map((mode) => (
+                  <OptionButton
+                    key={mode}
+                    active={viewerMode === mode}
                     onClick={() => {
-                      setViewerMode(m);
+                      setViewerMode(mode);
                       setIsSettingsOpen(false);
                     }}
-                    style={{
-                      textAlign: 'left',
-                      fontSize: '11px',
-                      padding: '4px 8px',
-                      cursor: 'pointer',
-                      background:
-                        viewerMode === m ? (isDarkMode ? '#37373d' : '#e0e0e0') : 'transparent',
-                      border: 'none',
-                      borderRadius: '3px',
-                      color: theme.text,
-                    }}
                   >
-                    {m.charAt(0).toUpperCase() + m.slice(1)}
-                  </button>
+                    {VIEWER_MODE_LABELS[mode]}
+                  </OptionButton>
                 ))}
               </div>
             </div>
           )}
         </div>
       </div>
-      <div style={{ flex: 1, position: 'relative', minHeight: 0 }}>
+      <div className="viewer-panel__content">
         <Suspense fallback={null}>
-          <div
-            style={{
-              display: previewMode === '2D' ? 'block' : 'none',
-              width: '100%',
-              height: '100%',
-            }}
-          >
+          <div className="viewer-panel__mode-pane" hidden={previewMode !== '2D'}>
             <Molecule
               smiles={viewerSmiles}
               molblock={viewerMolblock}
@@ -249,13 +153,7 @@ export function ViewerPanel({
           </div>
         </Suspense>
         <Suspense fallback={null}>
-          <div
-            style={{
-              display: previewMode === '3D' ? 'block' : 'none',
-              width: '100%',
-              height: '100%',
-            }}
-          >
+          <div className="viewer-panel__mode-pane" hidden={previewMode !== '3D'}>
             <Molecule3DThreePanel
               ref={molecule3DRef}
               smiles={viewerSmiles}
@@ -272,5 +170,41 @@ export function ViewerPanel({
         </Suspense>
       </div>
     </div>
+  );
+}
+
+function CameraIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      focusable="false"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+      <circle cx="12" cy="13" r="4" />
+    </svg>
+  );
+}
+
+function SettingsIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      focusable="false"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <circle cx="12" cy="12" r="3" />
+      <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.2a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.2a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3 1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.2a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8 1.7 1.7 0 0 0 1.5 1h.2a2 2 0 1 1 0 4h-.2a1.7 1.7 0 0 0-1.5 1z" />
+    </svg>
   );
 }

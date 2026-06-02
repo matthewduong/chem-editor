@@ -24,12 +24,28 @@ export interface ShortcutDefinition {
 
 export const APP_SHORTCUT_DEFINITIONS: ShortcutDefinition[] = [
   {
+    id: 'app.file.new',
+    label: 'New document',
+    description: 'Start a new document.',
+    category: 'File',
+    context: 'global',
+    defaultBinding: { key: 'n', primary: true },
+  },
+  {
     id: 'app.file.save',
     label: 'Save document',
     description: 'Save the current document.',
     category: 'File',
     context: 'global',
     defaultBinding: { key: 's', primary: true },
+  },
+  {
+    id: 'app.file.save-as',
+    label: 'Save document as',
+    description: 'Save the current document to a new file path.',
+    category: 'File',
+    context: 'global',
+    defaultBinding: { key: 's', primary: true, shift: true },
   },
   {
     id: 'app.file.open',

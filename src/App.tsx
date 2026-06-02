@@ -2007,6 +2007,14 @@ function App() {
       const matches = (shortcutId: string) =>
         eventMatchesShortcut(e, getShortcutBinding(appPreferences.keybindings, shortcutId));
 
+      if (matches('app.file.new')) {
+        e.preventDefault();
+        handleNewDocument();
+      }
+      if (matches('app.file.save-as')) {
+        e.preventDefault();
+        handleSaveAsNative();
+      }
       if (matches('app.file.save')) {
         e.preventDefault();
         handleSaveNative();
@@ -2112,7 +2120,9 @@ function App() {
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
   }, [
+    handleNewDocument,
     handleSaveNative,
+    handleSaveAsNative,
     handleOpen,
     handleCopy,
     handleCut,
@@ -3525,7 +3535,9 @@ function App() {
             </MenuTrigger>
             {isFileDropdownOpen && (
               <MenuContent width={220}>
-                <MenuItem onClick={handleNewDocument}>New</MenuItem>
+                <MenuItem onClick={handleNewDocument} shortcut="Ctrl+N">
+                  New
+                </MenuItem>
                 <MenuItem onClick={handleOpen} shortcut="Ctrl+O">
                   Open...
                 </MenuItem>
@@ -3533,7 +3545,9 @@ function App() {
                 <MenuItem onClick={handleSaveNative} shortcut="Ctrl+S">
                   Save
                 </MenuItem>
-                <MenuItem onClick={handleSaveAsNative}>Save As...</MenuItem>
+                <MenuItem onClick={handleSaveAsNative} shortcut="Ctrl+Shift+S">
+                  Save As...
+                </MenuItem>
                 <div
                   className="ui-menu-submenu"
                   onMouseEnter={() => setIsExportSubmenuOpen(true)}

@@ -192,6 +192,39 @@ describe('App', () => {
     });
   });
 
+  it('routes standard New and Save As keyboard shortcuts', async () => {
+    useStore.setState({
+      documentFile: {
+        path: '/tmp/existing.cdxml',
+        name: 'existing.cdxml',
+        format: 'cdxml',
+        dirty: false,
+        lastSavedRevision: 1,
+      },
+    });
+
+    render(<App />);
+
+    fireEvent.keyDown(screen.getByTestId('chem-canvas'), { key: 'n', ctrlKey: true });
+
+    await waitFor(() => {
+      expect(useStore.getState().documentFile.path).toBeNull();
+    });
+
+    fireEvent.keyDown(screen.getByTestId('chem-canvas'), {
+      key: 's',
+      ctrlKey: true,
+      shiftKey: true,
+    });
+
+    await waitFor(() => {
+      expect(mocks.chemCanvasHandle.saveNative).toHaveBeenCalledWith({
+        path: null,
+        prompt: true,
+      });
+    });
+  });
+
   it('opens recent CDXML files through direct path reads', async () => {
     useStore.setState({
       appPreferences: {
