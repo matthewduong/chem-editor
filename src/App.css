@@ -18,6 +18,154 @@ body {
   box-sizing: border-box;
 }
 
+:root {
+  --ce-radius-sm: 4px;
+  --ce-radius-md: 6px;
+  --ce-spacing-1: 4px;
+  --ce-spacing-2: 8px;
+  --ce-spacing-3: 12px;
+  --ce-font-xs: 10px;
+  --ce-font-sm: 11px;
+  --ce-font-md: 12px;
+  --ce-surface: #ffffff;
+  --ce-surface-muted: #f4f4f4;
+  --ce-surface-raised: rgba(255, 255, 255, 0.98);
+  --ce-border: #d0d0d0;
+  --ce-text: #202124;
+  --ce-text-muted: #777777;
+  --ce-hover: #e8f2ff;
+  --ce-accent: #007acc;
+  --ce-danger: #d9534f;
+  --ce-shadow: 0 8px 18px rgba(0, 0, 0, 0.22);
+}
+
+.app-shell[data-theme='dark'] {
+  --ce-surface: #1f1f1f;
+  --ce-surface-muted: #2d2d2d;
+  --ce-surface-raised: rgba(37, 37, 37, 0.98);
+  --ce-border: #444444;
+  --ce-text: #f0f0f0;
+  --ce-text-muted: #9a9a9a;
+  --ce-hover: #27384a;
+  --ce-shadow: 0 8px 18px rgba(0, 0, 0, 0.35);
+}
+
+.ui-menu-root {
+  position: relative;
+}
+
+.ui-menu-trigger {
+  border: none;
+  background: transparent;
+  color: var(--ce-text);
+  cursor: pointer;
+  font: inherit;
+  padding: 4px 2px;
+  user-select: none;
+}
+
+.ui-menu-trigger:hover,
+.ui-menu-trigger[aria-expanded='true'] {
+  color: var(--ce-accent);
+}
+
+.ui-menu-content {
+  position: absolute;
+  top: calc(100% + 5px);
+  left: 0;
+  z-index: 1002;
+  min-width: 180px;
+  padding: 4px 0;
+  background: var(--ce-surface-raised);
+  border: 1px solid var(--ce-border);
+  border-radius: var(--ce-radius-sm);
+  box-shadow: var(--ce-shadow);
+}
+
+.ui-menu-root--right .ui-menu-content {
+  right: 0;
+  left: auto;
+}
+
+.ui-menu-submenu {
+  position: relative;
+}
+
+.ui-menu-submenu .ui-menu-content {
+  top: 0;
+  left: 100%;
+  margin-left: -1px;
+}
+
+.ui-menu-item,
+.ui-menu-checkbox {
+  width: 100%;
+  min-height: 28px;
+  display: flex;
+  align-items: center;
+  gap: var(--ce-spacing-2);
+  border: none;
+  background: transparent;
+  color: var(--ce-text);
+  cursor: pointer;
+  font: inherit;
+  font-size: var(--ce-font-md);
+  padding: 6px var(--ce-spacing-3);
+  text-align: left;
+}
+
+.ui-menu-item {
+  justify-content: space-between;
+}
+
+.ui-menu-item:hover,
+.ui-menu-checkbox:hover {
+  background: var(--ce-hover);
+}
+
+.ui-menu-item:disabled {
+  cursor: default;
+  opacity: 0.48;
+}
+
+.ui-menu-item:disabled:hover {
+  background: transparent;
+}
+
+.ui-menu-item--danger {
+  color: var(--ce-danger);
+}
+
+.ui-menu-item--accent {
+  color: var(--ce-accent);
+}
+
+.ui-menu-item__label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ui-menu-shortcut {
+  color: var(--ce-text-muted);
+  flex-shrink: 0;
+  font-size: var(--ce-font-sm);
+}
+
+.ui-menu-separator {
+  height: 1px;
+  margin: 4px 0;
+  background: var(--ce-border);
+}
+
+.ui-menu-section-label {
+  padding: 4px var(--ce-spacing-3) 2px;
+  color: var(--ce-text-muted);
+  font-size: var(--ce-font-xs);
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
 /* Completely hide scrollbars globally for a clean UI */
 * {
   scrollbar-width: none !important; /* Firefox */

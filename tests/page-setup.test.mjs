@@ -194,7 +194,7 @@ test('viewer preferences normalize hartree-fock orbital defaults and persisted v
     },
   });
 
-  assert.equal(normalized.version, 8);
+  assert.equal(normalized.version, 9);
   assert.equal(normalized.viewer.forceField, 'hartree-fock');
   assert.equal(normalized.viewer.orbitals.basis, '6-31G*');
   assert.equal(normalized.viewer.orbitals.opacity, 0.7);
@@ -244,11 +244,29 @@ test('legacy untouched drawing defaults migrate to the ACS 1996 baseline', () =>
     documentView: { atomColorViewMode: 'enhanced-defaults' },
   });
 
-  assert.equal(normalized.version, 8);
+  assert.equal(normalized.version, 9);
   assert.equal(normalized.drawing.bondLength, DEFAULT_DOCUMENT_STYLE_SETTINGS.bondLength);
   assert.equal(normalized.drawing.bondLineWidth, DEFAULT_DOCUMENT_STYLE_SETTINGS.bondLineWidth);
   assert.equal(
     normalized.documentView.atomColorViewMode,
     DEFAULT_DOCUMENT_VIEW_SETTINGS.atomColorViewMode,
   );
+});
+
+test('recent files normalize to a newest-first unique list', () => {
+  const normalized = normalizeAppPreferences({
+    recentFiles: [
+      { path: '/tmp/a.cdxml', name: 'old-a.cdxml', openedAt: 10 },
+      { path: '/tmp/b.cdxml', name: 'b.cdxml', openedAt: 20 },
+      { path: '/tmp/a.cdxml', name: 'a.cdxml', openedAt: 30 },
+      { path: '', name: 'bad.cdxml', openedAt: 40 },
+    ],
+  });
+
+  assert.equal(normalized.version, 9);
+  assert.deepEqual(
+    normalized.recentFiles.map((entry) => entry.path),
+    ['/tmp/a.cdxml', '/tmp/b.cdxml'],
+  );
+  assert.equal(normalized.recentFiles[0].name, 'a.cdxml');
 });

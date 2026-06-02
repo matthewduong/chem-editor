@@ -8,6 +8,7 @@ import { resetStore } from './helpers';
 
 const mocks = vi.hoisted(() => ({
   saveTextWithDialog: vi.fn(),
+  saveTextToPath: vi.fn(),
   saveBinaryWithDialog: vi.fn(),
   prepareChemDrawDocumentForSaveAsync: vi.fn(),
   loadChemDrawDocumentForCanvasAsync: vi.fn(),
@@ -70,6 +71,7 @@ vi.mock('../../src/editor/scene/DocumentRenderSurface.tsx', () => ({
 
 vi.mock('../../src/lib/fileDialogs.ts', () => ({
   saveTextWithDialog: mocks.saveTextWithDialog,
+  saveTextToPath: mocks.saveTextToPath,
   saveBinaryWithDialog: mocks.saveBinaryWithDialog,
 }));
 
@@ -118,8 +120,9 @@ describe('ChemCanvas', () => {
     const ref = React.createRef<ChemCanvasRef>();
     render(<ChemCanvas ref={ref} width={800} height={600} />);
 
+    let result: Awaited<ReturnType<ChemCanvasRef['saveNative']>> | undefined;
     await act(async () => {
-      await ref.current?.saveNative();
+      result = await ref.current?.saveNative();
     });
 
     expect(mocks.prepareChemDrawDocumentForSaveAsync).toHaveBeenCalledWith(
@@ -132,7 +135,29 @@ describe('ChemCanvas', () => {
     expect(mocks.saveTextWithDialog).toHaveBeenCalledWith(
       expect.objectContaining({ content: '<CDXML />', defaultPath: 'sketch.cdxml' }),
     );
+    expect(result).toEqual({ path: '/tmp/sketch.cdxml', saved: true });
     expect(useStore.getState().chemDrawDocument).toMatchObject(preparedDocument);
+  });
+
+  it('saves native CDXML directly when a path is supplied', async () => {
+    const preparedDocument = createDocument();
+    mocks.prepareChemDrawDocumentForSaveAsync.mockResolvedValue({
+      xml: '<CDXML />',
+      document: preparedDocument,
+    });
+    mocks.saveTextToPath.mockResolvedValue('/tmp/current.cdxml');
+
+    const ref = React.createRef<ChemCanvasRef>();
+    render(<ChemCanvas ref={ref} width={800} height={600} />);
+
+    let result: Awaited<ReturnType<ChemCanvasRef['saveNative']>> | undefined;
+    await act(async () => {
+      result = await ref.current?.saveNative({ path: '/tmp/current.cdxml' });
+    });
+
+    expect(mocks.saveTextToPath).toHaveBeenCalledWith('/tmp/current.cdxml', '<CDXML />');
+    expect(mocks.saveTextWithDialog).not.toHaveBeenCalled();
+    expect(result).toEqual({ path: '/tmp/current.cdxml', saved: true });
   });
 
   it('loads native documents into store history and forwards warnings as toasts', async () => {

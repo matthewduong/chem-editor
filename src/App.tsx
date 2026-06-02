@@ -50,10 +50,21 @@ import { SUPPORTED_ALIAS_LIBRARY, type AliasLibrarySupport } from './lib/aliasCh
 import { getArrowSelectionPoints } from './lib/renderGeometry';
 import { FloatingPanel } from './components/FloatingPanel';
 import { SelectMenu } from './components/SelectMenu';
+import {
+  MenuCheckboxItem,
+  MenuContent,
+  MenuItem,
+  MenuRoot,
+  MenuSectionLabel,
+  MenuSeparator,
+  MenuTrigger,
+} from './components/ui/Menu';
 import type { ToolPaletteId } from './types/settings';
 import {
+  getFileDisplayName,
   openChemicalTextFile,
   openImageBinaryFile,
+  readChemicalTextFileAtPath,
   saveBinaryWithDialog,
   saveTextWithDialog,
 } from './lib/fileDialogs';
@@ -150,6 +161,7 @@ interface SidecarParseResult {
   error?: string;
   molblock: string;
 }
+type OpenedChemicalTextFile = NonNullable<Awaited<ReturnType<typeof openChemicalTextFile>>>;
 interface SidecarExportResult {
   error?: string;
   content: string;
@@ -689,6 +701,7 @@ function App() {
   const textFormat = useStore((s) => s.textFormat);
   const chemDrawDocument = useStore((s) => s.chemDrawDocument);
   const chemDrawWarnings = useStore((s) => s.chemDrawWarnings);
+  const documentFile = useStore((s) => s.documentFile);
   const selectedTextBoxes = useMemo(
     () => textBoxes.filter((textBox) => selectedTextBoxIds.has(textBox.id)),
     [selectedTextBoxIds, textBoxes],
@@ -1014,6 +1027,7 @@ function App() {
     selectAll,
     deselectAll,
     clearCanvas,
+    clearDocumentFile,
     groupSelected,
     ungroupSelected,
     alignSelection,
@@ -1024,6 +1038,10 @@ function App() {
     setAppPreferences,
     setDocumentStyleSettings,
     setDocumentViewSettings,
+    markDocumentDirty,
+    markDocumentSaved,
+    addRecentFile,
+    removeRecentFile,
     applyDefaultsToCurrentDocument,
     showToast,
   } = useStore.getState();
@@ -1475,6 +1493,14 @@ function App() {
   }, [hydrateAppPreferences]);
 
   useEffect(() => {
+    const title = `${documentFile.dirty ? '*' : ''}${documentFile.name} - ChemEditor`;
+    document.title = title;
+    withAppWindow((appWindow) => {
+      void appWindow.setTitle(title);
+    });
+  }, [documentFile.dirty, documentFile.name]);
+
+  useEffect(() => {
     const root = document.getElementById('root');
     if (!root) return;
 
@@ -1584,68 +1610,113 @@ function App() {
     loadLicenses();
   }, [setLicensesText]);
 
-  // Click-outside for menus
-  const fileMenuRef = useRef<HTMLDivElement>(null);
-  const editMenuRef = useRef<HTMLDivElement>(null);
-  const settingsMenuRef = useRef<HTMLDivElement>(null);
-  const calculateMenuRef = useRef<HTMLDivElement>(null);
+  const confirmDiscardUnsavedChanges = useCallback((nextAction: string) => {
+    const currentFile = useStore.getState().documentFile;
+    if (!currentFile.dirty) return true;
+    return window.confirm(
+      `Discard unsaved changes to ${currentFile.name}? ${nextAction} will replace the current document.`,
+    );
+  }, []);
 
-  useEffect(() => {
-    const handler = (ev: MouseEvent) => {
-      if (fileMenuRef.current && !fileMenuRef.current.contains(ev.target as Node)) {
-        setIsFileDropdownOpen(false);
-        setIsExportSubmenuOpen(false);
+  const loadChemicalFile = useCallback(
+    async (file: OpenedChemicalTextFile) => {
+      if (file.extension === 'cdxml') {
+        await canvasRef.current?.loadNative(file.content);
+        markDocumentSaved(file.filePath);
+        addRecentFile(file.filePath);
+        return;
       }
-      if (editMenuRef.current && !editMenuRef.current.contains(ev.target as Node))
-        setIsEditDropdownOpen(false);
-      if (settingsMenuRef.current && !settingsMenuRef.current.contains(ev.target as Node))
-        setIsSettingsDropdownOpen(false);
-      if (calculateMenuRef.current && !calculateMenuRef.current.contains(ev.target as Node))
-        setIsCalculateDropdownOpen(false);
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, [
-    setIsFileDropdownOpen,
-    setIsExportSubmenuOpen,
-    setIsEditDropdownOpen,
-    setIsSettingsDropdownOpen,
-    setIsCalculateDropdownOpen,
-  ]);
+
+      const result = await invokeTauri<SidecarParseResult>('parse_chemical_file', {
+        content: file.content,
+        format: file.extension,
+      });
+      if (result.error) {
+        useStore.getState().showToast(`Could not parse file: ${result.error}`);
+        return;
+      }
+      clearDocumentFile();
+      canvasRef.current?.loadFromSmiles(result.molblock);
+      markDocumentDirty();
+      addRecentFile(file.filePath);
+    },
+    [addRecentFile, clearDocumentFile, markDocumentDirty, markDocumentSaved],
+  );
 
   // File operations
+  const handleNewDocument = useCallback(() => {
+    setIsFileDropdownOpen(false);
+    if (!confirmDiscardUnsavedChanges('New')) return;
+    clearCanvas();
+    clearDocumentFile();
+  }, [clearCanvas, clearDocumentFile, confirmDiscardUnsavedChanges, setIsFileDropdownOpen]);
+
   const handleOpen = useCallback(async () => {
     setIsFileDropdownOpen(false);
+    if (!confirmDiscardUnsavedChanges('Open')) return;
     try {
       const file = await openChemicalTextFile();
       if (!file) {
         return;
       }
-      if (file.extension === 'cdxml') {
-        await canvasRef.current?.loadNative(file.content);
-      } else {
-        const result = await invokeTauri<SidecarParseResult>('parse_chemical_file', {
-          content: file.content,
-          format: file.extension,
-        });
-        if (result.error) useStore.getState().showToast(`Could not parse file: ${result.error}`);
-        else canvasRef.current?.loadFromSmiles(result.molblock);
-      }
+      await loadChemicalFile(file);
     } catch (e) {
       useStore.getState().showToast('Failed to open file');
       console.error(e);
     }
-  }, [setIsFileDropdownOpen]);
+  }, [confirmDiscardUnsavedChanges, loadChemicalFile, setIsFileDropdownOpen]);
 
   const handleSaveNative = useCallback(async () => {
     setIsFileDropdownOpen(false);
     try {
-      await canvasRef.current?.saveNative();
+      const currentFile = useStore.getState().documentFile;
+      const result = await canvasRef.current?.saveNative({
+        path: currentFile.path,
+        prompt: !currentFile.path,
+      });
+      if (result?.saved && result.path) {
+        markDocumentSaved(result.path);
+        addRecentFile(result.path);
+      }
     } catch (e) {
       useStore.getState().showToast('Failed to save file');
       console.error(e);
     }
-  }, [setIsFileDropdownOpen]);
+  }, [addRecentFile, markDocumentSaved, setIsFileDropdownOpen]);
+
+  const handleSaveAsNative = useCallback(async () => {
+    setIsFileDropdownOpen(false);
+    try {
+      const result = await canvasRef.current?.saveNative({
+        path: useStore.getState().documentFile.path,
+        prompt: true,
+      });
+      if (result?.saved && result.path) {
+        markDocumentSaved(result.path);
+        addRecentFile(result.path);
+      }
+    } catch (e) {
+      useStore.getState().showToast('Failed to save file');
+      console.error(e);
+    }
+  }, [addRecentFile, markDocumentSaved, setIsFileDropdownOpen]);
+
+  const handleOpenRecent = useCallback(
+    async (filePath: string) => {
+      setIsFileDropdownOpen(false);
+      if (!confirmDiscardUnsavedChanges('Open Recent')) return;
+      try {
+        await loadChemicalFile(await readChemicalTextFileAtPath(filePath));
+      } catch (error) {
+        removeRecentFile(filePath);
+        useStore
+          .getState()
+          .showToast(`Could not open recent file: ${getFileDisplayName(filePath)}`);
+        console.error(error);
+      }
+    },
+    [confirmDiscardUnsavedChanges, loadChemicalFile, removeRecentFile, setIsFileDropdownOpen],
+  );
 
   const handleInsertImage = useCallback(async () => {
     setIsFileDropdownOpen(false);
@@ -3394,6 +3465,8 @@ function App() {
   return (
     <div
       ref={appShellRef}
+      className="app-shell"
+      data-theme={isDarkMode ? 'dark' : 'light'}
       style={{
         display: 'flex',
         flexDirection: 'column',
@@ -3432,685 +3505,399 @@ function App() {
         }}
       >
         <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
-          {/* File menu */}
-          <div ref={fileMenuRef} style={{ position: 'relative' }}>
-            <span
+          <MenuRoot
+            open={isFileDropdownOpen}
+            onOpenChange={(open) => {
+              setIsFileDropdownOpen(open);
+              if (!open) setIsExportSubmenuOpen(false);
+            }}
+          >
+            <MenuTrigger
+              open={isFileDropdownOpen}
               onClick={() => {
                 setIsFileDropdownOpen(!isFileDropdownOpen);
                 setIsEditDropdownOpen(false);
                 setIsSettingsDropdownOpen(false);
                 setIsExportSubmenuOpen(false);
               }}
-              style={{ cursor: 'pointer', userSelect: 'none' }}
             >
-              File ▾
-            </span>
+              File
+            </MenuTrigger>
             {isFileDropdownOpen && (
-              <div
-                style={{
-                  position: 'absolute',
-                  top: '100%',
-                  left: 0,
-                  background: theme.header,
-                  border: `1px solid ${theme.border}`,
-                  boxShadow: '0 2px 10px rgba(0,0,0,0.2)',
-                  minWidth: '180px',
-                  padding: '4px 0',
-                  marginTop: '5px',
-                }}
-              >
+              <MenuContent width={220}>
+                <MenuItem onClick={handleNewDocument}>New</MenuItem>
+                <MenuItem onClick={handleOpen} shortcut="Ctrl+O">
+                  Open...
+                </MenuItem>
+                <MenuSeparator />
+                <MenuItem onClick={handleSaveNative} shortcut="Ctrl+S">
+                  Save
+                </MenuItem>
+                <MenuItem onClick={handleSaveAsNative}>Save As...</MenuItem>
                 <div
-                  onClick={handleOpen}
-                  style={{
-                    padding: '8px 12px',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                  }}
-                >
-                  Open... <span style={{ color: '#888', fontSize: '11px' }}>Ctrl+O</span>
-                </div>
-                <div
-                  onClick={handleSaveNative}
-                  style={{
-                    padding: '8px 12px',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                  }}
-                >
-                  Save (.cdxml) <span style={{ color: '#888', fontSize: '11px' }}>Ctrl+S</span>
-                </div>
-                <div
-                  onClick={handleInsertImage}
-                  style={{
-                    padding: '8px 12px',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                  }}
-                >
-                  Insert Image...
-                </div>
-                <div
+                  className="ui-menu-submenu"
                   onMouseEnter={() => setIsExportSubmenuOpen(true)}
                   onMouseLeave={() => setIsExportSubmenuOpen(false)}
-                  style={{
-                    padding: '8px 12px',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    position: 'relative',
-                  }}
                 >
-                  Export As <span>▸</span>
+                  <MenuItem trailing={<span className="ui-menu-shortcut">▸</span>}>
+                    Export As
+                  </MenuItem>
                   {isExportSubmenuOpen && (
-                    <div
-                      style={{
-                        position: 'absolute',
-                        top: 0,
-                        left: '100%',
-                        background: theme.header,
-                        border: `1px solid ${theme.border}`,
-                        boxShadow: '0 2px 10px rgba(0,0,0,0.2)',
-                        minWidth: '120px',
-                        padding: '4px 0',
-                      }}
-                    >
-                      <div
-                        onClick={() => handleExport('png')}
-                        style={{ padding: '8px 12px', cursor: 'pointer' }}
-                      >
-                        PNG Image
-                      </div>
-                      <div
-                        onClick={() => handleExport('svg')}
-                        style={{ padding: '8px 12px', cursor: 'pointer' }}
-                      >
-                        SVG Vector
-                      </div>
-                      <div style={{ height: '1px', background: theme.border, margin: '4px 0' }} />
-                      <div
-                        onClick={() => handleExport('mol')}
-                        style={{ padding: '8px 12px', cursor: 'pointer' }}
-                      >
-                        Molfile (.mol)
-                      </div>
-                      <div
-                        onClick={() => handleExport('sdf')}
-                        style={{ padding: '8px 12px', cursor: 'pointer' }}
-                      >
-                        SD File (.sdf)
-                      </div>
-                      <div
-                        onClick={() => handleExport('rxn')}
-                        style={{ padding: '8px 12px', cursor: 'pointer' }}
-                      >
-                        RXN File (.rxn)
-                      </div>
-                      <div
-                        onClick={() => handleExport('smi')}
-                        style={{ padding: '8px 12px', cursor: 'pointer' }}
-                      >
-                        SMILES (.smi)
-                      </div>
-                    </div>
+                    <MenuContent width={150}>
+                      <MenuItem onClick={() => handleExport('png')}>PNG Image</MenuItem>
+                      <MenuItem onClick={() => handleExport('svg')}>SVG Vector</MenuItem>
+                      <MenuSeparator />
+                      <MenuItem onClick={() => handleExport('mol')}>Molfile (.mol)</MenuItem>
+                      <MenuItem onClick={() => handleExport('sdf')}>SD File (.sdf)</MenuItem>
+                      <MenuItem onClick={() => handleExport('rxn')}>RXN File (.rxn)</MenuItem>
+                      <MenuItem onClick={() => handleExport('smi')}>SMILES (.smi)</MenuItem>
+                    </MenuContent>
                   )}
                 </div>
-                <div
+                <MenuItem onClick={handleInsertImage}>Insert Image...</MenuItem>
+                <MenuSeparator />
+                <MenuSectionLabel>Recent Files</MenuSectionLabel>
+                {appPreferences.recentFiles.length > 0 ? (
+                  appPreferences.recentFiles.map((recent) => (
+                    <MenuItem
+                      key={recent.path}
+                      onClick={() => handleOpenRecent(recent.path)}
+                      trailing={<span className="ui-menu-shortcut">{recent.path}</span>}
+                    >
+                      {recent.name}
+                    </MenuItem>
+                  ))
+                ) : (
+                  <MenuItem disabled>No recent files</MenuItem>
+                )}
+                <MenuSeparator />
+                <MenuItem
                   onClick={() => {
                     setIsFileDropdownOpen(false);
                     handlePrint();
                   }}
-                  style={{
-                    padding: '8px 12px',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                  }}
+                  shortcut="Ctrl+P"
                 >
-                  Print / PDF <span style={{ color: '#888', fontSize: '11px' }}>Ctrl+P</span>
-                </div>
-                <div style={{ height: '1px', background: theme.border, margin: '4px 0' }} />
-                <div
-                  onClick={() => {
-                    clearCanvas();
-                    setIsFileDropdownOpen(false);
-                  }}
-                  style={{ padding: '8px 12px', cursor: 'pointer', color: '#d9534f' }}
-                >
+                  Print / PDF
+                </MenuItem>
+                <MenuSeparator />
+                <MenuItem onClick={handleNewDocument} danger>
                   Clear Canvas
-                </div>
-              </div>
+                </MenuItem>
+              </MenuContent>
             )}
-          </div>
+          </MenuRoot>
 
-          {/* Edit menu */}
-          <div ref={editMenuRef} style={{ position: 'relative' }}>
-            <span
+          <MenuRoot
+            open={isEditDropdownOpen}
+            onOpenChange={(open) => {
+              setIsEditDropdownOpen(open);
+              if (!open) setIsAlignSubmenuOpen(false);
+            }}
+          >
+            <MenuTrigger
+              open={isEditDropdownOpen}
               onClick={() => {
                 setIsEditDropdownOpen(!isEditDropdownOpen);
                 setIsFileDropdownOpen(false);
                 setIsSettingsDropdownOpen(false);
+                setIsAlignSubmenuOpen(false);
               }}
-              style={{ cursor: 'pointer', userSelect: 'none' }}
             >
-              Edit ▾
-            </span>
+              Edit
+            </MenuTrigger>
             {isEditDropdownOpen && (
-              <div
-                style={{
-                  position: 'absolute',
-                  top: '100%',
-                  left: 0,
-                  background: theme.header,
-                  border: `1px solid ${theme.border}`,
-                  boxShadow: '0 2px 10px rgba(0,0,0,0.2)',
-                  minWidth: '200px',
-                  padding: '4px 0',
-                  marginTop: '5px',
-                  zIndex: 1001,
-                }}
-              >
-                <div
+              <MenuContent width={220}>
+                <MenuItem
                   onClick={() => {
                     undo();
                     setIsEditDropdownOpen(false);
                   }}
-                  style={{
-                    padding: '8px 12px',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                  }}
+                  shortcut="Ctrl+Z"
                 >
-                  Undo <span style={{ color: '#888', fontSize: '11px' }}>Ctrl+Z</span>
-                </div>
-                <div
+                  Undo
+                </MenuItem>
+                <MenuItem
                   onClick={() => {
                     redo();
                     setIsEditDropdownOpen(false);
                   }}
-                  style={{
-                    padding: '8px 12px',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                  }}
+                  shortcut="Ctrl+Y"
                 >
-                  Redo <span style={{ color: '#888', fontSize: '11px' }}>Ctrl+Y</span>
-                </div>
-                <div
+                  Redo
+                </MenuItem>
+                <MenuItem
                   onClick={() => {
                     selectAll();
                     setIsEditDropdownOpen(false);
                   }}
-                  style={{
-                    padding: '8px 12px',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                  }}
+                  shortcut="Ctrl+A"
                 >
-                  Select All <span style={{ color: '#888', fontSize: '11px' }}>Ctrl+A</span>
-                </div>
-                <div style={{ height: '1px', background: theme.border, margin: '4px 0' }} />
-                <div
+                  Select All
+                </MenuItem>
+                <MenuSeparator />
+                <MenuItem
                   onClick={() => {
                     handleCopy();
                     setIsEditDropdownOpen(false);
                   }}
-                  style={{
-                    padding: '8px 12px',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                  }}
+                  shortcut="Ctrl+C"
                 >
-                  Copy <span style={{ color: '#888', fontSize: '11px' }}>Ctrl+C</span>
-                </div>
-                <div
+                  Copy
+                </MenuItem>
+                <MenuItem
                   onClick={() => {
                     handleCut();
                     setIsEditDropdownOpen(false);
                   }}
-                  style={{
-                    padding: '8px 12px',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                  }}
+                  shortcut="Ctrl+X"
                 >
-                  Cut <span style={{ color: '#888', fontSize: '11px' }}>Ctrl+X</span>
-                </div>
-                <div
+                  Cut
+                </MenuItem>
+                <MenuItem
                   onClick={() => {
                     handlePaste();
                     setIsEditDropdownOpen(false);
                   }}
-                  style={{
-                    padding: '8px 12px',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                  }}
+                  shortcut="Ctrl+V"
                 >
-                  Paste <span style={{ color: '#888', fontSize: '11px' }}>Ctrl+V</span>
-                </div>
-                <div style={{ height: '1px', background: theme.border, margin: '4px 0' }} />
-                <div
+                  Paste
+                </MenuItem>
+                <MenuSeparator />
+                <MenuItem
                   onClick={() => {
                     groupSelected();
                     setIsEditDropdownOpen(false);
                   }}
-                  style={{
-                    padding: '8px 12px',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                  }}
+                  shortcut="Ctrl+G"
                 >
-                  Group <span style={{ color: '#888', fontSize: '11px' }}>Ctrl+G</span>
-                </div>
-                <div
+                  Group
+                </MenuItem>
+                <MenuItem
                   onClick={() => {
                     ungroupSelected();
                     setIsEditDropdownOpen(false);
                   }}
-                  style={{
-                    padding: '8px 12px',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                  }}
+                  shortcut="Ctrl+Shift+G"
                 >
-                  Ungroup <span style={{ color: '#888', fontSize: '11px' }}>Ctrl+Shift+G</span>
-                </div>
-                <div style={{ height: '1px', background: theme.border, margin: '4px 0' }} />
+                  Ungroup
+                </MenuItem>
+                <MenuSeparator />
                 <div
+                  className="ui-menu-submenu"
                   onMouseEnter={() => setIsAlignSubmenuOpen(true)}
                   onMouseLeave={() => setIsAlignSubmenuOpen(false)}
-                  style={{
-                    padding: '8px 12px',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    position: 'relative',
-                  }}
                 >
-                  Align ▸
+                  <MenuItem trailing={<span className="ui-menu-shortcut">▸</span>}>Align</MenuItem>
                   {isAlignSubmenuOpen && (
-                    <div
-                      style={{
-                        position: 'absolute',
-                        top: 0,
-                        left: '100%',
-                        background: theme.header,
-                        border: `1px solid ${theme.border}`,
-                        boxShadow: '0 2px 10px rgba(0,0,0,0.2)',
-                        minWidth: '200px',
-                        padding: '4px 0',
-                      }}
-                    >
-                      <div
-                        style={{
-                          padding: '4px 12px 2px',
-                          fontSize: '10px',
-                          fontWeight: 'bold',
-                          color: '#888',
-                        }}
-                      >
-                        ALIGN
-                      </div>
-                      <div
+                    <MenuContent width={220}>
+                      <MenuSectionLabel>Align</MenuSectionLabel>
+                      <MenuItem
                         onClick={() => {
                           alignSelection('alignLeft');
                           setIsEditDropdownOpen(false);
                         }}
-                        style={{
-                          padding: '8px 12px',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                        }}
+                        shortcut="Ctrl+Shift+L"
                       >
-                        Align Left{' '}
-                        <span style={{ color: '#888', fontSize: '11px' }}>Ctrl+Shift+L</span>
-                      </div>
-                      <div
+                        Align Left
+                      </MenuItem>
+                      <MenuItem
                         onClick={() => {
                           alignSelection('alignRight');
                           setIsEditDropdownOpen(false);
                         }}
-                        style={{
-                          padding: '8px 12px',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                        }}
+                        shortcut="Ctrl+Shift+R"
                       >
-                        Align Right{' '}
-                        <span style={{ color: '#888', fontSize: '11px' }}>Ctrl+Shift+R</span>
-                      </div>
-                      <div
+                        Align Right
+                      </MenuItem>
+                      <MenuItem
                         onClick={() => {
                           alignSelection('alignTop');
                           setIsEditDropdownOpen(false);
                         }}
-                        style={{
-                          padding: '8px 12px',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                        }}
+                        shortcut="Ctrl+Shift+T"
                       >
-                        Align Top{' '}
-                        <span style={{ color: '#888', fontSize: '11px' }}>Ctrl+Shift+T</span>
-                      </div>
-                      <div
+                        Align Top
+                      </MenuItem>
+                      <MenuItem
                         onClick={() => {
                           alignSelection('alignBottom');
                           setIsEditDropdownOpen(false);
                         }}
-                        style={{
-                          padding: '8px 12px',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                        }}
+                        shortcut="Ctrl+Shift+B"
                       >
-                        Align Bottom{' '}
-                        <span style={{ color: '#888', fontSize: '11px' }}>Ctrl+Shift+B</span>
-                      </div>
-                      <div
+                        Align Bottom
+                      </MenuItem>
+                      <MenuItem
                         onClick={() => {
                           alignSelection('centerH');
                           setIsEditDropdownOpen(false);
                         }}
-                        style={{
-                          padding: '8px 12px',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                        }}
+                        shortcut="Ctrl+Shift+H"
                       >
-                        Center Horizontally{' '}
-                        <span style={{ color: '#888', fontSize: '11px' }}>Ctrl+Shift+H</span>
-                      </div>
-                      <div
+                        Center Horizontally
+                      </MenuItem>
+                      <MenuItem
                         onClick={() => {
                           alignSelection('centerV');
                           setIsEditDropdownOpen(false);
                         }}
-                        style={{
-                          padding: '8px 12px',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                        }}
+                        shortcut="Ctrl+Shift+V"
                       >
-                        Center Vertically{' '}
-                        <span style={{ color: '#888', fontSize: '11px' }}>Ctrl+Shift+V</span>
-                      </div>
-                      <div style={{ height: '1px', background: theme.border, margin: '4px 0' }} />
-                      <div
-                        style={{
-                          padding: '4px 12px 2px',
-                          fontSize: '10px',
-                          fontWeight: 'bold',
-                          color: '#888',
-                        }}
-                      >
-                        DISTRIBUTE
-                      </div>
-                      <div
+                        Center Vertically
+                      </MenuItem>
+                      <MenuSeparator />
+                      <MenuSectionLabel>Distribute</MenuSectionLabel>
+                      <MenuItem
                         onClick={() => {
                           alignSelection('distributeH');
                           setIsEditDropdownOpen(false);
                         }}
-                        style={{
-                          padding: '8px 12px',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                        }}
+                        shortcut="Ctrl+Shift+D"
                       >
-                        Distribute Horizontally{' '}
-                        <span style={{ color: '#888', fontSize: '11px' }}>Ctrl+Shift+D</span>
-                      </div>
-                      <div
+                        Distribute Horizontally
+                      </MenuItem>
+                      <MenuItem
                         onClick={() => {
                           alignSelection('distributeV');
                           setIsEditDropdownOpen(false);
                         }}
-                        style={{
-                          padding: '8px 12px',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                        }}
+                        shortcut="Ctrl+Shift+E"
                       >
-                        Distribute Vertically{' '}
-                        <span style={{ color: '#888', fontSize: '11px' }}>Ctrl+Shift+E</span>
-                      </div>
-                    </div>
+                        Distribute Vertically
+                      </MenuItem>
+                    </MenuContent>
                   )}
                 </div>
-                <div style={{ height: '1px', background: theme.border, margin: '4px 0' }} />
-                <div
+                <MenuSeparator />
+                <MenuItem
                   onClick={() => {
                     canvasRef.current?.cleanUp();
                     setIsEditDropdownOpen(false);
                   }}
-                  style={{
-                    padding: '8px 12px',
-                    cursor: 'pointer',
-                    color: '#007acc',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                  }}
+                  shortcut="Ctrl+K"
+                  accent
                 >
-                  Clean Up <span style={{ color: '#888', fontSize: '11px' }}>Ctrl+K</span>
-                </div>
-                <div
+                  Clean Up
+                </MenuItem>
+                <MenuItem
                   onClick={() => {
                     setRotateInput('');
                     setShowRotateDialog(true);
                     setIsEditDropdownOpen(false);
                   }}
-                  style={{
-                    padding: '8px 12px',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                  }}
+                  shortcut="Ctrl+R"
                 >
-                  Rotate... <span style={{ color: '#888', fontSize: '11px' }}>Ctrl+R</span>
-                </div>
-                <div
+                  Rotate...
+                </MenuItem>
+                <MenuItem
                   onClick={() => {
                     setScaleInput('');
                     setShowScaleDialog(true);
                     setIsEditDropdownOpen(false);
                   }}
-                  style={{
-                    padding: '8px 12px',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                  }}
                 >
                   Scale...
-                </div>
-              </div>
+                </MenuItem>
+              </MenuContent>
             )}
-          </div>
+          </MenuRoot>
 
-          {/* Settings menu */}
-          <div ref={settingsMenuRef} style={{ position: 'relative' }}>
-            <span
+          <MenuRoot open={isSettingsDropdownOpen} onOpenChange={setIsSettingsDropdownOpen}>
+            <MenuTrigger
+              open={isSettingsDropdownOpen}
               onClick={() => {
                 setIsSettingsDropdownOpen(!isSettingsDropdownOpen);
                 setIsFileDropdownOpen(false);
                 setIsEditDropdownOpen(false);
               }}
-              style={{ cursor: 'pointer', userSelect: 'none' }}
             >
-              Settings ▾
-            </span>
+              Settings
+            </MenuTrigger>
             {isSettingsDropdownOpen && (
-              <div
-                style={{
-                  position: 'absolute',
-                  top: '100%',
-                  left: 0,
-                  background: theme.header,
-                  border: `1px solid ${theme.border}`,
-                  boxShadow: '0 2px 10px rgba(0,0,0,0.2)',
-                  minWidth: '160px',
-                  padding: '4px 0',
-                  marginTop: '5px',
-                  zIndex: 1002,
-                }}
-              >
-                <label
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    cursor: 'pointer',
-                    fontSize: '12px',
-                    padding: '4px 12px',
-                  }}
-                >
-                  <input
-                    type="checkbox"
-                    checked={isDarkMode}
-                    onChange={() => setIsDarkMode(!isDarkMode)}
-                    style={{ marginRight: '8px' }}
-                  />
-                  Dark Mode
-                </label>
-                <label
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    cursor: 'pointer',
-                    fontSize: '12px',
-                    padding: '4px 12px',
-                  }}
-                >
-                  <input
-                    type="checkbox"
-                    checked={showHydrogens}
-                    onChange={() => useStore.getState().setShowHydrogens(!showHydrogens)}
-                    style={{ marginRight: '8px' }}
-                  />
-                  Auto-H (Implied Hydrogens)
-                </label>
-                <label
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    cursor: 'pointer',
-                    fontSize: '12px',
-                    padding: '4px 12px',
-                  }}
-                >
-                  <input
-                    type="checkbox"
-                    checked={showSmilesBar}
-                    onChange={() => setShowSmilesBar(!showSmilesBar)}
-                    style={{ marginRight: '8px' }}
-                  />
-                  Structure Input Bar
-                </label>
-                <label
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    cursor: 'pointer',
-                    fontSize: '12px',
-                    padding: '4px 12px',
-                  }}
-                >
-                  <input
-                    type="checkbox"
-                    checked={showGrid}
-                    onChange={() => useStore.getState().setShowGrid(!showGrid)}
-                    style={{ marginRight: '8px' }}
-                  />
-                  Grid
-                </label>
-                <label
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    cursor: 'pointer',
-                    fontSize: '12px',
-                    padding: '4px 12px',
-                  }}
-                >
-                  <input
-                    type="checkbox"
-                    checked={documentViewSettings.atomColorViewMode === 'enhanced-defaults'}
-                    onChange={(event) =>
-                      setDocumentViewSettings({
-                        ...documentViewSettings,
-                        atomColorViewMode: event.target.checked
-                          ? 'enhanced-defaults'
-                          : 'chemdraw-fidelity',
-                      })
-                    }
-                    style={{ marginRight: '8px' }}
-                  />
-                  Enhanced Atom Colors
-                </label>
-                <div style={{ height: '1px', background: theme.border, margin: '4px 0' }} />
-                <div
+              <MenuContent width={205}>
+                <MenuCheckboxItem
+                  label="Dark Mode"
+                  checked={isDarkMode}
+                  onChange={() => setIsDarkMode(!isDarkMode)}
+                />
+                <MenuCheckboxItem
+                  label="Auto-H (Implied Hydrogens)"
+                  checked={showHydrogens}
+                  onChange={() => useStore.getState().setShowHydrogens(!showHydrogens)}
+                />
+                <MenuCheckboxItem
+                  label="Structure Input Bar"
+                  checked={showSmilesBar}
+                  onChange={() => setShowSmilesBar(!showSmilesBar)}
+                />
+                <MenuCheckboxItem
+                  label="Grid"
+                  checked={showGrid}
+                  onChange={() => useStore.getState().setShowGrid(!showGrid)}
+                />
+                <MenuCheckboxItem
+                  label="Enhanced Atom Colors"
+                  checked={documentViewSettings.atomColorViewMode === 'enhanced-defaults'}
+                  onChange={() =>
+                    setDocumentViewSettings({
+                      ...documentViewSettings,
+                      atomColorViewMode:
+                        documentViewSettings.atomColorViewMode === 'enhanced-defaults'
+                          ? 'chemdraw-fidelity'
+                          : 'enhanced-defaults',
+                    })
+                  }
+                />
+                <MenuSeparator />
+                <MenuItem
                   onClick={() => {
                     setIsPreferencesPanelOpen(true);
                     setIsSettingsDropdownOpen(false);
                   }}
-                  style={{
-                    padding: '8px 12px',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    fontSize: '12px',
-                  }}
                 >
                   Preferences...
-                </div>
-                <div
+                </MenuItem>
+                <MenuItem
                   onClick={() => {
                     canvasRef.current?.fitToScreen();
                     setIsSettingsDropdownOpen(false);
                   }}
-                  style={{
-                    padding: '8px 12px',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    fontSize: '12px',
-                  }}
+                  shortcut="Ctrl+0"
                 >
-                  Fit to Screen <span style={{ color: '#888', fontSize: '11px' }}>Ctrl+0</span>
-                </div>
-              </div>
+                  Fit to Screen
+                </MenuItem>
+              </MenuContent>
             )}
-          </div>
+          </MenuRoot>
 
-          <div style={{ position: 'relative' }}>
-            <span
-              onClick={() => {
-                setIsAboutOpen(true);
-                closeAllMenus();
-              }}
-              style={{ cursor: 'pointer', userSelect: 'none' }}
-            >
-              About
-            </span>
-          </div>
+          <button
+            type="button"
+            className="ui-menu-trigger"
+            onClick={() => {
+              setIsAboutOpen(true);
+              closeAllMenus();
+            }}
+          >
+            About
+          </button>
+        </div>
+
+        <div
+          title={documentFile.path ?? documentFile.name}
+          style={{
+            marginLeft: 18,
+            color: documentFile.dirty ? '#c46a00' : '#888',
+            fontSize: 12,
+            minWidth: 0,
+            maxWidth: 340,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {documentFile.dirty ? '* ' : ''}
+          {documentFile.name}
         </div>
 
         <div
@@ -4121,118 +3908,75 @@ function App() {
             gap: '15px',
           }}
         >
-          {/* Calculate menu */}
-          <div ref={calculateMenuRef} style={{ position: 'relative' }}>
-            <span
+          <MenuRoot
+            open={isCalculateDropdownOpen}
+            onOpenChange={setIsCalculateDropdownOpen}
+            align="right"
+          >
+            <MenuTrigger
+              open={isCalculateDropdownOpen}
               onClick={() => {
                 setIsCalculateDropdownOpen(!isCalculateDropdownOpen);
                 setIsFileDropdownOpen(false);
                 setIsEditDropdownOpen(false);
                 setIsSettingsDropdownOpen(false);
               }}
-              style={{ cursor: 'pointer', userSelect: 'none' }}
             >
-              Calculate ▾
-            </span>
+              Calculate
+            </MenuTrigger>
             {isCalculateDropdownOpen && (
-              <div
-                style={{
-                  position: 'absolute',
-                  top: '100%',
-                  right: 0,
-                  background: theme.header,
-                  border: `1px solid ${theme.border}`,
-                  boxShadow: '0 2px 10px rgba(0,0,0,0.2)',
-                  minWidth: '160px',
-                  padding: '4px 0',
-                  marginTop: '5px',
-                  zIndex: 1002,
-                }}
-              >
-                <div
+              <MenuContent width={175}>
+                <MenuItem
                   onClick={() => {
                     setShowViewer(!showViewer);
                     setIsCalculateDropdownOpen(false);
                   }}
-                  style={{
-                    padding: '8px 12px',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                  }}
+                  trailing={showViewer ? <span className="ui-menu-shortcut">●</span> : null}
                 >
                   3D Geometry
-                  {showViewer && <span style={{ fontSize: 10, color: '#007acc' }}>●</span>}
-                </div>
-                <div style={{ height: '1px', background: theme.border, margin: '4px 0' }} />
-                <div
+                </MenuItem>
+                <MenuSeparator />
+                <MenuItem
                   onClick={() => {
                     setShowPropertiesPanel(!showPropertiesPanel);
                     setIsCalculateDropdownOpen(false);
                   }}
-                  style={{
-                    padding: '8px 12px',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                  }}
+                  trailing={
+                    showPropertiesPanel ? <span className="ui-menu-shortcut">●</span> : null
+                  }
                 >
                   Properties
-                  {showPropertiesPanel && <span style={{ fontSize: 10, color: '#007acc' }}>●</span>}
-                </div>
-                <div
+                </MenuItem>
+                <MenuItem
                   onClick={() => {
                     setShowIrPanel(!showIrPanel);
                     setIsCalculateDropdownOpen(false);
                   }}
-                  style={{
-                    padding: '8px 12px',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                  }}
+                  trailing={showIrPanel ? <span className="ui-menu-shortcut">●</span> : null}
                 >
                   IR Spectrum
-                  {showIrPanel && <span style={{ fontSize: 10, color: '#007acc' }}>●</span>}
-                </div>
-                <div
+                </MenuItem>
+                <MenuItem
                   onClick={() => {
                     setShowNmrPanel(!showNmrPanel);
                     setIsCalculateDropdownOpen(false);
                   }}
-                  style={{
-                    padding: '8px 12px',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                  }}
+                  trailing={showNmrPanel ? <span className="ui-menu-shortcut">●</span> : null}
                 >
                   NMR Prediction
-                  {showNmrPanel && <span style={{ fontSize: 10, color: '#007acc' }}>●</span>}
-                </div>
-                <div
+                </MenuItem>
+                <MenuItem
                   onClick={() => {
                     setShowMsPanel(!showMsPanel);
                     setIsCalculateDropdownOpen(false);
                   }}
-                  style={{
-                    padding: '8px 12px',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                  }}
+                  trailing={showMsPanel ? <span className="ui-menu-shortcut">●</span> : null}
                 >
                   Mass Spectrum
-                  {showMsPanel && <span style={{ fontSize: 10, color: '#007acc' }}>●</span>}
-                </div>
-              </div>
+                </MenuItem>
+              </MenuContent>
             )}
-          </div>
+          </MenuRoot>
           {!isMacOS && (
             <div
               style={{

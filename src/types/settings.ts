@@ -78,6 +78,12 @@ export interface KeybindingPreferences {
   bindings: Record<string, ShortcutBinding | null>;
 }
 
+export interface RecentFileEntry {
+  path: string;
+  name: string;
+  openedAt: number;
+}
+
 export type ToolPaletteId = 'tools' | 'ring' | 'arrow' | 'text' | 'atom' | 'charge';
 
 export interface ToolPaletteState {
@@ -149,7 +155,7 @@ export interface DocumentStyleSettings {
 }
 
 export interface AppPreferences {
-  version: 7 | 8;
+  version: 7 | 8 | 9;
   isDarkMode: boolean;
   showGrid: boolean;
   showHydrogens: boolean;
@@ -160,4 +166,5 @@ export interface AppPreferences {
   ui: UiPreferences;
   toolPalettes: ToolPalettesPreferences;
   keybindings: KeybindingPreferences;
+  recentFiles: RecentFileEntry[];
 }

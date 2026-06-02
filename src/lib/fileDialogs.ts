@@ -17,6 +17,26 @@ function normalizedExtension(filePath: string): string | null {
   return extension ? extension : null;
 }
 
+export function getFileDisplayName(filePath: string): string {
+  const parts = filePath.split(/[\\/]/).filter(Boolean);
+  return parts.length ? parts[parts.length - 1] : filePath;
+}
+
+function assertChemicalTextExtension(filePath: string): ChemicalTextExtension {
+  const extension = normalizedExtension(filePath);
+  if (
+    extension !== 'cdxml' &&
+    extension !== 'mol' &&
+    extension !== 'sdf' &&
+    extension !== 'xyz' &&
+    extension !== 'pdb' &&
+    extension !== 'cif'
+  ) {
+    throw new Error(`Unsupported file extension for ${filePath}`);
+  }
+  return extension;
+}
+
 export async function openChemicalTextFile(): Promise<{
   filePath: string;
   extension: ChemicalTextExtension;
@@ -33,22 +53,24 @@ export async function openChemicalTextFile(): Promise<{
     return null;
   }
 
-  const extension = normalizedExtension(selectedPath);
-  if (
-    extension !== 'cdxml' &&
-    extension !== 'mol' &&
-    extension !== 'sdf' &&
-    extension !== 'xyz' &&
-    extension !== 'pdb' &&
-    extension !== 'cif'
-  ) {
-    throw new Error(`Unsupported file extension for ${selectedPath}`);
-  }
+  const extension = assertChemicalTextExtension(selectedPath);
 
   return {
     filePath: selectedPath,
     extension,
     content: await readTextFile(selectedPath),
+  };
+}
+
+export async function readChemicalTextFileAtPath(filePath: string): Promise<{
+  filePath: string;
+  extension: ChemicalTextExtension;
+  content: string;
+}> {
+  return {
+    filePath,
+    extension: assertChemicalTextExtension(filePath),
+    content: await readTextFile(filePath),
   };
 }
 
@@ -97,6 +119,11 @@ export async function saveTextWithDialog(options: {
   }
   await writeTextFile(selectedPath, options.content);
   return selectedPath;
+}
+
+export async function saveTextToPath(filePath: string, content: string): Promise<string> {
+  await writeTextFile(filePath, content);
+  return filePath;
 }
 
 export async function saveBinaryWithDialog(options: {

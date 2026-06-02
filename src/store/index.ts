@@ -19,6 +19,7 @@ import type {
   DocumentViewSettings,
   DocumentStyleSettings,
   PageSetup,
+  RecentFileEntry,
   TextFormat,
   ViewerPreferences,
 } from '../types/settings';
@@ -71,6 +72,14 @@ export type Tool =
   | 'ring';
 export type ViewerMode = 'pinned' | 'floating' | 'split';
 export type PreviewMode = '2D' | '3D';
+export type DocumentFileFormat = 'cdxml';
+export interface DocumentFileState {
+  path: string | null;
+  name: string;
+  format: DocumentFileFormat | null;
+  dirty: boolean;
+  lastSavedRevision: number | null;
+}
 export interface ViewerStructureStatus {
   kind: 'empty' | 'valid' | 'display-only';
   chemistryAvailable: boolean;
@@ -108,6 +117,36 @@ function persistPreferences(appPreferences: AppPreferences) {
   void saveAppPreferences(appPreferences).catch(() => {
     /* intentional */
   });
+}
+
+export function getDisplayNameForFilePath(path: string | null | undefined): string {
+  if (!path) return 'Untitled';
+  const parts = path.split(/[\\/]/).filter(Boolean);
+  return parts.length ? parts[parts.length - 1] : path;
+}
+
+function createUntitledDocumentFile(): DocumentFileState {
+  return {
+    path: null,
+    name: 'Untitled',
+    format: null,
+    dirty: false,
+    lastSavedRevision: null,
+  };
+}
+
+function createSavedDocumentFile(path: string, revision: number): DocumentFileState {
+  return {
+    path,
+    name: getDisplayNameForFilePath(path),
+    format: 'cdxml',
+    dirty: false,
+    lastSavedRevision: revision,
+  };
+}
+
+function markDocumentFileDirty(documentFile: DocumentFileState): DocumentFileState {
+  return documentFile.dirty ? documentFile : { ...documentFile, dirty: true };
 }
 
 function normalizeCanvasState<T extends CanvasState>(state: T): T {
@@ -182,6 +221,7 @@ export interface AppState {
   pageSetup: PageSetup;
   chemDrawDocument: ChemDrawDocument | null;
   previewChemDrawDocument: ChemDrawDocument | null;
+  documentFile: DocumentFileState;
   selectionPreviewTransform: SelectionPreviewTransform | null;
   chemDrawWarnings: string[];
   objectCount: number;
@@ -327,6 +367,12 @@ export interface AppState {
   setChemDrawDocument: (document: ChemDrawDocument | null) => void;
   setPreviewChemDrawDocument: (document: ChemDrawDocument | null) => void;
   clearPreviewChemDrawDocument: () => void;
+  setDocumentFile: (file: DocumentFileState) => void;
+  clearDocumentFile: () => void;
+  markDocumentDirty: () => void;
+  markDocumentSaved: (path: string) => void;
+  addRecentFile: (path: string) => void;
+  removeRecentFile: (path: string) => void;
   setSelectionPreviewTransform: (preview: SelectionPreviewTransform | null) => void;
   clearSelectionPreviewTransform: () => void;
   setChemDrawWarnings: (warnings: string[]) => void;
@@ -467,6 +513,7 @@ export const useStore = create<AppState>((set, get) => ({
   pageSetup: DEFAULT_PAGE_SETUP,
   chemDrawDocument: null,
   previewChemDrawDocument: null,
+  documentFile: createUntitledDocumentFile(),
   selectionPreviewTransform: null,
   chemDrawWarnings: [],
   objectCount: 0,
@@ -641,6 +688,7 @@ export const useStore = create<AppState>((set, get) => ({
         previewChemDrawDocument: null,
         selectionPreviewTransform: null,
         pageSetup: resolveDocumentPageSetup(nextDocument, s.appPreferences),
+        documentFile: markDocumentFileDirty(s.documentFile),
         documentRevision: s.documentRevision + 1,
         projectionRevision: s.projectionRevision + 1,
         ...nextDocumentMeta,
@@ -686,6 +734,7 @@ export const useStore = create<AppState>((set, get) => ({
         previewChemDrawDocument: null,
         selectionPreviewTransform: null,
         pageSetup: resolveDocumentPageSetup(nextDocument, s.appPreferences),
+        documentFile: markDocumentFileDirty(s.documentFile),
         documentRevision: s.documentRevision + 1,
         projectionRevision: s.projectionRevision + 1,
         ...nextDocumentMeta,
@@ -717,6 +766,7 @@ export const useStore = create<AppState>((set, get) => ({
           previewChemDrawDocument: null,
           selectionPreviewTransform: null,
           pageSetup: resolveDocumentPageSetup(nextDocument, s.appPreferences),
+          documentFile: markDocumentFileDirty(s.documentFile),
           documentRevision: s.documentRevision + 1,
           projectionRevision: s.projectionRevision + 1,
           ...nextDocumentMeta,
@@ -735,6 +785,7 @@ export const useStore = create<AppState>((set, get) => ({
           selectionPreviewTransform: null,
           objectCount: 0,
           largeDocumentMode: false,
+          documentFile: markDocumentFileDirty(s.documentFile),
           documentRevision: s.documentRevision + 1,
           projectionRevision: s.projectionRevision + 1,
         };
@@ -766,6 +817,7 @@ export const useStore = create<AppState>((set, get) => ({
           previewChemDrawDocument: null,
           selectionPreviewTransform: null,
           pageSetup: resolveDocumentPageSetup(nextDocument, s.appPreferences),
+          documentFile: markDocumentFileDirty(s.documentFile),
           documentRevision: s.documentRevision + 1,
           projectionRevision: s.projectionRevision + 1,
           ...nextDocumentMeta,
@@ -839,6 +891,7 @@ export const useStore = create<AppState>((set, get) => ({
       textFormat: buildTextFormatFromDocumentSettings(get().appPreferences.drawing),
       pageSetup: get().appPreferences.pageSetup,
       chemDrawWarnings: [],
+      documentFile: markDocumentFileDirty(get().documentFile),
       documentRevision: get().documentRevision + 1,
       projectionRevision: get().projectionRevision + 1,
       ...emptyDocumentMeta,
@@ -898,6 +951,7 @@ export const useStore = create<AppState>((set, get) => ({
         chemDrawDocument: nextDocument,
         previewChemDrawDocument: null,
         selectionPreviewTransform: null,
+        documentFile: markDocumentFileDirty(s.documentFile),
         documentRevision: s.documentRevision + 1,
         ...describeDocumentState(nextDocument),
       };
@@ -942,6 +996,41 @@ export const useStore = create<AppState>((set, get) => ({
       previewChemDrawDocument: null,
       selectionPreviewTransform: null,
       ...describeDocumentState(get().chemDrawDocument),
+    }),
+  setDocumentFile: (documentFile) => set({ documentFile }),
+  clearDocumentFile: () => set({ documentFile: createUntitledDocumentFile() }),
+  markDocumentDirty: () =>
+    set((s) => ({
+      documentFile: markDocumentFileDirty(s.documentFile),
+    })),
+  markDocumentSaved: (path) =>
+    set((s) => ({
+      documentFile: createSavedDocumentFile(path, s.documentRevision),
+    })),
+  addRecentFile: (path) =>
+    set((s) => {
+      const trimmedPath = path.trim();
+      if (!trimmedPath) return {};
+      const entry: RecentFileEntry = {
+        path: trimmedPath,
+        name: getDisplayNameForFilePath(trimmedPath),
+        openedAt: Date.now(),
+      };
+      const recentFiles = [
+        entry,
+        ...s.appPreferences.recentFiles.filter((recent) => recent.path !== trimmedPath),
+      ].slice(0, 10);
+      const appPreferences = { ...s.appPreferences, recentFiles };
+      persistPreferences(appPreferences);
+      return { appPreferences };
+    }),
+  removeRecentFile: (path) =>
+    set((s) => {
+      const recentFiles = s.appPreferences.recentFiles.filter((recent) => recent.path !== path);
+      if (recentFiles.length === s.appPreferences.recentFiles.length) return {};
+      const appPreferences = { ...s.appPreferences, recentFiles };
+      persistPreferences(appPreferences);
+      return { appPreferences };
     }),
   setSelectionPreviewTransform: (selectionPreviewTransform) =>
     set({ selectionPreviewTransform, previewChemDrawDocument: null }),
@@ -1339,6 +1428,7 @@ export const useStore = create<AppState>((set, get) => ({
         chemDrawDocument: s.chemDrawDocument
           ? applyDocumentStyleSettings(s.chemDrawDocument, normalizedDocumentStyleSettings)
           : s.chemDrawDocument,
+        ...(s.chemDrawDocument ? { documentFile: markDocumentFileDirty(s.documentFile) } : {}),
       };
     }),
   setDocumentViewSettings: (documentViewSettings) =>
@@ -1349,6 +1439,7 @@ export const useStore = create<AppState>((set, get) => ({
         chemDrawDocument: s.chemDrawDocument
           ? applyDocumentViewSettings(s.chemDrawDocument, normalizedDocumentViewSettings)
           : s.chemDrawDocument,
+        ...(s.chemDrawDocument ? { documentFile: markDocumentFileDirty(s.documentFile) } : {}),
       };
     }),
   applyDefaultsToCurrentDocument: () => {

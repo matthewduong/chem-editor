@@ -11,6 +11,7 @@ import type {
   PagePresetId,
   PageSetup,
   PageUnit,
+  RecentFileEntry,
   TextFormat,
   ToolPaletteId,
   ToolPalettesPreferences,
@@ -363,7 +364,7 @@ export const DEFAULT_TOOL_PALETTES: ToolPalettesPreferences = {
 };
 
 export const DEFAULT_APP_PREFERENCES: AppPreferences = {
-  version: 8,
+  version: 9,
   isDarkMode: false,
   showGrid: false,
   showHydrogens: true,
@@ -409,10 +410,11 @@ export const DEFAULT_APP_PREFERENCES: AppPreferences = {
   },
   toolPalettes: DEFAULT_TOOL_PALETTES,
   keybindings: buildDefaultKeybindingPreferences(),
+  recentFiles: [],
 };
 
 interface PersistedSettingsPayload {
-  version: 7 | 8;
+  version: 7 | 8 | 9;
   appPreferences: AppPreferences;
 }
 
@@ -851,6 +853,33 @@ function normalizeKeybindingPreferences(
   };
 }
 
+function getRecentFileName(path: string): string {
+  const parts = path.split(/[\\/]/).filter(Boolean);
+  return parts.length ? parts[parts.length - 1] : path;
+}
+
+function normalizeRecentFiles(value: unknown): RecentFileEntry[] {
+  if (!Array.isArray(value)) return [];
+  const byPath = new Map<string, RecentFileEntry>();
+  for (const entry of value) {
+    if (!entry || typeof entry !== 'object') continue;
+    const raw = entry as Partial<RecentFileEntry>;
+    const path = typeof raw.path === 'string' ? raw.path.trim() : '';
+    if (!path) continue;
+    const name =
+      typeof raw.name === 'string' && raw.name.trim() ? raw.name.trim() : getRecentFileName(path);
+    const openedAt =
+      typeof raw.openedAt === 'number' && Number.isFinite(raw.openedAt) ? raw.openedAt : 0;
+    const current = byPath.get(path);
+    if (!current || openedAt >= current.openedAt) {
+      byPath.set(path, { path, name, openedAt });
+    }
+  }
+  return Array.from(byPath.values())
+    .sort((left, right) => right.openedAt - left.openedAt)
+    .slice(0, 10);
+}
+
 function numbersMatch(left: number, right: number, epsilon = 1e-6): boolean {
   return Math.abs(left - right) <= epsilon;
 }
@@ -928,7 +957,7 @@ export function normalizeAppPreferences(
     : normalizeDocumentViewSettings(value?.documentView);
 
   return {
-    version: 8,
+    version: 9,
     isDarkMode:
       typeof value?.isDarkMode === 'boolean'
         ? value.isDarkMode
@@ -1026,6 +1055,7 @@ export function normalizeAppPreferences(
     ui: normalizeUiPreferences(value?.ui),
     toolPalettes: normalizeToolPalettes(value?.toolPalettes),
     keybindings: normalizeKeybindingPreferences(value?.keybindings),
+    recentFiles: normalizeRecentFiles(value?.recentFiles),
   };
 }
 
@@ -1192,7 +1222,7 @@ export async function loadAppPreferences(): Promise<AppPreferences> {
 }
 
 export async function saveAppPreferences(appPreferences: AppPreferences): Promise<void> {
-  const payload: PersistedSettingsPayload = { version: 8, appPreferences };
+  const payload: PersistedSettingsPayload = { version: 9, appPreferences };
   await invokeTauri('save_app_settings', { content: JSON.stringify(payload, null, 2) });
 }
 

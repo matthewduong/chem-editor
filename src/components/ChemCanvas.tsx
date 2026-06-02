@@ -163,7 +163,7 @@ import {
 } from '../editor/scene/DocumentRenderSurface';
 import { hitTestDocumentScene } from '../editor/scene/hitTest';
 import type { DocumentSceneState } from '../editor/scene/renderDocumentScene';
-import { saveBinaryWithDialog, saveTextWithDialog } from '../lib/fileDialogs';
+import { saveBinaryWithDialog, saveTextToPath, saveTextWithDialog } from '../lib/fileDialogs';
 import { buildPdfHexForRasterImage, fitImageWithinViewport } from '../lib/embeddedObjects';
 import {
   ATOM_FRAGMENT_HOTKEY_VALUES,
@@ -181,7 +181,10 @@ interface Props {
 }
 
 export interface ChemCanvasRef {
-  saveNative: () => Promise<void>;
+  saveNative: (options?: { path?: string | null; prompt?: boolean }) => Promise<{
+    path: string | null;
+    saved: boolean;
+  }>;
   loadNative: (content: string) => Promise<void>;
   exportPNG: () => Promise<void>;
   exportSVG: () => Promise<void>;
@@ -3822,7 +3825,7 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
   useImperativeHandle(
     ref,
     () => ({
-      saveNative: async () => {
+      saveNative: async (options = {}) => {
         try {
           const store = useStore.getState();
           const {
@@ -3850,16 +3853,22 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
             store.setChemDrawDocument(prepared.document);
             store.setChemDrawWarnings([]);
           }
-          await saveTextWithDialog({
-            title: 'Save Sketch',
-            defaultPath: 'sketch.cdxml',
+          if (options.path && !options.prompt) {
+            const path = await saveTextToPath(options.path, prepared.xml);
+            return { path, saved: true };
+          }
+          const path = await saveTextWithDialog({
+            title: options.prompt ? 'Save Sketch As' : 'Save Sketch',
+            defaultPath: options.path ?? 'sketch.cdxml',
             name: 'ChemDraw XML',
             extensions: ['cdxml'],
             content: prepared.xml,
           });
+          return { path, saved: Boolean(path) };
         } catch (e) {
           useStore.getState().showToast('Failed to save file');
           console.error(e);
+          return { path: null, saved: false };
         }
       },
       loadNative: async (c: string) => {

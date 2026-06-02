@@ -12,6 +12,8 @@ const mocks = vi.hoisted(() => ({
   writeClipboardText: vi.fn(),
   openChemicalTextFile: vi.fn(),
   openImageBinaryFile: vi.fn(),
+  readChemicalTextFileAtPath: vi.fn(),
+  getFileDisplayName: vi.fn((filePath: string) => filePath.split('/').pop() ?? filePath),
   saveTextWithDialog: vi.fn(),
   saveBinaryWithDialog: vi.fn(),
   chemCanvasHandle: {
@@ -43,6 +45,8 @@ vi.mock('../../src/lib/tauri.ts', () => ({
 vi.mock('../../src/lib/fileDialogs.ts', () => ({
   openChemicalTextFile: mocks.openChemicalTextFile,
   openImageBinaryFile: mocks.openImageBinaryFile,
+  readChemicalTextFileAtPath: mocks.readChemicalTextFileAtPath,
+  getFileDisplayName: mocks.getFileDisplayName,
   saveTextWithDialog: mocks.saveTextWithDialog,
   saveBinaryWithDialog: mocks.saveBinaryWithDialog,
 }));
@@ -111,6 +115,8 @@ describe('App', () => {
     });
     mocks.openChemicalTextFile.mockResolvedValue(null);
     mocks.openImageBinaryFile.mockResolvedValue(null);
+    mocks.readChemicalTextFileAtPath.mockRejectedValue(new Error('missing'));
+    mocks.chemCanvasHandle.saveNative.mockResolvedValue({ path: '/tmp/sketch.cdxml', saved: true });
   });
 
   it('syncs the macOS theme on mount and toggles native fullscreen with the shortcut', async () => {
@@ -139,19 +145,107 @@ describe('App', () => {
 
     render(<App />);
 
-    fireEvent.click(screen.getByText('File ▾'));
+    fireEvent.click(screen.getByText('File'));
     fireEvent.click(screen.getByText(/^Open\.\.\./));
 
     await waitFor(() => {
       expect(mocks.chemCanvasHandle.loadNative).toHaveBeenCalledWith('<CDXML />');
+      expect(useStore.getState().documentFile).toMatchObject({
+        path: '/tmp/test.cdxml',
+        name: 'test.cdxml',
+        dirty: false,
+      });
     });
 
-    fireEvent.click(screen.getByText('File ▾'));
-    fireEvent.click(screen.getByText(/^Save \(.cdxml\)/));
+    fireEvent.click(screen.getByText('File'));
+    fireEvent.click(screen.getByText(/^Save$/));
 
     await waitFor(() => {
-      expect(mocks.chemCanvasHandle.saveNative).toHaveBeenCalled();
+      expect(mocks.chemCanvasHandle.saveNative).toHaveBeenCalledWith({
+        path: '/tmp/test.cdxml',
+        prompt: false,
+      });
     });
+  });
+
+  it('saves as a new CDXML path and updates document file state', async () => {
+    mocks.chemCanvasHandle.saveNative.mockResolvedValue({
+      path: '/tmp/saved-as.cdxml',
+      saved: true,
+    });
+
+    render(<App />);
+
+    fireEvent.click(screen.getByText('File'));
+    fireEvent.click(screen.getByText('Save As...'));
+
+    await waitFor(() => {
+      expect(mocks.chemCanvasHandle.saveNative).toHaveBeenCalledWith({
+        path: null,
+        prompt: true,
+      });
+      expect(useStore.getState().documentFile).toMatchObject({
+        path: '/tmp/saved-as.cdxml',
+        name: 'saved-as.cdxml',
+        dirty: false,
+      });
+    });
+  });
+
+  it('opens recent CDXML files through direct path reads', async () => {
+    useStore.setState({
+      appPreferences: {
+        ...useStore.getState().appPreferences,
+        recentFiles: [{ path: '/tmp/recent.cdxml', name: 'recent.cdxml', openedAt: 123 }],
+      },
+    });
+    mocks.readChemicalTextFileAtPath.mockResolvedValue({
+      filePath: '/tmp/recent.cdxml',
+      extension: 'cdxml',
+      content: '<CDXML />',
+    });
+
+    render(<App />);
+
+    fireEvent.click(screen.getByText('File'));
+    fireEvent.click(screen.getByText('recent.cdxml'));
+
+    await waitFor(() => {
+      expect(mocks.readChemicalTextFileAtPath).toHaveBeenCalledWith('/tmp/recent.cdxml');
+      expect(mocks.chemCanvasHandle.loadNative).toHaveBeenCalledWith('<CDXML />');
+      expect(useStore.getState().documentFile.path).toBe('/tmp/recent.cdxml');
+    });
+  });
+
+  it('does not open another file when unsaved confirmation is cancelled', async () => {
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    useStore.setState({
+      documentFile: {
+        path: '/tmp/dirty.cdxml',
+        name: 'dirty.cdxml',
+        format: 'cdxml',
+        dirty: true,
+        lastSavedRevision: 1,
+      },
+    });
+    mocks.openChemicalTextFile.mockResolvedValue({
+      filePath: '/tmp/next.cdxml',
+      extension: 'cdxml',
+      content: '<CDXML />',
+    });
+
+    render(<App />);
+
+    fireEvent.click(screen.getByText('File'));
+    fireEvent.click(screen.getByText(/^Open\.\.\./));
+
+    await waitFor(() => {
+      expect(confirmSpy).toHaveBeenCalled();
+      expect(mocks.openChemicalTextFile).not.toHaveBeenCalled();
+      expect(mocks.chemCanvasHandle.loadNative).not.toHaveBeenCalled();
+    });
+
+    confirmSpy.mockRestore();
   });
 
   it('shows a toast when opening a file fails', async () => {
@@ -159,7 +253,7 @@ describe('App', () => {
 
     render(<App />);
 
-    fireEvent.click(screen.getByText('File ▾'));
+    fireEvent.click(screen.getByText('File'));
     fireEvent.click(screen.getByText(/^Open\.\.\./));
 
     await waitFor(() => {
@@ -177,7 +271,7 @@ describe('App', () => {
 
     render(<App />);
 
-    fireEvent.click(screen.getByText('File ▾'));
+    fireEvent.click(screen.getByText('File'));
     fireEvent.click(screen.getByText('Insert Image...'));
 
     await waitFor(() => {
@@ -235,14 +329,14 @@ describe('App', () => {
   it('toggles the properties panel from the Calculate menu', async () => {
     render(<App />);
 
-    fireEvent.click(screen.getByText('Calculate ▾'));
+    fireEvent.click(screen.getByText('Calculate'));
     fireEvent.click(screen.getByText('Properties'));
 
     await waitFor(() => {
       expect(screen.getByText('Properties Panel')).toBeTruthy();
     });
 
-    fireEvent.click(screen.getByText('Calculate ▾'));
+    fireEvent.click(screen.getByText('Calculate'));
     fireEvent.click(screen.getByText('Properties'));
 
     await waitFor(() => {
@@ -259,7 +353,7 @@ describe('App', () => {
       });
     });
 
-    fireEvent.click(screen.getByText('Settings ▾'));
+    fireEvent.click(screen.getByText('Settings'));
     const toggle = screen.getByLabelText('Enhanced Atom Colors') as HTMLInputElement;
     expect(toggle.checked).toBe(true);
 
