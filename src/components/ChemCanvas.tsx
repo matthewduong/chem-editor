@@ -3638,8 +3638,13 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
         const dy = pos.y - drag.lastPos.y;
         drag.hasMoved = true;
         drag.lastPos = { x: pos.x, y: pos.y };
-        const { atoms: ka, bonds: kb, arrows: karr, groups: kg, textBoxes: ktb } =
-          useStore.getState();
+        const {
+          atoms: ka,
+          bonds: kb,
+          arrows: karr,
+          groups: kg,
+          textBoxes: ktb,
+        } = useStore.getState();
         setCurrentCanvasState({
           atoms: ka,
           bonds: kb,
@@ -3746,9 +3751,20 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
         }
       } else {
         // Drag → commit to history
-        const { atoms: ka, bonds: kb, arrows: karr, groups: kg, textBoxes: ktb } =
-          useStore.getState();
-        pushToHistory({ atoms: ka, bonds: kb, arrows: karr, groups: kg ?? [], textBoxes: ktb ?? [] });
+        const {
+          atoms: ka,
+          bonds: kb,
+          arrows: karr,
+          groups: kg,
+          textBoxes: ktb,
+        } = useStore.getState();
+        pushToHistory({
+          atoms: ka,
+          bonds: kb,
+          arrows: karr,
+          groups: kg ?? [],
+          textBoxes: ktb ?? [],
+        });
       }
       return;
     }

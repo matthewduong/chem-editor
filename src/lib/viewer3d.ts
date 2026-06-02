@@ -324,47 +324,6 @@ export function viewer3dDihedral(
   return (Math.atan2(viewer3dDot(m1, n2), viewer3dDot(n1, n2)) * 180) / Math.PI;
 }
 
-export function viewer3dBounds(atoms: Viewer3DAtom[]) {
-  if (atoms.length === 0) {
-    return {
-      center: { x: 0, y: 0, z: 0 },
-      size: { x: 1, y: 1, z: 1 },
-      radius: 1,
-    };
-  }
-
-  const min = { x: Infinity, y: Infinity, z: Infinity };
-  const max = { x: -Infinity, y: -Infinity, z: -Infinity };
-  for (const atom of atoms) {
-    min.x = Math.min(min.x, atom.x);
-    min.y = Math.min(min.y, atom.y);
-    min.z = Math.min(min.z, atom.z);
-    max.x = Math.max(max.x, atom.x);
-    max.y = Math.max(max.y, atom.y);
-    max.z = Math.max(max.z, atom.z);
-  }
-
-  const size = {
-    x: Math.max(1e-6, max.x - min.x),
-    y: Math.max(1e-6, max.y - min.y),
-    z: Math.max(1e-6, max.z - min.z),
-  };
-  const center = {
-    x: (min.x + max.x) / 2,
-    y: (min.y + max.y) / 2,
-    z: (min.z + max.z) / 2,
-  };
-  let radius = 0;
-  for (const atom of atoms) {
-    radius = Math.max(radius, viewer3dDistance(atom, center));
-  }
-  return {
-    center,
-    size,
-    radius: Math.max(radius, 1e-6),
-  };
-}
-
 export function viewer3dVisualBounds(atoms: Viewer3DAtom[], atomScale = 1, extraRadius = 0) {
   if (atoms.length === 0) {
     return {

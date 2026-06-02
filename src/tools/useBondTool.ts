@@ -279,9 +279,7 @@ export function useBondTool(): BondToolOverlay & BondToolActions {
           from: aid,
           to: targetId,
           order: bondOrder,
-          ...(bondOrder === 2 && stereo === 0
-            ? { doubleBondMode: DEFAULT_DOUBLE_BOND_MODE }
-            : {}),
+          ...(bondOrder === 2 && stereo === 0 ? { doubleBondMode: DEFAULT_DOUBLE_BOND_MODE } : {}),
           stereo,
         });
       }

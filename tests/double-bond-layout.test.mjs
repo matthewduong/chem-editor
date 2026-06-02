@@ -274,9 +274,13 @@ test('ACS-scale ring double bonds use geometric flush insets; triple bonds use m
       n: 6,
     },
   });
-  const expectedRingInset = visual.parallelOffset / Math.tan(((4 * Math.PI) / 6) / 2);
+  const expectedRingInset = visual.parallelOffset / Math.tan((4 * Math.PI) / 6 / 2);
   approxEqual(ringSecondary.startX, expectedRingInset, 1e-4);
-  approxEqual(ringSecondary.endX, DEFAULT_DOCUMENT_STYLE_SETTINGS.bondLength - expectedRingInset, 1e-4);
+  approxEqual(
+    ringSecondary.endX,
+    DEFAULT_DOCUMENT_STYLE_SETTINGS.bondLength - expectedRingInset,
+    1e-4,
+  );
 
   const [tripleTop, tripleBottom] = getTripleBondLineGeometry({
     startX: 0,
@@ -292,11 +296,16 @@ test('ACS-scale ring double bonds use geometric flush insets; triple bonds use m
     toAtom,
   });
   approxEqual(tripleTop.startX, DEFAULT_DOCUMENT_STYLE_SETTINGS.nativeMetrics.marginWidth);
-  approxEqual(tripleTop.endX, DEFAULT_DOCUMENT_STYLE_SETTINGS.bondLength - DEFAULT_DOCUMENT_STYLE_SETTINGS.nativeMetrics.marginWidth);
+  approxEqual(
+    tripleTop.endX,
+    DEFAULT_DOCUMENT_STYLE_SETTINGS.bondLength -
+      DEFAULT_DOCUMENT_STYLE_SETTINGS.nativeMetrics.marginWidth,
+  );
   approxEqual(tripleBottom.startX, DEFAULT_DOCUMENT_STYLE_SETTINGS.nativeMetrics.marginWidth);
   approxEqual(
     tripleBottom.endX,
-    DEFAULT_DOCUMENT_STYLE_SETTINGS.bondLength - DEFAULT_DOCUMENT_STYLE_SETTINGS.nativeMetrics.marginWidth,
+    DEFAULT_DOCUMENT_STYLE_SETTINGS.bondLength -
+      DEFAULT_DOCUMENT_STYLE_SETTINGS.nativeMetrics.marginWidth,
   );
 });
 

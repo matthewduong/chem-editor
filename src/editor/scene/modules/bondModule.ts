@@ -334,18 +334,8 @@ export const BOND_MODULE: ObjectModule = {
         endNeighborVectors: bondNeighborVectors?.to,
       });
       drawSegmentedLine(startX, startY, endX, endY);
-      drawSegmentedLine(
-        topLine.startX,
-        topLine.startY,
-        topLine.endX,
-        topLine.endY,
-      );
-      drawSegmentedLine(
-        bottomLine.startX,
-        bottomLine.startY,
-        bottomLine.endX,
-        bottomLine.endY,
-      );
+      drawSegmentedLine(topLine.startX, topLine.startY, topLine.endX, topLine.endY);
+      drawSegmentedLine(bottomLine.startX, bottomLine.startY, bottomLine.endX, bottomLine.endY);
       ctx.restore();
       return;
     }

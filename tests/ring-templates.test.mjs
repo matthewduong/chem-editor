@@ -63,9 +63,7 @@ function buildChairBonds() {
 function getMedian(values) {
   const sorted = [...values].sort((left, right) => left - right);
   const middle = Math.floor(sorted.length / 2);
-  return sorted.length % 2 === 0
-    ? (sorted[middle - 1] + sorted[middle]) / 2
-    : sorted[middle];
+  return sorted.length % 2 === 0 ? (sorted[middle - 1] + sorted[middle]) / 2 : sorted[middle];
 }
 
 function getGeometryBondLengths(geometry) {
@@ -175,5 +173,8 @@ test('regular hexagons and chair templates use the requested bond length', () =>
 
   assert.ok(Math.abs(polygonMedian - bondLength) <= 1e-6, `polygon bond length ${polygonMedian}`);
   assert.ok(Math.abs(chairMedian - bondLength) <= 0.05, `chair bond length ${chairMedian}`);
-  assert.ok(Math.abs(chairMedian - polygonMedian) <= 0.05, `geometry drift ${chairMedian} vs ${polygonMedian}`);
+  assert.ok(
+    Math.abs(chairMedian - polygonMedian) <= 0.05,
+    `geometry drift ${chairMedian} vs ${polygonMedian}`,
+  );
 });

@@ -22,8 +22,5 @@ test('fully selected connected structures suppress per-atom selection adornments
     Array.from(getFullySelectedComponentAtomIds(atoms, bonds, new Set(['a1', 'a2']))),
     [],
   );
-  assert.deepEqual(
-    Array.from(getFullySelectedComponentAtomIds(atoms, bonds, new Set(['a4']))),
-    [],
-  );
+  assert.deepEqual(Array.from(getFullySelectedComponentAtomIds(atoms, bonds, new Set(['a4']))), []);
 });

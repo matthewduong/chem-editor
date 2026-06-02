@@ -95,16 +95,6 @@ export function getDefaultArrowLineWidth(
   return getDefaultArrowLineWidthFromMetrics(type, lineStyle, documentStyleSettings);
 }
 
-export function getEffectiveArrowLineWidth(
-  arrow: Partial<Pick<Arrow, 'type' | 'lineWidth' | 'lineStyle'>>,
-  documentStyleSettings?: DocumentStyleSettings | null,
-): number {
-  return Math.max(
-    1,
-    arrow.lineWidth ?? getDefaultArrowLineWidth(arrow.type, arrow.lineStyle, documentStyleSettings),
-  );
-}
-
 export function getArrowGeometryMetrics(
   arrow: Partial<Pick<Arrow, 'type' | 'lineWidth' | 'lineStyle'>>,
   documentStyleSettings?: DocumentStyleSettings | null,
@@ -450,7 +440,9 @@ export function collectBondNeighborVectors(options: {
   for (const candidate of bonds) {
     if (candidate.id === bond.id) continue;
     if (candidate.from === bond.from || candidate.to === bond.from) {
-      const otherAtom = atomLookup.get(candidate.from === bond.from ? candidate.to : candidate.from);
+      const otherAtom = atomLookup.get(
+        candidate.from === bond.from ? candidate.to : candidate.from,
+      );
       if (otherAtom) {
         const vector = normalizeNeighborVector(otherAtom.x - fromAtom.x, otherAtom.y - fromAtom.y);
         if (vector) from.push(vector);
@@ -642,10 +634,10 @@ export function getDoubleBondLineGeometry(options: {
     const normalMag = Math.hypot(normalX, normalY);
     if (normalMag > 1e-6) {
       let netPerp = 0;
-      for (const v of (startNeighborVectors ?? [])) {
+      for (const v of startNeighborVectors ?? []) {
         netPerp += v.x * normalX + v.y * normalY;
       }
-      for (const v of (endNeighborVectors ?? [])) {
+      for (const v of endNeighborVectors ?? []) {
         netPerp += v.x * normalX + v.y * normalY;
       }
       if (Math.abs(netPerp) > normalMag * 0.3) {

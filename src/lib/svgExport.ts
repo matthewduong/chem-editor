@@ -1491,10 +1491,7 @@ function generateCanvasSVGWithContext(
     labelRuns.forEach((run, index) => {
       const runFontSize = run.sub || run.sup ? fontSize * 0.65 : fontSize;
       const runY =
-        ay +
-        verticalOffset +
-        5 +
-        (run.sub ? fontSize * 0.22 : run.sup ? -fontSize * 0.18 : 0);
+        ay + verticalOffset + 5 + (run.sub ? fontSize * 0.22 : run.sup ? -fontSize * 0.18 : 0);
       atomBody += `<text x="${runX}" y="${runY}" text-anchor="start" font-family="${esc(fontFamily)}" font-size="${runFontSize}" font-weight="${run.bold ? 'bold' : 'normal'}" font-style="${run.italic ? 'italic' : 'normal'}" fill="${esc(run.color ?? color)}">${esc(run.text)}</text>`;
       runX += runWidths[index];
     });

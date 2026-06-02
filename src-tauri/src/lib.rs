@@ -800,6 +800,7 @@ fn handle_output(success: bool, stdout: &[u8], stderr: &[u8]) -> Result<Value, S
 
 #[tauri::command]
 #[allow(clippy::needless_pass_by_value)]
+#[cfg_attr(not(target_os = "macos"), allow(clippy::unnecessary_wraps))]
 fn sync_macos_window_theme(window: tauri::Window, is_dark_mode: bool) -> Result<(), String> {
     #[cfg(target_os = "macos")]
     {

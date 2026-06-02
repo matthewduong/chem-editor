@@ -110,7 +110,9 @@ async function loadSmokeCases(rootPath) {
   if (smokeManifestPath) {
     const manifest = JSON.parse(await readFile(smokeManifestPath, 'utf8'));
     if (!Array.isArray(manifest) || manifest.length === 0) {
-      fail(`Smoke manifest at ${smokeManifestPath} must contain a non-empty array of relative paths`);
+      fail(
+        `Smoke manifest at ${smokeManifestPath} must contain a non-empty array of relative paths`,
+      );
     }
 
     const cases = [];

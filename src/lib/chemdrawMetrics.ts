@@ -182,7 +182,8 @@ function resolveCanvasFontSize(
   settings: StyleSettingsLike,
 ): number {
   if (isFinitePositiveNumber(authoredCanvasFontSize)) return authoredCanvasFontSize;
-  if (isFinitePositiveNumber(nativeFontSize)) return convertNativeToCanvas(nativeFontSize, settings);
+  if (isFinitePositiveNumber(nativeFontSize))
+    return convertNativeToCanvas(nativeFontSize, settings);
   return convertNativeToCanvas(fallbackNativeFontSize, settings);
 }
 
@@ -256,7 +257,10 @@ export function resolveDocumentCaptionTextStyle(
   };
 }
 
-export function getNodeLabelVerticalOffset(labelAlignment: LabelAlignment, fontSize: number): number {
+export function getNodeLabelVerticalOffset(
+  labelAlignment: LabelAlignment,
+  fontSize: number,
+): number {
   if (labelAlignment === 'above') return -fontSize * 0.7;
   if (labelAlignment === 'below') return fontSize * 0.55;
   return 0;

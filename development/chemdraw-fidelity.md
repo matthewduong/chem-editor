@@ -56,19 +56,19 @@ Without the visual tools, the harness still runs semantic compatibility checks.
 
 ## Environment Variables
 
-| Variable                             | Default                    | What it controls                                                                                     |
-| ------------------------------------ | -------------------------- | ---------------------------------------------------------------------------------------------------- |
-| `CHEMDRAW_CORPUS_ROOT`               | required                   | Root of the private local CDXML corpus.                                                              |
-| `CHEMDRAW_THESIS_ROOT`               | legacy alias               | Backward-compatible alias for `CHEMDRAW_CORPUS_ROOT`.                                                |
-| `CHEMDRAW_SMOKE_MANIFEST`            | unset                      | Optional private manifest file for smoke mode.                                                       |
-| `CHEMDRAW_SMOKE_LIMIT`               | `12`                       | Number of sorted corpus files used by smoke mode when no manifest is supplied.                       |
-| `CHEMDRAW_APP_ID`                    | `com.revvity.ChemDraw`     | Bundle id used for AppleScript automation.                                                           |
-| `CHEMDRAW_ARTIFACT_DIR`              | `.chemdraw-test-artifacts` | Root directory for failure and capture artifacts.                                                    |
-| `CHEMDRAW_SHOW_WINDOWS=1`            | off                        | Makes the ChemDraw session visible for debugging.                                                    |
-| `CHEMDRAW_CAPTURE_VISUAL_BASELINE=1` | off                        | Captures ChemDraw PDF/raster artifacts and ChemEditor renders without enforcing the visual threshold.|
-| `CHEMDRAW_ENFORCE_VISUAL_DIFF=1`     | off                        | Enables visual diff failure mode on the configured enforced smoke subset.                            |
-| `CHEMDRAW_ENFORCED_VISUAL_CASES`     | unset                      | Comma-separated relative paths to enforce when visual diffing is enabled.                            |
-| `CHEMDRAW_VISUAL_DIFF_THRESHOLD`     | `0.0025`                   | Maximum allowed visual diff ratio when visual enforcement is active.                                 |
+| Variable                             | Default                    | What it controls                                                                                      |
+| ------------------------------------ | -------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `CHEMDRAW_CORPUS_ROOT`               | required                   | Root of the private local CDXML corpus.                                                               |
+| `CHEMDRAW_THESIS_ROOT`               | legacy alias               | Backward-compatible alias for `CHEMDRAW_CORPUS_ROOT`.                                                 |
+| `CHEMDRAW_SMOKE_MANIFEST`            | unset                      | Optional private manifest file for smoke mode.                                                        |
+| `CHEMDRAW_SMOKE_LIMIT`               | `12`                       | Number of sorted corpus files used by smoke mode when no manifest is supplied.                        |
+| `CHEMDRAW_APP_ID`                    | `com.revvity.ChemDraw`     | Bundle id used for AppleScript automation.                                                            |
+| `CHEMDRAW_ARTIFACT_DIR`              | `.chemdraw-test-artifacts` | Root directory for failure and capture artifacts.                                                     |
+| `CHEMDRAW_SHOW_WINDOWS=1`            | off                        | Makes the ChemDraw session visible for debugging.                                                     |
+| `CHEMDRAW_CAPTURE_VISUAL_BASELINE=1` | off                        | Captures ChemDraw PDF/raster artifacts and ChemEditor renders without enforcing the visual threshold. |
+| `CHEMDRAW_ENFORCE_VISUAL_DIFF=1`     | off                        | Enables visual diff failure mode on the configured enforced smoke subset.                             |
+| `CHEMDRAW_ENFORCED_VISUAL_CASES`     | unset                      | Comma-separated relative paths to enforce when visual diffing is enabled.                             |
+| `CHEMDRAW_VISUAL_DIFF_THRESHOLD`     | `0.0025`                   | Maximum allowed visual diff ratio when visual enforcement is active.                                  |
 
 ## Semantic vs Visual Modes
 

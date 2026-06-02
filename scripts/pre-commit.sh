@@ -1,6 +1,6 @@
 #!/bin/sh
 # Run TypeScript type-check and ESLint on staged JS/TS files before commit.
-# Install: pnpm run prepare  (or run this once: sh scripts/install-hooks.sh)
+# Install: pnpm install-hooks
 
 set -e
 cd "$(git rev-parse --show-toplevel)"

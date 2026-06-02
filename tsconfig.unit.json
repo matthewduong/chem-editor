@@ -8,7 +8,8 @@
     "rootDir": ".",
     "isolatedModules": false,
     "allowImportingTsExtensions": false,
-    "esModuleInterop": true
+    "esModuleInterop": true,
+    "ignoreDeprecations": "6.0"
   },
   "include": [
     "src/editor/**/*.ts",

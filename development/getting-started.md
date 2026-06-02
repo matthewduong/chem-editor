@@ -184,20 +184,20 @@ fresh sidecar build, add an exclusion for `src-tauri/bin/`.
 
 ## Day-To-Day Commands
 
-| Command                   | When to use it                                                           |
-| ------------------------- | ------------------------------------------------------------------------ |
-| `pnpm tauri:dev`          | Normal app development.                                                  |
-| `pnpm dev:web`            | Frontend-only Vite preview without the Tauri shell.                      |
-| `pnpm sync:sidecar`       | Refresh the Python sidecar environment and generated assets.             |
-| `pnpm test:js`            | Fast Node-based regression suite for pure logic and document/model code. |
-| `pnpm test:js:ui`         | Vitest + jsdom + React Testing Library suite.                            |
-| `pnpm test:py`            | Python sidecar tests.                                                    |
-| `pnpm test:rust`          | Rust tests.                                                              |
-| `pnpm test:all`           | Default all-up test sweep.                                               |
-| `pnpm test:chemdraw:mac`         | Local macOS ChemDraw smoke compatibility harness over a private corpus. |
-| `pnpm test:chemdraw:mac:private` | Full private-corpus ChemDraw sweep.                                     |
-| `pnpm lint`               | TypeScript, formatting, Python, and Rust lint checks.                    |
-| `pnpm build`              | Full production build and bundle.                                        |
+| Command                          | When to use it                                                           |
+| -------------------------------- | ------------------------------------------------------------------------ |
+| `pnpm tauri:dev`                 | Normal app development.                                                  |
+| `pnpm dev:web`                   | Frontend-only Vite preview without the Tauri shell.                      |
+| `pnpm sync:sidecar`              | Refresh the Python sidecar environment and generated assets.             |
+| `pnpm test:js`                   | Fast Node-based regression suite for pure logic and document/model code. |
+| `pnpm test:js:ui`                | Vitest + jsdom + React Testing Library suite.                            |
+| `pnpm test:py`                   | Python sidecar tests.                                                    |
+| `pnpm test:rust`                 | Rust tests.                                                              |
+| `pnpm test:all`                  | Default all-up test sweep.                                               |
+| `pnpm test:chemdraw:mac`         | Local macOS ChemDraw smoke compatibility harness over a private corpus.  |
+| `pnpm test:chemdraw:mac:private` | Full private-corpus ChemDraw sweep.                                      |
+| `pnpm lint`                      | TypeScript, formatting, Python, and Rust lint checks.                    |
+| `pnpm build`                     | Full production build and bundle.                                        |
 
 ## Sidecar And Build Notes
 

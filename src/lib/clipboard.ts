@@ -90,38 +90,6 @@ export function applyPasteOffset(buf: ClipboardBuffer, pasteCount: number): Clip
   return { atoms: newAtoms, bonds: newBonds, arrows: newArrows, textBoxes: newTextBoxes };
 }
 
-export async function svgToPngBlob(svgString: string): Promise<Blob> {
-  const widthMatch = svgString.match(/width="([^"]+)"/);
-  const heightMatch = svgString.match(/height="([^"]+)"/);
-  const w = widthMatch ? parseFloat(widthMatch[1]) : 800;
-  const h = heightMatch ? parseFloat(heightMatch[1]) : 600;
-
-  return new Promise((resolve, reject) => {
-    const blob = new Blob([svgString], { type: 'image/svg+xml' });
-    const url = URL.createObjectURL(blob);
-    const img = new Image();
-    img.onload = () => {
-      const canvas = document.createElement('canvas');
-      canvas.width = w;
-      canvas.height = h;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) {
-        URL.revokeObjectURL(url);
-        reject(new Error('no 2d context'));
-        return;
-      }
-      ctx.drawImage(img, 0, 0);
-      URL.revokeObjectURL(url);
-      canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('toBlob failed'))), 'image/png');
-    };
-    img.onerror = () => {
-      URL.revokeObjectURL(url);
-      reject(new Error('svg load failed'));
-    };
-    img.src = url;
-  });
-}
-
 export function detectPasteFormat(
   text: string,
 ): 'smiles' | 'xyz' | 'molblock' | 'cdxml' | 'unknown' {

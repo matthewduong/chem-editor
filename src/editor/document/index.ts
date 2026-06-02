@@ -1,11 +1,8 @@
 import type {
-  ChemDrawArrow,
-  ChemDrawBond,
   ChemDrawBounds,
   ChemDrawDocument,
   ChemDrawEmbeddedObject,
   ChemDrawGraphic,
-  ChemDrawNode,
   ChemDrawObject,
   ChemDrawTable,
   ChemDrawText,
@@ -362,24 +359,4 @@ export function getVisibleObjects(
   viewportBounds: ChemDrawBounds,
 ): ChemDrawObject[] {
   return queryObjectsInBounds(index, viewportBounds).map((entry) => entry.object);
-}
-
-export function getIndexNode(index: DocumentIndex, id: string): ChemDrawNode | null {
-  const object = index.objectById.get(id);
-  return object?.type === 'node' ? object : null;
-}
-
-export function getIndexBond(index: DocumentIndex, id: string): ChemDrawBond | null {
-  const object = index.objectById.get(id);
-  return object?.type === 'bond' ? object : null;
-}
-
-export function getIndexArrow(index: DocumentIndex, id: string): ChemDrawArrow | null {
-  const object = index.objectById.get(id);
-  return object?.type === 'arrow' ? object : null;
-}
-
-export function getIndexText(index: DocumentIndex, id: string): ChemDrawText | null {
-  const object = index.objectById.get(id);
-  return object?.type === 'text' ? object : null;
 }

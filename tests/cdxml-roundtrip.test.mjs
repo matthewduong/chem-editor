@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
-import { writeFileSync, unlinkSync } from 'node:fs';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -18,20 +18,19 @@ function resolveXmlLintPath() {
 const XMLLINT = resolveXmlLintPath();
 
 function validateXml(xml, label) {
-  const tmp = join(tmpdir(), `cdxml-roundtrip-${Date.now()}.cdxml`);
+  const tmpRoot = mkdtempSync(join(tmpdir(), 'cdxml-roundtrip-'));
+  const tmp = join(tmpRoot, 'output.cdxml');
   try {
     writeFileSync(tmp, xml, 'utf8');
     execFileSync(XMLLINT, ['--noout', tmp], { stdio: 'pipe' });
   } catch (err) {
+    const stderr = err.stderr?.toString() ?? '';
+    const details = stderr.trim() ? stderr : err.message;
     assert.fail(
-      `${label}: xmllint rejected output\n${err.stderr?.toString() ?? err.message}\n\nFirst 2000 chars of output:\n${xml.slice(0, 2000)}`,
+      `${label}: xmllint rejected output\n${details}\n\nFirst 2000 chars of output:\n${xml.slice(0, 2000)}`,
     );
   } finally {
-    try {
-      unlinkSync(tmp);
-    } catch {
-      /* ignore */
-    }
+    rmSync(tmpRoot, { recursive: true, force: true });
   }
 }
 

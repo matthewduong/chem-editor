@@ -1,14 +1,10 @@
 import type { Atom, Bond, CanvasState } from '../types/chemistry';
 import { getAtomAlias, getAtomNodeText, getAtomKind, getAtomLeadElement } from './atomIdentity';
 import { getAliasChemistry } from './aliasChemistry';
-import { DEFAULT_CANVAS_BOND_LENGTH } from './chemdrawMetrics';
 import type { ShorthandEntry } from './shorthand';
 
 /** Canvas pixels per Å — matches ChemDraw 30pt bond = 1.5Å standard C-C */
 export const MOLBLOCK_SCALE = 30;
-
-/** Default bond length in canvas pixels */
-export const BOND_LENGTH = DEFAULT_CANVAS_BOND_LENGTH;
 
 /** Snap angle increment in radians (15°) */
 export const SNAP_ANGLE = Math.PI / 12;
@@ -101,14 +97,21 @@ export type AliasEntryResolver = (
   label: string | undefined,
 ) => ShorthandEntry | undefined;
 
-function parseMolblockCounts(mb: string): { lines: string[]; atomCount: number; bondCount: number } | null {
+function parseMolblockCounts(
+  mb: string,
+): { lines: string[]; atomCount: number; bondCount: number } | null {
   const lines = mb.split('\n');
   if (lines.length < 4) return null;
   const countsLine = lines[3];
   if (countsLine.length < 6) return null;
   const atomCount = Number.parseInt(countsLine.substring(0, 3).trim(), 10);
   const bondCount = Number.parseInt(countsLine.substring(3, 6).trim(), 10);
-  if (!Number.isFinite(atomCount) || !Number.isFinite(bondCount) || atomCount < 0 || bondCount < 0) {
+  if (
+    !Number.isFinite(atomCount) ||
+    !Number.isFinite(bondCount) ||
+    atomCount < 0 ||
+    bondCount < 0
+  ) {
     return null;
   }
   return { lines, atomCount, bondCount };
@@ -152,7 +155,8 @@ export function parseMolblockGeometry(
     if (line.startsWith('M  CHG')) {
       const count = Number.parseInt(line.substring(6, 9).trim(), 10);
       for (let index = 0; index < count; index += 1) {
-        const atomIndex = Number.parseInt(line.substring(9 + index * 8, 13 + index * 8).trim(), 10) - 1;
+        const atomIndex =
+          Number.parseInt(line.substring(9 + index * 8, 13 + index * 8).trim(), 10) - 1;
         const charge = Number.parseInt(line.substring(13 + index * 8, 17 + index * 8).trim(), 10);
         if (atomIndex >= 0 && atomIndex < atoms.length && !Number.isNaN(charge)) {
           atoms[atomIndex] = { ...atoms[atomIndex], charge };
@@ -164,7 +168,8 @@ export function parseMolblockGeometry(
     if (line.startsWith('M  ISO')) {
       const count = Number.parseInt(line.substring(6, 9).trim(), 10);
       for (let index = 0; index < count; index += 1) {
-        const atomIndex = Number.parseInt(line.substring(9 + index * 8, 13 + index * 8).trim(), 10) - 1;
+        const atomIndex =
+          Number.parseInt(line.substring(9 + index * 8, 13 + index * 8).trim(), 10) - 1;
         const isotope = Number.parseInt(line.substring(13 + index * 8, 17 + index * 8).trim(), 10);
         if (atomIndex >= 0 && atomIndex < atoms.length && !Number.isNaN(isotope)) {
           atoms[atomIndex] = { ...atoms[atomIndex], isotope };
@@ -176,7 +181,9 @@ export function parseMolblockGeometry(
   return { atoms, bonds };
 }
 
-export function getMedianBondLength(geometry: Pick<ParsedMolblockGeometry, 'atoms' | 'bonds'>): number | null {
+export function getMedianBondLength(
+  geometry: Pick<ParsedMolblockGeometry, 'atoms' | 'bonds'>,
+): number | null {
   const lengths = geometry.bonds
     .map((bond) => {
       const fromAtom = geometry.atoms[bond.from];

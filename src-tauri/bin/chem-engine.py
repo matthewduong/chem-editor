@@ -1033,10 +1033,7 @@ def _serialize_orbital_field(key: str, field) -> dict:
 
 
 def _build_atom_spec(atoms: list[dict]) -> list[str]:
-    return [
-        f"{atom['element']} {float(atom['x']):.8f} {float(atom['y']):.8f} {float(atom['z']):.8f}"
-        for atom in atoms
-    ]
+    return [f"{atom['element']} {float(atom['x']):.8f} {float(atom['y']):.8f} {float(atom['z']):.8f}" for atom in atoms]
 
 
 def _build_reference_bonds(reference_mol) -> list[dict]:
@@ -1204,9 +1201,7 @@ def _polygonize_tetrahedron(positions, values, iso: float, positions_out: list[f
 
     inside_centroid = sum(positions[index] for index, flag in enumerate(inside) if flag) / inside_count
     outside_count = 4 - inside_count
-    outside_centroid = (
-        sum(positions[index] for index, flag in enumerate(inside) if not flag) / max(1, outside_count)
-    )
+    outside_centroid = sum(positions[index] for index, flag in enumerate(inside) if not flag) / max(1, outside_count)
     desired = outside_centroid - inside_centroid
     if np.linalg.norm(desired) <= 1e-8:
         desired = np.array([0.0, 0.0, 1.0])
@@ -1357,10 +1352,7 @@ def optimize_hartree_fock_geometry(
         total_charge, _total_electrons = _validate_orbital_structure(atoms, total_charge)
         atom_symbols = [atom["element"] for atom in atoms]
         initial_coords = np.asarray(
-            [
-                [float(atom["x"]), float(atom["y"]), float(atom["z"])]
-                for atom in atoms
-            ],
+            [[float(atom["x"]), float(atom["y"]), float(atom["z"])] for atom in atoms],
             dtype=float,
         )
         start_time = time.monotonic()
