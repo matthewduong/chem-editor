@@ -172,6 +172,7 @@ import {
   BOND_HOTKEY_VALUES,
   eventMatchesShortcut,
   FRAGMENT_MIN_FV,
+  getCanvasToolShortcut,
   getShortcutBinding,
 } from '../lib/keybindings';
 
@@ -3116,16 +3117,13 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
         return;
       }
 
-      // Tool-switch hotkeys (only when not hovering an atom/bond so they don't conflict)
-      if (!hoveredAtomId && !hoveredBondId) {
-        if (matches('canvas.tools.text')) {
-          useStore.getState().setTool('text');
-          return;
-        }
-        if (matches('canvas.tools.arrow')) {
-          useStore.getState().setTool('arrow');
-          return;
-        }
+      const toolShortcut = getCanvasToolShortcut(currentPreferences.keybindings, e, {
+        hasHoveredAtomOrBond: Boolean(hoveredAtomId || hoveredBondId),
+      });
+      if (toolShortcut) {
+        e.preventDefault();
+        useStore.getState().setTool(toolShortcut.tool);
+        return;
       }
 
       // Delete / Backspace

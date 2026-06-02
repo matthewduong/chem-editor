@@ -238,15 +238,20 @@ describe('ChemCanvas', () => {
       keydownHandler(event);
     };
 
-    dispatchShortcut('t', surface);
-    await waitFor(() => {
-      expect(useStore.getState().tool).toBe('text');
-    });
-
-    dispatchShortcut('e', surface);
-    await waitFor(() => {
-      expect(useStore.getState().tool).toBe('arrow');
-    });
+    for (const [key, expectedTool] of [
+      ['v', 'select'],
+      ['h', 'pan'],
+      ['b', 'bond'],
+      ['r', 'ring'],
+      ['t', 'text'],
+      ['e', 'arrow'],
+      ['x', 'eraser'],
+    ] as const) {
+      dispatchShortcut(key, surface);
+      await waitFor(() => {
+        expect(useStore.getState().tool).toBe(expectedTool);
+      });
+    }
 
     act(() => {
       useStore.setState({

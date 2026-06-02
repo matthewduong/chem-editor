@@ -1,7 +1,12 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { useState } from 'react';
-import { IconButton, OptionButton, SegmentedControl } from '../../src/components/ui/Controls';
+import {
+  IconButton,
+  OptionButton,
+  PaletteButton,
+  SegmentedControl,
+} from '../../src/components/ui/Controls';
 
 describe('Control primitives', () => {
   it('renders icon buttons with accessible labels and click handlers', () => {
@@ -46,6 +51,18 @@ describe('Control primitives', () => {
     render(<OptionButton active>Pinned</OptionButton>);
 
     expect(screen.getByRole('button', { name: 'Pinned' }).getAttribute('aria-pressed')).toBe(
+      'true',
+    );
+  });
+
+  it('renders active palette buttons with accessible labels', () => {
+    render(
+      <PaletteButton variant="tool" active label="Bond Tool">
+        Bond
+      </PaletteButton>,
+    );
+
+    expect(screen.getByRole('button', { name: 'Bond Tool' }).getAttribute('aria-pressed')).toBe(
       'true',
     );
   });

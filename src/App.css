@@ -267,6 +267,100 @@ body {
   opacity: 0.48;
 }
 
+.ui-palette-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border: 1px solid var(--ce-border);
+  background: var(--ce-surface);
+  color: var(--ce-text);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 600;
+  line-height: 1.2;
+  text-align: center;
+  transition:
+    background 0.1s,
+    border-color 0.1s,
+    color 0.1s,
+    opacity 0.1s;
+}
+
+.ui-palette-button:hover:not(:disabled),
+.ui-palette-button:focus-visible {
+  background: var(--ce-hover);
+}
+
+.ui-palette-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.ui-palette-button--active {
+  background: var(--ce-accent);
+  border-color: var(--ce-accent);
+  color: #ffffff;
+}
+
+.ui-palette-button--active:hover:not(:disabled) {
+  background: var(--ce-accent);
+}
+
+.ui-palette-button--tool {
+  position: relative;
+  width: var(--ui-control-size, 34px);
+  height: var(--ui-control-size, 34px);
+  border-color: transparent;
+  border-radius: var(--ce-radius-sm);
+  background: transparent;
+  font-size: var(--ui-control-font-size, 18px);
+}
+
+.ui-palette-button--tool.ui-palette-button--active {
+  background: var(--ce-hover);
+  border-color: var(--ce-accent);
+  color: var(--ce-text);
+}
+
+.ui-palette-button--element {
+  width: var(--ui-control-size, 28px);
+  height: var(--ui-control-size, 28px);
+  margin: 2px;
+  border-radius: 999px;
+  font-size: var(--ui-control-font-size, 12px);
+}
+
+.ui-palette-button--pill {
+  min-width: var(--ui-control-min-width, 32px);
+  height: var(--ui-control-height, 24px);
+  padding: 0 var(--ce-spacing-2);
+  border-radius: 999px;
+  font-size: var(--ui-control-font-size, 11px);
+}
+
+.ui-palette-button--wide {
+  width: 100%;
+  min-height: var(--ui-control-min-height, 28px);
+  padding: var(--ui-control-padding, 6px 8px);
+  border-radius: var(--ce-radius-md);
+  font-size: var(--ui-control-font-size, 11px);
+}
+
+.ui-palette-button--header {
+  border: none;
+  background: transparent;
+  color: var(--ce-text);
+  line-height: 1;
+  padding: 0;
+}
+
+.ui-palette-button--header:hover:not(:disabled),
+.ui-palette-button--header:focus-visible {
+  background: transparent;
+  color: var(--ce-accent);
+}
+
 .viewer-panel {
   width: 100%;
   height: 100%;

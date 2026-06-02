@@ -331,6 +331,76 @@ export const ATOM_FRAGMENT_OPTIONS: Record<string, Array<{ minFV: number; smiles
   ],
 };
 
+export type CanvasToolShortcut = ShortcutDefinition & {
+  tool: 'select' | 'pan' | 'bond' | 'ring' | 'text' | 'arrow' | 'eraser';
+};
+
+export const CANVAS_TOOL_SHORTCUTS: CanvasToolShortcut[] = [
+  {
+    id: 'canvas.tools.select',
+    tool: 'select',
+    label: 'Switch to selection tool',
+    description: 'Switch to the selection tool when no atom or bond is hovered.',
+    category: 'Tools',
+    context: 'canvas',
+    defaultBinding: { key: 'v' },
+  },
+  {
+    id: 'canvas.tools.pan',
+    tool: 'pan',
+    label: 'Switch to hand tool',
+    description: 'Switch to the hand/pan tool when no atom or bond is hovered.',
+    category: 'Tools',
+    context: 'canvas',
+    defaultBinding: { key: 'h' },
+  },
+  {
+    id: 'canvas.tools.bond',
+    tool: 'bond',
+    label: 'Switch to bond tool',
+    description: 'Switch to the bond tool when no atom or bond is hovered.',
+    category: 'Tools',
+    context: 'canvas',
+    defaultBinding: { key: 'b' },
+  },
+  {
+    id: 'canvas.tools.ring',
+    tool: 'ring',
+    label: 'Switch to ring tool',
+    description: 'Switch to the ring tool when no atom or bond is hovered.',
+    category: 'Tools',
+    context: 'canvas',
+    defaultBinding: { key: 'r' },
+  },
+  {
+    id: 'canvas.tools.text',
+    tool: 'text',
+    label: 'Switch to text tool',
+    description: 'Switch to the text tool when no atom or bond is hovered.',
+    category: 'Tools',
+    context: 'canvas',
+    defaultBinding: { key: 't' },
+  },
+  {
+    id: 'canvas.tools.arrow',
+    tool: 'arrow',
+    label: 'Switch to arrow tool',
+    description: 'Switch to the arrow tool when no atom or bond is hovered.',
+    category: 'Tools',
+    context: 'canvas',
+    defaultBinding: { key: 'e' },
+  },
+  {
+    id: 'canvas.tools.eraser',
+    tool: 'eraser',
+    label: 'Switch to eraser tool',
+    description: 'Switch to the eraser tool when no atom or bond is hovered.',
+    category: 'Tools',
+    context: 'canvas',
+    defaultBinding: { key: 'x' },
+  },
+];
+
 const CANVAS_FIXED_SHORTCUTS: ShortcutDefinition[] = [
   {
     id: 'canvas.selection.component',
@@ -347,22 +417,6 @@ const CANVAS_FIXED_SHORTCUTS: ShortcutDefinition[] = [
     category: 'Atoms',
     context: 'canvas',
     defaultBinding: { key: 'enter' },
-  },
-  {
-    id: 'canvas.tools.text',
-    label: 'Switch to text tool',
-    description: 'Switch to the text tool when nothing is hovered.',
-    category: 'Tools',
-    context: 'canvas',
-    defaultBinding: { key: 't' },
-  },
-  {
-    id: 'canvas.tools.arrow',
-    label: 'Switch to arrow tool',
-    description: 'Switch to the arrow tool when nothing is hovered.',
-    category: 'Tools',
-    context: 'canvas',
-    defaultBinding: { key: 'e' },
   },
   {
     id: 'canvas.delete',
@@ -446,6 +500,7 @@ export const FRAGMENT_SHORTCUT_DEFINITIONS: ShortcutDefinition[] = Object.entrie
 export const SHORTCUT_DEFINITIONS: ShortcutDefinition[] = [
   ...APP_SHORTCUT_DEFINITIONS,
   ...CANVAS_FIXED_SHORTCUTS,
+  ...CANVAS_TOOL_SHORTCUTS,
   ...ATOM_SHORTCUT_DEFINITIONS,
   ...BOND_SHORTCUT_DEFINITIONS,
   ...FRAGMENT_SHORTCUT_DEFINITIONS,
@@ -522,6 +577,19 @@ export function eventMatchesShortcut(
     Boolean(event.ctrlKey || event.metaKey) === Boolean(normalized.primary) &&
     Boolean(event.shiftKey) === Boolean(normalized.shift) &&
     Boolean(event.altKey) === Boolean(normalized.alt)
+  );
+}
+
+export function getCanvasToolShortcut(
+  preferences: KeybindingPreferences | undefined,
+  event: KeyboardEvent,
+  options: { hasHoveredAtomOrBond?: boolean } = {},
+): CanvasToolShortcut | null {
+  if (options.hasHoveredAtomOrBond) return null;
+  return (
+    CANVAS_TOOL_SHORTCUTS.find((shortcut) =>
+      eventMatchesShortcut(event, getShortcutBinding(preferences, shortcut.id)),
+    ) ?? null
   );
 }
 

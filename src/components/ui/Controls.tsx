@@ -1,3 +1,4 @@
+import { forwardRef } from 'react';
 import type { ButtonHTMLAttributes, MouseEventHandler, ReactNode } from 'react';
 
 function classNames(...values: Array<string | false | null | undefined>) {
@@ -105,3 +106,45 @@ export function OptionButton({
     </button>
   );
 }
+
+interface PaletteButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+  active?: boolean;
+  variant?: 'tool' | 'element' | 'pill' | 'wide' | 'header';
+  label?: string;
+  children: ReactNode;
+}
+
+export const PaletteButton = forwardRef<HTMLButtonElement, PaletteButtonProps>(
+  function PaletteButton(
+    {
+      active = false,
+      variant = 'wide',
+      label,
+      title,
+      className,
+      children,
+      type = 'button',
+      ...buttonProps
+    },
+    ref,
+  ) {
+    return (
+      <button
+        {...buttonProps}
+        ref={ref}
+        type={type}
+        className={classNames(
+          'ui-palette-button',
+          `ui-palette-button--${variant}`,
+          active && 'ui-palette-button--active',
+          className,
+        )}
+        aria-label={label}
+        aria-pressed={active}
+        title={title ?? label}
+      >
+        {children}
+      </button>
+    );
+  },
+);

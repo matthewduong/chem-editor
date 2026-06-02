@@ -59,6 +59,7 @@ import {
   MenuSeparator,
   MenuTrigger,
 } from './components/ui/Menu';
+import { PaletteButton } from './components/ui/Controls';
 import type { ToolPaletteId } from './types/settings';
 import {
   getFileDisplayName,
@@ -629,8 +630,8 @@ function App() {
   const workspaceRef = useRef<HTMLDivElement>(null);
   const structureInputRef = useRef<HTMLInputElement>(null);
   const sidebarDockRef = useRef<HTMLDivElement>(null);
-  const bondBtnRef = useRef<HTMLDivElement>(null);
-  const ringBtnRef = useRef<HTMLDivElement>(null);
+  const bondBtnRef = useRef<HTMLButtonElement>(null);
+  const ringBtnRef = useRef<HTMLButtonElement>(null);
   const paletteRefs = useRef<Partial<Record<ToolPaletteId, HTMLDivElement | null>>>({});
   const shorthandSearchRef = useRef<HTMLInputElement>(null);
 
@@ -2267,75 +2268,23 @@ function App() {
   const uiFontSize = appPreferences.ui.fontSize;
   const buttonScale = Math.min(Math.max(0.82, sidebarWidth / 72), 1.15);
   const buttonSize = 34 * buttonScale;
-  const toolBtnStyle = (active: boolean): React.CSSProperties => ({
-    width: `${buttonSize}px`,
-    height: `${buttonSize}px`,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    cursor: 'pointer',
-    background: active ? (isDarkMode ? '#37373d' : '#e0e0e0') : 'transparent',
-    border: active ? `1px solid ${isDarkMode ? '#007acc' : '#bbb'}` : '1px solid transparent',
-    borderRadius: '4px',
-    fontSize: `${18 * buttonScale}px`,
-    transition: 'background 0.1s',
-    position: 'relative',
-    flexShrink: 0,
-    color: theme.text,
-  });
-  const elementBtnStyle = (active: boolean): React.CSSProperties => ({
-    width: `${buttonSize * 0.8}px`,
-    height: `${buttonSize * 0.8}px`,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    cursor: 'pointer',
-    background: active ? '#007acc' : isDarkMode ? '#333' : '#fff',
-    color: active ? '#fff' : theme.text,
-    border: `1px solid ${isDarkMode ? '#444' : '#ccc'}`,
-    borderRadius: '50%',
-    fontSize: `${12 * buttonScale}px`,
-    fontWeight: 'bold',
-    margin: '2px',
-    transition: 'all 0.1s',
-    flexShrink: 0,
-  });
-  const palettePillStyle = (active: boolean): React.CSSProperties => ({
-    minWidth: `${buttonSize * 0.95}px`,
-    height: `${buttonSize * 0.7}px`,
-    padding: '0 8px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    cursor: 'pointer',
-    background: active ? '#007acc' : isDarkMode ? '#333' : '#fff',
-    color: active ? '#fff' : theme.text,
-    border: `1px solid ${active ? '#007acc' : isDarkMode ? '#444' : '#ccc'}`,
-    borderRadius: 999,
-    fontSize: `${10.5 * buttonScale}px`,
-    fontWeight: 600,
-    transition: 'all 0.1s',
-    flexShrink: 0,
-  });
-  const paletteWideButtonStyle = (active = false, disabled = false): React.CSSProperties => ({
-    width: '100%',
-    minHeight: `${buttonSize * 0.74}px`,
-    padding: '6px 8px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    cursor: disabled ? 'not-allowed' : 'pointer',
-    background: active ? '#007acc' : isDarkMode ? '#333' : '#fff',
-    color: active ? '#fff' : theme.text,
-    border: `1px solid ${active ? '#007acc' : isDarkMode ? '#444' : '#ccc'}`,
-    borderRadius: 6,
-    fontSize: `${10.5 * buttonScale}px`,
-    fontWeight: 600,
-    lineHeight: 1.2,
-    textAlign: 'center',
-    opacity: disabled ? 0.45 : 1,
-    transition: 'all 0.1s',
-  });
+  const toolButtonStyle = {
+    '--ui-control-size': `${buttonSize}px`,
+    '--ui-control-font-size': `${18 * buttonScale}px`,
+  } as React.CSSProperties;
+  const elementButtonStyle = {
+    '--ui-control-size': `${buttonSize * 0.8}px`,
+    '--ui-control-font-size': `${12 * buttonScale}px`,
+  } as React.CSSProperties;
+  const palettePillButtonStyle = {
+    '--ui-control-min-width': `${buttonSize * 0.95}px`,
+    '--ui-control-height': `${buttonSize * 0.7}px`,
+    '--ui-control-font-size': `${10.5 * buttonScale}px`,
+  } as React.CSSProperties;
+  const paletteWideButtonStyle = {
+    '--ui-control-min-height': `${buttonSize * 0.74}px`,
+    '--ui-control-font-size': `${10.5 * buttonScale}px`,
+  } as React.CSSProperties;
   const paletteSectionLabelStyle: React.CSSProperties = {
     width: '100%',
     fontSize: `${10.75 * buttonScale}px`,
@@ -2347,6 +2296,12 @@ function App() {
     marginTop: 2,
   };
   const isCompactTextPalette = sidebarWidth < 118;
+  const compactTextPaletteButtonStyle = {
+    ...paletteWideButtonStyle,
+    '--ui-control-min-height': '0',
+    '--ui-control-padding': '5px 6px',
+    fontSize: `${isCompactTextPalette ? 9 : 10}px`,
+  } as React.CSSProperties;
   const textPalettePrimaryGridColumns = `repeat(auto-fit, minmax(${isCompactTextPalette ? 72 : 84}px, 1fr))`;
   const textPaletteSemanticGridColumns = `repeat(auto-fit, minmax(${isCompactTextPalette ? 54 : 64}px, 1fr))`;
   const textPaletteBodyCopyStyle: React.CSSProperties = {
@@ -2452,21 +2407,22 @@ function App() {
 
   const renderAtomShortcut = (label: string) => {
     const active = tool === 'atom' && atomToolMode === 'element' && element === label;
-    const style = label.length <= 2 ? elementBtnStyle(active) : palettePillStyle(active);
+    const isElementButton = label.length <= 2;
     return (
-      <button
+      <PaletteButton
         key={label}
-        type="button"
+        variant={isElementButton ? 'element' : 'pill'}
+        active={active}
         onClick={() => {
           setTool('atom');
           setElement(label);
           setShowBondMenu(false);
         }}
-        style={style}
+        style={isElementButton ? elementButtonStyle : palettePillButtonStyle}
         title={label}
       >
         {label}
-      </button>
+      </PaletteButton>
     );
   };
   const handleSelectShorthand = useCallback(
@@ -2498,8 +2454,9 @@ function App() {
     const buttonActive = isShorthandLibraryOpen || (tool === 'atom' && Boolean(selectedShorthand));
     return (
       <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 4 }}>
-        <button
-          type="button"
+        <PaletteButton
+          variant="wide"
+          active={buttonActive}
           onClick={(event) => {
             if (isShorthandLibraryOpen) {
               setIsShorthandLibraryOpen(false);
@@ -2508,15 +2465,19 @@ function App() {
             }
             openShorthandLibrary(event.currentTarget);
           }}
-          style={{
-            ...paletteWideButtonStyle(buttonActive),
-            minHeight: 0,
-            padding: '7px 9px',
-          }}
+          style={
+            {
+              ...paletteWideButtonStyle,
+              '--ui-control-min-height': '0',
+              '--ui-control-padding': '7px 9px',
+              minHeight: 0,
+              padding: '7px 9px',
+            } as React.CSSProperties
+          }
           title="Open the shorthand library window"
         >
           Library
-        </button>
+        </PaletteButton>
         <div
           style={{
             width: '100%',
@@ -2636,11 +2597,12 @@ function App() {
                 ['display-only', `Label (${shorthandLibraryCounts['display-only']})`],
               ] as const
             ).map(([value, label]) => (
-              <button
+              <PaletteButton
                 key={value}
-                type="button"
+                variant="pill"
+                active={shorthandSupportFilter === value}
                 onClick={() => setShorthandSupportFilter(value)}
-                style={palettePillStyle(shorthandSupportFilter === value)}
+                style={palettePillButtonStyle}
                 title={
                   value === 'all'
                     ? 'Show every shorthand'
@@ -2652,7 +2614,7 @@ function App() {
                 }
               >
                 {label}
-              </button>
+              </PaletteButton>
             ))}
           </div>
           <div
@@ -2771,27 +2733,22 @@ function App() {
 
   const bondMenuPos = bondBtnRef.current?.getBoundingClientRect();
   const ringBtnPos = ringBtnRef.current?.getBoundingClientRect();
-  const paletteHeaderButtonStyle: React.CSSProperties = {
-    border: 'none',
-    background: 'transparent',
-    color: theme.text,
-    cursor: 'pointer',
-    padding: 0,
-    lineHeight: 1,
-  };
 
   const renderPaletteBody = (paletteId: ToolPaletteId) => {
     switch (paletteId) {
       case 'tools':
         return (
           <>
-            <div
+            <PaletteButton
+              variant="tool"
+              active={tool === 'pan'}
+              label="Pan"
               title="Pan"
               onClick={() => {
                 setTool('pan');
                 setShowBondMenu(false);
               }}
-              style={toolBtnStyle(tool === 'pan')}
+              style={toolButtonStyle}
             >
               <svg
                 width={18 * buttonScale}
@@ -2808,61 +2765,73 @@ function App() {
                 <path d="M10 10.5V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v8" />
                 <path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15" />
               </svg>
-            </div>
-            <div
+            </PaletteButton>
+            <PaletteButton
+              variant="tool"
+              active={tool === 'select'}
               title="Select"
               onClick={() => {
                 setTool('select');
                 setShowBondMenu(false);
               }}
-              style={toolBtnStyle(tool === 'select')}
+              style={toolButtonStyle}
             >
               ✥
-            </div>
-            <div
+            </PaletteButton>
+            <PaletteButton
+              variant="tool"
+              active={tool === 'text'}
               title="Text"
               onClick={() => {
                 setTool('text');
                 setShowBondMenu(false);
               }}
-              style={toolBtnStyle(tool === 'text')}
+              style={toolButtonStyle}
             >
               T
-            </div>
-            <div
+            </PaletteButton>
+            <PaletteButton
+              variant="tool"
+              active={tool === 'eraser'}
               title="Eraser"
               onClick={() => {
                 setTool('eraser');
                 setShowBondMenu(false);
               }}
-              style={toolBtnStyle(tool === 'eraser')}
+              style={toolButtonStyle}
             >
               ▱
-            </div>
+            </PaletteButton>
           </>
         );
       case 'ring':
         return (
           <>
-            <div
+            <PaletteButton
               ref={bondBtnRef}
+              variant="tool"
+              active={tool === 'bond'}
+              label="Bond Tool"
               title="Bond Tool"
               onClick={() => {
                 if (tool !== 'bond') setTool('bond');
                 else setShowBondMenu(!showBondMenu);
               }}
-              style={toolBtnStyle(tool === 'bond')}
+              style={toolButtonStyle}
             >
               {getBondIcon()}
-            </div>
-            <div
+            </PaletteButton>
+            <PaletteButton
               ref={ringBtnRef}
+              variant="tool"
+              active={tool === 'ring'}
+              label={getRingPresetLabel(ringPreset, ringSize)}
               title={getRingPresetLabel(ringPreset, ringSize)}
               onClick={() => {
                 setTool('ring');
                 setShowBondMenu(false);
               }}
-              style={toolBtnStyle(tool === 'ring')}
+              style={toolButtonStyle}
             >
               <div
                 style={{ position: 'relative', width: 22 * buttonScale, height: 22 * buttonScale }}
@@ -2907,17 +2876,20 @@ function App() {
                   </div>
                 )}
               </div>
-            </div>
+            </PaletteButton>
             {FRAGMENTS.map((f) => (
-              <div
+              <PaletteButton
                 key={f.id}
+                variant="tool"
+                active={tool === 'fragment' && selectedFragment === f.smiles}
+                label={f.id.charAt(0).toUpperCase() + f.id.slice(1)}
                 title={f.id.charAt(0).toUpperCase() + f.id.slice(1)}
                 onClick={() => {
                   setTool('fragment');
                   setSelectedFragment(f.smiles);
                   setShowBondMenu(false);
                 }}
-                style={toolBtnStyle(tool === 'fragment' && selectedFragment === f.smiles)}
+                style={toolButtonStyle}
               >
                 <StructureFragmentIcon
                   id={
@@ -2930,7 +2902,7 @@ function App() {
                   }
                   size={22 * buttonScale}
                 />
-              </div>
+              </PaletteButton>
             ))}
           </>
         );
@@ -2938,18 +2910,21 @@ function App() {
         return (
           <>
             {REACTION_ARROW_OPTIONS.map(({ type, title }) => (
-              <div
+              <PaletteButton
                 key={type}
+                variant="tool"
+                active={tool === 'arrow' && arrowType === type}
+                label={title}
                 title={title}
                 onClick={() => {
                   setTool('arrow');
                   setArrowType(type);
                   setShowBondMenu(false);
                 }}
-                style={toolBtnStyle(tool === 'arrow' && arrowType === type)}
+                style={toolButtonStyle}
               >
                 <ReactionArrowIcon type={type} size={22 * buttonScale} />
-              </div>
+              </PaletteButton>
             ))}
           </>
         );
@@ -2964,29 +2939,30 @@ function App() {
                 gap: 4,
               }}
             >
-              <button
-                type="button"
+              <PaletteButton
+                variant="wide"
+                active={tool === 'text'}
                 onClick={() => {
                   setTool('text');
                   setShowBondMenu(false);
                 }}
-                style={paletteWideButtonStyle(tool === 'text')}
+                style={paletteWideButtonStyle}
                 title="Place notes, captions, labels, or formula text on the canvas"
               >
                 Annotate
-              </button>
-              <button
-                type="button"
+              </PaletteButton>
+              <PaletteButton
+                variant="wide"
                 onClick={() =>
                   focusStructureInput(
                     selectedChemicalFormula || (hasStructureInput ? editableSmiles : undefined),
                   )
                 }
-                style={paletteWideButtonStyle(false)}
+                style={paletteWideButtonStyle}
                 title="Open the structure input bar. It accepts SMILES, formulas, and shorthand aliases."
               >
                 Input
-              </button>
+              </PaletteButton>
             </div>
             <div style={paletteSectionLabelStyle}>Selected Text</div>
             <div
@@ -3007,16 +2983,14 @@ function App() {
                 const active = selectedTextSemanticMode === mode;
                 const mixed = selectedTextBoxIds.size > 1 && selectedTextSemanticMode == null;
                 return (
-                  <button
+                  <PaletteButton
                     key={mode}
-                    type="button"
+                    variant="wide"
+                    active={active}
                     disabled={selectedTextBoxIds.size === 0}
                     onClick={() => applySelectedTextSemanticMode(mode)}
                     style={{
-                      ...paletteWideButtonStyle(active, selectedTextBoxIds.size === 0),
-                      minHeight: 0,
-                      padding: '5px 6px',
-                      fontSize: `${isCompactTextPalette ? 9 : 10}px`,
+                      ...compactTextPaletteButtonStyle,
                       ...(mixed && mode === 'auto'
                         ? {
                             boxShadow: `inset 0 0 0 1px ${isDarkMode ? '#7aa2d6' : '#7a9acc'}`,
@@ -3032,7 +3006,7 @@ function App() {
                     }
                   >
                     {label}
-                  </button>
+                  </PaletteButton>
                 );
               })}
             </div>
@@ -3078,28 +3052,28 @@ function App() {
                 gap: 4,
               }}
             >
-              <button
-                type="button"
+              <PaletteButton
+                variant="wide"
                 disabled={!hasTextPaletteStructureValue}
                 onClick={() =>
                   handleLoadStructureInput(selectedChemicalFormula || structureInputValue)
                 }
-                style={paletteWideButtonStyle(false, !hasTextPaletteStructureValue)}
+                style={paletteWideButtonStyle}
                 title="Replace the current drawing with the selected formula or prepared input"
               >
                 Replace
-              </button>
-              <button
-                type="button"
+              </PaletteButton>
+              <PaletteButton
+                variant="wide"
                 disabled={!hasTextPaletteStructureValue}
                 onClick={() =>
                   handleAddStructureInput(selectedChemicalFormula || structureInputValue)
                 }
-                style={paletteWideButtonStyle(false, !hasTextPaletteStructureValue)}
+                style={paletteWideButtonStyle}
                 title="Add the selected formula or prepared input alongside the current drawing"
               >
                 Add
-              </button>
+              </PaletteButton>
             </div>
           </>
         );
@@ -3121,21 +3095,21 @@ function App() {
             </div>
             <div style={paletteSectionLabelStyle}>Shorthand</div>
             {renderShorthandLibrary()}
-            <button
-              type="button"
+            <PaletteButton
+              variant="wide"
               onClick={() => {
                 setIsShorthandLibraryOpen(false);
                 setShorthandQuery('');
                 setIsPeriodicTableOpen(true);
               }}
               style={{
-                ...paletteWideButtonStyle(false),
+                ...paletteWideButtonStyle,
                 paddingInline: 10,
               }}
               title="Periodic Table"
             >
               <span>Periodic Table</span>
-            </button>
+            </PaletteButton>
           </>
         );
       case 'charge':
@@ -3150,8 +3124,9 @@ function App() {
                 gap: 4,
               }}
             >
-              <button
-                type="button"
+              <PaletteButton
+                variant="wide"
+                active={tool === 'charge' && electronToolMode === 'charge-positive'}
                 onClick={() => {
                   if (tool === 'charge' && electronToolMode === 'charge-positive') {
                     setTool('select');
@@ -3164,9 +3139,7 @@ function App() {
                   }
                 }}
                 style={{
-                  ...paletteWideButtonStyle(
-                    tool === 'charge' && electronToolMode === 'charge-positive',
-                  ),
+                  ...paletteWideButtonStyle,
                   minHeight: `${buttonSize * 0.78}px`,
                   color:
                     tool === 'charge' && electronToolMode === 'charge-positive'
@@ -3177,9 +3150,10 @@ function App() {
                 title="Click atoms to toggle a +1 formal charge"
               >
                 +1
-              </button>
-              <button
-                type="button"
+              </PaletteButton>
+              <PaletteButton
+                variant="wide"
+                active={tool === 'charge' && electronToolMode === 'charge-negative'}
                 onClick={() => {
                   if (tool === 'charge' && electronToolMode === 'charge-negative') {
                     setTool('select');
@@ -3192,9 +3166,7 @@ function App() {
                   }
                 }}
                 style={{
-                  ...paletteWideButtonStyle(
-                    tool === 'charge' && electronToolMode === 'charge-negative',
-                  ),
+                  ...paletteWideButtonStyle,
                   minHeight: `${buttonSize * 0.78}px`,
                   color:
                     tool === 'charge' && electronToolMode === 'charge-negative'
@@ -3205,7 +3177,7 @@ function App() {
                 title="Click atoms to toggle a -1 formal charge"
               >
                 -1
-              </button>
+              </PaletteButton>
             </div>
             <div
               style={{
@@ -3245,8 +3217,9 @@ function App() {
                 gap: 4,
               }}
             >
-              <button
-                type="button"
+              <PaletteButton
+                variant="wide"
+                active={tool === 'charge' && electronToolMode === 'radical'}
                 onClick={() => {
                   if (tool === 'charge' && electronToolMode === 'radical') {
                     setTool('select');
@@ -3256,13 +3229,14 @@ function App() {
                     setShowBondMenu(false);
                   }
                 }}
-                style={paletteWideButtonStyle(tool === 'charge' && electronToolMode === 'radical')}
+                style={paletteWideButtonStyle}
                 title="Click atoms to toggle one unpaired electron"
               >
                 Radical
-              </button>
-              <button
-                type="button"
+              </PaletteButton>
+              <PaletteButton
+                variant="wide"
+                active={tool === 'charge' && electronToolMode === 'lone-pair-add'}
                 onClick={() => {
                   if (tool === 'charge' && electronToolMode === 'lone-pair-add') {
                     setTool('select');
@@ -3272,16 +3246,15 @@ function App() {
                     setShowBondMenu(false);
                   }
                 }}
-                style={paletteWideButtonStyle(
-                  tool === 'charge' && electronToolMode === 'lone-pair-add',
-                )}
+                style={paletteWideButtonStyle}
                 title="Click atoms to add one lone pair when chemically allowed"
               >
                 Add
-              </button>
+              </PaletteButton>
             </div>
-            <button
-              type="button"
+            <PaletteButton
+              variant="wide"
+              active={tool === 'charge' && electronToolMode === 'lone-pair-remove'}
               onClick={() => {
                 if (tool === 'charge' && electronToolMode === 'lone-pair-remove') {
                   setTool('select');
@@ -3291,13 +3264,11 @@ function App() {
                   setShowBondMenu(false);
                 }
               }}
-              style={paletteWideButtonStyle(
-                tool === 'charge' && electronToolMode === 'lone-pair-remove',
-              )}
+              style={paletteWideButtonStyle}
               title="Click atoms to remove one lone pair"
             >
               Remove
-            </button>
+            </PaletteButton>
           </>
         );
     }
@@ -3332,12 +3303,16 @@ function App() {
           }}
           title="Drag out or reorder"
         >
-          <button
-            type="button"
+          <PaletteButton
+            variant="header"
+            label={
+              paletteState.collapsed
+                ? `Expand ${paletteMeta.label}`
+                : `Collapse ${paletteMeta.label}`
+            }
             onMouseDown={(event) => event.stopPropagation()}
             onClick={() => togglePaletteCollapsed(paletteId)}
             style={{
-              ...paletteHeaderButtonStyle,
               width: 14,
               marginRight: 4,
               fontSize: `${10.75 * buttonScale}px`,
@@ -3348,7 +3323,7 @@ function App() {
             }}
           >
             {paletteState.collapsed ? '▸' : '▾'}
-          </button>
+          </PaletteButton>
           <span
             style={{
               fontSize: `${13 * buttonScale}px`,
@@ -3411,12 +3386,16 @@ function App() {
             cursor: paletteDrag ? 'grabbing' : 'grab',
           }}
         >
-          <button
-            type="button"
+          <PaletteButton
+            variant="header"
+            label={
+              paletteState.collapsed
+                ? `Expand ${paletteMeta.label}`
+                : `Collapse ${paletteMeta.label}`
+            }
             onMouseDown={(event) => event.stopPropagation()}
             onClick={() => togglePaletteCollapsed(paletteId)}
             style={{
-              ...paletteHeaderButtonStyle,
               display: 'flex',
               alignItems: 'center',
               gap: 4,
@@ -3430,16 +3409,17 @@ function App() {
           >
             <span>{paletteState.collapsed ? '▸' : '▾'}</span>
             {paletteMeta.label}
-          </button>
-          <button
-            type="button"
+          </PaletteButton>
+          <PaletteButton
+            variant="header"
+            label={`Dock ${paletteMeta.label}`}
             onClick={() => dockPalette(paletteId, dockedPaletteIds.length)}
             onMouseDown={(event) => event.stopPropagation()}
-            style={{ ...paletteHeaderButtonStyle, fontSize: 12, opacity: 0.8 }}
+            style={{ fontSize: 12, opacity: 0.8 }}
             title="Dock palette"
           >
             ⇤
-          </button>
+          </PaletteButton>
         </div>
         {!paletteState.collapsed && (
           <div
@@ -4462,16 +4442,14 @@ function App() {
                     const active = selectedTextSemanticMode === mode;
                     const mixed = selectedTextBoxIds.size > 1 && selectedTextSemanticMode == null;
                     return (
-                      <button
+                      <PaletteButton
                         key={mode}
-                        type="button"
+                        variant="wide"
+                        active={active}
                         disabled={selectedTextBoxIds.size === 0}
                         onClick={() => applySelectedTextSemanticMode(mode)}
                         style={{
-                          ...paletteWideButtonStyle(active, selectedTextBoxIds.size === 0),
-                          minHeight: 0,
-                          padding: '5px 6px',
-                          fontSize: `${isCompactTextPalette ? 9 : 10}px`,
+                          ...compactTextPaletteButtonStyle,
                           ...(mixed && mode === 'auto'
                             ? {
                                 boxShadow: `inset 0 0 0 1px ${isDarkMode ? '#7aa2d6' : '#7a9acc'}`,
@@ -4487,7 +4465,7 @@ function App() {
                         }
                       >
                         {label}
-                      </button>
+                      </PaletteButton>
                     );
                   })}
                 </div>
@@ -4499,58 +4477,37 @@ function App() {
                     gap: 4,
                   }}
                 >
-                  <button
-                    type="button"
+                  <PaletteButton
+                    variant="wide"
                     onClick={() =>
                       focusStructureInput(
                         selectedChemicalFormula || (hasStructureInput ? editableSmiles : undefined),
                       )
                     }
-                    style={{
-                      ...paletteWideButtonStyle(false),
-                      minHeight: 0,
-                      padding: '5px 6px',
-                      fontSize: `${isCompactTextPalette ? 9 : 10}px`,
-                    }}
+                    style={compactTextPaletteButtonStyle}
                   >
                     Input
-                  </button>
-                  <button
-                    type="button"
+                  </PaletteButton>
+                  <PaletteButton
+                    variant="wide"
                     disabled={!selectedChemicalFormula && !hasStructureInput}
                     onClick={() =>
                       handleLoadStructureInput(selectedChemicalFormula || structureInputValue)
                     }
-                    style={{
-                      ...paletteWideButtonStyle(
-                        false,
-                        !selectedChemicalFormula && !hasStructureInput,
-                      ),
-                      minHeight: 0,
-                      padding: '5px 6px',
-                      fontSize: `${isCompactTextPalette ? 9 : 10}px`,
-                    }}
+                    style={compactTextPaletteButtonStyle}
                   >
                     Replace
-                  </button>
-                  <button
-                    type="button"
+                  </PaletteButton>
+                  <PaletteButton
+                    variant="wide"
                     disabled={!selectedChemicalFormula && !hasStructureInput}
                     onClick={() =>
                       handleAddStructureInput(selectedChemicalFormula || structureInputValue)
                     }
-                    style={{
-                      ...paletteWideButtonStyle(
-                        false,
-                        !selectedChemicalFormula && !hasStructureInput,
-                      ),
-                      minHeight: 0,
-                      padding: '5px 6px',
-                      fontSize: `${isCompactTextPalette ? 9 : 10}px`,
-                    }}
+                    style={compactTextPaletteButtonStyle}
                   >
                     Add
-                  </button>
+                  </PaletteButton>
                 </div>
               </div>
             </FloatingPanel>
