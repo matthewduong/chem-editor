@@ -53,7 +53,7 @@ test('canvas tool shortcut resolver honors defaults, conflicts, and custom bindi
     tool: 'fragment',
     selectedFragment: 'c1ccccc1',
     label: 'Switch to benzene tool',
-    description: 'Switch to the benzene fragment tool when no atom or bond is hovered.',
+    description: 'Switch to the benzene fragment tool when no canvas object is hovered.',
     category: 'Tools',
     context: 'canvas',
     defaultBinding: { key: 'j' },
@@ -67,6 +67,7 @@ test('canvas tool shortcut resolver honors defaults, conflicts, and custom bindi
     getCanvasToolShortcut(undefined, keyEvent('u', { shiftKey: true }))?.id,
     'canvas.tools.cyclopentane',
   );
+  assert.equal(getCanvasToolShortcut(undefined, keyEvent('x'), { hasHoveredObject: true }), null);
   assert.equal(
     getCanvasToolShortcut(undefined, keyEvent('x'), { hasHoveredAtomOrBond: true }),
     null,
