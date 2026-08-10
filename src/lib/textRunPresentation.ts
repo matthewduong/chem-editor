@@ -55,6 +55,57 @@ function buildTextBoxDimensionsCacheKey(textBox: TextBox): string {
   ].join('|');
 }
 
+function sanitizeInlineColor(color: string | undefined): string | undefined {
+  const normalized = color?.trim();
+  if (!normalized || /[;"'<>]/.test(normalized)) return undefined;
+  if (typeof CSS !== 'undefined' && CSS.supports && !CSS.supports('color', normalized)) {
+    return undefined;
+  }
+  return normalized;
+}
+
+function escapeHTML(text: string): string {
+  return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function samePresentationStyle(left: TextRun, right: TextRun): boolean {
+  return (
+    Boolean(left.bold) === Boolean(right.bold) &&
+    Boolean(left.italic) === Boolean(right.italic) &&
+    Boolean(left.sub) === Boolean(right.sub) &&
+    Boolean(left.sup) === Boolean(right.sup) &&
+    sanitizeInlineColor(left.color) === sanitizeInlineColor(right.color)
+  );
+}
+
+export function normalizePresentationTextRuns(runs: TextRun[]): TextRun[] {
+  const normalized: TextRun[] = [];
+  for (const run of runs) {
+    if (run.text === '') continue;
+    const color = sanitizeInlineColor(run.color);
+    const next: TextRun = {
+      text: run.text,
+      ...(run.bold ? { bold: true } : {}),
+      ...(run.italic ? { italic: true } : {}),
+      ...(run.sub ? { sub: true } : {}),
+      ...(run.sup ? { sup: true } : {}),
+      ...(color ? { color } : {}),
+    };
+    const previous = normalized[normalized.length - 1];
+    if (
+      previous &&
+      previous.text !== '\n' &&
+      next.text !== '\n' &&
+      samePresentationStyle(previous, next)
+    ) {
+      previous.text += next.text;
+      continue;
+    }
+    normalized.push(next);
+  }
+  return normalized;
+}
+
 export function getTextRunFontStyle(run: Pick<TextRun, 'bold' | 'italic'>): string {
   if (run.bold && run.italic) return 'bold italic';
   if (run.bold) return 'bold';
@@ -76,18 +127,162 @@ export function estimateRunWidth(run: TextRun, fontSize: number): number {
   return Math.max(run.text.length * (run.sub || run.sup ? fontSize * 0.42 : fontSize * 0.58), 1);
 }
 
-export function getTextBoxLines(runs: TextRun[]): TextRun[][] {
-  const lines: TextRun[][] = [[]];
-  for (const run of runs) {
-    if (run.text === '\n') lines.push([]);
-    else lines[lines.length - 1].push(run);
+export type TextRunMeasure = (run: TextRun, fontSize: number, fontFamily: string) => number;
+
+function trimLineTrailingWhitespace(line: TextRun[]): TextRun[] {
+  const trimmed = line.map((run) => ({ ...run }));
+  while (trimmed.length > 0) {
+    const last = trimmed[trimmed.length - 1];
+    const nextText = last.text.replace(/\s+$/g, '');
+    if (nextText) {
+      last.text = nextText;
+      break;
+    }
+    trimmed.pop();
   }
-  return lines;
+  return trimmed;
+}
+
+function appendLineRun(line: TextRun[], run: TextRun): void {
+  const previous = line[line.length - 1];
+  if (previous && samePresentationStyle(previous, run)) {
+    previous.text += run.text;
+    return;
+  }
+  line.push({ ...run });
+}
+
+function splitWrapChunks(text: string): string[] {
+  return text.match(/\S+\s*|\s+/g) ?? [];
+}
+
+function appendWrappedChunk(
+  lines: TextRun[][],
+  currentLine: TextRun[],
+  run: TextRun,
+  chunk: string,
+  maxWidth: number,
+  fontSize: number,
+  fontFamily: string,
+  measureWidth: TextRunMeasure,
+): { line: TextRun[]; width: number } {
+  let line = currentLine;
+  let lineWidth = line.reduce(
+    (sum, lineRun) => sum + measureWidth(lineRun, fontSize, fontFamily),
+    0,
+  );
+
+  const pushLine = () => {
+    lines.push(trimLineTrailingWhitespace(line));
+    line = [];
+    lineWidth = 0;
+  };
+
+  const appendChunk = (text: string) => {
+    if (!text || (line.length === 0 && /^\s+$/.test(text))) return;
+    const nextRun = { ...run, text };
+    appendLineRun(line, nextRun);
+    lineWidth += measureWidth(nextRun, fontSize, fontFamily);
+  };
+
+  const chunkRun = { ...run, text: chunk };
+  const chunkWidth = measureWidth(chunkRun, fontSize, fontFamily);
+  if (line.length > 0 && lineWidth + chunkWidth > maxWidth) {
+    pushLine();
+  }
+
+  if (chunkWidth <= maxWidth || /^\s+$/.test(chunk)) {
+    appendChunk(line.length === 0 ? chunk.replace(/^\s+/g, '') : chunk);
+    return { line, width: lineWidth };
+  }
+
+  for (const char of Array.from(chunk)) {
+    const charRun = { ...run, text: char };
+    const charWidth = measureWidth(charRun, fontSize, fontFamily);
+    if (line.length > 0 && lineWidth + charWidth > maxWidth) {
+      pushLine();
+    }
+    appendChunk(line.length === 0 ? char.replace(/^\s+/g, '') : char);
+  }
+
+  return { line, width: lineWidth };
+}
+
+export function getTextBoxLines(
+  runs: TextRun[],
+  options: {
+    maxWidth?: number;
+    fontSize?: number;
+    fontFamily?: string;
+    measureWidth?: TextRunMeasure;
+  } = {},
+): TextRun[][] {
+  const { maxWidth, fontSize, fontFamily, measureWidth = measureRunWidth } = options;
+  const lines: TextRun[][] = [[]];
+  const shouldWrap = Boolean(maxWidth && maxWidth > 0 && fontSize && fontFamily);
+  if (shouldWrap) lines.pop();
+
+  let currentLine: TextRun[] = [];
+  const pushCurrentLine = () => {
+    lines.push(shouldWrap ? trimLineTrailingWhitespace(currentLine) : currentLine);
+    currentLine = [];
+  };
+
+  for (const run of runs) {
+    if (run.text === '\n') {
+      if (shouldWrap) pushCurrentLine();
+      else lines.push([]);
+      continue;
+    }
+    if (!shouldWrap) {
+      lines[lines.length - 1].push(run);
+      continue;
+    }
+    const textParts = run.text.split('\n');
+    textParts.forEach((part, partIndex) => {
+      if (partIndex > 0) pushCurrentLine();
+      for (const chunk of splitWrapChunks(part)) {
+        currentLine = appendWrappedChunk(
+          lines,
+          currentLine,
+          run,
+          chunk,
+          maxWidth!,
+          fontSize!,
+          fontFamily!,
+          measureWidth,
+        ).line;
+      }
+    });
+  }
+  if (shouldWrap) pushCurrentLine();
+  return lines.length > 0 ? lines : [[]];
+}
+
+/**
+ * Wrap-aware line breaking for a text box.
+ *
+ * Every renderer must go through this rather than calling `getTextBoxLines` directly, so that
+ * the lines that get painted are the same lines `getTextBoxDimensions` measured. Pass the same
+ * `measureWidth` to both for a given call site: CDXML import sets `width` from `<t BoundingBox>`,
+ * so mismatched measurement functions produce different line counts and a bounding box that
+ * disagrees with the painted text.
+ */
+export function getTextBoxRenderLines(
+  textBox: TextBox,
+  measureWidth: TextRunMeasure = measureRunWidth,
+): TextRun[][] {
+  return getTextBoxLines(textBox.runs, {
+    maxWidth: textBox.width,
+    fontSize: textBox.fontSize,
+    fontFamily: textBox.fontFamily,
+    measureWidth,
+  });
 }
 
 export function getTextBoxDimensions(
   textBox: TextBox,
-  measureWidth: (run: TextRun, fontSize: number, fontFamily: string) => number = measureRunWidth,
+  measureWidth: TextRunMeasure = measureRunWidth,
 ): { textW: number; textH: number; cx: number; cy: number } {
   const cacheKey =
     measureWidth === measureRunWidth ? buildTextBoxDimensionsCacheKey(textBox) : null;
@@ -95,7 +290,7 @@ export function getTextBoxDimensions(
     const cached = TEXT_BOX_DIMENSIONS_CACHE.get(cacheKey);
     if (cached) return cached;
   }
-  const lines = getTextBoxLines(textBox.runs);
+  const lines = getTextBoxRenderLines(textBox, measureWidth);
   const lineWidths = lines.map((line) =>
     line.reduce((sum, run) => sum + measureWidth(run, textBox.fontSize, textBox.fontFamily), 0),
   );
@@ -113,8 +308,9 @@ export function runsToHTML(runs: TextRun[]): string {
   return runs
     .map((run) => {
       if (run.text === '\n') return '<br>';
-      let html = run.text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-      if (run.color) html = `<span style="color:${run.color}">${html}</span>`;
+      let html = escapeHTML(run.text);
+      const color = sanitizeInlineColor(run.color);
+      if (color) html = `<span style="color:${color}">${html}</span>`;
       if (run.sub) html = `<sub>${html}</sub>`;
       if (run.sup) html = `<sup>${html}</sup>`;
       if (run.bold) html = `<b>${html}</b>`;
@@ -125,6 +321,45 @@ export function runsToHTML(runs: TextRun[]): string {
 }
 
 const BLOCK_TAGS = new Set(['div', 'p', 'li', 'blockquote', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6']);
+
+export function createPlainTextEditableFragment(
+  ownerDocument: Document,
+  text: string,
+): DocumentFragment {
+  const fragment = ownerDocument.createDocumentFragment();
+  const normalized = text.replace(/\r\n?/g, '\n');
+  const lines = normalized.split('\n');
+  for (const [index, line] of lines.entries()) {
+    if (index > 0) fragment.appendChild(ownerDocument.createElement('br'));
+    if (line) fragment.appendChild(ownerDocument.createTextNode(line));
+  }
+  return fragment;
+}
+
+export function insertPlainTextIntoEditable(root: HTMLElement, text: string): void {
+  const selection = root.ownerDocument.getSelection?.() ?? window.getSelection();
+  if (!selection || selection.rangeCount === 0) {
+    root.appendChild(createPlainTextEditableFragment(root.ownerDocument, text));
+    return;
+  }
+
+  const range = selection.getRangeAt(0);
+  if (!root.contains(range.commonAncestorContainer)) {
+    root.appendChild(createPlainTextEditableFragment(root.ownerDocument, text));
+    return;
+  }
+
+  range.deleteContents();
+  const fragment = createPlainTextEditableFragment(root.ownerDocument, text);
+  const lastNode = fragment.lastChild;
+  range.insertNode(fragment);
+  if (lastNode) {
+    range.setStartAfter(lastNode);
+  }
+  range.collapse(true);
+  selection.removeAllRanges();
+  selection.addRange(range);
+}
 
 export function extractRunsFromDOM(div: HTMLDivElement): TextRun[] {
   const runs: TextRun[] = [];
@@ -142,37 +377,47 @@ export function extractRunsFromDOM(div: HTMLDivElement): TextRun[] {
       if (tag === 'i' || tag === 'em') italic = true;
       if (tag === 'sub') sub = true;
       if (tag === 'sup') sup = true;
-      const styleColor = (el as HTMLElement).style?.color;
+      const styleColor = sanitizeInlineColor((el as HTMLElement).style?.color);
       if (styleColor && !color) color = styleColor;
       el = el.parentNode;
     }
     return { bold, italic, sub, sup, color };
   }
 
-  function addBreak() {
-    if (runs.length > 0 && runs[runs.length - 1].text !== '\n') runs.push({ text: '\n' });
+  function addBreak(options: { preserveConsecutive?: boolean } = {}) {
+    if (runs.length > 0 && (options.preserveConsecutive || runs[runs.length - 1].text !== '\n')) {
+      runs.push({ text: '\n' });
+    }
   }
 
-  function walk(node: Node, isFirstChild: boolean): void {
-    if (node.nodeType === Node.TEXT_NODE) {
-      const text = node.textContent || '';
-      if (!text) return;
-      const style = getStyle(node);
+  function addText(text: string, style: ReturnType<typeof getStyle>) {
+    const lines = text.replace(/\r\n?/g, '\n').split('\n');
+    for (const [index, line] of lines.entries()) {
+      if (index > 0) addBreak({ preserveConsecutive: true });
+      if (!line) continue;
       runs.push({
-        text,
+        text: line,
         ...(style.bold ? { bold: true } : {}),
         ...(style.italic ? { italic: true } : {}),
         ...(style.sub ? { sub: true } : {}),
         ...(style.sup ? { sup: true } : {}),
         ...(style.color ? { color: style.color } : {}),
       });
+    }
+  }
+
+  function walk(node: Node, isFirstChild: boolean): void {
+    if (node.nodeType === Node.TEXT_NODE) {
+      const text = node.textContent || '';
+      if (!text) return;
+      addText(text, getStyle(node));
       return;
     }
     if (node.nodeType !== Node.ELEMENT_NODE) return;
     const el = node as HTMLElement;
     const tag = el.tagName.toLowerCase();
     if (tag === 'br') {
-      addBreak();
+      addBreak({ preserveConsecutive: true });
       return;
     }
     if (BLOCK_TAGS.has(tag) && !isFirstChild) addBreak();
@@ -189,7 +434,7 @@ export function extractRunsFromDOM(div: HTMLDivElement): TextRun[] {
     first = false;
   }
   while (runs.length > 0 && runs[runs.length - 1].text === '\n') runs.pop();
-  return runs.filter((run) => run.text !== '');
+  return normalizePresentationTextRuns(runs);
 }
 
 export function resetTextMeasurementCaches() {

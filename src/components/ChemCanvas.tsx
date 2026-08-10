@@ -6,6 +6,7 @@ import {
   useCallback,
   useRef,
   useMemo,
+  type ClipboardEvent as ReactClipboardEvent,
 } from 'react';
 import { Stage, Layer, Circle, Line, Text, Group, Rect, Shape, Star } from 'react-konva';
 import type { KonvaEventObject } from 'konva/lib/Node';
@@ -80,7 +81,8 @@ import {
   extractRunsFromDOM,
   getTextRunFontStyle,
   getTextBoxDimensions,
-  getTextBoxLines,
+  getTextBoxRenderLines,
+  insertPlainTextIntoEditable,
   measureRunWidth,
   runsToHTML,
 } from '../lib/textRunPresentation';
@@ -2638,6 +2640,13 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
     setEditingTextBoxId(null);
   }, [aliasValidator, editingTextBoxId, pushToHistory]);
 
+  const handleTextEditPaste = useCallback((event: ReactClipboardEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    event.nativeEvent.stopImmediatePropagation();
+    insertPlainTextIntoEditable(event.currentTarget, event.clipboardData.getData('text/plain'));
+  }, []);
+
   // placeFragmentAt — used by fragment tool and keyboard shortcuts
   const placeFragmentAt = useCallback(
     (
@@ -3117,8 +3126,15 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
         return;
       }
 
+      const hasHoveredObject = Boolean(
+        hoveredAtomId ||
+        hoveredBondId ||
+        hoveredArrowId ||
+        hoveredTextBoxId ||
+        hoveredNativeObjectId,
+      );
       const toolShortcut = getCanvasToolShortcut(currentPreferences.keybindings, e, {
-        hasHoveredAtomOrBond: Boolean(hoveredAtomId || hoveredBondId),
+        hasHoveredObject,
       });
       if (toolShortcut) {
         e.preventDefault();
@@ -3207,6 +3223,7 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
     hoveredBondId,
     hoveredArrowId,
     hoveredTextBoxId,
+    hoveredNativeObjectId,
     placeFragmentAt,
     atomTool.editingAtomId,
     editingTextBoxId,
@@ -5091,7 +5108,7 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
     const isEditing = editingTextBoxId === tb.id;
     const baseColor = adaptColor(tb.color);
     const align = tb.textAlign ?? 'center';
-    const lines = getTextBoxLines(tb.runs);
+    const lines = getTextBoxRenderLines(tb);
     const { textW, textH, cx, cy } = getTextBoxDimensions(tb);
 
     const runNodes: React.ReactNode[] = [];
@@ -6111,6 +6128,9 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
               ref={editOverlayRef}
               contentEditable
               suppressContentEditableWarning
+              role="textbox"
+              aria-multiline="true"
+              spellCheck={false}
               onFocus={() => {
                 if (!editOverlayRef.current) return;
                 const range = document.createRange();
@@ -6120,6 +6140,7 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
                 window.getSelection()?.addRange(range);
               }}
               onBlur={handleTextEditBlur}
+              onPaste={handleTextEditPaste}
               onKeyDown={(ev) => {
                 ev.stopPropagation();
                 ev.nativeEvent.stopImmediatePropagation();

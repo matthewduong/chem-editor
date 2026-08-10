@@ -59,7 +59,7 @@ import {
   resolveBondColor,
 } from './settings';
 import { SHORTHAND_DATA } from './shorthand';
-import { estimateRunWidth, getTextBoxLines } from './textRunPresentation';
+import { estimateRunWidth, getTextBoxLines, getTextBoxRenderLines } from './textRunPresentation';
 import { getObjectTagAnchor, getTextBlockPlainText } from './objectTags';
 
 const BOND_WIDTH = 2;
@@ -1089,7 +1089,7 @@ function bondSVG(
 function textBoxSVG(tb: TextBox, tx: (v: number) => number, ty: (v: number) => number): string {
   const x = tx(tb.x),
     y = ty(tb.y);
-  const lines = getTextBoxLines(tb.runs);
+  const lines = getTextBoxRenderLines(tb);
 
   const anchor = tb.textAlign === 'left' ? 'start' : tb.textAlign === 'right' ? 'end' : 'middle';
   const transform = tb.rotation

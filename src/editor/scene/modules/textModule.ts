@@ -1,7 +1,7 @@
 import {
   estimateRunWidth,
   getTextBoxDimensions,
-  getTextBoxLines,
+  getTextBoxRenderLines,
   measureRunWidth,
 } from '../../../lib/textRunPresentation';
 import { adaptColor, drawRunText } from '../drawPrimitives';
@@ -18,7 +18,7 @@ export const TEXT_MODULE: ObjectModule = {
     const isHovered = scene.hoveredTextBoxId === object.id;
     const isEditing = scene.editingTextBoxId === object.id;
     if (isEditing) return;
-    const lines = getTextBoxLines(textBox.runs);
+    const lines = getTextBoxRenderLines(textBox);
     const { textW, textH, cx, cy } = getTextBoxDimensions(textBox);
     const align = textBox.textAlign ?? 'center';
     ctx.save();
