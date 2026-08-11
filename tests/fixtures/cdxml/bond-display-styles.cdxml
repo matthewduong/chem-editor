@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Non-stereo display styles. DottedHydrogen has no draw branch today and falls through to a
+  plain solid line; this fixture pins that so the fix is visible as a golden diff.
+-->
+<CDXML BondLength="14.4" BondSpacing="18" LineWidth="0.6" BoldWidth="2" MarginWidth="1.6" HashSpacing="2.5">
+  <page id="page-1">
+    <fragment id="f1">
+      <n id="1" p="0 0" Element="6"/>
+      <n id="2" p="14.4 0" Element="6"/>
+      <b id="3" B="1" E="2" Order="1" Display="Solid"/>
+    </fragment>
+    <fragment id="f2">
+      <n id="4" p="0 20" Element="6"/>
+      <n id="5" p="14.4 20" Element="6"/>
+      <b id="6" B="4" E="5" Order="1" Display="Dash"/>
+    </fragment>
+    <fragment id="f3">
+      <n id="7" p="0 40" Element="6"/>
+      <n id="8" p="14.4 40" Element="6"/>
+      <b id="9" B="7" E="8" Order="1" Display="Bold"/>
+    </fragment>
+    <fragment id="f4">
+      <n id="10" p="0 60" Element="6"/>
+      <n id="11" p="14.4 60" Element="6"/>
+      <b id="12" B="10" E="11" Order="1" Display="Wavy"/>
+    </fragment>
+    <fragment id="f5">
+      <n id="13" p="0 80" Element="6"/>
+      <n id="14" p="14.4 80" Element="6"/>
+      <b id="15" B="13" E="14" Order="1" Display="DottedHydrogen"/>
+    </fragment>
+  </page>
+</CDXML>

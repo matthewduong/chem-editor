@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Arrow variants without labels, so this stays DOM-free. Covers plain reaction, equilibrium,
+  dashed, retrosynthetic and a curved arrow with explicit head geometry.
+-->
+<CDXML BondLength="14.4" LineWidth="0.6">
+  <page id="page-1">
+    <arrow id="a1" Head3D="40 0 0" Tail3D="0 0 0" ArrowheadHead="Full" ArrowheadType="Solid"/>
+    <arrow id="a2" Head3D="40 20 0" Tail3D="0 20 0" ArrowheadHead="Full" ArrowheadTail="Full" ArrowEquilibriumRatio="0.82"/>
+    <arrow id="a3" Head3D="40 40 0" Tail3D="0 40 0" ArrowheadHead="Full" LineType="Dashed"/>
+    <arrow id="a4" Head3D="40 60 0" Tail3D="0 60 0" ArrowheadHead="Full" HeadSize="800"/>
+    <arrow id="a5" Head3D="40 80 0" Tail3D="0 80 0" ArrowheadHead="HalfLeft" HeadSize="1000" ArrowheadWidth="300"/>
+  </page>
+</CDXML>

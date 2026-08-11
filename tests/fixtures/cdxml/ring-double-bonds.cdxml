@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Cyclohexene-style ring: exercises ring-centroid-driven placement of the second line of a
+  double bond, which is the geometry most sensitive to bond length and margin width.
+-->
+<CDXML BondLength="14.4" BondSpacing="18" LineWidth="0.6" BoldWidth="2" MarginWidth="1.6" HashSpacing="2.5">
+  <page id="page-1">
+    <fragment id="f1">
+      <n id="1" p="0 0" Element="6"/>
+      <n id="2" p="12.47 -7.2" Element="6"/>
+      <n id="3" p="24.94 0" Element="6"/>
+      <n id="4" p="24.94 14.4" Element="6"/>
+      <n id="5" p="12.47 21.6" Element="6"/>
+      <n id="6" p="0 14.4" Element="6"/>
+      <b id="7" B="1" E="2" Order="2"/>
+      <b id="8" B="2" E="3" Order="1"/>
+      <b id="9" B="3" E="4" Order="2"/>
+      <b id="10" B="4" E="5" Order="1"/>
+      <b id="11" B="5" E="6" Order="2"/>
+      <b id="12" B="6" E="1" Order="1"/>
+    </fragment>
+  </page>
+</CDXML>

@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  A wedge and a wavy bond crossing plain bonds. bondModule ignores visibleIntervals for wedge,
+  hash and wavy, so no gap is cut here today. Pinning it means the fix shows up as a golden diff
+  rather than silently.
+-->
+<CDXML BondLength="14.4" BondSpacing="18" LineWidth="0.6" BoldWidth="2" MarginWidth="1.6" HashSpacing="2.5">
+  <page id="page-1">
+    <fragment id="f1">
+      <n id="1" p="0 0" Element="6"/>
+      <n id="2" p="28.8 28.8" Element="6"/>
+      <b id="3" B="1" E="2" Order="1" Display="WedgeBegin"/>
+    </fragment>
+    <fragment id="f2">
+      <n id="4" p="28.8 0" Element="6"/>
+      <n id="5" p="0 28.8" Element="6"/>
+      <b id="6" B="4" E="5" Order="1"/>
+    </fragment>
+    <fragment id="f3">
+      <n id="7" p="0 43.2" Element="6"/>
+      <n id="8" p="28.8 72" Element="6"/>
+      <b id="9" B="7" E="8" Order="1" Display="Wavy"/>
+    </fragment>
+    <fragment id="f4">
+      <n id="10" p="28.8 43.2" Element="6"/>
+      <n id="11" p="0 72" Element="6"/>
+      <b id="12" B="10" E="11" Order="1"/>
+    </fragment>
+  </page>
+</CDXML>

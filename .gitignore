@@ -17,6 +17,9 @@ public/rdkit/
 .chemdraw-test-artifacts/
 *.local
 *.cdxml
+# ...except the hand-authored regression corpus. Real-ChemDraw and thesis-derived files stay
+# out of the repo; these are written by hand to exercise one rendering feature each.
+!tests/fixtures/cdxml/*.cdxml
 
 # Python sidecar build outputs
 src-tauri/bin/chem-engine-*

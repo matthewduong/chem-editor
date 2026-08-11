@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Non-structure graphics: rectangle, rounded rectangle, oval, line and polygon. -->
+<CDXML BondLength="14.4" LineWidth="0.6">
+  <page id="page-1">
+    <graphic id="g1" GraphicType="Rectangle" BoundingBox="0 0 40 30"/>
+    <graphic id="g2" GraphicType="Rectangle" RectangleType="RoundEdge" CornerRadius="6" BoundingBox="50 0 90 30"/>
+    <graphic id="g3" GraphicType="Oval" BoundingBox="0 40 40 70"/>
+    <graphic id="g4" GraphicType="Line" BoundingBox="50 40 90 70"/>
+    <graphic id="g5" GraphicType="Polygon" Points="0 80 40 80 20 110"/>
+  </page>
+</CDXML>

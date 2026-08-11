@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Two bonds crossing at their midpoints, from disconnected fragments so the crossing is a
+  drawing concern rather than a ring. Pins computeBondVisibleIntervals, which cuts a gap in
+  the bond drawn underneath. Note the gap is not currently applied to wedge, hash or wavy
+  bonds; see bond-crossing-stereo.cdxml.
+-->
+<CDXML BondLength="14.4" BondSpacing="18" LineWidth="0.6" BoldWidth="2" MarginWidth="1.6" HashSpacing="2.5">
+  <page id="page-1">
+    <fragment id="f1">
+      <n id="1" p="0 0" Element="6"/>
+      <n id="2" p="28.8 28.8" Element="6"/>
+      <b id="3" B="1" E="2" Order="1"/>
+    </fragment>
+    <fragment id="f2">
+      <n id="4" p="28.8 0" Element="6"/>
+      <n id="5" p="0 28.8" Element="6"/>
+      <b id="6" B="4" E="5" Order="1"/>
+    </fragment>
+  </page>
+</CDXML>

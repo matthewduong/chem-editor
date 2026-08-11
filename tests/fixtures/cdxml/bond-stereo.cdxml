@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Stereo bonds in both directions. The *End variants are the interesting ones: the importer
+  computes a flip but currently discards it, so these render pointing the wrong way.
+-->
+<CDXML BondLength="14.4" BondSpacing="18" LineWidth="0.6" BoldWidth="2" MarginWidth="1.6" HashSpacing="2.5">
+  <page id="page-1">
+    <fragment id="f1">
+      <n id="1" p="0 0" Element="6"/>
+      <n id="2" p="14.4 0" Element="6"/>
+      <b id="3" B="1" E="2" Order="1" Display="WedgeBegin"/>
+    </fragment>
+    <fragment id="f2">
+      <n id="4" p="0 20" Element="6"/>
+      <n id="5" p="14.4 20" Element="6"/>
+      <b id="6" B="4" E="5" Order="1" Display="WedgeEnd"/>
+    </fragment>
+    <fragment id="f3">
+      <n id="7" p="0 40" Element="6"/>
+      <n id="8" p="14.4 40" Element="6"/>
+      <b id="9" B="7" E="8" Order="1" Display="WedgedHashBegin"/>
+    </fragment>
+    <fragment id="f4">
+      <n id="10" p="0 60" Element="6"/>
+      <n id="11" p="14.4 60" Element="6"/>
+      <b id="12" B="10" E="11" Order="1" Display="WedgedHashEnd"/>
+    </fragment>
+  </page>
+</CDXML>

@@ -68,6 +68,7 @@
     "test": "node scripts/run-all-tests.mjs",
     "test:all": "node scripts/run-all-tests.mjs",
     "test:js": "node scripts/run-unit-tests.mjs",
+    "goldens:record": "node scripts/record-scene-goldens.mjs",
     "test:js:ui": "vitest run --config vitest.config.ts",
     "test:chemdraw:mac": "node scripts/run-chemdraw-tests.mjs smoke",
     "test:chemdraw:mac:private": "node scripts/run-chemdraw-tests.mjs full",
