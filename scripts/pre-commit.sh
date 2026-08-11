@@ -4,5 +4,6 @@
 
 set -e
 cd "$(git rev-parse --show-toplevel)"
-npx tsc --noEmit
-npx eslint src --max-warnings=0
+pnpm exec tsc --noEmit
+pnpm exec tsc -p tsconfig.test.json --noEmit
+pnpm exec eslint src tests scripts src-tauri/build-sidecar.js --max-warnings=0

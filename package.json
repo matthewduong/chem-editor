@@ -40,11 +40,14 @@
     "vitest": "^4.1.8"
   },
   "scripts": {
+    "postinstall": "node scripts/copy-rdkit.mjs",
     "predev": "node scripts/copy-rdkit.mjs",
     "dev": "pnpm tauri dev",
+    "predev:web": "node scripts/copy-rdkit.mjs",
     "dev:web": "vite",
     "sync:sidecar": "node src-tauri/build-sidecar.js",
     "build:sidecar": "node src-tauri/build-sidecar.js",
+    "prebuild:web": "node scripts/copy-rdkit.mjs",
     "build:web": "tsc && vite build",
     "build:app": "pnpm tauri:build",
     "build": "pnpm build:app",
@@ -73,6 +76,7 @@
     "test:unit": "pnpm test:js",
     "lint": "pnpm lint:js && pnpm lint:format && pnpm lint:py && pnpm lint:rs",
     "install-hooks": "node scripts/install-hooks.mjs",
-    "clean": "node scripts/clean.mjs"
+    "clean": "node scripts/clean.mjs",
+    "clean:deep": "node scripts/clean.mjs --deep"
   }
 }

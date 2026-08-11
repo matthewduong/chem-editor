@@ -7,12 +7,20 @@ const repoRoot = path.join(__dirname, '..');
 const srcTauriDir = path.join(repoRoot, 'src-tauri');
 const binDir = path.join(srcTauriDir, 'bin');
 
+// `--deep` additionally removes the Rust target dir and the sidecar download cache. Those are
+// by far the largest artifacts (tens of GB) but also the most expensive to rebuild, so they are
+// opt-in rather than part of the default clean.
+const deep = process.argv.includes('--deep');
+
 const directTargets = [
   path.join(repoRoot, 'dist'),
   path.join(repoRoot, '.unit-test-dist'),
+  path.join(repoRoot, '.ruff_cache'),
+  path.join(repoRoot, 'public', 'rdkit'),
   path.join(srcTauriDir, 'dist'),
   path.join(srcTauriDir, 'build'),
   path.join(srcTauriDir, '.venv'),
+  path.join(srcTauriDir, '.ruff_cache'),
   path.join(repoRoot, 'development', '__pycache__'),
   path.join(srcTauriDir, 'bin', '__pycache__'),
   path.join(srcTauriDir, 'tests', '__pycache__'),
@@ -22,6 +30,7 @@ const directTargets = [
   path.join(binDir, 'xtb.exe'),
   path.join(binDir, 'xtb-share'),
   path.join(repoRoot, 'node_modules'),
+  ...(deep ? [path.join(srcTauriDir, 'target'), path.join(srcTauriDir, '.cache')] : []),
 ];
 
 for (const target of directTargets) {
