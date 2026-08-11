@@ -2,6 +2,7 @@ import React from 'react';
 import { act, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ChemCanvas, type ChemCanvasRef } from '../../src/components/ChemCanvas';
+import type { ChemDrawDocument } from '../../src/types/chemdraw';
 import { DEFAULT_CANVAS_BOND_LENGTH } from '../../src/lib/chemdrawMetrics';
 import { useStore } from '../../src/store';
 import { resetStore } from './helpers';
@@ -80,10 +81,10 @@ vi.mock('../../src/lib/chemdrawDocumentCommandsAsync.ts', () => ({
   prepareChemDrawDocumentForSaveAsync: mocks.prepareChemDrawDocumentForSaveAsync,
 }));
 
-function createDocument() {
+function createDocument(): ChemDrawDocument {
   return {
     schemaVersion: 1,
-    source: 'test',
+    source: 'manual',
     pages: [{ id: 'page-1', objects: [] }],
   };
 }

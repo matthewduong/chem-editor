@@ -103,23 +103,6 @@ function addSubstituent(
   };
 }
 
-function getNewStructureId(atoms: Atom[], previousAtoms: Atom[]): string {
-  const existingStructureIds = new Set(
-    previousAtoms.flatMap(
-      (atom) => atom.ringTemplateMemberships?.map((membership) => membership.structureId) ?? [],
-    ),
-  );
-  const newStructureId = atoms
-    .flatMap(
-      (atom) => atom.ringTemplateMemberships?.map((membership) => membership.structureId) ?? [],
-    )
-    .find((structureId) => !existingStructureIds.has(structureId));
-  if (!newStructureId) {
-    throw new Error('Expected a newly materialized chair structure.');
-  }
-  return newStructureId;
-}
-
 function getSegmentsForBonds(atoms: Atom[], bonds: Bond[]) {
   const atomById = new Map(atoms.map((atom) => [atom.id, atom]));
   return bonds

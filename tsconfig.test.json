@@ -1,0 +1,11 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    // Tests import from src/, so they need the same ambient declarations the app gets
+    // (vite/client for CSS imports and import.meta.glob, plus the three.js shim).
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "types": ["node", "vitest/globals"]
+  },
+  "include": ["tests", "vitest.config.ts", "src/**/*.d.ts"]
+}

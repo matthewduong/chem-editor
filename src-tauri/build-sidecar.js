@@ -727,6 +727,7 @@ function validateBuiltSidecar(sidecarPath) {
   } catch (error) {
     throw new Error(
       `Built sidecar orbital smoke test returned invalid JSON: ${error instanceof Error ? error.message : String(error)}`,
+      { cause: error },
     );
   }
   if (orbitalPayload?.error) {
@@ -758,6 +759,7 @@ function validateBuiltSidecar(sidecarPath) {
   } catch (error) {
     throw new Error(
       `Built sidecar HF optimization smoke test returned invalid JSON: ${error instanceof Error ? error.message : String(error)}`,
+      { cause: error },
     );
   }
   if (optimizePayload?.error) {

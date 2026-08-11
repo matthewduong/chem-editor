@@ -24,7 +24,8 @@ test('graphToMolblock does not rely on repeated Array.findIndex lookups', () => 
   const result = graphToMolblock(atoms, bonds, 400, 300);
 
   assert.match(result.molblock, /V2000/);
-  assert.match(result.molblock, /M  CHG/);
-  assert.match(result.molblock, /  1  2  1/);
-  assert.match(result.molblock, /  2  3  2/);
+  // V2000 bond blocks are fixed-width columns, so the space counts are significant.
+  assert.match(result.molblock, /M {2}CHG/);
+  assert.match(result.molblock, / {2}1 {2}2 {2}1/);
+  assert.match(result.molblock, / {2}2 {2}3 {2}2/);
 });

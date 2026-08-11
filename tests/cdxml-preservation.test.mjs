@@ -1,7 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { chemDrawDocumentToCDXML } from '../.unit-test-dist/src/utils/cdxml.js';
+import {
+  chemDrawDocumentToCDXML,
+  cdxmlToChemDrawDocument,
+} from '../.unit-test-dist/src/utils/cdxml.js';
 import {
   getChemDrawObjectCapability,
   prepareChemDrawDocumentForSave,
