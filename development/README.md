@@ -93,9 +93,10 @@ pnpm test:all
 pnpm build
 ```
 
-`pnpm build` produces the full Tauri application bundle. On macOS the default bundle target is
-the `.app`; on other platforms the target selection follows `tauri.conf.json` unless
-`CHEM_EDITOR_BUNDLE_TARGETS` is set.
+On macOS the default bundle target is the `.app`. On every other platform the default is
+`--no-bundle`, producing a bare executable and no installer; `tauri.conf.json`'s
+`bundle.targets` is not consulted unless `CHEM_EDITOR_BUNDLE_TARGETS` is set. See
+[`getting-started.md`](./getting-started.md) for the exact invocations.
 
 ## What Is Current vs Historical
 

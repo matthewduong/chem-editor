@@ -24,7 +24,9 @@ That flow can:
 - build or reuse the packaged sidecar
 - ensure the HOSE database exists
 - stage `xtb`
-- optionally generate `nmr_refs.json`
+
+It does **not** generate `nmr_refs.json`. That file is committed by hand and consumed as a
+fingerprint input; `precompute_nmr_refs.py` is a manual tool, not part of any build.
 
 Use the manual scripts below only when you are working directly on the NMR data pipeline.
 
@@ -94,12 +96,14 @@ with a warning and the sidecar keeps using fallback reference constants.
 
 ## Useful Environment Variables
 
-| Variable                                | Effect                                                                                       |
-| --------------------------------------- | -------------------------------------------------------------------------------------------- |
-| `CHEM_EDITOR_ENABLE_DFT_NMR=0`          | Skip the heavier DFT NMR dependency path for a lighter sidecar build.                        |
-| `CHEM_EDITOR_PRECOMPUTE_NMR_REFS=1`     | Generate `nmr_refs.json` during the build instead of relying on bundled fallback references. |
-| `CHEM_EDITOR_XTB_ROOT=/path/to/install` | Point the sidecar build at a local `xtb` installation when auto-detection misses it.         |
-| `CHEM_EDITOR_SIDECAR_CLEAN=1`           | Force a clean sidecar rebuild instead of reusing cached artifacts.                           |
+| Variable                                | Effect                                                                               |
+| --------------------------------------- | ------------------------------------------------------------------------------------ |
+| `CHEM_EDITOR_XTB_ROOT=/path/to/install` | Point the sidecar build at a local `xtb` installation when auto-detection misses it. |
+| `CHEM_EDITOR_SIDECAR_CLEAN=1`           | Force a clean sidecar rebuild instead of reusing cached artifacts.                   |
+
+The DFT NMR dependency group is always installed; `build-sidecar.js` calls
+`syncPythonEnv(['build', 'nmr-dft'])` unconditionally and there is no environment variable that
+opts out of it.
 
 ## Suggested Maintenance Workflow
 

@@ -208,33 +208,36 @@ The sidecar build script in `src-tauri/build-sidecar.js` is the main orchestrati
 - syncing the Python environment with `uv`
 - building or reusing the PyInstaller sidecar bundle
 - staging `xtb`
-- ensuring the HOSE database exists
-- optionally generating `nmr_refs.json`
+- ensuring the HOSE database exists (downloading the NMRShiftDB2 source data if absent)
 
 In other words, most contributors should use `pnpm sync:sidecar` rather than calling the
 development Python scripts directly.
 
 ### Useful Environment Variables
 
-| Variable                            | Purpose                                                                           |
-| ----------------------------------- | --------------------------------------------------------------------------------- |
-| `CHEM_EDITOR_XTB_ROOT`              | Explicitly points the build at an `xtb` installation root.                        |
-| `CHEM_EDITOR_ENABLE_DFT_NMR=0`      | Skips the heavier DFT NMR dependency path.                                        |
-| `CHEM_EDITOR_PRECOMPUTE_NMR_REFS=1` | Generates `nmr_refs.json` during sidecar prep.                                    |
-| `CHEM_EDITOR_SIDECAR_CLEAN=1`       | Forces a clean sidecar rebuild.                                                   |
-| `CHEM_EDITOR_BUNDLE_TARGETS=...`    | Overrides the default Tauri bundle targets for `pnpm tauri:build` / `pnpm build`. |
+| Variable                         | Purpose                                                                           |
+| -------------------------------- | --------------------------------------------------------------------------------- |
+| `CHEM_EDITOR_XTB_ROOT`           | Explicitly points the build at an `xtb` installation root.                        |
+| `CHEM_EDITOR_SIDECAR_CLEAN=1`    | Forces a clean sidecar rebuild.                                                   |
+| `CHEM_EDITOR_BUNDLE_TARGETS=...` | Overrides the default Tauri bundle targets for `pnpm tauri:build` / `pnpm build`. |
 
-The internal `CHEM_EDITOR_SKIP_BEFORE_BUILD` variable is used by the build scripts themselves and
-is not a normal developer-facing entry point.
+That is the complete set. The internal `CHEM_EDITOR_SKIP_BEFORE_BUILD` variable is used by the
+build scripts themselves and is not a normal developer-facing entry point.
 
 ### Bundle Targets
 
 On macOS, `pnpm build` defaults to the `.app` bundle.
 
-On other platforms, bundle behavior follows the Tauri configuration unless you override it:
+**On every other platform the default is `--no-bundle`**, so you get a bare executable under
+`src-tauri/target/release/` and no installer. `tauri.conf.json`'s `bundle.targets` is not
+consulted in that case — `scripts/tauri-build.mjs` only passes `--bundles` when
+`CHEM_EDITOR_BUNDLE_TARGETS` is set. To produce an installer on Linux or Windows you must ask
+for one explicitly:
 
 ```bash
 CHEM_EDITOR_BUNDLE_TARGETS=appimage pnpm tauri:build
+CHEM_EDITOR_BUNDLE_TARGETS=deb,rpm pnpm tauri:build
+CHEM_EDITOR_BUNDLE_TARGETS=nsis,msi pnpm tauri:build   # Windows
 ```
 
 ## ChemDraw Compatibility Prerequisites
@@ -261,18 +264,45 @@ chem-editor/
 
 Key files for common work:
 
+- `src/editor/scene/`
+  the live renderer. `renderDocumentScene.ts` walks the document in object order and dispatches
+  to a per-type module in `modules/`; `DocumentRenderSurface.tsx` is the Canvas2D surface it
+  paints onto, positioned under the Konva `<Stage>`
 - `src/components/ChemCanvas.tsx`
-  main 2D editor shell
+  2D editor shell: tools, hit-test glue, overlays and edit UI. It still contains a second,
+  Konva-based set of `renderX` functions that are dead for committed content and survive only as
+  drag/selection previews
+- `src/lib/svgExport.ts`
+  a third, independent renderer used for SVG export and clipboard, hand-maintained in parallel
+  with the scene modules
 - `src/App.tsx`
   app-level menus, panels, layout, and orchestration
 - `src/utils/cdxml.ts`
   CDXML import/export pipeline
 - `src/lib/chemdrawModel.ts`
   typed ChemDraw document projection and editing helpers
+- `src/store/index.ts`
+  Zustand store. Note that `CanvasState` and `ChemDrawDocument` are currently both authoritative,
+  with two parallel undo stacks
 - `src-tauri/src/lib.rs`
   Tauri command surface and sidecar invocation
 - `src-tauri/bin/chem-engine.py`
   Python chemistry sidecar
+
+## Continuous Integration
+
+`.github/workflows/ci.yml` runs on every push to `main` and every pull request:
+
+| Job         | Platform               | What it runs                                            |
+| ----------- | ---------------------- | ------------------------------------------------------- |
+| `js`        | ubuntu, macOS, Windows | `lint:js`, `lint:format`, `test:js`, `test:js:ui`       |
+| `web-build` | ubuntu                 | `build:web`                                             |
+| `rust`      | ubuntu                 | `cargo fmt --check`, `clippy -D warnings`, `cargo test` |
+| `python`    | ubuntu                 | `ruff check`, `ruff format --check`, `unittest`         |
+
+CI deliberately never builds the Python sidecar: that path downloads an 830 MB dataset and runs a
+live PySCF smoke test. The real-ChemDraw harness is also excluded, since it needs macOS with
+ChemDraw installed and a private corpus.
 
 ## Recommended First-Day Validation
 
