@@ -1,0 +1,190 @@
+[
+  {
+    "op": "call",
+    "name": "save",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "translate",
+    "args": [
+      0,
+      0
+    ]
+  },
+  {
+    "op": "call",
+    "name": "scale",
+    "args": [
+      1,
+      1
+    ]
+  },
+  {
+    "op": "call",
+    "name": "save",
+    "args": []
+  },
+  {
+    "op": "set",
+    "prop": "fillStyle",
+    "value": "#ffffff"
+  },
+  {
+    "op": "call",
+    "name": "fillRect",
+    "args": [
+      0,
+      0,
+      120,
+      40
+    ]
+  },
+  {
+    "op": "set",
+    "prop": "strokeStyle",
+    "value": "#666666"
+  },
+  {
+    "op": "set",
+    "prop": "lineWidth",
+    "value": 1.2
+  },
+  {
+    "op": "set",
+    "prop": "lineCap",
+    "value": "round"
+  },
+  {
+    "op": "set",
+    "prop": "lineJoin",
+    "value": "round"
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "call",
+    "name": "strokeRect",
+    "args": [
+      0,
+      0,
+      120,
+      40
+    ]
+  },
+  {
+    "op": "call",
+    "name": "strokeRect",
+    "args": [
+      0,
+      0,
+      60,
+      20
+    ]
+  },
+  {
+    "op": "set",
+    "prop": "fillStyle",
+    "value": "#666666"
+  },
+  {
+    "op": "set",
+    "prop": "font",
+    "value": "11px 'Liberation Sans', sans-serif"
+  },
+  {
+    "op": "set",
+    "prop": "textAlign",
+    "value": "center"
+  },
+  {
+    "op": "set",
+    "prop": "textBaseline",
+    "value": "middle"
+  },
+  {
+    "op": "call",
+    "name": "fillText",
+    "args": [
+      "entry",
+      30,
+      10,
+      52
+    ]
+  },
+  {
+    "op": "call",
+    "name": "strokeRect",
+    "args": [
+      60,
+      0,
+      60,
+      20
+    ]
+  },
+  {
+    "op": "call",
+    "name": "fillText",
+    "args": [
+      "yield",
+      90,
+      10,
+      52
+    ]
+  },
+  {
+    "op": "call",
+    "name": "strokeRect",
+    "args": [
+      0,
+      20,
+      60,
+      20
+    ]
+  },
+  {
+    "op": "call",
+    "name": "fillText",
+    "args": [
+      "1",
+      30,
+      30,
+      52
+    ]
+  },
+  {
+    "op": "call",
+    "name": "strokeRect",
+    "args": [
+      60,
+      20,
+      60,
+      20
+    ]
+  },
+  {
+    "op": "call",
+    "name": "fillText",
+    "args": [
+      "92%",
+      90,
+      30,
+      52
+    ]
+  },
+  {
+    "op": "call",
+    "name": "restore",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "restore",
+    "args": []
+  }
+]

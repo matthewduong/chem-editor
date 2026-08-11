@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Object tags on a node and on a bond. The bond case is the interesting one: every other module
+  draws its tags, but bondModule does not, so no tag text is recorded for b1 today.
+-->
+<CDXML BondLength="14.4" LineWidth="0.6" CaptionSize="10">
+  <page id="page-1">
+    <fonttable>
+      <font id="3" charset="iso-8859-1" name="Arial"/>
+    </fonttable>
+    <fragment id="f1">
+      <n id="1" p="0 0" Element="6">
+        <objecttag Name="atom-note" TagType="Unknown" Visible="yes" PositioningType="Auto">
+          <t p="0 -10">
+            <s font="3" size="10" face="0">C1</s>
+          </t>
+        </objecttag>
+      </n>
+      <n id="2" p="14.4 0" Element="6"/>
+      <b id="3" B="1" E="2" Order="1">
+        <objecttag Name="bond-note" TagType="Unknown" Visible="yes" PositioningType="Auto">
+          <t p="7 -10">
+            <s font="3" size="10" face="0">b1</s>
+          </t>
+        </objecttag>
+      </b>
+    </fragment>
+  </page>
+</CDXML>

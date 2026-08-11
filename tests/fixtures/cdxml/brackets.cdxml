@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Bracket shapes. The renderer currently draws square lip brackets for every BracketType and
+  ignores repeat counts, so this fixture pins that limitation rather than the desired output.
+-->
+<CDXML BondLength="14.4" LineWidth="0.6">
+  <page id="page-1">
+    <graphic id="g1" GraphicType="Bracket" BracketType="Square" BoundingBox="0 0 30 40"/>
+    <graphic id="g2" GraphicType="Bracket" BracketType="Round" BoundingBox="40 0 70 40"/>
+    <graphic id="g3" GraphicType="Bracket" BracketType="Curly" BoundingBox="80 0 110 40"/>
+    <bracketedgroup id="bg1" BracketUsage="Polymer" RepeatPattern="HeadToTail" BoundingBox="0 60 60 100"/>
+  </page>
+</CDXML>

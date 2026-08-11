@@ -1,0 +1,161 @@
+[
+  {
+    "op": "call",
+    "name": "save",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "translate",
+    "args": [
+      0,
+      0
+    ]
+  },
+  {
+    "op": "call",
+    "name": "scale",
+    "args": [
+      1,
+      1
+    ]
+  },
+  {
+    "op": "call",
+    "name": "save",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "translate",
+    "args": [
+      40,
+      40
+    ]
+  },
+  {
+    "op": "call",
+    "name": "rotate",
+    "args": [
+      0.7854
+    ]
+  },
+  {
+    "op": "set",
+    "prop": "strokeStyle",
+    "value": "#333333"
+  },
+  {
+    "op": "set",
+    "prop": "lineWidth",
+    "value": 1.5
+  },
+  {
+    "op": "set",
+    "prop": "lineCap",
+    "value": "round"
+  },
+  {
+    "op": "set",
+    "prop": "lineJoin",
+    "value": "round"
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "set",
+    "prop": "fillStyle",
+    "value": "#333333"
+  },
+  {
+    "op": "call",
+    "name": "beginPath",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "ellipse",
+    "args": [
+      -7.3539,
+      0,
+      5.6569,
+      3.1113,
+      0,
+      0,
+      6.2832
+    ]
+  },
+  {
+    "op": "set",
+    "prop": "globalAlpha",
+    "value": 0.18
+  },
+  {
+    "op": "call",
+    "name": "fill",
+    "args": []
+  },
+  {
+    "op": "set",
+    "prop": "globalAlpha",
+    "value": 1
+  },
+  {
+    "op": "call",
+    "name": "stroke",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "beginPath",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "ellipse",
+    "args": [
+      7.3539,
+      0,
+      5.6569,
+      3.1113,
+      0,
+      0,
+      6.2832
+    ]
+  },
+  {
+    "op": "set",
+    "prop": "globalAlpha",
+    "value": 0.18
+  },
+  {
+    "op": "call",
+    "name": "fill",
+    "args": []
+  },
+  {
+    "op": "set",
+    "prop": "globalAlpha",
+    "value": 1
+  },
+  {
+    "op": "call",
+    "name": "stroke",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "restore",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "restore",
+    "args": []
+  }
+]

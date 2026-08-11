@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -26,6 +26,19 @@ export function listFixtures() {
 
 export function goldenPathFor(fixtureName) {
   return path.join(GOLDEN_DIR, `${fixtureName.replace(/\.cdxml$/, '')}.json`);
+}
+
+/**
+ * Optional per-fixture scene options, as `<fixture>.options.json`.
+ *
+ * Dark mode, hydrogen display and page setup are view state rather than document content, so
+ * they cannot be expressed in the CDXML itself. Supported keys: `interaction` (merged into the
+ * scene's interaction state) and `pageSetup` (merged into the default page setup).
+ */
+function readFixtureOptions(fixtureName) {
+  const optionsPath = path.join(FIXTURE_DIR, `${fixtureName.replace(/\.cdxml$/, '')}.options.json`);
+  if (!existsSync(optionsPath)) return {};
+  return JSON.parse(readFileSync(optionsPath, 'utf8'));
 }
 
 /**
@@ -68,6 +81,7 @@ export async function recordFixture(fixtureName) {
   } = await getRenderer();
 
   const xml = readFileSync(path.join(FIXTURE_DIR, fixtureName), 'utf8');
+  const options = readFixtureOptions(fixtureName);
   const document = cdxmlToChemDrawDocument(xml).document;
   const canvasState = chemDrawDocumentToCanvasState(document).state;
 
@@ -82,7 +96,8 @@ export async function recordFixture(fixtureName) {
     },
     documentStyleSettings: settings.DEFAULT_DOCUMENT_STYLE_SETTINGS,
     documentViewSettings: settings.DEFAULT_DOCUMENT_VIEW_SETTINGS,
-    pageSetup: settings.DEFAULT_PAGE_SETUP,
+    pageSetup: { ...settings.DEFAULT_PAGE_SETUP, ...options.pageSetup },
+    interaction: options.interaction,
   });
 
   const ctx = createRecordingContext();

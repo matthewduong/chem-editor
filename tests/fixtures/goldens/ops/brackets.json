@@ -1,0 +1,368 @@
+[
+  {
+    "op": "call",
+    "name": "save",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "translate",
+    "args": [
+      0,
+      0
+    ]
+  },
+  {
+    "op": "call",
+    "name": "scale",
+    "args": [
+      1,
+      1
+    ]
+  },
+  {
+    "op": "call",
+    "name": "save",
+    "args": []
+  },
+  {
+    "op": "set",
+    "prop": "strokeStyle",
+    "value": "#888888"
+  },
+  {
+    "op": "set",
+    "prop": "lineWidth",
+    "value": 1.5
+  },
+  {
+    "op": "set",
+    "prop": "lineCap",
+    "value": "round"
+  },
+  {
+    "op": "set",
+    "prop": "lineJoin",
+    "value": "round"
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "call",
+    "name": "beginPath",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "moveTo",
+    "args": [
+      9.6,
+      60
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      0,
+      60
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      0,
+      100
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      9.6,
+      100
+    ]
+  },
+  {
+    "op": "call",
+    "name": "moveTo",
+    "args": [
+      50.4,
+      60
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      60,
+      60
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      60,
+      100
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      50.4,
+      100
+    ]
+  },
+  {
+    "op": "call",
+    "name": "stroke",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "restore",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "save",
+    "args": []
+  },
+  {
+    "op": "set",
+    "prop": "strokeStyle",
+    "value": "#333333"
+  },
+  {
+    "op": "set",
+    "prop": "lineWidth",
+    "value": 1.5
+  },
+  {
+    "op": "set",
+    "prop": "lineCap",
+    "value": "round"
+  },
+  {
+    "op": "set",
+    "prop": "lineJoin",
+    "value": "round"
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "call",
+    "name": "beginPath",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "moveTo",
+    "args": [
+      -14,
+      10.5
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      0,
+      0
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      30,
+      40
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      16,
+      50.5
+    ]
+  },
+  {
+    "op": "call",
+    "name": "stroke",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "restore",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "save",
+    "args": []
+  },
+  {
+    "op": "set",
+    "prop": "strokeStyle",
+    "value": "#333333"
+  },
+  {
+    "op": "set",
+    "prop": "lineWidth",
+    "value": 1.5
+  },
+  {
+    "op": "set",
+    "prop": "lineCap",
+    "value": "round"
+  },
+  {
+    "op": "set",
+    "prop": "lineJoin",
+    "value": "round"
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "call",
+    "name": "beginPath",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "moveTo",
+    "args": [
+      26,
+      10.5
+    ]
+  },
+  {
+    "op": "call",
+    "name": "quadraticCurveTo",
+    "args": [
+      40,
+      0,
+      55,
+      20
+    ]
+  },
+  {
+    "op": "call",
+    "name": "quadraticCurveTo",
+    "args": [
+      70,
+      40,
+      56,
+      50.5
+    ]
+  },
+  {
+    "op": "call",
+    "name": "stroke",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "restore",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "save",
+    "args": []
+  },
+  {
+    "op": "set",
+    "prop": "strokeStyle",
+    "value": "#333333"
+  },
+  {
+    "op": "set",
+    "prop": "lineWidth",
+    "value": 1.5
+  },
+  {
+    "op": "set",
+    "prop": "lineCap",
+    "value": "round"
+  },
+  {
+    "op": "set",
+    "prop": "lineJoin",
+    "value": "round"
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "call",
+    "name": "beginPath",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "moveTo",
+    "args": [
+      66,
+      10.5
+    ]
+  },
+  {
+    "op": "call",
+    "name": "quadraticCurveTo",
+    "args": [
+      80,
+      0,
+      95,
+      20
+    ]
+  },
+  {
+    "op": "call",
+    "name": "quadraticCurveTo",
+    "args": [
+      110,
+      40,
+      96,
+      50.5
+    ]
+  },
+  {
+    "op": "call",
+    "name": "stroke",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "restore",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "restore",
+    "args": []
+  }
+]

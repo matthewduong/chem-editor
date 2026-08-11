@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Orbital graphics. Only s and p have draw code today; the hybrid and d types silently draw
+  nothing, which this fixture pins so implementing them shows up as a golden diff.
+-->
+<CDXML BondLength="14.4" LineWidth="0.6">
+  <page id="page-1">
+    <graphic id="o1" GraphicType="Orbital" OrbitalType="s" BoundingBox="0 0 20 20"/>
+    <graphic id="o2" GraphicType="Orbital" OrbitalType="sShaded" BoundingBox="30 0 50 20"/>
+    <graphic id="o3" GraphicType="Orbital" OrbitalType="oval" BoundingBox="60 0 80 20"/>
+    <graphic id="o4" GraphicType="Orbital" OrbitalType="ovalShaded" BoundingBox="90 0 110 20"/>
+    <graphic id="o5" GraphicType="Orbital" OrbitalType="lobe" BoundingBox="0 30 20 50"/>
+    <graphic id="o6" GraphicType="Orbital" OrbitalType="p" BoundingBox="30 30 50 50"/>
+    <graphic id="o7" GraphicType="Orbital" OrbitalType="hybridPlus" BoundingBox="60 30 80 50"/>
+    <graphic id="o8" GraphicType="Orbital" OrbitalType="dz2Plus" BoundingBox="90 30 110 50"/>
+  </page>
+</CDXML>

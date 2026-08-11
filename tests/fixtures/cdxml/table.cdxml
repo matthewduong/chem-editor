@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- A table. Cells are drawn with a hardcoded 11px font and flattened runs today. -->
+<CDXML BondLength="14.4" LineWidth="0.6">
+  <page id="page-1">
+    <fonttable>
+      <font id="3" charset="iso-8859-1" name="Arial"/>
+    </fonttable>
+    <table id="tb1" BoundingBox="0 0 120 40">
+      <page id="c1" BoundsInParent="0 0 60 20">
+        <t p="2 14"><s font="3" size="10" face="0">entry</s></t>
+      </page>
+      <page id="c2" BoundsInParent="60 0 120 20">
+        <t p="62 14"><s font="3" size="10" face="0">yield</s></t>
+      </page>
+      <page id="c3" BoundsInParent="0 20 60 40">
+        <t p="2 34"><s font="3" size="10" face="0">1</s></t>
+      </page>
+      <page id="c4" BoundsInParent="60 20 120 40">
+        <t p="62 34"><s font="3" size="10" face="0">92%</s></t>
+      </page>
+    </table>
+  </page>
+</CDXML>
