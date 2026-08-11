@@ -1,4 +1,5 @@
 import { convertNativeToCanvas } from '../../../lib/chemdrawMetrics';
+import { getPaintFontFamily } from '../../../lib/textMetrics';
 import {
   collectBondNeighborVectors,
   getAtomBondClipOffset,
@@ -342,7 +343,7 @@ export const BOND_MODULE: ObjectModule = {
 
     if (object.query?.allowedOrders?.length) {
       drawSegmentedLine(startX, startY, endX, endY, lineWidth, [5, 5]);
-      ctx.font = `10px ${context.scene.documentStyleSettings.nativeMetrics.captionFontFamily}`;
+      ctx.font = `10px ${getPaintFontFamily(context.scene.documentStyleSettings.nativeMetrics.captionFontFamily)}`;
       ctx.fillStyle = color;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';

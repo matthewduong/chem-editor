@@ -4,6 +4,7 @@ import { adaptColor, setStroke } from '../drawPrimitives';
 import { pointInExpandedBounds } from '../geometry';
 import { drawObjectTags } from './objectTagHelpers';
 import type { ObjectModule } from '../types';
+import { getPaintFontFamily } from '../../../lib/textMetrics';
 
 const IMAGE_CACHE = new Map<string, HTMLImageElement | null>();
 
@@ -55,7 +56,7 @@ export const EMBEDDED_OBJECT_MODULE: ObjectModule = {
         runs: [{ text: object.payloadKind === 'pdf' ? 'Embedded PDF' : 'Embedded Image' }],
       });
       ctx.fillStyle = strokeColor;
-      ctx.font = `12px ${scene.documentStyleSettings.nativeMetrics.captionFontFamily}`;
+      ctx.font = `12px ${getPaintFontFamily(scene.documentStyleSettings.nativeMetrics.captionFontFamily)}`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText(label, object.bounds.left + width / 2, object.bounds.top + height / 2);

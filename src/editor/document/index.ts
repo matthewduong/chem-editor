@@ -10,7 +10,7 @@ import type {
 import type { DocumentStyleSettings } from '../../types/settings';
 import { convertNativeToCanvas } from '../../lib/chemdrawMetrics';
 import { DEFAULT_DOCUMENT_STYLE_SETTINGS } from '../../lib/settings';
-import { estimateRunWidth } from '../../lib/textRunPresentation';
+import { measureRunWidth } from '../../lib/textRunPresentation';
 
 type ChemDrawPage = ChemDrawDocument['pages'][number];
 
@@ -125,10 +125,11 @@ function getTextBounds(
     text.style?.fontSize != null
       ? convertNativeToCanvas(text.style.fontSize, documentStyleSettings)
       : documentStyleSettings.textFormat.fontSize;
+  const fontFamily = text.style?.fontFamily ?? documentStyleSettings.textFormat.fontFamily;
   const width =
     text.text.width ??
     Math.max(
-      text.text.runs.reduce((sum, run) => sum + estimateRunWidth(run, fontSize), 0),
+      text.text.runs.reduce((sum, run) => sum + measureRunWidth(run, fontSize, fontFamily), 0),
       fontSize,
     );
   const height = getTextRunLineCount(text.text) * fontSize;

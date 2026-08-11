@@ -7,12 +7,18 @@
   {
     "op": "call",
     "name": "translate",
-    "args": [0, 0]
+    "args": [
+      0,
+      0
+    ]
   },
   {
     "op": "call",
     "name": "scale",
-    "args": [1, 1]
+    "args": [
+      1,
+      1
+    ]
   },
   {
     "op": "call",
@@ -47,7 +53,9 @@
   {
     "op": "call",
     "name": "setLineDash",
-    "args": [[]]
+    "args": [
+      []
+    ]
   },
   {
     "op": "call",
@@ -57,12 +65,18 @@
   {
     "op": "call",
     "name": "moveTo",
-    "args": [0, 0]
+    "args": [
+      0,
+      0
+    ]
   },
   {
     "op": "call",
     "name": "lineTo",
-    "args": [14.4, 0]
+    "args": [
+      14.4,
+      0
+    ]
   },
   {
     "op": "call",
@@ -72,7 +86,9 @@
   {
     "op": "call",
     "name": "setLineDash",
-    "args": [[]]
+    "args": [
+      []
+    ]
   },
   {
     "op": "call",
@@ -112,7 +128,12 @@
   {
     "op": "call",
     "name": "setLineDash",
-    "args": [[6, 4]]
+    "args": [
+      [
+        6,
+        4
+      ]
+    ]
   },
   {
     "op": "call",
@@ -122,12 +143,18 @@
   {
     "op": "call",
     "name": "moveTo",
-    "args": [0, 20]
+    "args": [
+      0,
+      20
+    ]
   },
   {
     "op": "call",
     "name": "lineTo",
-    "args": [14.4, 20]
+    "args": [
+      14.4,
+      20
+    ]
   },
   {
     "op": "call",
@@ -137,7 +164,9 @@
   {
     "op": "call",
     "name": "setLineDash",
-    "args": [[]]
+    "args": [
+      []
+    ]
   },
   {
     "op": "call",
@@ -177,7 +206,9 @@
   {
     "op": "call",
     "name": "setLineDash",
-    "args": [[]]
+    "args": [
+      []
+    ]
   },
   {
     "op": "call",
@@ -187,12 +218,18 @@
   {
     "op": "call",
     "name": "moveTo",
-    "args": [0, 40]
+    "args": [
+      0,
+      40
+    ]
   },
   {
     "op": "call",
     "name": "lineTo",
-    "args": [14.4, 40]
+    "args": [
+      14.4,
+      40
+    ]
   },
   {
     "op": "call",
@@ -202,7 +239,9 @@
   {
     "op": "call",
     "name": "setLineDash",
-    "args": [[]]
+    "args": [
+      []
+    ]
   },
   {
     "op": "call",
@@ -242,7 +281,9 @@
   {
     "op": "call",
     "name": "setLineDash",
-    "args": [[]]
+    "args": [
+      []
+    ]
   },
   {
     "op": "call",
@@ -252,67 +293,106 @@
   {
     "op": "call",
     "name": "moveTo",
-    "args": [0, 60]
+    "args": [
+      0,
+      60
+    ]
   },
   {
     "op": "call",
     "name": "lineTo",
-    "args": [1.2, 62.5]
+    "args": [
+      1.2,
+      62.5
+    ]
   },
   {
     "op": "call",
     "name": "lineTo",
-    "args": [2.4, 60]
+    "args": [
+      2.4,
+      60
+    ]
   },
   {
     "op": "call",
     "name": "lineTo",
-    "args": [3.6, 57.5]
+    "args": [
+      3.6,
+      57.5
+    ]
   },
   {
     "op": "call",
     "name": "lineTo",
-    "args": [4.8, 60]
+    "args": [
+      4.8,
+      60
+    ]
   },
   {
     "op": "call",
     "name": "lineTo",
-    "args": [6, 62.5]
+    "args": [
+      6,
+      62.5
+    ]
   },
   {
     "op": "call",
     "name": "lineTo",
-    "args": [7.2, 60]
+    "args": [
+      7.2,
+      60
+    ]
   },
   {
     "op": "call",
     "name": "lineTo",
-    "args": [8.4, 57.5]
+    "args": [
+      8.4,
+      57.5
+    ]
   },
   {
     "op": "call",
     "name": "lineTo",
-    "args": [9.6, 60]
+    "args": [
+      9.6,
+      60
+    ]
   },
   {
     "op": "call",
     "name": "lineTo",
-    "args": [10.8, 62.5]
+    "args": [
+      10.8,
+      62.5
+    ]
   },
   {
     "op": "call",
     "name": "lineTo",
-    "args": [12, 60]
+    "args": [
+      12,
+      60
+    ]
   },
   {
     "op": "call",
     "name": "lineTo",
-    "args": [13.2, 57.5]
+    "args": [
+      13.2,
+      57.5
+    ]
   },
   {
     "op": "call",
     "name": "lineTo",
-    "args": [14.4, 60]
+    "args": [
+      14.4,
+      60
+    ]
   },
   {
     "op": "call",
@@ -357,7 +437,9 @@
   {
     "op": "call",
     "name": "setLineDash",
-    "args": [[]]
+    "args": [
+      []
+    ]
   },
   {
     "op": "call",
@@ -367,12 +449,18 @@
   {
     "op": "call",
     "name": "moveTo",
-    "args": [0, 80]
+    "args": [
+      0,
+      80
+    ]
   },
   {
     "op": "call",
     "name": "lineTo",
-    "args": [14.4, 80]
+    "args": [
+      14.4,
+      80
+    ]
   },
   {
     "op": "call",
@@ -382,7 +470,9 @@
   {
     "op": "call",
     "name": "setLineDash",
-    "args": [[]]
+    "args": [
+      []
+    ]
   },
   {
     "op": "call",

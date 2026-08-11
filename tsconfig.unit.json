@@ -31,6 +31,8 @@
     "src/lib/settings.ts",
     "src/lib/shorthand.ts",
     "src/lib/svgExport.ts",
+    "src/lib/textMetrics.ts",
+    "src/lib/generated/fontMetrics.ts",
     "src/lib/textRunPresentation.ts",
     "src/lib/viewer3d.ts",
     "src/utils/cdxml.ts"

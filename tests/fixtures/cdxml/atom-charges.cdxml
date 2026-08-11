@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Formal charges and isotopes. Charge glyphs are drawn at their own font size relative to the
+  label, so this pins the charge offset as well as the label itself.
+-->
+<CDXML BondLength="14.4" BondSpacing="18" LineWidth="0.6" BoldWidth="2" MarginWidth="1.6" HashSpacing="2.5" LabelSize="10">
+  <page id="page-1">
+    <fragment id="f1">
+      <n id="1" p="0 0" Element="6"/>
+      <n id="2" p="14.4 0" Element="7" Charge="1"/>
+      <b id="3" B="1" E="2" Order="1"/>
+    </fragment>
+    <fragment id="f2">
+      <n id="4" p="0 20" Element="6"/>
+      <n id="5" p="14.4 20" Element="8" Charge="-1"/>
+      <b id="6" B="4" E="5" Order="1"/>
+    </fragment>
+    <fragment id="f3">
+      <n id="7" p="0 40" Element="6"/>
+      <n id="8" p="14.4 40" Element="7" Charge="2"/>
+      <b id="9" B="7" E="8" Order="1"/>
+    </fragment>
+    <fragment id="f4">
+      <n id="10" p="0 60" Element="6"/>
+      <n id="11" p="14.4 60" Element="6" Isotope="13"/>
+      <b id="12" B="10" E="11" Order="1"/>
+    </fragment>
+  </page>
+</CDXML>

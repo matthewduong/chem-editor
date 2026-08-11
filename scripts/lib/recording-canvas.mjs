@@ -40,6 +40,7 @@ const METHODS = new Set([
 const PROPERTIES = new Set([
   'fillStyle',
   'font',
+  'fontKerning',
   'globalAlpha',
   'lineCap',
   'lineJoin',

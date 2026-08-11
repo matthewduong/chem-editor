@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Text boxes with and without an authored BoundingBox. The bounded one is the important case:
+  CDXML import turns that box into a wrapping width, so measurement and painting have to agree
+  about where the lines break.
+-->
+<CDXML BondLength="14.4" LineWidth="0.6" CaptionSize="10">
+  <page id="page-1">
+    <fonttable>
+      <font id="3" charset="iso-8859-1" name="Arial"/>
+      <font id="4" charset="iso-8859-1" name="Times New Roman"/>
+    </fonttable>
+    <t id="t1" p="0 0">
+      <s font="3" size="10" face="0">unbounded caption</s>
+    </t>
+    <t id="t2" p="0 30" BoundingBox="0 24 60 60">
+      <s font="3" size="10" face="0">a bounded caption that has to wrap onto several lines</s>
+    </t>
+    <t id="t3" p="0 90" Justification="Left">
+      <s font="3" size="10" face="1">bold</s>
+      <s font="3" size="10" face="2">italic</s>
+      <s font="3" size="10" face="3">bold italic</s>
+    </t>
+    <t id="t4" p="0 110">
+      <s font="4" size="12" face="0">serif caption</s>
+    </t>
+  </page>
+</CDXML>

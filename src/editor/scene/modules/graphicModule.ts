@@ -3,6 +3,7 @@ import { adaptColor, drawCircle, drawLine, drawPolyline, setStroke } from '../dr
 import { pointInExpandedBounds } from '../geometry';
 import { drawObjectTags } from './objectTagHelpers';
 import type { ObjectModule } from '../types';
+import { getPaintFontFamily } from '../../../lib/textMetrics';
 
 export const GRAPHIC_MODULE: ObjectModule = {
   type: 'graphic',
@@ -184,7 +185,7 @@ export const GRAPHIC_MODULE: ObjectModule = {
       }
       ctx.stroke();
       if (object.label) {
-        ctx.font = `11px ${context.scene.documentStyleSettings.nativeMetrics.captionFontFamily}`;
+        ctx.font = `11px ${getPaintFontFamily(context.scene.documentStyleSettings.nativeMetrics.captionFontFamily)}`;
         ctx.fillStyle = color;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';

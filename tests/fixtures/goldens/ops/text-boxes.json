@@ -1,0 +1,280 @@
+[
+  {
+    "op": "call",
+    "name": "save",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "translate",
+    "args": [
+      0,
+      0
+    ]
+  },
+  {
+    "op": "call",
+    "name": "scale",
+    "args": [
+      1,
+      1
+    ]
+  },
+  {
+    "op": "call",
+    "name": "save",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "translate",
+    "args": [
+      0,
+      5
+    ]
+  },
+  {
+    "op": "set",
+    "prop": "font",
+    "value": "normal 10px 'Liberation Sans', sans-serif"
+  },
+  {
+    "op": "set",
+    "prop": "fontKerning",
+    "value": "none"
+  },
+  {
+    "op": "set",
+    "prop": "fillStyle",
+    "value": "#000000"
+  },
+  {
+    "op": "set",
+    "prop": "textBaseline",
+    "value": "top"
+  },
+  {
+    "op": "call",
+    "name": "fillText",
+    "args": [
+      "unbounded caption",
+      -42.5391,
+      -5
+    ]
+  },
+  {
+    "op": "call",
+    "name": "restore",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "save",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "translate",
+    "args": [
+      0,
+      55
+    ]
+  },
+  {
+    "op": "set",
+    "prop": "font",
+    "value": "normal 10px 'Liberation Sans', sans-serif"
+  },
+  {
+    "op": "set",
+    "prop": "fontKerning",
+    "value": "none"
+  },
+  {
+    "op": "set",
+    "prop": "fillStyle",
+    "value": "#000000"
+  },
+  {
+    "op": "set",
+    "prop": "textBaseline",
+    "value": "top"
+  },
+  {
+    "op": "call",
+    "name": "fillText",
+    "args": [
+      "a bounded",
+      -23.6353,
+      -25
+    ]
+  },
+  {
+    "op": "call",
+    "name": "fillText",
+    "args": [
+      "caption that",
+      -25.8521,
+      -15
+    ]
+  },
+  {
+    "op": "call",
+    "name": "fillText",
+    "args": [
+      "has to wrap",
+      -25.8472,
+      -5
+    ]
+  },
+  {
+    "op": "call",
+    "name": "fillText",
+    "args": [
+      "onto several",
+      -27.2388,
+      5
+    ]
+  },
+  {
+    "op": "call",
+    "name": "fillText",
+    "args": [
+      "lines",
+      -10.2832,
+      15
+    ]
+  },
+  {
+    "op": "call",
+    "name": "restore",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "save",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "translate",
+    "args": [
+      43.8892,
+      95
+    ]
+  },
+  {
+    "op": "set",
+    "prop": "font",
+    "value": "bold 10px 'Liberation Sans', sans-serif"
+  },
+  {
+    "op": "set",
+    "prop": "fontKerning",
+    "value": "none"
+  },
+  {
+    "op": "set",
+    "prop": "fillStyle",
+    "value": "#000000"
+  },
+  {
+    "op": "set",
+    "prop": "textBaseline",
+    "value": "top"
+  },
+  {
+    "op": "call",
+    "name": "fillText",
+    "args": [
+      "bold",
+      -43.8892,
+      -5
+    ]
+  },
+  {
+    "op": "set",
+    "prop": "font",
+    "value": "italic 10px 'Liberation Sans', sans-serif"
+  },
+  {
+    "op": "call",
+    "name": "fillText",
+    "args": [
+      "italic",
+      -22.7856,
+      -5
+    ]
+  },
+  {
+    "op": "set",
+    "prop": "font",
+    "value": "bold italic 10px 'Liberation Sans', sans-serif"
+  },
+  {
+    "op": "call",
+    "name": "fillText",
+    "args": [
+      "bold italic",
+      -2.7808,
+      -5
+    ]
+  },
+  {
+    "op": "call",
+    "name": "restore",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "save",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "translate",
+    "args": [
+      0,
+      116
+    ]
+  },
+  {
+    "op": "set",
+    "prop": "font",
+    "value": "normal 12px 'Liberation Serif', serif"
+  },
+  {
+    "op": "set",
+    "prop": "fontKerning",
+    "value": "none"
+  },
+  {
+    "op": "set",
+    "prop": "fillStyle",
+    "value": "#000000"
+  },
+  {
+    "op": "set",
+    "prop": "textBaseline",
+    "value": "top"
+  },
+  {
+    "op": "call",
+    "name": "fillText",
+    "args": [
+      "serif caption",
+      -29.8213,
+      -6
+    ]
+  },
+  {
+    "op": "call",
+    "name": "restore",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "restore",
+    "args": []
+  }
+]

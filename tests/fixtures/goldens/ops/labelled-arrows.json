@@ -67,29 +67,254 @@
     "name": "moveTo",
     "args": [
       0,
-      0
+      20
     ]
   },
   {
     "op": "call",
     "name": "lineTo",
     "args": [
-      26.6787,
-      30.9213
+      60,
+      20
     ]
   },
   {
     "op": "call",
-    "name": "lineTo",
-    "args": [
-      30.9213,
-      26.6787
-    ]
-  },
-  {
-    "op": "call",
-    "name": "closePath",
+    "name": "stroke",
     "args": []
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "call",
+    "name": "beginPath",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "moveTo",
+    "args": [
+      52,
+      16.6
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      60,
+      20
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      52,
+      23.4
+    ]
+  },
+  {
+    "op": "call",
+    "name": "stroke",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "restore",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "save",
+    "args": []
+  },
+  {
+    "op": "set",
+    "prop": "globalAlpha",
+    "value": 1
+  },
+  {
+    "op": "set",
+    "prop": "strokeStyle",
+    "value": "#000000"
+  },
+  {
+    "op": "set",
+    "prop": "lineWidth",
+    "value": 0.6
+  },
+  {
+    "op": "set",
+    "prop": "lineCap",
+    "value": "round"
+  },
+  {
+    "op": "set",
+    "prop": "lineJoin",
+    "value": "round"
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "call",
+    "name": "beginPath",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "moveTo",
+    "args": [
+      0,
+      60
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      60,
+      60
+    ]
+  },
+  {
+    "op": "call",
+    "name": "stroke",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "call",
+    "name": "beginPath",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "moveTo",
+    "args": [
+      52,
+      56.6
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      60,
+      60
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      52,
+      63.4
+    ]
+  },
+  {
+    "op": "call",
+    "name": "stroke",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "call",
+    "name": "beginPath",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "moveTo",
+    "args": [
+      8,
+      63.4
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      0,
+      60
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      8,
+      56.6
+    ]
+  },
+  {
+    "op": "call",
+    "name": "stroke",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "restore",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "save",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "translate",
+    "args": [
+      30,
+      15
+    ]
+  },
+  {
+    "op": "set",
+    "prop": "font",
+    "value": "normal 10px 'Liberation Sans', sans-serif"
+  },
+  {
+    "op": "set",
+    "prop": "fontKerning",
+    "value": "none"
   },
   {
     "op": "set",
@@ -97,20 +322,17 @@
     "value": "#000000"
   },
   {
-    "op": "call",
-    "name": "fill",
-    "args": []
+    "op": "set",
+    "prop": "textBaseline",
+    "value": "top"
   },
   {
     "op": "call",
-    "name": "stroke",
-    "args": []
-  },
-  {
-    "op": "call",
-    "name": "setLineDash",
+    "name": "fillText",
     "args": [
-      []
+      "NaBH4",
+      -16.1182,
+      -5
     ]
   },
   {
@@ -124,299 +346,40 @@
     "args": []
   },
   {
-    "op": "set",
-    "prop": "globalAlpha",
-    "value": 1
+    "op": "call",
+    "name": "translate",
+    "args": [
+      30,
+      35
+    ]
   },
   {
     "op": "set",
-    "prop": "strokeStyle",
+    "prop": "font",
+    "value": "normal 10px 'Liberation Sans', sans-serif"
+  },
+  {
+    "op": "set",
+    "prop": "fontKerning",
+    "value": "none"
+  },
+  {
+    "op": "set",
+    "prop": "fillStyle",
     "value": "#000000"
   },
   {
     "op": "set",
-    "prop": "lineWidth",
-    "value": 0.6
-  },
-  {
-    "op": "set",
-    "prop": "lineCap",
-    "value": "round"
-  },
-  {
-    "op": "set",
-    "prop": "lineJoin",
-    "value": "round"
+    "prop": "textBaseline",
+    "value": "top"
   },
   {
     "op": "call",
-    "name": "setLineDash",
+    "name": "fillText",
     "args": [
-      []
-    ]
-  },
-  {
-    "op": "call",
-    "name": "beginPath",
-    "args": []
-  },
-  {
-    "op": "call",
-    "name": "moveTo",
-    "args": [
-      28.8,
-      0
-    ]
-  },
-  {
-    "op": "call",
-    "name": "lineTo",
-    "args": [
-      0,
-      28.8
-    ]
-  },
-  {
-    "op": "call",
-    "name": "stroke",
-    "args": []
-  },
-  {
-    "op": "call",
-    "name": "setLineDash",
-    "args": [
-      []
-    ]
-  },
-  {
-    "op": "call",
-    "name": "restore",
-    "args": []
-  },
-  {
-    "op": "call",
-    "name": "save",
-    "args": []
-  },
-  {
-    "op": "set",
-    "prop": "globalAlpha",
-    "value": 1
-  },
-  {
-    "op": "set",
-    "prop": "strokeStyle",
-    "value": "#000000"
-  },
-  {
-    "op": "set",
-    "prop": "lineWidth",
-    "value": 0.6
-  },
-  {
-    "op": "set",
-    "prop": "lineCap",
-    "value": "round"
-  },
-  {
-    "op": "set",
-    "prop": "lineJoin",
-    "value": "round"
-  },
-  {
-    "op": "call",
-    "name": "setLineDash",
-    "args": [
-      []
-    ]
-  },
-  {
-    "op": "call",
-    "name": "beginPath",
-    "args": []
-  },
-  {
-    "op": "call",
-    "name": "moveTo",
-    "args": [
-      0,
-      43.2
-    ]
-  },
-  {
-    "op": "call",
-    "name": "lineTo",
-    "args": [
-      0.6322,
-      47.3678
-    ]
-  },
-  {
-    "op": "call",
-    "name": "lineTo",
-    "args": [
-      4.8,
-      48
-    ]
-  },
-  {
-    "op": "call",
-    "name": "lineTo",
-    "args": [
-      8.9678,
-      48.6322
-    ]
-  },
-  {
-    "op": "call",
-    "name": "lineTo",
-    "args": [
-      9.6,
-      52.8
-    ]
-  },
-  {
-    "op": "call",
-    "name": "lineTo",
-    "args": [
-      10.2322,
-      56.9678
-    ]
-  },
-  {
-    "op": "call",
-    "name": "lineTo",
-    "args": [
-      14.4,
-      57.6
-    ]
-  },
-  {
-    "op": "call",
-    "name": "lineTo",
-    "args": [
-      18.5678,
-      58.2322
-    ]
-  },
-  {
-    "op": "call",
-    "name": "lineTo",
-    "args": [
-      19.2,
-      62.4
-    ]
-  },
-  {
-    "op": "call",
-    "name": "lineTo",
-    "args": [
-      19.8322,
-      66.5678
-    ]
-  },
-  {
-    "op": "call",
-    "name": "lineTo",
-    "args": [
-      24,
-      67.2
-    ]
-  },
-  {
-    "op": "call",
-    "name": "lineTo",
-    "args": [
-      28.1678,
-      67.8322
-    ]
-  },
-  {
-    "op": "call",
-    "name": "lineTo",
-    "args": [
-      28.8,
-      72
-    ]
-  },
-  {
-    "op": "call",
-    "name": "stroke",
-    "args": []
-  },
-  {
-    "op": "call",
-    "name": "restore",
-    "args": []
-  },
-  {
-    "op": "call",
-    "name": "save",
-    "args": []
-  },
-  {
-    "op": "set",
-    "prop": "globalAlpha",
-    "value": 1
-  },
-  {
-    "op": "set",
-    "prop": "strokeStyle",
-    "value": "#000000"
-  },
-  {
-    "op": "set",
-    "prop": "lineWidth",
-    "value": 0.6
-  },
-  {
-    "op": "set",
-    "prop": "lineCap",
-    "value": "round"
-  },
-  {
-    "op": "set",
-    "prop": "lineJoin",
-    "value": "round"
-  },
-  {
-    "op": "call",
-    "name": "setLineDash",
-    "args": [
-      []
-    ]
-  },
-  {
-    "op": "call",
-    "name": "beginPath",
-    "args": []
-  },
-  {
-    "op": "call",
-    "name": "moveTo",
-    "args": [
-      28.8,
-      43.2
-    ]
-  },
-  {
-    "op": "call",
-    "name": "lineTo",
-    "args": [
-      0,
-      72
-    ]
-  },
-  {
-    "op": "call",
-    "name": "stroke",
-    "args": []
-  },
-  {
-    "op": "call",
-    "name": "setLineDash",
-    "args": [
-      []
+      "MeOH, 0 C",
+      -25.0049,
+      -5
     ]
   },
   {

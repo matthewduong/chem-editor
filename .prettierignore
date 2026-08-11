@@ -6,7 +6,12 @@ pnpm-lock.yaml
 
 # Assets
 public/rdkit/
+public/fonts/
 src/assets/
+
+# Generated: rewritten verbatim by their generators, so formatting them just fights the tools.
+tests/fixtures/goldens/
+src/lib/generated/
 
 # Python/Rust artifacts (already handled by ruff/cargo)
 src-tauri/target/

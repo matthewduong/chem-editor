@@ -1,17 +1,12 @@
 import type { TextBox, TextRun } from '../types/chemistry';
+import { measureText } from './textMetrics';
 
-let measureCtx: CanvasRenderingContext2D | null = null;
 const RUN_WIDTH_CACHE = new Map<string, number>();
 const TEXT_BOX_DIMENSIONS_CACHE = new Map<
   string,
   { textW: number; textH: number; cx: number; cy: number }
 >();
 const MAX_TEXT_METRIC_CACHE_SIZE = 10000;
-
-function getMeasureCtx(): CanvasRenderingContext2D {
-  if (!measureCtx) measureCtx = document.createElement('canvas').getContext('2d')!;
-  return measureCtx;
-}
 
 function bumpCache<K, V>(cache: Map<K, V>, key: K, value: V): V {
   if (cache.size >= MAX_TEXT_METRIC_CACHE_SIZE) cache.clear();
@@ -113,18 +108,30 @@ export function getTextRunFontStyle(run: Pick<TextRun, 'bold' | 'italic'>): stri
   return 'normal';
 }
 
+/** Point size a run is actually set at: sub/sup are drawn at 65% of the base size. */
+export function getRunFontSize(run: Pick<TextRun, 'sub' | 'sup'>, fontSize: number): number {
+  return run.sub || run.sup ? fontSize * 0.65 : fontSize;
+}
+
+/**
+ * Measures a run against the vendored font metrics.
+ *
+ * This used to measure through a DOM canvas, which made the entire draw path unreachable from
+ * `node --test` and forced a second, cruder estimator for the DOM-free callers. Both are now the
+ * same computation, so hit testing, bounds, canvas rendering and SVG export can no longer
+ * disagree about how wide a label is.
+ */
 export function measureRunWidth(run: TextRun, fontSize: number, fontFamily: string): number {
   const cacheKey = buildRunWidthCacheKey(run, fontSize, fontFamily);
   const cached = RUN_WIDTH_CACHE.get(cacheKey);
   if (cached != null) return cached;
-  const fs = run.sub || run.sup ? fontSize * 0.65 : fontSize;
-  const ctx = getMeasureCtx();
-  ctx.font = `${getTextRunFontStyle(run)} ${fs}px ${fontFamily}`;
-  return bumpCache(RUN_WIDTH_CACHE, cacheKey, ctx.measureText(run.text).width);
-}
-
-export function estimateRunWidth(run: TextRun, fontSize: number): number {
-  return Math.max(run.text.length * (run.sub || run.sup ? fontSize * 0.42 : fontSize * 0.58), 1);
+  const width = measureText(run.text, {
+    family: fontFamily,
+    sizePx: getRunFontSize(run, fontSize),
+    bold: run.bold,
+    italic: run.italic,
+  }).advance;
+  return bumpCache(RUN_WIDTH_CACHE, cacheKey, width);
 }
 
 export type TextRunMeasure = (run: TextRun, fontSize: number, fontFamily: string) => number;

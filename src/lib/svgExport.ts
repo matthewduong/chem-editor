@@ -59,7 +59,7 @@ import {
   resolveBondColor,
 } from './settings';
 import { SHORTHAND_DATA } from './shorthand';
-import { estimateRunWidth, getTextBoxLines, getTextBoxRenderLines } from './textRunPresentation';
+import { getTextBoxLines, getTextBoxRenderLines, measureRunWidth } from './textRunPresentation';
 import { getObjectTagAnchor, getTextBlockPlainText } from './objectTags';
 
 const BOND_WIDTH = 2;
@@ -1189,8 +1189,10 @@ function generateCanvasSVGWithContext(
         tag.style?.fontSize != null
           ? convertNativeToCanvas(tag.style.fontSize, documentStyleSettings)
           : getDocumentCaptionFontSize(documentStyleSettings);
+      const tagFontFamily =
+        tag.style?.fontFamily ?? documentStyleSettings.nativeMetrics.captionFontFamily;
       const estimatedWidth = tag.text.runs.reduce(
-        (sum, run) => sum + estimateRunWidth(run, fontSize),
+        (sum, run) => sum + measureRunWidth(run, fontSize, tagFontFamily),
         0,
       );
       const halfWidth =
@@ -1478,9 +1480,9 @@ function generateCanvasSVGWithContext(
       leadElem,
       fontSize,
       getAtomLabelBoxWidth,
-      (run) => estimateRunWidth(run, fontSize),
+      (run) => measureRunWidth(run, fontSize, fontFamily),
     );
-    const runWidths = labelRuns.map((run) => estimateRunWidth(run, fontSize));
+    const runWidths = labelRuns.map((run) => measureRunWidth(run, fontSize, fontFamily));
     const labelLayout = getAtomLabelLayoutMetrics(fontSize, totalWidth, documentStyleSettings);
     const labelBoxStartX = ax - labelAnchorOffset;
     let runX = labelBoxStartX + padding;

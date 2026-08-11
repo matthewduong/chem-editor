@@ -1,5 +1,4 @@
 import {
-  estimateRunWidth,
   getTextBoxDimensions,
   getTextBoxRenderLines,
   measureRunWidth,
@@ -68,9 +67,10 @@ export const TEXT_MODULE: ObjectModule = {
     if (object.type !== 'text') return false;
     const textBox = context.scene.legacy.textBoxById.get(object.id);
     if (!textBox) return false;
-    const { textW, textH, cx, cy } = getTextBoxDimensions(textBox, (run, fontSize) =>
-      estimateRunWidth(run, fontSize),
-    );
+    // Hit testing measures exactly as drawing does. It used to use a cruder estimator because
+    // the real one needed a DOM canvas, which meant the clickable box never quite matched the
+    // painted text.
+    const { textW, textH, cx, cy } = getTextBoxDimensions(textBox);
     const rot = -(((textBox.rotation ?? 0) * Math.PI) / 180);
     const dx = point.x - cx;
     const dy = point.y - cy;

@@ -1,5 +1,6 @@
 import type { TextRun } from '../../types/chemistry';
 import { getTextRunFontStyle } from '../../lib/textRunPresentation';
+import { getPaintFontFamily } from '../../lib/textMetrics';
 
 export function adaptColor(color: string, isDarkMode: boolean): string {
   if (!isDarkMode) return color;
@@ -101,7 +102,11 @@ export function drawRunText(
   color: string,
 ) {
   const actualFontSize = run.sub || run.sup ? fontSize * 0.65 : fontSize;
-  ctx.font = `${getTextRunFontStyle(run)} ${actualFontSize}px ${fontFamily}`;
+  // Paint with the same vendored face the metrics table was generated from, and with kerning
+  // off, so the painted advance equals the measured advance by construction rather than by
+  // hoping a table reproduces the host text stack's kerning.
+  ctx.font = `${getTextRunFontStyle(run)} ${actualFontSize}px ${getPaintFontFamily(fontFamily)}`;
+  ctx.fontKerning = 'none';
   ctx.fillStyle = color;
   ctx.textBaseline = 'top';
   const yOffset = run.sup ? -fontSize * 0.18 : run.sub ? fontSize * 0.22 : 0;

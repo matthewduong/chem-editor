@@ -1,4 +1,5 @@
 import { buildAtomLabelRuns, getLeadElementAnchorOffset } from '../../../lib/atomLabelPresentation';
+import { getPaintFontFamily } from '../../../lib/textMetrics';
 import {
   getNodeLabelVerticalOffset,
   resolveDocumentLabelTextStyle,
@@ -171,7 +172,7 @@ export const NODE_MODULE: ObjectModule = {
             : charge > 1
               ? `${charge}+`
               : `${Math.abs(charge)}−`;
-      ctx.font = `bold ${labelLayout.chargeFontSize}px ${labelFontFamily}`;
+      ctx.font = `bold ${labelLayout.chargeFontSize}px ${getPaintFontFamily(labelFontFamily)}`;
       ctx.fillStyle = resolvedColor;
       ctx.textBaseline = 'top';
       const chargeX = labelVisible

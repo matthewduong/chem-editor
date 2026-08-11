@@ -2,6 +2,7 @@ import { adaptColor, setStroke } from '../drawPrimitives';
 import { pointInExpandedBounds } from '../geometry';
 import { drawObjectTags } from './objectTagHelpers';
 import type { ObjectModule } from '../types';
+import { getPaintFontFamily } from '../../../lib/textMetrics';
 
 export const BRACKET_MODULE: ObjectModule = {
   type: 'bracket',
@@ -29,7 +30,7 @@ export const BRACKET_MODULE: ObjectModule = {
     ctx.lineTo(object.bounds.right - lip, object.bounds.bottom);
     ctx.stroke();
     if (object.label) {
-      ctx.font = `12px ${context.scene.documentStyleSettings.nativeMetrics.captionFontFamily}`;
+      ctx.font = `12px ${getPaintFontFamily(context.scene.documentStyleSettings.nativeMetrics.captionFontFamily)}`;
       ctx.fillStyle = color;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';

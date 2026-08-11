@@ -1,5 +1,6 @@
 import type { Arrow } from '../../../types/chemistry';
 import type { ChemDrawArrow } from '../../../types/chemdraw';
+import { getPaintFontFamily } from '../../../lib/textMetrics';
 import {
   arrowUsesControlPoint,
   getArrowGeometryMetrics,
@@ -241,14 +242,14 @@ export const ARROW_MODULE: ObjectModule = {
       : color;
     const anchors = getArrowLabelAnchors(arrow);
     if (labelAbove) {
-      ctx.font = `${labelFontSize}px ${labelFontFamily}`;
+      ctx.font = `${labelFontSize}px ${getPaintFontFamily(labelFontFamily)}`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillStyle = adaptColor(labelColor, scene.isDarkMode);
       ctx.fillText(labelAbove, anchors.above.x, anchors.above.y);
     }
     if (labelBelow) {
-      ctx.font = `${labelFontSize}px ${labelFontFamily}`;
+      ctx.font = `${labelFontSize}px ${getPaintFontFamily(labelFontFamily)}`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillStyle = adaptColor(labelColor, scene.isDarkMode);

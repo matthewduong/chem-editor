@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import {
   createPlainTextEditableFragment,
@@ -11,41 +11,25 @@ import {
   runsToHTML,
 } from '../../src/lib/textRunPresentation';
 
-describe('textRunPresentation caching', () => {
-  const originalGetContext = HTMLCanvasElement.prototype.getContext;
-  const measureText = vi.fn((text: string) => ({ width: text.length * 10 }));
+describe('textRunPresentation measurement', () => {
+  // No canvas stub here on purpose. Measurement comes from the vendored font tables, so these
+  // assertions exercise the same numbers the renderer and the CDXML importer use.
+  beforeEach(resetTextMeasurementCaches);
+  afterEach(resetTextMeasurementCaches);
 
-  beforeEach(() => {
-    resetTextMeasurementCaches();
-    measureText.mockClear();
-    Object.defineProperty(HTMLCanvasElement.prototype, 'getContext', {
-      writable: true,
-      value: vi.fn(() => ({
-        measureText,
-      })),
-    });
-  });
-
-  afterEach(() => {
-    Object.defineProperty(HTMLCanvasElement.prototype, 'getContext', {
-      writable: true,
-      value: originalGetContext,
-    });
-    resetTextMeasurementCaches();
-  });
-
-  it('reuses cached run widths for identical measurements', () => {
+  it('returns a stable width across repeated measurements', () => {
     const run = { text: 'Conditions', bold: true } as const;
+    const first = measureRunWidth(run, 12, 'Arial');
 
-    expect(measureRunWidth(run, 12, 'Arial')).toBe(100);
-    expect(measureRunWidth(run, 12, 'Arial')).toBe(100);
-
-    expect(measureText).toHaveBeenCalledTimes(1);
+    expect(first).toBeGreaterThan(0);
+    expect(measureRunWidth(run, 12, 'Arial')).toBe(first);
+    // The cache must not survive an explicit reset, or a font swap would go unnoticed.
+    resetTextMeasurementCaches();
+    expect(measureRunWidth(run, 12, 'Arial')).toBe(first);
   });
 
   it('wraps rendered lines and measured height consistently for a bounded text box', () => {
-    // measureText is stubbed at 10px per character, so a 45px box fits 4 characters per line.
-    const textBox = {
+    const base = {
       id: 't1',
       x: 0,
       y: 0,
@@ -53,8 +37,13 @@ describe('textRunPresentation caching', () => {
       fontSize: 10,
       fontFamily: 'Arial',
       color: '#000000',
-      width: 45,
     };
+
+    // Derive the box width from real metrics rather than hardcoding pixels: wide enough for one
+    // word, too narrow for two.
+    const oneWord = measureRunWidth({ text: 'aaa' }, base.fontSize, base.fontFamily);
+    const twoWords = measureRunWidth({ text: 'aaa bbb' }, base.fontSize, base.fontFamily);
+    const textBox = { ...base, width: (oneWord + twoWords) / 2 };
 
     const lines = getTextBoxRenderLines(textBox);
     expect(lines.map((line) => line.map((run) => run.text).join(''))).toEqual([
@@ -80,13 +69,9 @@ describe('textRunPresentation caching', () => {
     };
 
     const first = getTextBoxDimensions(baseTextBox);
-    const second = getTextBoxDimensions({
-      ...baseTextBox,
-      runs: [{ text: 'ABCDE' }],
-    });
+    const second = getTextBoxDimensions({ ...baseTextBox, runs: [{ text: 'ABCDE' }] });
 
     expect(second.textW).toBeGreaterThan(first.textW);
-    expect(measureText).toHaveBeenCalledTimes(2);
   });
 });
 

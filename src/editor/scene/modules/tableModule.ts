@@ -3,6 +3,7 @@ import { adaptColor, setStroke } from '../drawPrimitives';
 import { pointInExpandedBounds } from '../geometry';
 import { drawObjectTags } from './objectTagHelpers';
 import type { ObjectModule } from '../types';
+import { getPaintFontFamily } from '../../../lib/textMetrics';
 
 export const TABLE_MODULE: ObjectModule = {
   type: 'table',
@@ -35,7 +36,7 @@ export const TABLE_MODULE: ObjectModule = {
       ctx.strokeRect(cell.boundsInParent.left, cell.boundsInParent.top, cellWidth, cellHeight);
       if (cell.text) {
         ctx.fillStyle = strokeColor;
-        ctx.font = `11px ${scene.documentStyleSettings.nativeMetrics.captionFontFamily}`;
+        ctx.font = `11px ${getPaintFontFamily(scene.documentStyleSettings.nativeMetrics.captionFontFamily)}`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(
