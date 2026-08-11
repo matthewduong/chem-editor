@@ -29,11 +29,9 @@ import type {
 } from '../types/chemistry';
 import type {
   ChemDrawArrow,
-  ChemDrawBond,
   ChemDrawBracket,
   ChemDrawEmbeddedObject,
   ChemDrawGraphic,
-  ChemDrawNode,
   ChemDrawTable,
 } from '../types/chemdraw';
 import type { RdkitModule, RdkitMol } from '../types/rdkit';
@@ -110,8 +108,6 @@ import {
 import {
   arrowUsesControlPoint,
   collectBondNeighborVectors,
-  computeBondVisibleIntervals,
-  computeRingCentroids,
   DEFAULT_DOUBLE_BOND_MODE,
   getArrowGeometryMetrics,
   getArrowLabelAnchors,
@@ -163,6 +159,7 @@ import {
   DocumentRenderSurface,
   type DocumentRenderSurfaceRef,
 } from '../editor/scene/DocumentRenderSurface';
+import { buildLegacySceneState } from '../editor/scene/buildScene';
 import { hitTestDocumentScene } from '../editor/scene/hitTest';
 import type { DocumentSceneState } from '../editor/scene/renderDocumentScene';
 import { saveBinaryWithDialog, saveTextToPath, saveTextWithDialog } from '../lib/fileDialogs';
@@ -943,60 +940,48 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
     ]);
   }, [selectionPreviewTransform]);
 
-  const ringCentroids = useMemo(
-    () => computeRingCentroids(sceneAtoms, sceneBonds),
-    [sceneAtoms, sceneBonds],
+  // Single source for every derived scene lookup. Built through the shared headless assembler
+  // so the app, `node --test`, and the golden harness all render from an identically-derived
+  // scene, and so the O(n^2) bond-crossing scan runs once rather than per consumer.
+  const legacySceneState = useMemo(
+    () =>
+      buildLegacySceneState(
+        {
+          atoms: sceneAtoms,
+          bonds: sceneBonds,
+          arrows: sceneArrows,
+          groups,
+          textBoxes: sceneTextBoxes,
+        },
+        activeChemDrawDocument,
+        documentStyleSettings,
+      ),
+    [
+      activeChemDrawDocument,
+      documentStyleSettings,
+      groups,
+      sceneArrows,
+      sceneAtoms,
+      sceneBonds,
+      sceneTextBoxes,
+    ],
   );
-  const atomById = useMemo(() => new Map(sceneAtoms.map((atom) => [atom.id, atom])), [sceneAtoms]);
-  const bondById = useMemo(() => new Map(sceneBonds.map((bond) => [bond.id, bond])), [sceneBonds]);
-  const arrowById = useMemo(
-    () => new Map(sceneArrows.map((arrow) => [arrow.id, arrow])),
-    [sceneArrows],
-  );
-  const textBoxById = useMemo(
-    () => new Map(sceneTextBoxes.map((textBox) => [textBox.id, textBox])),
-    [sceneTextBoxes],
-  );
-  const bondsByAtomId = useMemo(() => {
-    const map = new Map<string, Bond[]>();
-    for (const atom of sceneAtoms) map.set(atom.id, []);
-    for (const bond of sceneBonds) {
-      map.get(bond.from)?.push(bond);
-      map.get(bond.to)?.push(bond);
-    }
-    return map;
-  }, [sceneAtoms, sceneBonds]);
+  const {
+    atomById,
+    bondById,
+    arrowById,
+    textBoxById,
+    bondsByAtomId,
+    ringCentroids,
+    bondVisibleIntervals,
+    nativeNodes,
+    nativeBonds,
+    nativeArrows,
+  } = legacySceneState;
   const activePage = activeChemDrawDocument?.pages[0];
   const finitePageMetrics = useMemo(
     () => (pageSetup.mode === 'finite' ? getPageSetupDimensionsPx(pageSetup) : null),
     [pageSetup],
-  );
-  const nativeNodes = useMemo(
-    () =>
-      new Map(
-        (activePage?.objects ?? [])
-          .filter((object): object is ChemDrawNode => object.type === 'node')
-          .map((node) => [node.id, node]),
-      ),
-    [activePage],
-  );
-  const nativeBonds = useMemo(
-    () =>
-      new Map(
-        (activePage?.objects ?? [])
-          .filter((object): object is ChemDrawBond => object.type === 'bond')
-          .map((bond) => [bond.id, bond]),
-      ),
-    [activePage],
-  );
-  const nativeArrows = useMemo(
-    () =>
-      new Map(
-        (activePage?.objects ?? [])
-          .filter((object): object is ChemDrawArrow => object.type === 'arrow')
-          .map((arrow) => [arrow.id, arrow]),
-      ),
-    [activePage],
   );
   const nativeBrackets = useMemo(
     () =>
@@ -1054,26 +1039,6 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
         .filter((entry) => entry.markers.length > 0),
     [getAtomElectronVisuals, sceneAtoms, selectedAtomIds],
   );
-  const bondVisibleIntervals = useMemo(() => {
-    const resolveLineWidth = (bond: Bond) =>
-      bond.lineWidth ??
-      (nativeBonds.get(bond.id)?.style?.lineWidth != null
-        ? convertNativeToCanvas(nativeBonds.get(bond.id)!.style!.lineWidth!, documentStyleSettings)
-        : bondLineWidth);
-    return new Map(
-      sceneBonds.map((bond) => [
-        bond.id,
-        computeBondVisibleIntervals(
-          bond,
-          sceneAtoms,
-          sceneBonds,
-          resolveLineWidth,
-          documentStyleSettings,
-        ),
-      ]),
-    );
-  }, [bondLineWidth, documentStyleSettings, nativeBonds, sceneAtoms, sceneBonds]);
-
   const [arrowPreview, setArrowPreview] = useState<Arrow | null>(null);
 
   const [editingArrowLabels, setEditingArrowLabels] = useState<{
@@ -1220,26 +1185,12 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
     () => getFullySelectedComponentAtomIds(sceneAtoms, sceneBonds, selectedAtomIds),
     [sceneAtoms, sceneBonds, selectedAtomIds],
   );
+  // Built through the shared headless assembler so the app, `node --test`, and the golden
+  // harness all render from an identically-derived scene.
   const documentScene = useMemo<DocumentSceneState>(
     () => ({
       index: documentIndex,
-      legacy: {
-        atoms: sceneAtoms,
-        bonds: sceneBonds,
-        arrows: sceneArrows,
-        groups,
-        textBoxes: sceneTextBoxes,
-        atomById,
-        bondById,
-        arrowById,
-        textBoxById,
-        bondsByAtomId,
-        nativeNodes,
-        nativeBonds,
-        nativeArrows,
-        ringCentroids,
-        bondVisibleIntervals,
-      },
+      legacy: legacySceneState,
       documentStyleSettings,
       documentViewSettings,
       pageSetup,
@@ -1261,28 +1212,19 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
       rdkitInvalidAtomIds,
     }),
     [
-      atomById,
-      arrowById,
-      bondVisibleIntervals,
-      bondById,
-      bondsByAtomId,
       documentIndex,
       documentStyleSettings,
       documentViewSettings,
       editingTextBoxId,
-      groups,
       hoveredArrowId,
       hoveredAtomId,
       hoveredBondId,
       hoveredNativeObjectId,
       hoveredTextBoxId,
       isDarkMode,
-      nativeArrows,
-      nativeBonds,
-      nativeNodes,
+      legacySceneState,
       pageSetup,
       rdkitInvalidAtomIds,
-      ringCentroids,
       selectedArrowIds,
       selectedAtomIds,
       selectedBondIds,
@@ -1290,12 +1232,7 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
       previewHiddenObjectIds,
       selectedObjectIds,
       selectedTextBoxIds,
-      sceneArrows,
-      sceneAtoms,
-      sceneBonds,
-      sceneTextBoxes,
       showHydrogens,
-      textBoxById,
     ],
   );
   const contentHoveredAtomId = largeDocumentMode ? null : hoveredAtomId;
@@ -1306,23 +1243,7 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
   const contentDocumentScene = useMemo<DocumentSceneState>(
     () => ({
       index: documentIndex,
-      legacy: {
-        atoms: sceneAtoms,
-        bonds: sceneBonds,
-        arrows: sceneArrows,
-        groups,
-        textBoxes: sceneTextBoxes,
-        atomById,
-        bondById,
-        arrowById,
-        textBoxById,
-        bondsByAtomId,
-        nativeNodes,
-        nativeBonds,
-        nativeArrows,
-        ringCentroids,
-        bondVisibleIntervals,
-      },
+      legacy: legacySceneState,
       documentStyleSettings,
       documentViewSettings,
       pageSetup,
@@ -1344,11 +1265,6 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
       rdkitInvalidAtomIds,
     }),
     [
-      atomById,
-      arrowById,
-      bondVisibleIntervals,
-      bondById,
-      bondsByAtomId,
       contentHoveredArrowId,
       contentHoveredAtomId,
       contentHoveredBondId,
@@ -1358,14 +1274,10 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
       documentStyleSettings,
       documentViewSettings,
       editingTextBoxId,
-      groups,
       isDarkMode,
-      nativeArrows,
-      nativeBonds,
-      nativeNodes,
+      legacySceneState,
       pageSetup,
       rdkitInvalidAtomIds,
-      ringCentroids,
       selectedArrowIds,
       selectedAtomIds,
       selectedBondIds,
@@ -1373,12 +1285,7 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
       previewHiddenObjectIds,
       selectedObjectIds,
       selectedTextBoxIds,
-      sceneArrows,
-      sceneAtoms,
-      sceneBonds,
-      sceneTextBoxes,
       showHydrogens,
-      textBoxById,
     ],
   );
   const commitNativeDocument = useCallback(
