@@ -1,0 +1,17 @@
+# Repo-wide Python lint config.
+#
+# src-tauri/pyproject.toml carries the same settings for the sidecar package, but it only governs
+# files beneath src-tauri/. Without this file, development/*.py fell back to whatever ruff's
+# built-in defaults happened to be for the installed version, so `pnpm lint:py` produced
+# different results across ruff releases.
+
+line-length = 120
+
+[lint]
+select = [
+    "E",  # pycodestyle errors
+    "F",  # pyflakes (unused imports, undefined names)
+    "I",  # isort (import ordering)
+    "UP", # pyupgrade (modern Python syntax)
+    "B",  # flake8-bugbear (common bugs)
+]
