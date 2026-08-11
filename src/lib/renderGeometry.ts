@@ -18,6 +18,7 @@ import {
 } from './chemdrawMetrics';
 import { VALENCIES } from './elements';
 import { SHORTHAND_DATA } from './shorthand';
+import { measureAdvance } from './textMetrics';
 
 export const DEFAULT_ATOM_LABEL_FONT_SIZE = DEFAULT_CHEMDRAW_LABEL_FONT_SIZE;
 const MIN_LABEL_WIDTH_RATIO = 22 / 16;
@@ -304,8 +305,20 @@ export function getNextDoubleBondToolMode(
   return bond?.order === 2 ? cycleDoubleBondMode(bond.doubleBondMode) : DEFAULT_DOUBLE_BOND_MODE;
 }
 
-function estimateLabelSegmentWidth(text: string, fontSize: number): number {
-  return Math.max(1, text.length * (fontSize * 0.75));
+/**
+ * Width of a piece of atom label text, used to decide how far a bond is clipped back from it.
+ *
+ * This used to approximate every character as 0.75em, which is close for single letters but
+ * badly wrong for narrow ones: at the ACS default size it overstated "Cl" by 59% and "Br" by
+ * 50%, so bonds to halogens stopped roughly half again too short of their label.
+ */
+function measureLabelSegmentWidth(
+  text: string,
+  fontSize: number,
+  documentStyleSettings?: DocumentStyleSettings | null,
+): number {
+  const fontFamily = documentStyleSettings?.nativeMetrics?.labelFontFamily;
+  return Math.max(1, measureAdvance(text, { family: fontFamily ?? 'Arial', sizePx: fontSize }));
 }
 
 function getResolvedLabelMarginWidth(documentStyleSettings?: DocumentStyleSettings | null): number {
@@ -777,7 +790,10 @@ function getFullLabelMetrics(
   fontSize: number,
   documentStyleSettings?: DocumentStyleSettings | null,
 ): LabelClipMetrics {
-  const width = getAtomLabelBoxWidth(fontSize, estimateLabelSegmentWidth(labelText, fontSize));
+  const width = getAtomLabelBoxWidth(
+    fontSize,
+    measureLabelSegmentWidth(labelText, fontSize, documentStyleSettings),
+  );
   const height = getAtomLabelBoxHeight(fontSize);
   const marginWidth = getResolvedLabelMarginWidth(documentStyleSettings);
   return {
@@ -808,7 +824,7 @@ function getLeadElementLabelMetrics(
   const leadElement = getAtomLeadElement(atom);
   const leadRange = findLeadElementDisplayRange(labelText, leadElement);
   if (!leadRange && labelText === leadElement && leadElement.length === 1) {
-    const width = estimateLabelSegmentWidth(labelText, fontSize);
+    const width = measureLabelSegmentWidth(labelText, fontSize, documentStyleSettings);
     const halfHeight = getAtomLabelCapHeight(fontSize) / 2 + 1;
     const halfWidth = width / 2 + 1;
     return {
@@ -825,7 +841,7 @@ function getLeadElementLabelMetrics(
   let textCursor = 0;
 
   for (let i = 0; i < segments.length; i += 1) {
-    const width = estimateLabelSegmentWidth(segments[i].text, fontSize);
+    const width = measureLabelSegmentWidth(segments[i].text, fontSize, documentStyleSettings);
     const segmentStart = textCursor;
     const segmentEnd = textCursor + segments[i].text.length;
     if (segmentStart === leadRange.start && segmentEnd === leadRange.end) {

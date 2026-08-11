@@ -6,6 +6,7 @@ import {
   setAliasAtomValue,
   setAtomValue,
 } from '../.unit-test-dist/src/lib/atomIdentity.js';
+import { measureAdvance } from '../.unit-test-dist/src/lib/textMetrics.js';
 import {
   buildAliasResolutionSnapshot,
   expandAliasSmiles,
@@ -489,6 +490,20 @@ test('lead element detection works whether hydrogens are leading or trailing', (
   assert.equal(findLeadElementDisplayRange('Cl', 'Cl'), null);
 });
 
+/**
+ * Clip distance for a single lead element, derived rather than hardcoded.
+ *
+ * The label half-box is measured text width / 2 + 1, and the half-height comes from the label
+ * cap height; the clip radius is the geometric mean of the two. Deriving it keeps these tests
+ * meaningful when the font metrics change, while still failing if the *shape* of the geometry
+ * changes.
+ */
+function leadElementClip(text, fontSize) {
+  const halfWidth = measureAdvance(text, { family: 'Arial', sizePx: fontSize }) / 2 + 1;
+  const halfHeight = Math.max(14, fontSize * 0.72) / 2 + 1;
+  return Math.sqrt(halfWidth * halfHeight);
+}
+
 test('bond clipping targets the lead element for trailing hydrogens', () => {
   const atoms = [
     baseAtom({ id: 'a1', x: 0, y: 0, element: 'C' }),
@@ -497,7 +512,7 @@ test('bond clipping targets the lead element for trailing hydrogens', () => {
   const bonds = [baseBond()];
 
   const clip = getAtomBondClipOffset(atoms[1], atoms, bonds, -1, 0);
-  assert.ok(Math.abs(clip - Math.sqrt(56)) < 1e-9);
+  assert.ok(Math.abs(clip - leadElementClip('N', 16)) < 1e-9);
 });
 
 test('bond clipping targets the lead element for leading hydrogens', () => {
@@ -508,21 +523,23 @@ test('bond clipping targets the lead element for leading hydrogens', () => {
   const bonds = [baseBond()];
 
   const clip = getAtomBondClipOffset(atoms[0], atoms, bonds, 1, 0);
-  assert.ok(Math.abs(clip - Math.sqrt(56)) < 1e-9);
+  assert.ok(Math.abs(clip - leadElementClip('N', 16)) < 1e-9);
 });
 
 test('bond clipping uses the lead element token for known shorthand aliases', () => {
   const atom = baseAtom({ kind: 'alias', element: 'N', alias: 'BocNH', labelFontSize: 16 });
   const clip = getAtomBondClipOffset(atom, [atom], [], 1, 0);
 
-  assert.ok(Math.abs(clip - Math.sqrt(56)) < 1e-9);
+  assert.ok(Math.abs(clip - leadElementClip('N', 16)) < 1e-9);
 });
 
 test('bond clipping falls back to the full label box when no lead token is present', () => {
   const atom = baseAtom({ kind: 'alias', element: 'C', alias: 'foo', labelFontSize: 16 });
   const clip = getAtomBondClipOffset(atom, [atom], [], 1, 0);
 
-  assert.equal(clip, 19);
+  // 'foo' measures ~21px at 16px, under the 22px minimum label box, so the clip comes from the
+  // minimum rather than the text. The old 0.75em-per-character estimate put it at 36px.
+  assert.ok(Math.abs(clip - 12.12109375) < 1e-6, `clip was ${clip}`);
 });
 
 test('single-token element labels retain their existing bond clip width', () => {
@@ -533,7 +550,9 @@ test('single-token element labels retain their existing bond clip width', () => 
   const bonds = [baseBond()];
   const clip = getAtomBondClipOffset(atoms[1], atoms, bonds, -1, 0);
 
-  assert.equal(clip, 13);
+  // 'Cl' has no lead-element sub-range, so it uses the full label box, which the 22px minimum
+  // width dominates. The old estimator overstated 'Cl' as 24px wide.
+  assert.equal(clip, 12);
 });
 
 test('single-letter element labels use the lead element clip width', () => {
@@ -544,7 +563,7 @@ test('single-letter element labels use the lead element clip width', () => {
   const bonds = [baseBond({ order: 2 })];
   const clip = getAtomBondClipOffset(atoms[1], atoms, bonds, -1, 0);
 
-  assert.ok(Math.abs(clip - Math.sqrt(56)) < 1e-9);
+  assert.ok(Math.abs(clip - leadElementClip('O', 16)) < 1e-9);
 });
 
 test('bond clipping scales with larger atom label sizes', () => {
@@ -555,7 +574,7 @@ test('bond clipping scales with larger atom label sizes', () => {
   const bonds = [baseBond({ order: 2 })];
   const clip = getAtomBondClipOffset(atoms[1], atoms, bonds, -1, 0);
 
-  assert.ok(Math.abs(clip - Math.sqrt(8.5 * 8.2)) < 1e-9);
+  assert.ok(Math.abs(clip - leadElementClip('O', 20)) < 1e-9);
 });
 
 test('atom label layout metrics scale atom adornments with font size', () => {
