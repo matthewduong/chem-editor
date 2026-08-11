@@ -48,18 +48,20 @@ function readFixtureOptions(fixtureName) {
  * suite uses, so a golden always reflects the code the other tests exercise.
  */
 async function loadRenderer() {
-  const [scene, render, cdxml, model, settings] = await Promise.all([
+  const [scene, render, cdxml, model, settings, svg] = await Promise.all([
     import(path.join(DIST_DIR, 'editor', 'scene', 'buildScene.js')),
     import(path.join(DIST_DIR, 'editor', 'scene', 'renderDocumentScene.js')),
     import(path.join(DIST_DIR, 'utils', 'cdxml.js')),
     import(path.join(DIST_DIR, 'lib', 'chemdrawModel.js')),
     import(path.join(DIST_DIR, 'lib', 'settings.js')),
+    import(path.join(DIST_DIR, 'lib', 'svgCanvasContext.js')),
   ]);
   return {
     buildDocumentSceneState: scene.buildDocumentSceneState,
     renderDocumentScene: render.renderDocumentScene,
     cdxmlToChemDrawDocument: cdxml.cdxmlToChemDrawDocument,
     chemDrawDocumentToCanvasState: model.chemDrawDocumentToCanvasState,
+    SvgCanvasContext: svg.SvgCanvasContext,
     settings,
   };
 }
@@ -70,11 +72,10 @@ function getRenderer() {
   return rendererPromise;
 }
 
-/** Renders one fixture and returns its normalized op stream. */
-export async function recordFixture(fixtureName) {
+/** Builds the scene for a fixture, applying its optional options sidecar. */
+async function buildFixtureScene(fixtureName) {
   const {
     buildDocumentSceneState,
-    renderDocumentScene,
     cdxmlToChemDrawDocument,
     chemDrawDocumentToCanvasState,
     settings,
@@ -100,9 +101,34 @@ export async function recordFixture(fixtureName) {
     interaction: options.interaction,
   });
 
+  return scene;
+}
+
+/** Renders one fixture and returns its normalized op stream. */
+export async function recordFixture(fixtureName) {
+  const { renderDocumentScene } = await getRenderer();
+  const scene = await buildFixtureScene(fixtureName);
   const ctx = createRecordingContext();
   renderDocumentScene(ctx, scene, RENDER_OPTIONS);
   return normalizeOps(ctx.__ops);
+}
+
+/**
+ * Renders one fixture to SVG through the same draw path the screen uses.
+ *
+ * There is no second renderer here: renderDocumentScene is called exactly as it is for the
+ * canvas, with a context that emits markup instead of pixels.
+ */
+export async function renderFixtureToSvg(fixtureName, options = {}) {
+  const { renderDocumentScene, SvgCanvasContext } = await getRenderer();
+  const scene = await buildFixtureScene(fixtureName);
+  const ctx = new SvgCanvasContext({
+    width: RENDER_OPTIONS.width,
+    height: RENDER_OPTIONS.height,
+    background: options.background ?? null,
+  });
+  renderDocumentScene(ctx, scene, RENDER_OPTIONS);
+  return ctx.toSVG();
 }
 
 export function readGolden(fixtureName) {
