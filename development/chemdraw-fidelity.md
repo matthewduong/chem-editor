@@ -197,6 +197,39 @@ CHEMDRAW_CORPUS_ROOT=/path/to/private/corpus CHEMDRAW_CAPTURE_VISUAL_BASELINE=1 
   when it renders ChemEditor-side comparison artifacts.
 - CDXML export ignores display sugar entirely and always serializes authored ChemDraw semantics.
 
+## Known Gaps
+
+### Caption baselines sit about 0.9 em too low
+
+The largest remaining geometric difference. ChemDraw's `p` on a page-level `<t>` is the **baseline**
+of the first line; we treat it as the line top, so every caption is painted roughly one ascent too
+low. It is why our trimmed renders come out ~30px taller than ChemDraw's at 4x zoom while the widths
+agree to within a pixel or two.
+
+The arithmetic is exact on any captioned structure. For one caption at 10pt with `p="178.64 58.78"`
+and `BoundingBox="... 51.5 ... 60.89"`: a 10pt ascent of ~7.2 and descent of ~2.1 put the baseline
+at 51.5 + 7.2 = 58.7 and the bottom at 60.9, matching both `p.y` and the box. We paint that
+baseline at 67.83.
+
+The line _origin_ is already right: measured over 984 page-level captions in the corpus, our first
+line origin sits within 0.19pt of `p.y` on average. The error is entirely in the origin-to-baseline
+step, where `drawRunText` sets `textBaseline = 'top'`.
+
+Fix it at import rather than in the primitive: shift the imported anchor up by the ascent
+(`measureText` in `src/lib/textMetrics.ts` has real ascents from the vendored metrics), so the
+existing top-based convention lands the baseline on `p.y`. Changing `drawRunText` instead would
+move atom labels too, which use the same primitive but are positioned by their atom.
+
+### Reaction schemes and steps are preserved, not modelled
+
+`<scheme>` and `<step>` are carried through as raw XML. ChemDraw rebuilds them from structure on
+open, so they do not survive a round trip unchanged; see "What Gates And What Does Not".
+
+### Groups do not serialize
+
+`<group>` is flattened to page-level objects on import, so grouping is lost on save. Children render
+correctly; only the grouping is dropped. See `CLAUDE.md` on the document/CanvasState split.
+
 ## Public Fixture Policy
 
 The public repo intentionally does not ship `.cdxml` fixtures or thesis-derived case lists.
