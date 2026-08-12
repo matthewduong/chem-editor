@@ -32,8 +32,16 @@ const CONTENT_PADDING = 40;
 /** Shown when a document has nothing to draw and no page to fall back on. */
 const EMPTY_EXPORT_SIZE = { width: 200, height: 150 };
 
-function backgroundColor(isDarkMode: boolean): string {
-  return isDarkMode ? '#1e1e1e' : '#f5f5f5';
+/**
+ * Backdrop for the export.
+ *
+ * A finite page is paper, so it exports on the page colour; without one there is only the editor
+ * canvas to stand in. The page tiles that used to supply the paper colour on screen are chrome and
+ * are not drawn into exports, so the colour is carried here instead.
+ */
+function backgroundColor(scene: DocumentSceneState): string {
+  if (scene.pageSetup.mode === 'finite') return scene.isDarkMode ? '#242424' : '#ffffff';
+  return scene.isDarkMode ? '#1e1e1e' : '#f5f5f5';
 }
 
 function unionBounds(target: ChemDrawBounds | null, next: ChemDrawBounds): ChemDrawBounds {
@@ -113,7 +121,7 @@ function renderSceneToSvg(scene: DocumentSceneState, transparent: boolean): stri
   const ctx = new SvgCanvasContext({
     width,
     height,
-    background: transparent ? null : backgroundColor(scene.isDarkMode),
+    background: transparent ? null : backgroundColor(scene),
   });
   // SvgCanvasContext implements the Canvas2D surface the scene modules use; see its doc comment
   // for how that surface is pinned.
@@ -122,6 +130,7 @@ function renderSceneToSvg(scene: DocumentSceneState, transparent: boolean): stri
     height,
     stageScale: 1,
     stagePos,
+    drawPageChrome: false,
   });
   return ctx.toSVG();
 }

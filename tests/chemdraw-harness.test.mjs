@@ -2,8 +2,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import {
+  buildCdxmlElementSummary,
   buildCompatibilitySummary,
   classifyFailure,
+  diffCdxmlElementSummaries,
   formatCompatibilityDiff,
   runCaseWithRetry,
   sanitizeCaseId,
@@ -315,4 +317,69 @@ test('runCaseWithRetry returns both failures when retry is exhausted', async () 
   assert.equal(recoveries, 1);
   assert.match(result.failures[0].error.message, /attempt 1 failed/);
   assert.match(result.failures[1].error.message, /attempt 2 failed/);
+});
+
+test('element census counts nested markup, not just the top level', () => {
+  const summary = buildCdxmlElementSummary(
+    `<CDXML BondLength="14.40"><page><fragment><n id="1" NumHydrogens="2"/><n id="2"/>` +
+      `<b B="1" E="2"/></fragment><group><t><s>label</s></t></group></page></CDXML>`,
+  );
+
+  assert.equal(summary.elements.n, 2);
+  assert.equal(summary.elements.b, 1);
+  assert.equal(summary.elements.group, 1);
+  assert.equal(summary.elements.s, 1);
+  assert.equal(summary.attributes.NumHydrogens, 1);
+  assert.equal(summary.attributes.BondLength, 1);
+});
+
+test('import fidelity reports constructs our own CDXML fails to carry over', () => {
+  // The model-level summary cannot see this: a dropped <group> is absent from both sides of a
+  // before/after comparison and reads as agreement.
+  const source = buildCdxmlElementSummary(
+    `<CDXML><page><group><fragment><n id="1" NumHydrogens="2"/></fragment></group>` +
+      `<group><fragment><n id="2"/></fragment></group></page></CDXML>`,
+  );
+  const exported = buildCdxmlElementSummary(
+    `<CDXML><page><fragment><n id="1"/></fragment><fragment><n id="2"/></fragment>` +
+      `<ChemEditorNote/></page></CDXML>`,
+  );
+
+  const delta = diffCdxmlElementSummaries(source, exported);
+
+  assert.deepEqual(delta.elements.dropped.group, { from: 2, to: 0 });
+  assert.deepEqual(delta.attributes.dropped.NumHydrogens, { from: 1, to: 0 });
+  assert.equal(delta.droppedElementCount, 1);
+  // Tag names are folded to lower case to match how the importer compares them; attribute names
+  // are not, because CDXML attributes are case-sensitive.
+  assert.deepEqual(delta.elements.added.chemeditornote, { from: 0, to: 1 });
+  assert.ok(!('fragment' in delta.elements.dropped), 'unchanged counts are not reported');
+});
+
+test('container counts make a lost group visible to the summary', () => {
+  const withGroup = buildCompatibilitySummary({
+    pages: [
+      {
+        objects: [
+          { id: 'g1', type: 'group', childIds: ['f1'] },
+          { id: 'f1', type: 'fragment', nodeIds: ['n1'], bondIds: [] },
+          { id: 'n1', type: 'node', element: 'C' },
+        ],
+      },
+    ],
+  });
+  const withoutGroup = buildCompatibilitySummary({
+    pages: [
+      {
+        objects: [
+          { id: 'f1', type: 'fragment', nodeIds: ['n1'], bondIds: [] },
+          { id: 'n1', type: 'node', element: 'C' },
+        ],
+      },
+    ],
+  });
+
+  assert.notEqual(formatCompatibilityDiff(withGroup, withoutGroup), 'No differences.');
+  assert.equal(withGroup.containerCounts['group:1'], 1);
+  assert.equal(withoutGroup.containerCounts['group:1'], undefined);
 });

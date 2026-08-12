@@ -73,6 +73,8 @@ function diffObjects(before, after, currentPath = '') {
 
 export function buildCompatibilitySummary(document) {
   const objectCounts = new Map();
+  const containerCounts = new Map();
+  const preservedPageChildren = new Map();
   const nodeElements = new Map();
   const nodeAliases = new Map();
   const nodeTexts = new Map();
@@ -85,7 +87,20 @@ export function buildCompatibilitySummary(document) {
   const tableKinds = new Map();
 
   for (const page of document?.pages ?? []) {
+    // Containers are counted separately from objectCounts, which only admits `editable` types.
+    // Without this a <group> that is dropped on import changes nothing in the summary.
+    for (const preservedChild of page.preservedPageChildren ?? []) {
+      incrementCounter(preservedPageChildren, preservedChild.tagName);
+    }
     for (const object of page.objects ?? []) {
+      if (object.type === 'group') {
+        incrementCounter(containerCounts, `group:${object.childIds?.length ?? 0}`);
+      } else if (object.type === 'fragment') {
+        incrementCounter(
+          containerCounts,
+          `fragment:${object.nodeIds?.length ?? 0}n/${object.bondIds?.length ?? 0}b`,
+        );
+      }
       const capability = getObjectCapability(object);
       if (capability === 'editable') {
         incrementCounter(objectCounts, object.type);
@@ -171,6 +186,8 @@ export function buildCompatibilitySummary(document) {
   return {
     pageCount: document?.pages?.length ?? 0,
     objectCounts: normalizeCounter(objectCounts),
+    containerCounts: normalizeCounter(containerCounts),
+    preservedPageChildren: normalizeCounter(preservedPageChildren),
     nodeElements: normalizeCounter(nodeElements),
     nodeAliases: normalizeCounter(nodeAliases),
     nodeTexts: normalizeCounter(nodeTexts),
@@ -181,6 +198,66 @@ export function buildCompatibilitySummary(document) {
     objectTags: normalizeCounter(objectTags),
     embeddedKinds: normalizeCounter(embeddedKinds),
     tableKinds: normalizeCounter(tableKinds),
+  };
+}
+
+/**
+ * Censuses the elements and attributes present in a CDXML string.
+ *
+ * The model-level summary cannot see import loss: it is built from documents that have already
+ * been through the importer, so a construct the importer drops is missing from both sides of the
+ * comparison and reads as agreement. Counting the markup itself is what makes "we never read this"
+ * visible.
+ */
+export function buildCdxmlElementSummary(xml) {
+  // Supplied by scripts/lib/dom-globals.mjs under node --test, and by the runner otherwise.
+  const parsed = new globalThis.DOMParser().parseFromString(xml, 'application/xml');
+  const elements = new Map();
+  const attributes = new Map();
+
+  const walk = (element) => {
+    incrementCounter(elements, element.tagName.toLowerCase());
+    for (const attribute of element.attributes ?? []) {
+      incrementCounter(attributes, attribute.name);
+    }
+    for (const child of element.children ?? []) walk(child);
+  };
+
+  const root = parsed.documentElement;
+  if (root && root.tagName !== 'parsererror') walk(root);
+  return {
+    elements: normalizeCounter(elements),
+    attributes: normalizeCounter(attributes),
+  };
+}
+
+/**
+ * What our own CDXML fails to carry over from a source file.
+ *
+ * `dropped` is the actionable half -- markup the source had and ours does not. `added` is reported
+ * too because our writer emits ChemEditor-private attributes by design, and an unexpected entry
+ * there is worth seeing.
+ */
+export function diffCdxmlElementSummaries(sourceSummary, exportedSummary) {
+  const compare = (before, after) => {
+    const dropped = {};
+    const added = {};
+    for (const key of new Set([...Object.keys(before), ...Object.keys(after)])) {
+      const from = before[key] ?? 0;
+      const to = after[key] ?? 0;
+      if (to < from) dropped[key] = { from, to };
+      else if (to > from) added[key] = { from, to };
+    }
+    return { dropped, added };
+  };
+
+  const elements = compare(sourceSummary.elements, exportedSummary.elements);
+  const attributes = compare(sourceSummary.attributes, exportedSummary.attributes);
+  return {
+    elements,
+    attributes,
+    droppedElementCount: Object.keys(elements.dropped).length,
+    droppedAttributeCount: Object.keys(attributes.dropped).length,
   };
 }
 

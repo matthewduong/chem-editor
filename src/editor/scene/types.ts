@@ -57,6 +57,14 @@ export interface RenderSceneOptions {
   height: number;
   stageScale: number;
   stagePos: { x: number; y: number };
+  /**
+   * Whether to paint the page tiles.
+   *
+   * They show the operator where the printable page falls, which is editor chrome rather than
+   * document content: an export that baked in the page outline would put a border on the drawing
+   * that no other program's output has. Defaults to on, for the screen.
+   */
+  drawPageChrome?: boolean;
 }
 
 export interface SceneHitTestOptions {

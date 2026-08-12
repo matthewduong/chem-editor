@@ -25,7 +25,7 @@ export function renderDocumentScene(
   ctx.translate(options.stagePos.x, options.stagePos.y);
   ctx.scale(options.stageScale, options.stageScale);
 
-  drawPageTiles(ctx, scene);
+  drawPageTiles(ctx, scene, options);
 
   const visibleObjects = getVisibleObjects(scene.index, viewportBounds);
   for (const object of visibleObjects) {

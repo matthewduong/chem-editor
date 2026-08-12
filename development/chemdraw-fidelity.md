@@ -10,9 +10,10 @@ corpus through the installed ChemDraw app.
 1. load CDXML cases from the private local corpus
 2. import them through ChemEditor's CDXML pipeline
 3. export ChemEditor-authored CDXML
-4. open and re-save that output in the real ChemDraw app
-5. re-import the ChemDraw output
-6. compare compatibility summaries and, when enabled, visual artifacts
+4. census the source and exported markup to see what the importer failed to carry over
+5. open and re-save that output in the real ChemDraw app
+6. re-import the ChemDraw output
+7. compare compatibility summaries and, when enabled, visual artifacts
 
 The harness uses a single long-lived background ChemDraw session per run. It does not relaunch the
 app between passing cases, and it should not flash the desktop unless you explicitly opt in to
@@ -85,6 +86,11 @@ This is the mode to use for routine local work because it is fast and stable.
 
 ### Visual Capture
 
+Both renders are cropped to their drawing before they are compared. ChemDraw prints onto its own
+paper while ChemEditor renders the authored page box, so the two do not share a page origin and
+comparing them as laid out would measure that offset rather than the drawing. The trimmed sizes are
+kept in the metrics so a size mismatch still reads as a scale problem rather than a drawing one.
+
 When `CHEMDRAW_CAPTURE_VISUAL_BASELINE=1` is set, the harness additionally captures:
 
 - `chem-editor-render.svg`
@@ -112,17 +118,36 @@ Artifacts are written under:
 
 Typical contents include:
 
-- original thesis source
+- original corpus source
 - ChemEditor-authored intermediate CDXML
 - ChemDraw-resaved CDXML
 - `before-summary.json`
 - `after-summary.json`
 - `diff.txt`
+- `import-fidelity.json`
 - `session.json`
 - `fidelity-result.json`
 - optional visual artifacts when visual capture is enabled
 
-Use these folders as the primary debugging record for fidelity failures.
+Case directories are written for passing cases too, not only failures: import fidelity is
+report-only, so a run where every case passes is exactly the run whose data matters most.
+
+`<run-id>/run-summary.json` aggregates the whole run — pass/fail counts, cases ranked by visual
+diff, and how many cases each dropped construct affects. Read that first; the per-case directories
+are for drilling into one failure.
+
+## Import Fidelity
+
+`import-fidelity.json` records what our own CDXML fails to carry over from the source file, as a
+census of elements and attributes on both sides.
+
+This exists because the before/after comparison cannot see import loss. Both of its summaries are
+built from documents that already went through the importer, so a construct the importer drops is
+missing from both sides and reads as agreement. Counting the markup itself is what makes "we never
+read this" visible.
+
+It is **report-only** — it never fails a case. `dropped` is the actionable half; `added` is
+reported too because the writer emits ChemEditor-private attributes by design.
 
 ## Recommended Debugging Loop
 

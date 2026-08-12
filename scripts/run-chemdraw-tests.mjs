@@ -18,8 +18,10 @@ import { JSDOM } from 'jsdom';
 
 import { buildUnitTestDist } from './lib/unit-test-build.mjs';
 import {
+  buildCdxmlElementSummary,
   buildCompatibilitySummary,
   classifyFailure,
+  diffCdxmlElementSummaries,
   formatCompatibilityDiff,
   runCaseWithRetry,
   sanitizeCaseId,
@@ -279,6 +281,40 @@ async function rasterizePdfToPng({ pdftoppmPath, pdfPath, pngPath, scratchDir })
   await copyFile(renderedPath, pngPath);
 }
 
+/** Trim factor: ChemDraw's PDF is a full letter page, ours is the authored drawing area. */
+const TRIM_FUZZ = '1%';
+
+/**
+ * Crops a render down to its drawing, returning the trimmed size and where it sat.
+ *
+ * The two renders do not share a page origin -- ChemDraw prints onto its own paper while we render
+ * the authored page box -- so comparing them as-laid-out measures the offset, not the drawing.
+ * Trimming both to content is what puts them in the same frame.
+ */
+function trimToContent({ magickPath, sourcePath, targetPath, label }) {
+  const contentBox = runCommand(
+    magickPath,
+    ['identify', '-format', '%@', '-fuzz', TRIM_FUZZ, sourcePath],
+    `Identify content box of ${label}`,
+  );
+  runCommand(
+    magickPath,
+    [sourcePath, '-fuzz', TRIM_FUZZ, '-trim', '+repage', targetPath],
+    `Trim ${label}`,
+  );
+  const size = parsePngDimensions(
+    runCommand(magickPath, ['identify', '-format', '%w %h', targetPath], `Identify ${label}`),
+    label,
+  );
+  const offsetMatch = /([0-9]+)x([0-9]+)\+(-?[0-9]+)\+(-?[0-9]+)/.exec(contentBox);
+  return {
+    ...size,
+    offset: offsetMatch
+      ? { x: Number.parseInt(offsetMatch[3], 10), y: Number.parseInt(offsetMatch[4], 10) }
+      : null,
+  };
+}
+
 async function compareVisualRenders({
   magickPath,
   comparePath,
@@ -288,22 +324,20 @@ async function compareVisualRenders({
   diffPath,
   scratchDir,
 }) {
-  const editorSize = parsePngDimensions(
-    runCommand(
-      magickPath,
-      ['identify', '-format', '%w %h', chemEditorPngPath],
-      'Identify ChemEditor render',
-    ),
-    'ChemEditor render',
-  );
-  const chemdrawSize = parsePngDimensions(
-    runCommand(
-      magickPath,
-      ['identify', '-format', '%w %h', chemdrawPngPath],
-      'Identify ChemDraw render',
-    ),
-    'ChemDraw render',
-  );
+  const trimmedEditorPath = path.join(scratchDir, 'chem-editor-trimmed.png');
+  const trimmedChemDrawPath = path.join(scratchDir, 'chemdraw-trimmed.png');
+  const editorSize = trimToContent({
+    magickPath,
+    sourcePath: chemEditorPngPath,
+    targetPath: trimmedEditorPath,
+    label: 'ChemEditor render',
+  });
+  const chemdrawSize = trimToContent({
+    magickPath,
+    sourcePath: chemdrawPngPath,
+    targetPath: trimmedChemDrawPath,
+    label: 'ChemDraw render',
+  });
   const width = Math.max(editorSize.width, chemdrawSize.width);
   const height = Math.max(editorSize.height, chemdrawSize.height);
   const normalizedEditorPath = path.join(scratchDir, 'chem-editor-normalized.png');
@@ -312,7 +346,7 @@ async function compareVisualRenders({
   runCommand(
     magickPath,
     [
-      chemEditorPngPath,
+      trimmedEditorPath,
       '-background',
       'white',
       '-gravity',
@@ -326,7 +360,7 @@ async function compareVisualRenders({
   runCommand(
     magickPath,
     [
-      chemdrawPngPath,
+      trimmedChemDrawPath,
       '-background',
       'white',
       '-gravity',
@@ -378,6 +412,16 @@ async function compareVisualRenders({
     height,
     diffPixels,
     diffRatio: width * height > 0 ? diffPixels / (width * height) : 0,
+    // Kept so a large registration difference stays visible rather than being silently absorbed
+    // by the trim, and so a size mismatch reads as a scale problem rather than a drawing one.
+    trimmed: {
+      chemEditor: editorSize,
+      chemdraw: chemdrawSize,
+      sizeDeltaPx: {
+        width: editorSize.width - chemdrawSize.width,
+        height: editorSize.height - chemdrawSize.height,
+      },
+    },
   };
 }
 
@@ -402,6 +446,7 @@ async function writeAttemptArtifacts({
   afterSummary,
   afterWarnings,
   visualMetrics,
+  importFidelity,
   stepTimings,
   visualConfig,
   durationMs,
@@ -465,6 +510,10 @@ async function writeAttemptArtifacts({
       : 'No compatibility diff available.\n',
   );
   await writeFile(
+    path.join(artifactDir, 'import-fidelity.json'),
+    JSON.stringify(importFidelity ?? null, null, 2),
+  );
+  await writeFile(
     path.join(artifactDir, 'session.json'),
     JSON.stringify(
       {
@@ -514,6 +563,7 @@ async function writeAttemptArtifacts({
               ? formatCompatibilityDiff(beforeSummary, afterSummary)
               : null,
         },
+        importFidelity: importFidelity ?? null,
         failureClassification,
         stepTimings,
         visual: {
@@ -532,6 +582,60 @@ async function writeAttemptArtifacts({
   }
 
   return artifactDir;
+}
+
+/**
+ * Writes the whole run to one file, ranked worst-first.
+ *
+ * Per-case directories are the debugging record for a single failure; this is what you read to
+ * decide what to work on next. Dropped-construct tallies are aggregated across the corpus because
+ * a construct missing from ninety files is a different job from one missing from a single file.
+ */
+async function writeRunSummary(caseResults) {
+  if (caseResults.length === 0) return;
+
+  const droppedElements = new Map();
+  const droppedAttributes = new Map();
+  for (const result of caseResults) {
+    for (const key of Object.keys(result.importFidelity?.elements?.dropped ?? {})) {
+      droppedElements.set(key, (droppedElements.get(key) ?? 0) + 1);
+    }
+    for (const key of Object.keys(result.importFidelity?.attributes?.dropped ?? {})) {
+      droppedAttributes.set(key, (droppedAttributes.get(key) ?? 0) + 1);
+    }
+  }
+  const byCaseCount = (counter) =>
+    [...counter.entries()]
+      .sort(([leftKey, leftCount], [rightKey, rightCount]) =>
+        rightCount === leftCount ? leftKey.localeCompare(rightKey) : rightCount - leftCount,
+      )
+      .map(([name, caseCount]) => ({ name, caseCount }));
+
+  const summaryPath = path.join(artifactRoot, runId, 'run-summary.json');
+  await mkdir(path.dirname(summaryPath), { recursive: true });
+  await writeFile(
+    summaryPath,
+    JSON.stringify(
+      {
+        runId,
+        mode,
+        caseCount: caseResults.length,
+        passCount: caseResults.filter((result) => result.ok).length,
+        failCount: caseResults.filter((result) => !result.ok).length,
+        droppedOnImport: {
+          elements: byCaseCount(droppedElements),
+          attributes: byCaseCount(droppedAttributes),
+        },
+        casesByVisualDiff: [...caseResults]
+          .filter((result) => typeof result.visual?.diffRatio === 'number')
+          .sort((left, right) => right.visual.diffRatio - left.visual.diffRatio),
+        cases: caseResults,
+      },
+      null,
+      2,
+    ),
+  );
+  console.log(`\nRun summary: ${summaryPath}`);
 }
 
 async function main() {
@@ -587,6 +691,7 @@ async function main() {
   const tempRoot = await mkdtemp(path.join(tmpdir(), 'chemdraw-harness-'));
   const session = createChemDrawSession({ appId, showWindows });
   const failures = [];
+  const caseResults = [];
   let appVersion = '';
 
   console.log(`Running ChemDraw ${mode} compatibility suite against ${cases.length} case(s).`);
@@ -642,6 +747,7 @@ async function main() {
           let beforeWarnings = [];
           let afterWarnings = [];
           let visualMetrics = null;
+          let importFidelity = null;
           const stepTimings = {};
 
           try {
@@ -665,6 +771,22 @@ async function main() {
             );
             await recordTimedStep(stepTimings, 'write-chem-editor-input', null, () =>
               writeFile(generatedInputPath, generatedXml, 'utf8'),
+            );
+
+            // What the importer failed to carry from the source file. This is invisible to the
+            // before/after comparison below, which only sees documents that already went through
+            // the importer.
+            importFidelity = await recordTimedStep(
+              stepTimings,
+              'compare-import-fidelity',
+              null,
+              () => ({
+                warnings: importedOriginal.warnings,
+                ...diffCdxmlElementSummaries(
+                  buildCdxmlElementSummary(originalXml),
+                  buildCdxmlElementSummary(generatedXml),
+                ),
+              }),
             );
 
             await recordTimedStep(stepTimings, 'validate-chem-editor-input', 'xml-parse', () =>
@@ -824,12 +946,46 @@ async function main() {
             }
 
             const durationMs = Date.now() - startedAt;
+            // Passing cases are written out too: import fidelity is report-only, so a run where
+            // every case passes is exactly the run whose triage data matters most.
+            await writeAttemptArtifacts({
+              caseInfo,
+              caseId,
+              attempt,
+              runMode: mode,
+              appVersion,
+              failureClassification: null,
+              originalSourcePath: caseInfo.absolutePath,
+              generatedInputPath,
+              chemdrawOutputPath,
+              chemdrawPdfPath: (await fileExists(chemdrawPdfPath)) ? chemdrawPdfPath : null,
+              chemEditorSvgPath: (await fileExists(chemEditorSvgPath)) ? chemEditorSvgPath : null,
+              chemEditorPngPath: (await fileExists(chemEditorPngPath)) ? chemEditorPngPath : null,
+              chemdrawPngPath: (await fileExists(chemdrawPngPath)) ? chemdrawPngPath : null,
+              overlayPath: (await fileExists(overlayPath)) ? overlayPath : null,
+              diffImagePath: (await fileExists(diffImagePath)) ? diffImagePath : null,
+              beforeSummary,
+              beforeWarnings,
+              afterSummary,
+              afterWarnings,
+              visualMetrics,
+              importFidelity,
+              stepTimings,
+              visualConfig,
+              durationMs,
+              error: null,
+            });
             const visualSuffix =
               visualMetrics && typeof visualMetrics.diffPixels === 'number'
                 ? `, visual diff ${visualMetrics.diffPixels} px (${(visualMetrics.diffRatio * 100).toFixed(3)}%)`
                 : '';
-            console.log(`  PASS in ${durationMs}ms (attempt ${attempt}${visualSuffix})`);
-            return { durationMs, visualMetrics, stepTimings };
+            const importSuffix = importFidelity?.droppedElementCount
+              ? `, ${importFidelity.droppedElementCount} element kind(s) dropped on import`
+              : '';
+            console.log(
+              `  PASS in ${durationMs}ms (attempt ${attempt}${visualSuffix}${importSuffix})`,
+            );
+            return { durationMs, visualMetrics, importFidelity, stepTimings };
           } catch (error) {
             const failureClassification = classifyFailure(error);
             const artifactDir = await writeAttemptArtifacts({
@@ -853,6 +1009,7 @@ async function main() {
               afterSummary,
               afterWarnings,
               visualMetrics,
+              importFidelity,
               stepTimings,
               visualConfig,
               durationMs: Date.now() - startedAt,
@@ -873,6 +1030,16 @@ async function main() {
           );
           appVersion = session.recoverSession();
         },
+      });
+
+      caseResults.push({
+        caseId,
+        relativePath: caseInfo.relativePath,
+        ok: result.ok,
+        durationMs: result.value?.durationMs ?? null,
+        visual: result.value?.visualMetrics ?? null,
+        importFidelity: result.value?.importFidelity ?? null,
+        failureClassification: result.ok ? null : classifyFailure(result.failures.at(-1)?.error),
       });
 
       if (!result.ok) {
@@ -897,6 +1064,7 @@ async function main() {
   } finally {
     session.quit();
     await rm(tempRoot, { recursive: true, force: true });
+    await writeRunSummary(caseResults);
   }
 
   if (failures.length > 0) {

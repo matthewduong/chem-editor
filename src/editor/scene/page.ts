@@ -10,7 +10,12 @@ export function createViewportBounds(options: RenderSceneOptions) {
   };
 }
 
-export function drawPageTiles(ctx: CanvasRenderingContext2D, scene: DocumentSceneState) {
+export function drawPageTiles(
+  ctx: CanvasRenderingContext2D,
+  scene: DocumentSceneState,
+  options?: { drawPageChrome?: boolean },
+) {
+  if (options?.drawPageChrome === false) return;
   if (scene.pageSetup.mode !== 'finite') return;
   const metrics = getPageSetupDimensionsPx(scene.pageSetup);
   for (let index = 0; index < scene.pageSetup.rows * scene.pageSetup.columns; index += 1) {
