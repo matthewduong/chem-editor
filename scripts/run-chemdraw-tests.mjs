@@ -23,6 +23,7 @@ import {
   classifyFailure,
   diffCdxmlElementSummaries,
   formatCompatibilityDiff,
+  formatCompatibilityDrift,
   runCaseWithRetry,
   sanitizeCaseId,
 } from './lib/chemdraw-harness.mjs';
@@ -802,10 +803,12 @@ async function main() {
             beforeSummary = buildCompatibilitySummary(beforeConversion.document);
 
             if (shouldCaptureVisualArtifacts) {
+              // Rendered from our import of the source, not of our export, so that the comparison
+              // is our drawing of the file against ChemDraw's drawing of the same file.
               const fidelityDocument = {
-                ...beforeConversion.document,
+                ...importedOriginal.document,
                 metadata: {
-                  ...beforeConversion.document.metadata,
+                  ...importedOriginal.document.metadata,
                   documentViewSettings: { atomColorViewMode: 'chemdraw-fidelity' },
                 },
               };
@@ -832,6 +835,33 @@ async function main() {
               );
             }
 
+            // The visual reference is ChemDraw drawing the untouched source. Rendering our export
+            // instead would fold our own writer's mistakes into the reference: a construct we
+            // export wrongly would be drawn wrongly by both sides and the comparison would pass.
+            if (shouldCaptureVisualArtifacts) {
+              await recordTimedStep(
+                stepTimings,
+                'ensure-clean-state-before-reference',
+                'ensure-clean-state',
+                () => session.ensureCleanState(),
+              );
+              await recordTimedStep(stepTimings, 'open-original-source', 'open-document', () =>
+                session.openDocument(caseInfo.absolutePath),
+              );
+              await recordTimedStep(
+                stepTimings,
+                'wait-for-original-source',
+                'wait-for-document-count',
+                () => session.waitForDocumentCount(1),
+              );
+              await recordTimedStep(stepTimings, 'save-pdf', 'save-pdf', () =>
+                session.savePdf(chemdrawPdfPath),
+              );
+              await recordTimedStep(stepTimings, 'close-original-source', 'close-document', () =>
+                session.closeDocument(),
+              );
+            }
+
             await recordTimedStep(
               stepTimings,
               'ensure-clean-state-before-open',
@@ -850,11 +880,6 @@ async function main() {
             await recordTimedStep(stepTimings, 'save-cdxml', 'save-cdxml', () =>
               session.saveCdxml(chemdrawOutputPath),
             );
-            if (shouldCaptureVisualArtifacts) {
-              await recordTimedStep(stepTimings, 'save-pdf', 'save-pdf', () =>
-                session.savePdf(chemdrawPdfPath),
-              );
-            }
             await recordTimedStep(stepTimings, 'close-document', 'close-document', () =>
               session.closeDocument(),
             );
@@ -923,7 +948,7 @@ async function main() {
               'compare-semantic-summary',
               'semantic-drift',
               async () => {
-                const diff = formatCompatibilityDiff(beforeSummary, afterSummary);
+                const diff = formatCompatibilityDrift(beforeSummary, afterSummary);
                 if (diff !== 'No differences.') {
                   const error = new Error(`Compatibility summary drift detected\n${diff}`);
                   error.stage = 'semantic-drift';

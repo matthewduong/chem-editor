@@ -7,6 +7,7 @@ import {
   classifyFailure,
   diffCdxmlElementSummaries,
   formatCompatibilityDiff,
+  formatCompatibilityDrift,
   runCaseWithRetry,
   sanitizeCaseId,
 } from '../scripts/lib/chemdraw-harness.mjs';
@@ -382,4 +383,44 @@ test('container counts make a lost group visible to the summary', () => {
   assert.notEqual(formatCompatibilityDiff(withGroup, withoutGroup), 'No differences.');
   assert.equal(withGroup.containerCounts['group:1'], 1);
   assert.equal(withoutGroup.containerCounts['group:1'], undefined);
+});
+
+test('preserved page children are recorded but do not gate', () => {
+  // ChemDraw rebuilds <scheme>/<step> from structure on open, so a file exported element for
+  // element still comes back regrouped. That is ChemDraw normalising, not our output drifting.
+  const before = buildCompatibilitySummary({
+    pages: [
+      {
+        objects: [{ id: 'n1', type: 'node', element: 'C' }],
+        preservedPageChildren: [
+          { tagName: 'scheme', xml: '<scheme/>', capability: 'render-only', reason: '' },
+        ],
+      },
+    ],
+  });
+  const after = buildCompatibilitySummary({
+    pages: [
+      {
+        objects: [{ id: 'n1', type: 'node', element: 'C' }],
+        preservedPageChildren: [
+          { tagName: 'scheme', xml: '<scheme/>', capability: 'render-only', reason: '' },
+          { tagName: 'scheme', xml: '<scheme/>', capability: 'render-only', reason: '' },
+        ],
+      },
+    ],
+  });
+
+  assert.match(formatCompatibilityDiff(before, after), /preservedPageChildren\.scheme: 1 -> 2/);
+  assert.equal(formatCompatibilityDrift(before, after), 'No differences.');
+});
+
+test('drift still catches real content changes', () => {
+  const before = buildCompatibilitySummary({
+    pages: [{ objects: [{ id: 'n1', type: 'node', element: 'C' }] }],
+  });
+  const after = buildCompatibilitySummary({
+    pages: [{ objects: [{ id: 'n1', type: 'node', element: 'N' }] }],
+  });
+
+  assert.notEqual(formatCompatibilityDrift(before, after), 'No differences.');
 });

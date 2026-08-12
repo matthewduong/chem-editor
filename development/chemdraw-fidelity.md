@@ -86,6 +86,15 @@ This is the mode to use for routine local work because it is fast and stable.
 
 ### Visual Capture
 
+The comparison is **our drawing of the source file against ChemDraw's drawing of the same source
+file**. Both sides render the original: ChemEditor from its import of it, ChemDraw by opening it
+directly. Neither goes through our CDXML writer.
+
+That matters. Taking the reference from our own exported CDXML instead would fold our writer's
+mistakes into the reference — a construct we export wrongly would then be drawn wrongly by both
+sides, and the comparison would pass. The round-trip through ChemDraw is still exercised, but by
+the semantic check, which is the part that question belongs to.
+
 Both renders are cropped to their drawing before they are compared. ChemDraw prints onto its own
 paper while ChemEditor renders the authored page box, so the two do not share a page origin and
 comparing them as laid out would measure that offset rather than the drawing. The trimmed sizes are
@@ -148,6 +157,22 @@ read this" visible.
 
 It is **report-only** — it never fails a case. `dropped` is the actionable half; `added` is
 reported too because the writer emits ChemEditor-private attributes by design.
+
+## What Gates And What Does Not
+
+The before/after comparison asks one question: does ChemDraw round-trip **our output** stably? It
+fails a case on any change to modelled content — object counts, node elements, bond kinds, arrow
+kinds, text, container counts.
+
+`preservedPageChildren` is recorded in the summary but excluded from that check. Preserved children
+are raw XML we carry through without modelling, and ChemDraw rebuilds derived reaction metadata
+from structure when it opens a file: a source with 3 `<scheme>` elements and 8 `<step>` children,
+exported element for element, comes back as 6 and 9. That is ChemDraw normalising its own
+bookkeeping, not our output drifting, and it is the same reasoning that already keeps
+`<chemicalproperty>` out of our export.
+
+Modelling schemes and steps as real objects — rather than preserving them verbatim — is what would
+let this gate. Until then the counts stay visible in `diff.txt` and `before/after-summary.json`.
 
 ## Recommended Debugging Loop
 

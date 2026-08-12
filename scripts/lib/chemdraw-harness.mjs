@@ -266,6 +266,29 @@ export function formatCompatibilityDiff(beforeSummary, afterSummary) {
   return lines.length > 0 ? lines.join('\n') : 'No differences.';
 }
 
+/**
+ * Summary sections that are recorded but do not fail a case.
+ *
+ * Preserved page children are raw XML we carry through without modelling. ChemDraw rebuilds
+ * derived reaction metadata from structure when it opens a file, so one handed to it unchanged
+ * comes back regrouped: a source with 3 <scheme> elements and 8 <step> children, exported element
+ * for element, returns as 6 and 9. That is ChemDraw normalising its own bookkeeping rather than
+ * our output being unstable, and it is the same reasoning that already keeps <chemicalproperty>
+ * out of our export. Modelling schemes and steps properly is what would make it gate.
+ */
+const REPORT_ONLY_SUMMARY_SECTIONS = ['preservedPageChildren'];
+
+/** The gating comparison: {@link formatCompatibilityDiff} minus the report-only sections. */
+export function formatCompatibilityDrift(beforeSummary, afterSummary) {
+  const gating = (summary) => {
+    if (!summary) return summary;
+    const copy = { ...summary };
+    for (const section of REPORT_ONLY_SUMMARY_SECTIONS) delete copy[section];
+    return copy;
+  };
+  return formatCompatibilityDiff(gating(beforeSummary), gating(afterSummary));
+}
+
 export function sanitizeCaseId(value) {
   return value.replace(/[^a-zA-Z0-9._-]+/g, '_');
 }
