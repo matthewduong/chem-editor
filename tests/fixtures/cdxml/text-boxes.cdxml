@@ -1,8 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  Text boxes with and without an authored BoundingBox. The bounded one is the important case:
-  CDXML import turns that box into a wrapping width, so measurement and painting have to agree
-  about where the lines break.
+  Text boxes, and where their line breaks come from.
+
+  A ChemDraw BoundingBox measures text that has already been laid out; it is not a wrapping
+  constraint. ChemDraw records its breaks explicitly, as literal newlines in the run and a
+  LineStarts attribute, and then fits the box tightly around the result. Wrapping to that box would
+  reflow authored text against our metrics rather than ChemDraw's, and because the fit is tight the
+  last character spills onto a line of its own.
+
+  t2 is the important case: its box is tight around one long line, exactly as ChemDraw writes it,
+  and it must stay on one line. t5 carries an authored break and must honour it with no wrap width
+  in play. t6 uses the private attribute we write for boxes sized in this editor, which is the only
+  thing that does wrap.
 -->
 <CDXML BondLength="14.4" LineWidth="0.6" CaptionSize="10">
   <page id="page-1">
@@ -23,6 +32,13 @@
     </t>
     <t id="t4" p="0 110">
       <s font="4" size="12" face="0">serif caption</s>
+    </t>
+    <t id="t5" p="0 140" BoundingBox="0 134 30 160" LineStarts="5 8" Justification="Center">
+      <s font="3" size="10" face="0">PIDA
+68%</s>
+    </t>
+    <t id="t6" p="0 180" BoundingBox="0 174 60 210" ChemEditorTextWrapWidth="60">
+      <s font="3" size="10" face="0">an editor sized box that really does wrap</s>
     </t>
   </page>
 </CDXML>

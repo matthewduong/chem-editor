@@ -72,6 +72,7 @@ const CHEMDRAW_ARROW_METRIC_SCALE = 100;
 const CHEM_EDITOR_CHEMICAL_METADATA_ATTR = 'ChemEditorChemicalMetadata';
 const CHEM_EDITOR_TEXT_SEMANTIC_MODE_ATTR = 'ChemEditorTextSemanticMode';
 const CHEM_EDITOR_TEXT_CONVERSION_STATUS_ATTR = 'ChemEditorTextConversionStatus';
+const CHEM_EDITOR_TEXT_WRAP_WIDTH_ATTR = 'ChemEditorTextWrapWidth';
 const CHEM_EDITOR_DOUBLE_BOND_MODE_ATTR = 'ChemEditorDoubleBondMode';
 const CHEM_EDITOR_ARROW_TYPE_ATTR = 'ChemEditorArrowType';
 const CHEM_EDITOR_ARROW_CURVE_ENABLED_ATTR = 'ChemEditorArrowCurveEnabled';
@@ -765,9 +766,12 @@ function emitTextBoxT(
   const fontId = getFontId(tb.fontFamily ?? 'Arial');
   const rotationAttr =
     tb.rotation != null ? ` RotationAngle="${Math.round(tb.rotation * 65536)}"` : '';
+  // BoundingBox is what ChemDraw reads; the private attribute is what survives our own round trip,
+  // since on import a BoundingBox is treated as a measurement rather than a wrap width.
   const widthAttr =
     tb.width != null && tb.width > 0
-      ? ` BoundingBox="${x.toFixed(2)} ${y.toFixed(2)} ${(x + tb.width * scaleFactor).toFixed(2)} ${(y + tb.fontSize * 1.6).toFixed(2)}"`
+      ? ` BoundingBox="${x.toFixed(2)} ${y.toFixed(2)} ${(x + tb.width * scaleFactor).toFixed(2)} ${(y + tb.fontSize * 1.6).toFixed(2)}"` +
+        ` ${CHEM_EDITOR_TEXT_WRAP_WIDTH_ATTR}="${formatCdxmlNumber(tb.width * scaleFactor)}"`
       : '';
   const chemicalMetadataAttr = tb.chemicalMetadata
     ? ` ${CHEM_EDITOR_CHEMICAL_METADATA_ATTR}="${xmlEscape(JSON.stringify(tb.chemicalMetadata))}"`
@@ -1869,15 +1873,17 @@ export function cdxmlToChemDrawDocument(xmlString: string): ChemDrawConversionRe
       tEl.getAttribute('Justification') ?? tEl.getAttribute('LabelJustification') ?? 'Center';
     const justification = justAttr === 'Left' ? 'left' : justAttr === 'Right' ? 'right' : 'center';
     const bounds = parseBounds(tEl.getAttribute('BoundingBox'), importScaleFactor);
-    const pAttr = tEl.getAttribute('p');
-    let width: number | undefined;
-    if (bounds) width = Math.max(0, bounds.right - bounds.left);
-    else if (pAttr) {
-      const coords = pAttr.trim().split(/\s+/).map(Number);
-      if (coords.length >= 4 && !coords.some(Number.isNaN)) {
-        width = Math.max(0, (coords[2] - coords[0]) / importScaleFactor);
-      }
-    }
+    // A ChemDraw BoundingBox measures text that has already been laid out; it is not a wrapping
+    // constraint. ChemDraw stores its own line breaks explicitly in the runs, and it fits the box
+    // tightly around the result, so treating it as a wrap width re-flows the text against our
+    // metrics instead of its own -- and because the fit is tight, the last character always spills
+    // onto a line of its own ("TEMPO" became "TEMP" over "O"). Only a width we wrote ourselves
+    // describes a box the author actually sized.
+    const wrapWidthRaw = parseFloat(tEl.getAttribute(CHEM_EDITOR_TEXT_WRAP_WIDTH_ATTR) ?? '');
+    const width =
+      Number.isFinite(wrapWidthRaw) && wrapWidthRaw > 0
+        ? wrapWidthRaw / importScaleFactor
+        : undefined;
     return {
       runs,
       justification,
@@ -2788,11 +2794,16 @@ export function cdxmlToChemDrawDocument(xmlString: string): ChemDrawConversionRe
     const rotationAttr = child.getAttribute('RotationAngle');
     const rotation = rotationAttr != null ? parseFloat(rotationAttr) / 65536 : undefined;
     const bboxAttr = child.getAttribute('BoundingBox');
-    let width: number | undefined;
+    // See parseTextBlock: a ChemDraw BoundingBox measures laid-out text rather than constraining
+    // it, so only a width we wrote ourselves is a wrap width. Bounds are still kept.
+    const wrapWidthRaw = parseFloat(child.getAttribute(CHEM_EDITOR_TEXT_WRAP_WIDTH_ATTR) ?? '');
+    const width: number | undefined =
+      Number.isFinite(wrapWidthRaw) && wrapWidthRaw > 0
+        ? wrapWidthRaw / importScaleFactor
+        : undefined;
     let bounds: ChemDrawText['text']['bounds'];
     if (bboxAttr) {
       const [left, top, right, bottom] = bboxAttr.trim().split(/\s+/).map(Number);
-      if (!isNaN(left) && !isNaN(right) && right > left) width = (right - left) / importScaleFactor;
       if (![left, top, right, bottom].some(Number.isNaN)) {
         bounds = {
           left: left / importScaleFactor,
@@ -2850,6 +2861,7 @@ export function cdxmlToChemDrawDocument(xmlString: string): ChemDrawConversionRe
         CHEM_EDITOR_CHEMICAL_METADATA_ATTR,
         CHEM_EDITOR_TEXT_SEMANTIC_MODE_ATTR,
         CHEM_EDITOR_TEXT_CONVERSION_STATUS_ATTR,
+        CHEM_EDITOR_TEXT_WRAP_WIDTH_ATTR,
       ],
       preserveChild: (grandchild) =>
         grandchild.tagName !== 's' && grandchild.tagName !== 'objecttag',

@@ -242,7 +242,16 @@ export function getTextBoxLines(
       continue;
     }
     if (!shouldWrap) {
-      lines[lines.length - 1].push(run);
+      // An authored break is a break whether or not the box wraps. ChemDraw stores its line
+      // breaks inside the run text, so a box that does not wrap still has to split on them.
+      if (!run.text.includes('\n')) {
+        lines[lines.length - 1].push(run);
+        continue;
+      }
+      run.text.split('\n').forEach((part, partIndex) => {
+        if (partIndex > 0) lines.push([]);
+        if (part) lines[lines.length - 1].push({ ...run, text: part });
+      });
       continue;
     }
     const textParts = run.text.split('\n');
@@ -271,9 +280,11 @@ export function getTextBoxLines(
  *
  * Every renderer must go through this rather than calling `getTextBoxLines` directly, so that
  * the lines that get painted are the same lines `getTextBoxDimensions` measured. Pass the same
- * `measureWidth` to both for a given call site: CDXML import sets `width` from `<t BoundingBox>`,
- * so mismatched measurement functions produce different line counts and a bounding box that
- * disagrees with the painted text.
+ * `measureWidth` to both for a given call site, or mismatched measurement functions produce
+ * different line counts and a bounding box that disagrees with the painted text.
+ *
+ * Imported ChemDraw text has no wrap width -- its line breaks are authored, not reflowed -- so
+ * only boxes sized in this editor wrap here.
  */
 export function getTextBoxRenderLines(
   textBox: TextBox,

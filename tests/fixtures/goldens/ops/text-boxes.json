@@ -77,7 +77,7 @@
     "name": "translate",
     "args": [
       0,
-      55
+      35
     ]
   },
   {
@@ -104,45 +104,9 @@
     "op": "call",
     "name": "fillText",
     "args": [
-      "a bounded",
-      -23.6353,
-      -25
-    ]
-  },
-  {
-    "op": "call",
-    "name": "fillText",
-    "args": [
-      "caption that",
-      -25.8521,
-      -15
-    ]
-  },
-  {
-    "op": "call",
-    "name": "fillText",
-    "args": [
-      "has to wrap",
-      -25.8472,
+      "a bounded caption that has to wrap onto several lines",
+      -118.4131,
       -5
-    ]
-  },
-  {
-    "op": "call",
-    "name": "fillText",
-    "args": [
-      "onto several",
-      -27.2388,
-      5
-    ]
-  },
-  {
-    "op": "call",
-    "name": "fillText",
-    "args": [
-      "lines",
-      -10.2832,
-      15
     ]
   },
   {
@@ -265,6 +229,136 @@
       "serif caption",
       -29.8213,
       -6
+    ]
+  },
+  {
+    "op": "call",
+    "name": "restore",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "save",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "translate",
+    "args": [
+      0,
+      150
+    ]
+  },
+  {
+    "op": "set",
+    "prop": "font",
+    "value": "normal 10px 'Liberation Sans', sans-serif"
+  },
+  {
+    "op": "set",
+    "prop": "fontKerning",
+    "value": "none"
+  },
+  {
+    "op": "set",
+    "prop": "fillStyle",
+    "value": "#000000"
+  },
+  {
+    "op": "set",
+    "prop": "textBaseline",
+    "value": "top"
+  },
+  {
+    "op": "call",
+    "name": "fillText",
+    "args": [
+      "PIDA",
+      -11.6699,
+      -10
+    ]
+  },
+  {
+    "op": "call",
+    "name": "fillText",
+    "args": [
+      "68%",
+      -10.0073,
+      0
+    ]
+  },
+  {
+    "op": "call",
+    "name": "restore",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "save",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "translate",
+    "args": [
+      0,
+      200
+    ]
+  },
+  {
+    "op": "set",
+    "prop": "font",
+    "value": "normal 10px 'Liberation Sans', sans-serif"
+  },
+  {
+    "op": "set",
+    "prop": "fontKerning",
+    "value": "none"
+  },
+  {
+    "op": "set",
+    "prop": "fillStyle",
+    "value": "#000000"
+  },
+  {
+    "op": "set",
+    "prop": "textBaseline",
+    "value": "top"
+  },
+  {
+    "op": "call",
+    "name": "fillText",
+    "args": [
+      "an editor",
+      -19.458,
+      -20
+    ]
+  },
+  {
+    "op": "call",
+    "name": "fillText",
+    "args": [
+      "sized box",
+      -21.123,
+      -10
+    ]
+  },
+  {
+    "op": "call",
+    "name": "fillText",
+    "args": [
+      "that really",
+      -21.6772,
+      0
+    ]
+  },
+  {
+    "op": "call",
+    "name": "fillText",
+    "args": [
+      "does wrap",
+      -23.0688,
+      10
     ]
   },
   {
