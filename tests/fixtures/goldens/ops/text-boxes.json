@@ -29,7 +29,7 @@
     "op": "call",
     "name": "translate",
     "args": [
-      0,
+      42.5391,
       5
     ]
   },
@@ -76,7 +76,7 @@
     "op": "call",
     "name": "translate",
     "args": [
-      0,
+      118.4131,
       35
     ]
   },
@@ -198,7 +198,7 @@
     "op": "call",
     "name": "translate",
     "args": [
-      0,
+      29.8213,
       116
     ]
   },
@@ -301,7 +301,7 @@
     "op": "call",
     "name": "translate",
     "args": [
-      0,
+      30,
       200
     ]
   },
@@ -330,7 +330,7 @@
     "name": "fillText",
     "args": [
       "an editor",
-      -19.458,
+      -30,
       -20
     ]
   },
@@ -339,7 +339,7 @@
     "name": "fillText",
     "args": [
       "sized box",
-      -21.123,
+      -30,
       -10
     ]
   },
@@ -348,7 +348,7 @@
     "name": "fillText",
     "args": [
       "that really",
-      -21.6772,
+      -30,
       0
     ]
   },
@@ -357,7 +357,7 @@
     "name": "fillText",
     "args": [
       "does wrap",
-      -23.0688,
+      -30,
       10
     ]
   },

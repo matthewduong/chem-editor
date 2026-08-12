@@ -1870,7 +1870,7 @@ export function cdxmlToChemDrawDocument(xmlString: string): ChemDrawConversionRe
   const parseTextBlock = (tEl: Element): ChemDrawText['text'] => {
     const runs = parseSRuns(tEl);
     const justAttr =
-      tEl.getAttribute('Justification') ?? tEl.getAttribute('LabelJustification') ?? 'Center';
+      tEl.getAttribute('Justification') ?? tEl.getAttribute('LabelJustification') ?? 'Left';
     const justification = justAttr === 'Left' ? 'left' : justAttr === 'Right' ? 'right' : 'center';
     const bounds = parseBounds(tEl.getAttribute('BoundingBox'), importScaleFactor);
     // A ChemDraw BoundingBox measures text that has already been laid out; it is not a wrapping
@@ -2788,8 +2788,14 @@ export function cdxmlToChemDrawDocument(xmlString: string): ChemDrawConversionRe
         ? conversionStatusAttr
         : undefined;
 
+    // CDXML's default for an undeclared Justification is Left, not Center. Every one of the 775
+    // page-level <t> elements in the reference corpus that omits the attribute has its p anchor at
+    // the left edge of its own BoundingBox, and every one that declares Center has it at the
+    // centre. Centring an undeclared caption shifts it left by half its width, which is how table
+    // entry numbers ended up underneath the column beside them. Atom labels always declare their
+    // justification, so they are unaffected either way.
     const justAttr =
-      child.getAttribute('Justification') ?? child.getAttribute('LabelJustification') ?? 'Center';
+      child.getAttribute('Justification') ?? child.getAttribute('LabelJustification') ?? 'Left';
     const justification = justAttr === 'Left' ? 'left' : justAttr === 'Right' ? 'right' : 'center';
     const rotationAttr = child.getAttribute('RotationAngle');
     const rotation = rotationAttr != null ? parseFloat(rotationAttr) / 65536 : undefined;

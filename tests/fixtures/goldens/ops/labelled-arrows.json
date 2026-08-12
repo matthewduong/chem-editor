@@ -302,7 +302,7 @@
     "op": "call",
     "name": "translate",
     "args": [
-      30,
+      50,
       15
     ]
   },
@@ -331,7 +331,7 @@
     "name": "fillText",
     "args": [
       "NaBH4",
-      -16.1182,
+      -20,
       -5
     ]
   },
@@ -349,7 +349,7 @@
     "op": "call",
     "name": "translate",
     "args": [
-      30,
+      55.0049,
       35
     ]
   },
