@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Arc geometry on arrows.
+
+  ChemDraw writes Center3D/MajorAxisEnd3D/MinorAxisEnd3D on straight arrows as well as curved ones,
+  where they describe nothing: the ellipse they define can sit hundreds of points away from the
+  arrow itself. AngularSize is what actually marks an arrow as an arc.
+
+  a1 and a2 reproduce that shape (axis attributes present, no AngularSize, endpoints nowhere near
+  the described ellipse) and must draw as straight lines. a3 and a4 are real arcs, with endpoints
+  on their ellipse and a sweep to go with it.
+-->
+<CDXML BondLength="14.4" LineWidth="0.6">
+  <page id="page-1">
+    <arrow id="a1" BoundingBox="0.00 -2.00 58.35 2.00" Head3D="58.35 0 0" Tail3D="0 0 0"
+      Center3D="1820.00 663.00 0" MajorAxisEnd3D="1878.35 663.00 0" MinorAxisEnd3D="1820.00 721.34 0"
+      ArrowheadHead="Full" ArrowheadType="Solid" HeadSize="1000" ArrowheadWidth="250"/>
+    <arrow id="a2" BoundingBox="0.00 18.00 94.24 22.00" Head3D="94.24 20 0" Tail3D="0 20 0"
+      Center3D="1488.01 628.45 0" MajorAxisEnd3D="1582.27 628.45 0" MinorAxisEnd3D="1488.01 722.70 0"
+      ArrowheadHead="Full" ArrowheadType="Solid" HeadSize="2250" ArrowheadWidth="563"/>
+    <arrow id="a3" Head3D="60 60 0" Tail3D="20 60 0"
+      Center3D="40 60 0" MajorAxisEnd3D="60 60 0" MinorAxisEnd3D="40 80 0"
+      AngularSize="180" ArrowheadHead="Full" ArrowheadType="Solid"/>
+    <arrow id="a4" Head3D="40 100 0" Tail3D="20 100 0"
+      Center3D="30 100 0" MajorAxisEnd3D="40 100 0" MinorAxisEnd3D="30 110 0"
+      AngularSize="-90" ArrowheadHead="Full" ArrowheadType="Solid"/>
+  </page>
+</CDXML>

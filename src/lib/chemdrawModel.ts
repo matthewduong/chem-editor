@@ -406,10 +406,45 @@ export function queryNodeLabel(node: ChemDrawNode): string | undefined {
   return node.alias;
 }
 
+/** How far an endpoint may sit off the described ellipse and still be considered on it. */
+const ARC_ENDPOINT_TOLERANCE = 0.05;
+
+/**
+ * Whether an arrow's arc attributes actually describe the curve it is drawn as.
+ *
+ * ChemDraw writes Center3D, MajorAxisEnd3D and MinorAxisEnd3D on straight arrows too, where they
+ * describe nothing in particular -- the ellipse they define can sit hundreds of points away from
+ * the arrow. Projecting an endpoint onto an ellipse it does not lie on is meaningless, and yields
+ * a control point far off the page, so the geometry is only usable when the ellipse really does
+ * pass through both ends.
+ */
+function arrowArcFitsEndpoints(arrow: ChemDrawArrow): boolean {
+  if (!arrow.arcCenter || !arrow.majorAxisEnd || !arrow.minorAxisEnd) return false;
+  const ux = arrow.majorAxisEnd.x - arrow.arcCenter.x;
+  const uy = arrow.majorAxisEnd.y - arrow.arcCenter.y;
+  const vx = arrow.minorAxisEnd.x - arrow.arcCenter.x;
+  const vy = arrow.minorAxisEnd.y - arrow.arcCenter.y;
+  const uLen2 = ux * ux + uy * uy;
+  const vLen2 = vx * vx + vy * vy;
+  if (uLen2 <= 0 || vLen2 <= 0) return false;
+
+  // Radius of a point in the ellipse's own coordinates; exactly 1 means it is on the ellipse.
+  const ellipseRadius = (point: { x: number; y: number }) => {
+    const dx = point.x - arrow.arcCenter!.x;
+    const dy = point.y - arrow.arcCenter!.y;
+    return Math.hypot((dx * ux + dy * uy) / uLen2, (dx * vx + dy * vy) / vLen2);
+  };
+  return (
+    Math.abs(ellipseRadius(arrow.tail) - 1) < ARC_ENDPOINT_TOLERANCE &&
+    Math.abs(ellipseRadius(arrow.head) - 1) < ARC_ENDPOINT_TOLERANCE
+  );
+}
+
 function projectEllipsePointToControlPoint(
   arrow: ChemDrawArrow,
 ): { x: number; y: number } | undefined {
   if (!arrow.arcCenter || !arrow.majorAxisEnd || !arrow.minorAxisEnd) return undefined;
+  if (!arrowArcFitsEndpoints(arrow)) return undefined;
   const ux = arrow.majorAxisEnd.x - arrow.arcCenter.x;
   const uy = arrow.majorAxisEnd.y - arrow.arcCenter.y;
   const vx = arrow.minorAxisEnd.x - arrow.arcCenter.x;

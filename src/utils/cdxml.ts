@@ -2545,7 +2545,14 @@ export function cdxmlToChemDrawDocument(xmlString: string): ChemDrawConversionRe
       arcCenter = parsePoint3D(center3D, importScaleFactor);
       majorAxisEnd = parsePoint3D(majorAxisEnd3D, importScaleFactor);
       minorAxisEnd = parsePoint3D(minorAxisEnd3D, importScaleFactor);
-      isCurved = Boolean(arcCenter && majorAxisEnd && minorAxisEnd);
+      // AngularSize is what marks an arrow as an arc -- it is the sweep the arc covers. The axis
+      // attributes are written on straight arrows too, where they describe nothing: across the
+      // reference corpus every one of the 18 arrows carrying an AngularSize has its endpoints on
+      // the described ellipse, and none of the other 251 do. Reading the axis attributes alone as
+      // curvature projects each endpoint onto an ellipse it is nowhere near, which lands the
+      // control point hundreds of points off the page.
+      isCurved =
+        Boolean(arcCenter && majorAxisEnd && minorAxisEnd) && Number.isFinite(angularSizeRaw);
     } else if (bbox) {
       const [l, t, r, b] = bbox.trim().split(/\s+/).map(Number);
       tail = { x: l / importScaleFactor, y: t / importScaleFactor };
