@@ -9,7 +9,11 @@ import { getPaintFontFamily } from '../../../lib/textMetrics';
 const IMAGE_CACHE = new Map<string, HTMLImageElement | null>();
 
 function getPreviewImage(dataUrl: string | undefined): HTMLImageElement | null {
-  if (!dataUrl || typeof Image === 'undefined') return null;
+  if (!dataUrl) return null;
+  // Off the DOM there is nothing to decode against, but a data URL is already self-contained:
+  // backends that consume the source directly (SVG export) can still place the real image rather
+  // than falling through to the placeholder label.
+  if (typeof Image === 'undefined') return { src: dataUrl } as HTMLImageElement;
   const cached = IMAGE_CACHE.get(dataUrl);
   if (cached) return cached.complete ? cached : null;
   const image = new Image();

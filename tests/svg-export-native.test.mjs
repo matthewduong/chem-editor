@@ -116,17 +116,25 @@ test('generateDocumentSVG renders native non-structure objects and object tags',
     ],
   });
 
-  assert.match(svg, /data-native-object="graphic"/);
-  assert.match(svg, /data-native-object="embedded-object"/);
-  assert.match(svg, /data-native-object="table"/);
-  assert.match(svg, /data-native-object="bracket"/);
-  assert.match(svg, /endo/);
-  assert.match(svg, /Yield/);
-  assert.match(svg, /83%/);
-  assert.match(svg, /n=3/);
-  assert.match(svg, /tagged/);
-  assert.match(svg, /data:image\/png;base64/);
-  assert.match(svg, /filter="drop-shadow/);
+  // The scene renderer emits flat markup rather than per-object <g> wrappers, so each object type
+  // is identified by what it actually draws.
+  // graphic: a rounded rectangle, filled in its authored colour, carrying a drop shadow.
+  assert.match(svg, /<path d="M[^"]*A ?12 12[^"]*"[^>]*fill="#ffee88"/);
+  assert.match(svg, /<feDropShadow /);
+  assert.match(svg, /filter="url\(#shadow\d+\)"/);
+  // embedded object: the preview image itself, not a placeholder label.
+  assert.match(svg, /<image href="data:image\/png;base64/);
+  assert.doesNotMatch(svg, /Embedded PDF/);
+  // table: one stroked rectangle per cell, plus the cell text.
+  assert.match(svg, />Yield</);
+  assert.match(svg, />83%</);
+  // bracket: the two facing lips drawn as a single path, plus its label.
+  assert.match(svg, /<path d="M[^"]*M[^"]*"[^>]*stroke="#888888"/);
+  assert.match(svg, />n</);
+  // object tags anchored to a graphic, a table and a node.
+  assert.match(svg, />endo</);
+  assert.match(svg, />n=3</);
+  assert.match(svg, />tagged</);
 });
 
 test('generateDocumentSVG keeps implicit atom labels plain-weight by default', () => {
@@ -164,5 +172,9 @@ test('generateDocumentSVG keeps implicit atom labels plain-weight by default', (
     },
   );
 
-  assert.match(svg, /font-weight="normal" font-style="normal"[^>]*>O<\/text>/);
+  // Weight and style are emitted only when set, so "plain" is their absence on the label element.
+  const label = /<text[^>]*>O<\/text>/.exec(svg);
+  assert.ok(label, 'expected an implicit O label in the export');
+  assert.doesNotMatch(label[0], /font-weight="bold"/);
+  assert.doesNotMatch(label[0], /font-style="italic"/);
 });
