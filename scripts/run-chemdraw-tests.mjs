@@ -595,11 +595,17 @@ async function writeAttemptArtifacts({
 async function writeRunSummary(caseResults) {
   if (caseResults.length === 0) return;
 
-  const droppedElements = new Map();
+  const unexplainedElements = new Map();
+  const expectedElements = new Map();
+  const expectedReasons = new Map();
   const droppedAttributes = new Map();
   for (const result of caseResults) {
-    for (const key of Object.keys(result.importFidelity?.elements?.dropped ?? {})) {
-      droppedElements.set(key, (droppedElements.get(key) ?? 0) + 1);
+    for (const key of Object.keys(result.importFidelity?.elements?.unexplained ?? {})) {
+      unexplainedElements.set(key, (unexplainedElements.get(key) ?? 0) + 1);
+    }
+    for (const [key, change] of Object.entries(result.importFidelity?.elements?.expected ?? {})) {
+      expectedElements.set(key, (expectedElements.get(key) ?? 0) + 1);
+      expectedReasons.set(key, change.reason);
     }
     for (const key of Object.keys(result.importFidelity?.attributes?.dropped ?? {})) {
       droppedAttributes.set(key, (droppedAttributes.get(key) ?? 0) + 1);
@@ -623,8 +629,13 @@ async function writeRunSummary(caseResults) {
         caseCount: caseResults.length,
         passCount: caseResults.filter((result) => result.ok).length,
         failCount: caseResults.filter((result) => !result.ok).length,
+        // Unexplained first: it is the only part that asks for work.
         droppedOnImport: {
-          elements: byCaseCount(droppedElements),
+          unexplainedElements: byCaseCount(unexplainedElements),
+          expectedElements: byCaseCount(expectedElements).map((entry) => ({
+            ...entry,
+            reason: expectedReasons.get(entry.name),
+          })),
           attributes: byCaseCount(droppedAttributes),
         },
         casesByVisualDiff: [...caseResults]
@@ -1005,7 +1016,7 @@ async function main() {
                 ? `, visual diff ${visualMetrics.diffPixels} px (${(visualMetrics.diffRatio * 100).toFixed(3)}%)`
                 : '';
             const importSuffix = importFidelity?.droppedElementCount
-              ? `, ${importFidelity.droppedElementCount} element kind(s) dropped on import`
+              ? `, ${importFidelity.droppedElementCount} unexplained element kind(s) dropped on import`
               : '';
             console.log(
               `  PASS in ${durationMs}ms (attempt ${attempt}${visualSuffix}${importSuffix})`,

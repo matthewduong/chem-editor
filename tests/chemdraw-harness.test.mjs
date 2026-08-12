@@ -424,3 +424,43 @@ test('drift still catches real content changes', () => {
 
   assert.notEqual(formatCompatibilityDrift(before, after), 'No differences.');
 });
+
+test('known-benign drops are separated from the ones that need work', () => {
+  // A real file carries one superseded <graphic> per <arrow>, and a nickname carries an expanded
+  // <fragment> of nodes and bonds. Both disappear by design; a lost <group> does not.
+  const source = buildCdxmlElementSummary(
+    `<CDXML><page>` +
+      `<arrow id="a1"/><graphic id="g1" SupersededBy="a1"/>` +
+      `<fragment><n id="n1"><fragment><n id="n2"/><b id="b1"/></fragment></n></fragment>` +
+      `<group><fragment><n id="n3"/></fragment></group>` +
+      `<chemicalproperty id="c1"/>` +
+      `</page></CDXML>`,
+  );
+  const exported = buildCdxmlElementSummary(
+    `<CDXML><page><arrow id="a1"/>` +
+      `<fragment><n id="n1"/></fragment><fragment><n id="n3"/></fragment>` +
+      `</page></CDXML>`,
+  );
+
+  const delta = diffCdxmlElementSummaries(source, exported);
+
+  assert.deepEqual(Object.keys(delta.elements.unexplained), ['group']);
+  assert.equal(delta.droppedElementCount, 1);
+  assert.match(delta.elements.expected.graphic.reason, /superseded/);
+  assert.match(delta.elements.expected.chemicalproperty.reason, /regenerated/);
+  assert.match(delta.elements.expected.n.reason, /nickname/);
+});
+
+test('a drop larger than its known cause still surfaces', () => {
+  // One superseded graphic explains one disappearance, not three.
+  const source = buildCdxmlElementSummary(
+    `<CDXML><page><arrow id="a1"/><graphic id="g1" SupersededBy="a1"/>` +
+      `<graphic id="g2"/><graphic id="g3"/></page></CDXML>`,
+  );
+  const exported = buildCdxmlElementSummary(`<CDXML><page><arrow id="a1"/></page></CDXML>`);
+
+  const delta = diffCdxmlElementSummaries(source, exported);
+
+  assert.equal(delta.elements.unexplained.graphic.unexplained, 2);
+  assert.equal(delta.elements.expected.graphic.covered, 1);
+});
