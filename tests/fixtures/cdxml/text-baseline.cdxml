@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Where a text object sits relative to its p anchor.
+
+  ChemDraw anchors a <t> on the first line's baseline. Probing ChemDraw directly settles it: text
+  rendered at a known y came back with its baseline within half a point of the anchor at 8.5pt,
+  10pt and 12pt alike, with no dependence on size. Our renderer places a line by its top, so the
+  two conventions differ by the face ascent.
+
+  Each caption here is anchored on the same y as the horizontal rule beside it, so the golden pins
+  the relationship between the two: the rule marks the baseline, and the painted text must sit
+  above it by an ascent, not below.
+
+  Three sizes, because an offset that did not scale with the font would show up here.
+-->
+<CDXML BondLength="14.4" LineWidth="0.6">
+  <page id="page-1">
+    <fonttable>
+      <font id="3" charset="iso-8859-1" name="Arial"/>
+    </fonttable>
+    <graphic id="rule1" GraphicType="Line" BoundingBox="0 60 40 60"/>
+    <t id="cap1" p="50 60" Justification="Left">
+      <s font="3" size="8.5" face="0">Hxy</s>
+    </t>
+    <graphic id="rule2" GraphicType="Line" BoundingBox="0 120 40 120"/>
+    <t id="cap2" p="50 120" Justification="Left">
+      <s font="3" size="10" face="0">Hxy</s>
+    </t>
+    <graphic id="rule3" GraphicType="Line" BoundingBox="0 180 40 180"/>
+    <t id="cap3" p="50 180" Justification="Left">
+      <s font="3" size="12" face="0">Hxy</s>
+    </t>
+  </page>
+</CDXML>

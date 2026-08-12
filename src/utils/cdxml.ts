@@ -64,6 +64,7 @@ import {
   normalizePageSetup,
 } from '../lib/settings';
 import { SHORTHAND_DATA } from '../lib/shorthand';
+import { getFaceMetrics } from '../lib/textMetrics';
 import { extractEmbeddedPreviewData } from '../lib/embeddedObjects';
 
 const DEFAULT_SCALE_FACTOR = DEFAULT_CHEMDRAW_STYLE_SHEET.bondLength / DEFAULT_CANVAS_BOND_LENGTH;
@@ -634,6 +635,31 @@ function emitT(
 // We always emit white (index 2) and black (index 3) as fixed entries,
 // then append any custom colors from TextBox runs.
 
+/**
+ * Distance from a `<t>` element's `p` anchor down to the top of its first line.
+ *
+ * ChemDraw anchors a text object on the first line's **baseline**. Probing ChemDraw itself settles
+ * it: rendering text at a known y and reading the ink back put the baseline within half a point of
+ * the anchor at 8.5pt, 10pt and 12pt alike, with no dependence on size. Our renderer places a line
+ * by its top (`drawRunText` sets `textBaseline = 'top'`), so the two conventions differ by exactly
+ * the face ascent, and text imported without this correction sits an ascent too low.
+ *
+ * Units follow whatever `fontSize` is given in, since the ascent scales linearly with it.
+ */
+function textAnchorBaselineOffset(
+  fontSize: number,
+  fontFamily: string | undefined,
+  firstRun?: { bold?: boolean; italic?: boolean },
+): number {
+  if (!Number.isFinite(fontSize) || fontSize <= 0) return 0;
+  return getFaceMetrics({
+    family: fontFamily ?? 'Arial',
+    sizePx: fontSize,
+    bold: Boolean(firstRun?.bold),
+    italic: Boolean(firstRun?.italic),
+  }).ascent;
+}
+
 function hexToRgbF(hex: string): { r: number; g: number; b: number } | null {
   const m = hex.match(/^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i);
   if (!m) return null;
@@ -758,8 +784,10 @@ function emitTextBoxT(
     rawChildrenXml?: string[];
   },
 ): string {
+  // Undo the import-side shift: `y` is the top of our first line, `p` is ChemDraw's baseline.
+  // Both are in native units here, as is tb.fontSize.
   const xs = x.toFixed(2),
-    ys = y.toFixed(2);
+    ys = (y + textAnchorBaselineOffset(tb.fontSize, tb.fontFamily, tb.runs[0])).toFixed(2);
   const just = tb.textAlign === 'left' ? 'Left' : tb.textAlign === 'right' ? 'Right' : 'Center';
   const fontSize = (tb.fontSize ?? 14).toFixed(1);
   const defaultColorIdx = getColorIndex(tb.color ?? '#000000');
@@ -2833,10 +2861,18 @@ export function cdxmlToChemDrawDocument(xmlString: string): ChemDrawConversionRe
     const fontFamily = fontNameById.get(fontId) ?? 'Arial';
     const textColor = runs.find((r) => r.color)?.color ?? '#000000';
 
+    // `p` is the first line's baseline; our anchor is its top. See textAnchorBaselineOffset.
+    // fontSize is native here, so scale it to canvas units to match `y`.
+    const baselineOffset = textAnchorBaselineOffset(
+      fontSize / importScaleFactor,
+      fontFamily,
+      runs[0],
+    );
+
     const textObject: ChemDrawText = {
       id: child.getAttribute('id') ?? makeIdGen()(),
       type: 'text',
-      anchor: { x, y },
+      anchor: { x, y: y - baselineOffset },
       text: {
         runs,
         justification,

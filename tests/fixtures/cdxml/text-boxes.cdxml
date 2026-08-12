@@ -19,7 +19,7 @@
       <font id="3" charset="iso-8859-1" name="Arial"/>
       <font id="4" charset="iso-8859-1" name="Times New Roman"/>
     </fonttable>
-    <t id="t1" p="0 0">
+    <t id="t1" p="0 20">
       <s font="3" size="10" face="0">unbounded caption</s>
     </t>
     <t id="t2" p="0 30" BoundingBox="0 24 60 60">
