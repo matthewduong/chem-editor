@@ -84,9 +84,15 @@ export function getAtomHydrogenCount(
   const alias = getAtomAlias(atom);
   const shorthandEntry = alias ? SHORTHAND_DATA[alias] : null;
 
-  const bondCount = bonds
-    .filter((bond) => bond.from === atom.id || bond.to === atom.id)
-    .reduce((sum, bond) => sum + bond.order, 0);
+  // Aromatic bonds carry order 1.5, so the raw sum can be fractional and the atom ends up with a
+  // fractional number of hydrogens: a carbon with one aromatic bond drew as "CH2.5". Rounding the
+  // sum recovers the whole bond an aromatic bond stands for, and over a closed ring the sum was
+  // already integral, so ordinary aromatics are unaffected.
+  const bondCount = Math.round(
+    bonds
+      .filter((bond) => bond.from === atom.id || bond.to === atom.id)
+      .reduce((sum, bond) => sum + bond.order, 0),
+  );
 
   // For shorthand groups, use the group's external valency
   // (internal bonds are already accounted for in the shorthand definition)

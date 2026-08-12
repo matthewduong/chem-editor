@@ -79,3 +79,22 @@ test('monosubstituted NTs shorthand keeps the built-in NH label', () => {
   assert.equal(hydrogenCount, 0);
   assert.equal(label, 'NHTs');
 });
+
+test('aromatic bonds never produce a fractional hydrogen count', async () => {
+  const atom = { id: 'a1', x: 0, y: 0, element: 'C' };
+
+  // One aromatic bond: the raw order sum is 1.5, which used to render as "CH2.5".
+  const single = getAtomHydrogenCount(atom, [{ id: 'b1', from: 'a1', to: 'a2', order: 1.5 }], 4);
+  assert.equal(Number.isInteger(single), true, `expected a whole number, got ${single}`);
+
+  // A ring carbon: two aromatic bonds sum to a whole 3, leaving the usual single hydrogen.
+  const ring = getAtomHydrogenCount(
+    atom,
+    [
+      { id: 'b1', from: 'a1', to: 'a2', order: 1.5 },
+      { id: 'b2', from: 'a3', to: 'a1', order: 1.5 },
+    ],
+    4,
+  );
+  assert.equal(ring, 1);
+});
