@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Reserved colour table indices.
+
+  ChemDraw reserves the first two slots of the colour table: 0 is black and 1 is white, and the
+  <color> elements begin at index 2. Almost every styled run in a real ChemDraw file carries
+  color="0", so treating the reserved pair as "no colour authored" discards an explicit black and
+  lets element colouring take over, drawing heteroatoms red and blue on a document ChemDraw renders
+  entirely in black.
+
+  n1 and n2 are heteroatoms whose labels declare black explicitly and must stay black. n3 declares
+  a real colour table entry, which must survive. The caption declares black the same way.
+-->
+<CDXML BondLength="14.4" LineWidth="0.6" LabelSize="10">
+  <page id="page-1">
+    <colortable>
+      <color r="1" g="1" b="1"/>
+      <color r="0" g="0" b="0"/>
+      <color r="0" g="0.5" b="1"/>
+    </colortable>
+    <fonttable>
+      <font id="3" charset="iso-8859-1" name="Arial"/>
+    </fonttable>
+    <fragment id="f1">
+      <n id="n1" p="0 0" Element="8">
+        <t p="0 0" LabelJustification="Left"><s font="3" size="10" face="0" color="0">OH</s></t>
+      </n>
+      <n id="n2" p="30 0" Element="7">
+        <t p="30 0" LabelJustification="Left"><s font="3" size="10" face="0" color="0">NH2</s></t>
+      </n>
+      <n id="n3" p="60 0" Element="16">
+        <t p="60 0" LabelJustification="Left"><s font="3" size="10" face="0" color="4">SH</s></t>
+      </n>
+      <b id="b1" B="n1" E="n2"/>
+      <b id="b2" B="n2" E="n3"/>
+    </fragment>
+    <t id="t1" p="0 40" Justification="Left">
+      <s font="3" size="10" face="0" color="0">explicitly black caption</s>
+    </t>
+  </page>
+</CDXML>
