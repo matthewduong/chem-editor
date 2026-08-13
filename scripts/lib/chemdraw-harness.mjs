@@ -217,16 +217,38 @@ export function buildCdxmlElementSummary(xml) {
   // Counted alongside the census so a drop can be explained rather than merely reported.
   const superseded = new Map();
   const insideNickname = new Map();
+  // Characters of styled text that are meant to survive, so run coalescing can be told apart from
+  // text going missing. Nickname expansions are excluded because they collapse by design.
+  let visibleTextLength = 0;
+  const declaredFontIds = new Set();
+  const referencedFontIds = new Set();
+  const fontFamilies = new Set();
 
   const walk = (element, insideAtom, insideExpansion) => {
     const tag = element.tagName.toLowerCase();
     incrementCounter(elements, tag);
     if (element.getAttribute?.('SupersededBy')) incrementCounter(superseded, tag);
+    if (tag === 'font') {
+      declaredFontIds.add(element.getAttribute?.('id'));
+      // ChemDraw declares styled variants as separate entries ("Arial" and "Arial Bold") while
+      // also setting the face bits on the run. Compare base families, so consolidating onto one
+      // entry does not read as losing a typeface.
+      fontFamilies.add(
+        (element.getAttribute?.('name') ?? '')
+          .replace(/\s+(bold|italic|oblique)\b/gi, '')
+          .trim()
+          .toLowerCase(),
+      );
+    }
     // A <fragment> hanging off an <n> is that atom's expanded nickname; it and everything in it
     // collapse into the atom's label. An atom's own <t> label sits directly under the <n> and is
     // deliberately excluded, so a genuine loss of atom labels cannot hide in this category.
     const nested = insideExpansion || (insideAtom && tag === 'fragment');
     if (nested) incrementCounter(insideNickname, tag);
+    if (tag === 's') {
+      referencedFontIds.add(element.getAttribute?.('font'));
+      if (!nested) visibleTextLength += (element.textContent ?? '').length;
+    }
     for (const attribute of element.attributes ?? []) {
       incrementCounter(attributes, attribute.name);
     }
@@ -240,6 +262,9 @@ export function buildCdxmlElementSummary(xml) {
     attributes: normalizeCounter(attributes),
     superseded: normalizeCounter(superseded),
     insideNickname: normalizeCounter(insideNickname),
+    visibleTextLength,
+    unusedFontCount: [...declaredFontIds].filter((id) => !referencedFontIds.has(id)).length,
+    fontFamilies: [...fontFamilies].sort(),
   };
 }
 
@@ -276,8 +301,22 @@ const EXPECTED_DROP_RULES = {
     covered: (summary) => summary.insideNickname?.t ?? 0,
   },
   s: {
-    reason: 'a styled run inside an expanded nickname, collapsed into the parent atom label',
-    covered: (summary) => summary.insideNickname?.s ?? 0,
+    reason:
+      'either inside an expanded nickname, or adjacent runs sharing a style merged into one; ' +
+      'only claimed while every visible character survives',
+    covered: (source, exported, lost) =>
+      source.visibleTextLength === exported.visibleTextLength
+        ? lost
+        : (source.insideNickname?.s ?? 0),
+  },
+  font: {
+    reason:
+      'an unreferenced fonttable entry, or a styled variant folded into its base family with the ' +
+      'face bits kept on the run; only claimed while every family survives',
+    covered: (source, exported, lost) =>
+      (source.fontFamilies ?? []).every((family) => (exported.fontFamilies ?? []).includes(family))
+        ? lost
+        : (source.unusedFontCount ?? 0),
   },
 };
 
@@ -314,7 +353,7 @@ export function diffCdxmlElementSummaries(sourceSummary, exportedSummary) {
   for (const [tag, change] of Object.entries(elements.dropped)) {
     const rule = EXPECTED_DROP_RULES[tag];
     const lost = change.from - change.to;
-    const covered = rule ? Math.min(lost, rule.covered(sourceSummary)) : 0;
+    const covered = rule ? Math.min(lost, rule.covered(sourceSummary, exportedSummary, lost)) : 0;
     if (covered > 0) expected[tag] = { ...change, covered, reason: rule.reason };
     if (covered < lost) unexplained[tag] = { ...change, unexplained: lost - covered };
   }
