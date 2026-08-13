@@ -188,3 +188,36 @@ test('coordinates round trip at any usable bond length', async () => {
     assert.equal(Number(node[2]).toFixed(2), '200.00', `BondLength ${bondLength}: y drifted`);
   }
 });
+
+test('a wrapped caption keeps its line count through repeated round trips', async () => {
+  // Import turns LineStarts into newline runs. Preserving the original offsets alongside those
+  // newlines shifted every break, so the text gained a line on each pass; they are recomputed from
+  // the text as written instead.
+  const { cdxmlToChemDrawDocument } = await import('../.unit-test-dist/src/utils/cdxml.js');
+  const { chemDrawDocumentToCanvasState } =
+    await import('../.unit-test-dist/src/lib/chemdrawModel.js');
+  const { getTextBoxRenderLines } =
+    await import('../.unit-test-dist/src/lib/textRunPresentation.js');
+
+  // "one two three four" broken after "one " and "two ", as ChemDraw records a caption it wrapped:
+  // offsets only, no newline in the text.
+  let xml =
+    `<CDXML BondLength="14.40" LineWidth="0.60">` +
+    `<colortable><color r="1" g="1" b="1"/><color r="0" g="0" b="0"/></colortable>` +
+    `<fonttable><font id="3" charset="iso-8859-1" name="Arial"/></fonttable>` +
+    `<page id="1" BoundingBox="0 0 540 720" HeightPages="1" WidthPages="1">` +
+    `<t id="9" p="40 100" Justification="Center" LineStarts="4 8 18">` +
+    `<s font="3" size="10" face="0">one two three four</s></t>` +
+    `</page></CDXML>`;
+
+  const lineCount = (source) => {
+    const { state } = chemDrawDocumentToCanvasState(cdxmlToChemDrawDocument(source).document);
+    return getTextBoxRenderLines(state.textBoxes[0]).length;
+  };
+
+  assert.equal(lineCount(xml), 3, 'LineStarts should give three lines');
+  for (let pass = 0; pass < 3; pass += 1) {
+    xml = chemDrawDocumentToCDXML(cdxmlToChemDrawDocument(xml).document);
+    assert.equal(lineCount(xml), 3, `line count drifted on round trip ${pass + 1}`);
+  }
+});

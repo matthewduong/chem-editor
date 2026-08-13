@@ -832,6 +832,22 @@ function emitTextBoxT(
     rawChildrenXml?: string[];
   },
 ): string {
+  // Recomputed rather than preserved: import turns LineStarts into newline runs, so re-emitting
+  // the original offsets alongside those newlines would shift every break and split the text again
+  // on each round trip. Offsets are measured over the text as written, newlines included, and the
+  // list ends with the sentinel at the total length that ChemDraw writes.
+  const lineStarts: number[] = [];
+  let textLength = 0;
+  for (const run of tb.runs) {
+    for (let index = 0; index < run.text.length; index += 1) {
+      textLength += 1;
+      if (run.text[index] === '\n') lineStarts.push(textLength);
+    }
+  }
+  const lineStartsAttr = lineStarts.length
+    ? ` LineStarts="${[...lineStarts, textLength].join(' ')}"`
+    : '';
+
   // Undo the import-side shift: `y` is the top of our first line, `p` is ChemDraw's baseline.
   // Both are in native units here, as is tb.fontSize.
   const xs = x.toFixed(2),
@@ -860,7 +876,7 @@ function emitTextBoxT(
     : '';
   const rawAttributesAttr = emitRawAttributes(options?.rawAttributes);
 
-  let out = `${indent}<t p="${xs} ${ys}" Justification="${just}"${rotationAttr}${widthAttr}${chemicalMetadataAttr}${semanticModeAttr}${conversionStatusAttr}${rawAttributesAttr}>\n`;
+  let out = `${indent}<t p="${xs} ${ys}" Justification="${just}"${rotationAttr}${widthAttr}${lineStartsAttr}${chemicalMetadataAttr}${semanticModeAttr}${conversionStatusAttr}${rawAttributesAttr}>\n`;
   for (const run of tb.runs) {
     let face = 0;
     if (run.bold) face |= 1;
@@ -2962,6 +2978,8 @@ export function cdxmlToChemDrawDocument(xmlString: string): ChemDrawConversionRe
         CHEM_EDITOR_TEXT_SEMANTIC_MODE_ATTR,
         CHEM_EDITOR_TEXT_CONVERSION_STATUS_ATTR,
         CHEM_EDITOR_TEXT_WRAP_WIDTH_ATTR,
+        // Recomputed on export; preserving the original would re-break the text. See emitTextBoxT.
+        'LineStarts',
       ],
       preserveChild: (grandchild) =>
         grandchild.tagName !== 's' && grandchild.tagName !== 'objecttag',
