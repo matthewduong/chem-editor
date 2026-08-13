@@ -253,4 +253,33 @@ test('a line break survives whichever way ChemDraw recorded it', async () => {
   assert.deepEqual(lines('AAA\nBBBCCC', '7 10'), ['AAA', 'BBB', 'CCC']);
   // No offsets at all.
   assert.deepEqual(lines('AAA\nBBB', null), ['AAA', 'BBB']);
+
+  // The offsets are counted in UTF-8 bytes, not characters. "120 \u00b0C\nmicrowave" is 16
+  // characters but 17 bytes, because the degree sign takes two, and chemistry captions are full of
+  // degree signs, subscripts and Greek. Read as character indices this breaks one character late,
+  // giving "120 \u00b0Cm" over "icrowave".
+  assert.deepEqual(lines('120 \u00b0C\nmicrowave', '8 17'), ['120 \u00b0C', 'microwave']);
+});
+
+test('a caption with non-ASCII text keeps its break through a round trip', async () => {
+  const { cdxmlToChemDrawDocument } = await import('../.unit-test-dist/src/utils/cdxml.js');
+  let xml =
+    `<CDXML BondLength="14.40">` +
+    `<colortable><color r="1" g="1" b="1"/><color r="0" g="0" b="0"/></colortable>` +
+    `<fonttable><font id="3" charset="iso-8859-1" name="Arial"/></fonttable>` +
+    `<page id="1" BoundingBox="0 0 540 720" HeightPages="1" WidthPages="1">` +
+    `<t id="9" p="40 100" LineStarts="8 17">` +
+    `<s font="3" size="10" face="0">120 °C\nmicrowave</s></t>` +
+    `</page></CDXML>`;
+
+  // The text is written as several <s> runs with the break in its own, so compare the content
+  // rather than the markup.
+  const plainText = (source) =>
+    [...source.matchAll(/<s\b[^>]*>([\s\S]*?)<\/s>/g)].map((match) => match[1]).join('');
+
+  for (let pass = 0; pass < 3; pass += 1) {
+    xml = chemDrawDocumentToCDXML(cdxmlToChemDrawDocument(xml).document);
+    assert.match(xml, /LineStarts="8 17"/, `offsets drifted on round trip ${pass + 1}`);
+    assert.equal(plainText(xml), '120 °C\nmicrowave', `text drifted on round trip ${pass + 1}`);
+  }
 });

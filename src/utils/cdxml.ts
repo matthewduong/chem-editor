@@ -661,6 +661,35 @@ function textAnchorBaselineOffset(
   }).ascent;
 }
 
+function utf8ByteLength(codePoint: number): number {
+  if (codePoint < 0x80) return 1;
+  if (codePoint < 0x800) return 2;
+  if (codePoint < 0x10000) return 3;
+  return 4;
+}
+
+/**
+ * Maps each UTF-8 byte offset in `text` to the JavaScript string index at the same place.
+ *
+ * ChemDraw counts `LineStarts` in bytes, not characters. A caption reading "120 °C" over
+ * "microwave" declares a length of 17 for text JavaScript measures as 16, because the degree sign
+ * takes two bytes -- and chemistry captions are full of degree signs, subscripts and Greek. Reading
+ * the offsets as character indices moved that break one character late, so the line came out as
+ * "120 °Cm" over "icrowave".
+ */
+function mapUtf8ByteOffsetsToCharIndices(text: string): Map<number, number> {
+  const indices = new Map<number, number>();
+  let byteOffset = 0;
+  let charIndex = 0;
+  for (const character of text) {
+    indices.set(byteOffset, charIndex);
+    byteOffset += utf8ByteLength(character.codePointAt(0) ?? 0);
+    charIndex += character.length;
+  }
+  indices.set(byteOffset, charIndex);
+  return indices;
+}
+
 /**
  * Applies a `<t LineStarts>` attribute, which is where ChemDraw records its line breaks.
  *
@@ -678,13 +707,18 @@ function textAnchorBaselineOffset(
  */
 function applyLineStarts(runs: TextRun[], lineStartsAttr: string | null): TextRun[] {
   if (!lineStartsAttr) return runs;
-  const total = runs.reduce((sum, run) => sum + run.text.length, 0);
+  const text = runs.map((run) => run.text).join('');
+  const charIndexByByteOffset = mapUtf8ByteOffsetsToCharIndices(text);
+  const total = text.length;
   const breaks = new Set(
     lineStartsAttr
       .trim()
       .split(/\s+/)
-      .map(Number)
-      .filter((offset) => Number.isInteger(offset) && offset > 0 && offset < total),
+      .map((value) => charIndexByByteOffset.get(Number(value)))
+      .filter(
+        (index): index is number =>
+          index != null && Number.isInteger(index) && index > 0 && index < total,
+      ),
   );
   if (breaks.size === 0) return runs;
 
@@ -842,15 +876,15 @@ function emitTextBoxT(
   // on each round trip. Offsets are measured over the text as written, newlines included, and the
   // list ends with the sentinel at the total length that ChemDraw writes.
   const lineStarts: number[] = [];
-  let textLength = 0;
+  let byteLength = 0;
   for (const run of tb.runs) {
-    for (let index = 0; index < run.text.length; index += 1) {
-      textLength += 1;
-      if (run.text[index] === '\n') lineStarts.push(textLength);
+    for (const character of run.text) {
+      byteLength += utf8ByteLength(character.codePointAt(0) ?? 0);
+      if (character === '\n') lineStarts.push(byteLength);
     }
   }
   const lineStartsAttr = lineStarts.length
-    ? ` LineStarts="${[...lineStarts, textLength].join(' ')}"`
+    ? ` LineStarts="${[...lineStarts, byteLength].join(' ')}"`
     : '';
 
   // Undo the import-side shift: `y` is the top of our first line, `p` is ChemDraw's baseline.
