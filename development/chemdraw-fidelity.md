@@ -199,38 +199,51 @@ CHEMDRAW_CORPUS_ROOT=/path/to/private/corpus CHEMDRAW_CAPTURE_VISUAL_BASELINE=1 
 
 ## Known Gaps
 
+### Groups do not serialize
+
+`<group>` is flattened to page-level objects on import, so grouping is lost on save. Children render
+correctly; only the grouping is dropped. It is the only construct the corpus sweep still reports as
+unexplained, in 60 of 121 cases. See `CLAUDE.md` on the document/CanvasState split.
+
 ### Reaction schemes and steps are preserved, not modelled
 
 `<scheme>` and `<step>` are carried through as raw XML. ChemDraw rebuilds them from structure on
 open, so they do not survive a round trip unchanged; see "What Gates And What Does Not".
 
-### Groups do not serialize
+### Embedded PDFs draw as a placeholder
 
-`<group>` is flattened to page-level objects on import, so grouping is lost on save. Children render
-correctly; only the grouping is dropped. It is the one construct left in the corpus sweep's
-unexplained column, in 60 of 121 cases. See `CLAUDE.md` on the document/CanvasState split.
+An `<embeddedobject>` whose payload is a PDF renders as a labelled box, because nothing here
+rasterizes PDF. ChemDraw draws the artwork, so a document that is mostly one embedded figure looks
+nothing like it. One corpus file is affected, and it is the largest single outlier in the visual
+comparison.
 
 ## Probing ChemDraw
 
 Some conventions cannot be recovered from the corpus, because every real file confounds the thing
-being measured with everything else drawn near it. Measuring the caption offset that way gave a
-median of 5.5pt with a spread from -13px to +36px; the true answer was 9.05pt.
+being measured with everything else drawn near it. Measuring the caption baseline that way gave a
+median of 5.5pt with a spread from -13px to +36px; asking ChemDraw directly gave 9.05pt, flat across
+every font size.
 
-The way to settle one is to ask ChemDraw directly with a purpose-built page. Put horizontal
-fiducial lines at known y values next to the construct under test, render it through
-`createChemDrawSession`, rasterize at 288dpi, and read the row profile: the fiducials recover the
-page-to-pixel mapping that ChemDraw's crop-to-content otherwise destroys. Probe at several font
-sizes at once, so an offset that scales is distinguishable from one that does not.
+Two ways to ask, both cheap:
 
-### Reaction schemes and steps are preserved, not modelled
+**Read back what ChemDraw writes.** Hand it a document that omits the thing you want to know -- a
+heteroatom with no label of its own -- and save the CDXML it produces. That gave the atom label
+anchor as an exact number, no pixels involved.
 
-`<scheme>` and `<step>` are carried through as raw XML. ChemDraw rebuilds them from structure on
-open, so they do not survive a round trip unchanged; see "What Gates And What Does Not".
+**Render and measure.** Put fiducial lines at known coordinates beside the construct, render through
+`createChemDrawSession`, rasterize at 288dpi and read the row or column profile. The fiducials
+recover the page-to-pixel mapping that ChemDraw's crop-to-content destroys; it came out at exactly
+4.0000 px/pt. Sweep the size or the font in one page, so a ratio is distinguishable from a constant
+-- that is what separated the bracket lip (a fraction of the bracket) from a length in points.
 
-### Groups do not serialize
+Two things will waste your time otherwise:
 
-`<group>` is flattened to page-level objects on import, so grouping is lost on save. Children render
-correctly; only the grouping is dropped. See `CLAUDE.md` on the document/CanvasState split.
+- **ChemDraw silently refuses a document whose ids are not integers.** It opens nothing and reports
+  no error. Hand-authored probes need numeric `id` attributes throughout.
+- **It also refuses one declaring a `LabelSize` below about 8.** Same silence.
+
+When measuring a raster, threshold before you downsample. Averaging a row that contains a single
+hairline across a wide image washes it out entirely.
 
 ## Public Fixture Policy
 
