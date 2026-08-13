@@ -249,11 +249,16 @@ function parseBounds(
   if (!attr) return undefined;
   const [left, top, right, bottom] = attr.trim().split(/\s+/).map(Number);
   if ([left, top, right, bottom].some(Number.isNaN)) return undefined;
+  // ChemDraw does not order the corners: 264 of the 6166 bounding boxes in the reference corpus
+  // have their right left of their left, or their bottom above their top. A box read that way has
+  // a negative width, which puts arcTo and ellipse radii into nonsense and, worse, makes the
+  // spatial index's intersection test fail, so the object is culled and never drawn at all.
+  // Callers that need the corners as ChemDraw wrote them use parseBoundingBoxEndpoints.
   return {
-    left: left / scaleFactor,
-    top: top / scaleFactor,
-    right: right / scaleFactor,
-    bottom: bottom / scaleFactor,
+    left: Math.min(left, right) / scaleFactor,
+    top: Math.min(top, bottom) / scaleFactor,
+    right: Math.max(left, right) / scaleFactor,
+    bottom: Math.max(top, bottom) / scaleFactor,
   };
 }
 

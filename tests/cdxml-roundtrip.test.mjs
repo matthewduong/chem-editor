@@ -283,3 +283,41 @@ test('a caption with non-ASCII text keeps its break through a round trip', async
     assert.equal(plainText(xml), '120 °C\nmicrowave', `text drifted on round trip ${pass + 1}`);
   }
 });
+
+test('an inverted BoundingBox is read as a rectangle, not a negative one', async () => {
+  // ChemDraw does not order the corners. Read literally, such a box has a negative width, which
+  // makes arcTo and ellipse radii nonsense and makes the spatial index's intersection test fail --
+  // so the object is culled and never drawn. 264 of the 6166 boxes in the reference corpus are
+  // written this way.
+  const { cdxmlToChemDrawDocument } = await import('../.unit-test-dist/src/utils/cdxml.js');
+  const xml =
+    `<CDXML BondLength="14.40">` +
+    `<colortable><color r="1" g="1" b="1"/><color r="0" g="0" b="0"/></colortable>` +
+    `<fonttable><font id="3" charset="iso-8859-1" name="Arial"/></fonttable>` +
+    `<page id="1" BoundingBox="0 0 540 720" HeightPages="1" WidthPages="1">` +
+    `<graphic id="7" BoundingBox="200 120 60 30" GraphicType="Rectangle" ` +
+    `RectangleType="RoundEdge" CornerRadius="600"/>` +
+    `</page></CDXML>`;
+
+  const { document } = cdxmlToChemDrawDocument(xml);
+  const graphic = document.pages[0].objects.find((object) => object.type === 'graphic');
+
+  assert.ok(graphic?.bounds, 'expected the graphic to import with bounds');
+  assert.ok(graphic.bounds.right > graphic.bounds.left, 'width must be positive');
+  assert.ok(graphic.bounds.bottom > graphic.bounds.top, 'height must be positive');
+  assert.deepEqual(graphic.bounds, { left: 60, top: 30, right: 200, bottom: 120 });
+
+  // Ordering the box must not straighten out things that are a direction rather than a rectangle.
+  // Most inverted boxes in the corpus belong to lines, where the corners are the endpoints.
+  const lineXml = xml.replace(
+    '<graphic id="7" BoundingBox="200 120 60 30" GraphicType="Rectangle" RectangleType="RoundEdge" CornerRadius="600"/>',
+    '<graphic id="7" BoundingBox="200 120 60 30" GraphicType="Line"/>',
+  );
+  const line = cdxmlToChemDrawDocument(lineXml).document.pages[0].objects.find(
+    (object) => object.type === 'graphic',
+  );
+  assert.deepEqual(line.points, [
+    { x: 200, y: 120 },
+    { x: 60, y: 30 },
+  ]);
+});
