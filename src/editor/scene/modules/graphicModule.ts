@@ -5,6 +5,11 @@ import { drawObjectTags } from './objectTagHelpers';
 import type { ObjectModule } from '../types';
 import { getPaintFontFamily } from '../../../lib/textMetrics';
 
+/** ChemDraw's default LipSize of 60, as import scales it. */
+const DEFAULT_LIP = 10;
+/** Bracket bulge as a fraction of the bracket's own length, measured against ChemDraw. */
+const LIP_FRACTION_AT_DEFAULT = 0.16;
+
 export const GRAPHIC_MODULE: ObjectModule = {
   type: 'graphic',
   draw(object, context) {
@@ -167,7 +172,17 @@ export const GRAPHIC_MODULE: ObjectModule = {
       if (length < 1) return;
       const px = -dy / length;
       const py = dx / length;
-      const lip = object.lipSize ?? Math.max(8, length * 0.35);
+      // A bracket's lip is a fraction of its own height, not an absolute length. Rendering
+      // brackets through ChemDraw at 11, 15, 25 and 46pt with its default LipSize gave bulges of
+      // 1.75, 2.5, 4 and 7pt: 0.152 to 0.167 of the height throughout. Treating LipSize as points
+      // put a 10pt lip on an 11pt bracket, which drew an arc bigger than the group it enclosed.
+      //
+      // What LipSize's unit actually is remains unknown -- every bracket in the reference corpus
+      // carries the default 60 (imported as 10), so there is nothing to separate "60 means 16%"
+      // from "the default happens to be 16%". Scaling relative to the default keeps a document
+      // that sets it differently proportionally different.
+      const lip =
+        length * LIP_FRACTION_AT_DEFAULT * ((object.lipSize ?? DEFAULT_LIP) / DEFAULT_LIP);
       const midX = (start.x + end.x) / 2;
       const midY = (start.y + end.y) / 2;
       ctx.save();
