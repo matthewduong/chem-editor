@@ -661,6 +661,53 @@ function textAnchorBaselineOffset(
   }).ascent;
 }
 
+/**
+ * Applies a `<t LineStarts>` attribute, which is where ChemDraw records its line breaks.
+ *
+ * It lists the character offset at which each line after the first begins, over the text of all the
+ * element's runs concatenated, ending with a sentinel equal to the total length. Sometimes a
+ * literal newline sits at the break as well and sometimes it does not -- a wrapped caption has only
+ * the offsets -- so this treats the offsets as the authority and drops any newline already in the
+ * text, which would otherwise break the same line twice.
+ *
+ * Without it, a caption ChemDraw wrapped comes out as one long line, because nothing else in the
+ * file records the break: the bounding box measures the result rather than constraining it.
+ */
+function applyLineStarts(runs: TextRun[], lineStartsAttr: string | null): TextRun[] {
+  if (!lineStartsAttr) return runs;
+  const total = runs.reduce((sum, run) => sum + run.text.length, 0);
+  const breaks = new Set(
+    lineStartsAttr
+      .trim()
+      .split(/\s+/)
+      .map(Number)
+      .filter((offset) => Number.isInteger(offset) && offset > 0 && offset < total),
+  );
+  if (breaks.size === 0) return runs;
+
+  const result: TextRun[] = [];
+  let index = 0;
+  for (const run of runs) {
+    let pending = '';
+    const flush = () => {
+      if (pending) result.push({ ...run, text: pending });
+      pending = '';
+    };
+    // Indexed by code unit, to match the `length` the offsets are measured against.
+    for (let position = 0; position < run.text.length; position += 1) {
+      if (breaks.has(index)) {
+        flush();
+        result.push({ ...run, text: '\n' });
+      }
+      const character = run.text[position];
+      if (character !== '\n') pending += character;
+      index += 1;
+    }
+    flush();
+  }
+  return result;
+}
+
 function hexToRgbF(hex: string): { r: number; g: number; b: number } | null {
   const m = hex.match(/^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i);
   if (!m) return null;
@@ -1903,7 +1950,7 @@ export function cdxmlToChemDrawDocument(xmlString: string): ChemDrawConversionRe
       const text = tEl.textContent?.trim() ?? '';
       if (text) runs.push({ text });
     }
-    return runs;
+    return applyLineStarts(runs, tEl.getAttribute('LineStarts'));
   };
 
   const parseTextBlock = (tEl: Element): ChemDrawText['text'] => {

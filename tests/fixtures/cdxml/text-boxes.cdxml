@@ -3,15 +3,19 @@
   Text boxes, and where their line breaks come from.
 
   A ChemDraw BoundingBox measures text that has already been laid out; it is not a wrapping
-  constraint. ChemDraw records its breaks explicitly, as literal newlines in the run and a
-  LineStarts attribute, and then fits the box tightly around the result. Wrapping to that box would
-  reflow authored text against our metrics rather than ChemDraw's, and because the fit is tight the
-  last character spills onto a line of its own.
+  constraint. Wrapping to it would reflow authored text against our metrics rather than ChemDraw's,
+  and because the fit is tight the last character spills onto a line of its own.
+
+  LineStarts is where ChemDraw actually records its breaks: the character offset at which each line
+  after the first begins, ending with a sentinel at the total length. A break sometimes carries a
+  literal newline too and sometimes does not, so the offsets are the authority and a newline sitting
+  at one is dropped rather than breaking the line twice.
 
   t2 is the important case: its box is tight around one long line, exactly as ChemDraw writes it,
-  and it must stay on one line. t5 carries an authored break and must honour it with no wrap width
-  in play. t6 uses the private attribute we write for boxes sized in this editor, which is the only
-  thing that does wrap.
+  and it must stay on one line. t5 carries both a newline and the matching offsets, and must come
+  out as two lines rather than four. t6 uses the private attribute we write for boxes sized in this
+  editor, which is the only thing that wraps by measurement. t7 is a caption ChemDraw wrapped, where
+  the offsets are the only record of the breaks.
 -->
 <CDXML BondLength="14.4" LineWidth="0.6" CaptionSize="10">
   <page id="page-1">
@@ -39,6 +43,9 @@
     </t>
     <t id="t6" p="0 180" BoundingBox="0 174 60 210" ChemEditorTextWrapWidth="60">
       <s font="3" size="10" face="0">an editor sized box that really does wrap</s>
+    </t>
+    <t id="t7" p="0 220" BoundingBox="0 214 200 240" LineStarts="10 21" Justification="Center">
+      <s font="3" size="10" face="0">wrapped by ChemDraw, recorded only as offsets</s>
     </t>
   </page>
 </CDXML>

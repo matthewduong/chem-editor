@@ -368,6 +368,71 @@
   },
   {
     "op": "call",
+    "name": "save",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "translate",
+    "args": [
+      0,
+      225.9473
+    ]
+  },
+  {
+    "op": "set",
+    "prop": "font",
+    "value": "normal 10px 'Liberation Sans', sans-serif"
+  },
+  {
+    "op": "set",
+    "prop": "fontKerning",
+    "value": "none"
+  },
+  {
+    "op": "set",
+    "prop": "fillStyle",
+    "value": "#000000"
+  },
+  {
+    "op": "set",
+    "prop": "textBaseline",
+    "value": "top"
+  },
+  {
+    "op": "call",
+    "name": "fillText",
+    "args": [
+      "wrapped by",
+      -25.8496,
+      -15
+    ]
+  },
+  {
+    "op": "call",
+    "name": "fillText",
+    "args": [
+      " ChemDraw, ",
+      -29.1724,
+      -5
+    ]
+  },
+  {
+    "op": "call",
+    "name": "fillText",
+    "args": [
+      "recorded only as offsets",
+      -53.0835,
+      5
+    ]
+  },
+  {
+    "op": "call",
+    "name": "restore",
+    "args": []
+  },
+  {
+    "op": "call",
     "name": "restore",
     "args": []
   }
