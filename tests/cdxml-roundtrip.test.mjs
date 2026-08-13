@@ -149,13 +149,10 @@ test('a text anchor survives a round trip at a non-default BondLength', async ()
     `<s font="3" size="${size}" face="0" color="0">Hxy</s></t>` +
     `</page></CDXML>`;
 
-  // Bond lengths below 8 are a separate, pre-existing problem: the style sheet clamps
-  // nativeMetrics.bondLength to a minimum of 8 while coordinates keep scaling by the raw value, so
-  // every coordinate in such a document drifts by the ratio on a round trip, text or not.
   for (const [bondLength, size] of [
     ['14.40', 10],
     ['30', 20],
-    ['8', 6],
+    ['7.2', 5],
   ]) {
     const { document } = cdxmlToChemDrawDocument(source(bondLength, size));
     const exported = chemDrawDocumentToCDXML(document);
@@ -166,5 +163,28 @@ test('a text anchor survives a round trip at a non-default BondLength', async ()
       '120.00',
       `BondLength ${bondLength}: anchor drifted on round trip`,
     );
+  }
+});
+
+test('coordinates round trip at any usable bond length', async () => {
+  // Coordinates are scaled by the document's bond length and the style sheet normalizes it, so the
+  // two have to agree. They did not: the style sheet clamped to a minimum of 8 while coordinates
+  // used the raw value, and a document declaring 7.2 came back with everything multiplied by 8/7.2.
+  const { cdxmlToChemDrawDocument } = await import('../.unit-test-dist/src/utils/cdxml.js');
+  const source = (bondLength) =>
+    `<CDXML BondLength="${bondLength}" LineWidth="0.60">` +
+    `<colortable><color r="1" g="1" b="1"/><color r="0" g="0" b="0"/></colortable>` +
+    `<fonttable><font id="3" charset="iso-8859-1" name="Arial"/></fonttable>` +
+    `<page id="1" BoundingBox="0 0 540 720" HeightPages="1" WidthPages="1">` +
+    `<fragment id="10"><n id="11" p="100 200"/><n id="12" p="140 200"/><b id="13" B="11" E="12"/></fragment>` +
+    `</page></CDXML>`;
+
+  for (const bondLength of ['14.40', '30', '8', '7.2', '3']) {
+    const { document } = cdxmlToChemDrawDocument(source(bondLength));
+    const exported = chemDrawDocumentToCDXML(document);
+    const node = /<n id="[^"]*" p="([\d.]+) ([\d.]+)"/.exec(exported);
+    assert.ok(node, `BondLength ${bondLength}: expected a node in the export`);
+    assert.equal(Number(node[1]).toFixed(2), '100.00', `BondLength ${bondLength}: x drifted`);
+    assert.equal(Number(node[2]).toFixed(2), '200.00', `BondLength ${bondLength}: y drifted`);
   }
 });

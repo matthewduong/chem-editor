@@ -51,6 +51,7 @@ import {
   DEFAULT_CANVAS_BOND_LENGTH,
   DEFAULT_CHEMDRAW_STYLE_SHEET,
   convertCanvasToNative,
+  normalizeNativeBondLength,
   getDefaultArrowHeadType,
   getDocumentBondLineWidth,
   getDocumentCaptionFontSize,
@@ -1838,7 +1839,11 @@ export function cdxmlToChemDrawDocument(xmlString: string): ChemDrawConversionRe
     : undefined;
 
   // Compute import scale factor from the document's BondLength (ChemDraw units → canvas px).
-  const docBondLength = parseFloat(root.getAttribute('BondLength') ?? '30') || 30;
+  // Through the same normalizer the style sheet uses, so coordinates and metrics cannot end up
+  // scaled by different bond lengths. See normalizeNativeBondLength.
+  const docBondLength = normalizeNativeBondLength(
+    parseFloat(root.getAttribute('BondLength') ?? '30') || 30,
+  );
   const importScaleFactor = docBondLength / CANVAS_BOND_PX;
 
   const colorTable: string[] = [];

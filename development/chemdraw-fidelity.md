@@ -199,30 +199,16 @@ CHEMDRAW_CORPUS_ROOT=/path/to/private/corpus CHEMDRAW_CAPTURE_VISUAL_BASELINE=1 
 
 ## Known Gaps
 
-### Atom labels sit about 1.8pt too low
+### Reaction schemes and steps are preserved, not modelled
 
-The largest remaining geometric difference, now that captions are anchored correctly.
+`<scheme>` and `<step>` are carried through as raw XML. ChemDraw rebuilds them from structure on
+open, so they do not survive a round trip unchanged; see "What Gates And What Does Not".
 
-`nodeModule` places a label with `labelY = atom.y - fontSize * 0.36`, a guessed ratio of exactly
-the kind `getFaceMetrics` exists to replace. That puts the baseline `0.792 * capHeight` below the
-atom. ChemDraw puts it at **0.529 \* capHeight**, measured over 1071 centred labels across the
-corpus with a tight spread (p25 0.522, p75 0.535). The difference is 1.81pt at 10pt, and it is what
-remains of the mean height error against ChemDraw's renders.
+### Groups do not serialize
 
-`p.y` is the baseline for atom labels too, the same as for captions: over 2022 descender-free
-labels, ChemDraw's own ink box bottom sits a median of 0.19pt from the anchor.
-
-Before settling the constant, probe ChemDraw the way the caption fix did (see "Probing ChemDraw"
-below) — 0.529 is close enough to a half that the remainder may be a line-width term rather than
-part of the ratio.
-
-### Bond lengths below 8 scale every coordinate
-
-`normalizeChemDrawStyleSheet` clamps `nativeMetrics.bondLength` to a minimum of 8
-(`src/lib/chemdrawMetrics.ts`), but coordinates are scaled by the document's raw `BondLength`. A
-document declaring `BondLength="7.2"` comes back from a round trip with every coordinate multiplied
-by 8/7.2: nodes at `(100, 200)` export as `(111.11, 222.22)`. No text is involved. The corpus does
-not catch this because 120 of its 121 files use the ACS default of 14.4.
+`<group>` is flattened to page-level objects on import, so grouping is lost on save. Children render
+correctly; only the grouping is dropped. It is the one construct left in the corpus sweep's
+unexplained column, in 60 of 121 cases. See `CLAUDE.md` on the document/CanvasState split.
 
 ## Probing ChemDraw
 

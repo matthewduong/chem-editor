@@ -43,6 +43,21 @@ function isFinitePositiveNumber(value: unknown): value is number {
   return typeof value === 'number' && Number.isFinite(value) && value > 0;
 }
 
+/**
+ * The document's native bond length, guarded against values that would break the scale it defines.
+ *
+ * **Every** conversion between native and canvas units has to go through this. Import used to scale
+ * coordinates by the raw `BondLength` while the style sheet clamped it, so the two disagreed and a
+ * document declaring `BondLength="7.2"` came back from a round trip with every coordinate
+ * multiplied by 8/7.2 -- nodes at (100, 200) exported as (111.11, 222.22).
+ *
+ * The floor is a guard against zero, negative and absurd values rather than a style opinion, so it
+ * sits well below any bond length a real document would use. The ACS default is 14.4.
+ */
+export function normalizeNativeBondLength(value: unknown): number {
+  return clampNumber(value, DEFAULT_CHEMDRAW_STYLE_SHEET.bondLength, 1, 240);
+}
+
 function getCanvasScaleFromValues(canvasBondLength: number, nativeBondLength: number): number {
   if (!Number.isFinite(canvasBondLength) || canvasBondLength <= 0) return DEFAULT_CANVAS_SCALE;
   if (!Number.isFinite(nativeBondLength) || nativeBondLength <= 0) return DEFAULT_CANVAS_SCALE;
@@ -80,12 +95,7 @@ export function normalizeChemDrawStyleSheet(
     legacyTextFormat?: Partial<TextFormatLike>;
   },
 ): ChemDrawStyleSheet {
-  const normalizedBondLength = clampNumber(
-    value?.bondLength,
-    DEFAULT_CHEMDRAW_STYLE_SHEET.bondLength,
-    8,
-    240,
-  );
+  const normalizedBondLength = normalizeNativeBondLength(value?.bondLength);
   const canvasScale = getCanvasScaleFromValues(options.canvasBondLength, normalizedBondLength);
   const legacyLineWidth =
     typeof options.legacyBondLineWidth === 'number'
