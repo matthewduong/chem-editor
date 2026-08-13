@@ -10,6 +10,7 @@ import {
   resetTextMeasurementCaches,
   runsToHTML,
 } from '../../src/lib/textRunPresentation';
+import { AUTO_LINE_HEIGHT_RATIO } from '../../src/lib/chemdrawMetrics';
 
 describe('textRunPresentation measurement', () => {
   // No canvas stub here on purpose. Measurement comes from the vendored font tables, so these
@@ -53,8 +54,12 @@ describe('textRunPresentation measurement', () => {
     ]);
 
     // The painted line count must drive the measured height, or the selection box and the
-    // CDXML-imported bounding box disagree with what is actually drawn.
-    expect(getTextBoxDimensions(textBox).textH).toBe(lines.length * textBox.fontSize);
+    // CDXML-imported bounding box disagree with what is actually drawn. Lines advance by
+    // ChemDraw's automatic leading rather than by the bare font size.
+    expect(getTextBoxDimensions(textBox).textH).toBeCloseTo(
+      lines.length * textBox.fontSize * AUTO_LINE_HEIGHT_RATIO,
+      6,
+    );
   });
 
   it('invalidates cached text box dimensions when the text changes', () => {

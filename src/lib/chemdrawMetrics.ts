@@ -291,6 +291,18 @@ export function getNodeLabelVerticalOffset(
 const ATOM_LABEL_BASELINE_CAP_FRACTION = 0.5293;
 
 /**
+ * Baseline-to-baseline distance in a multi-line text object, as a multiple of the font size.
+ *
+ * ChemDraw's automatic leading, which is what every text object in the reference corpus asks for:
+ * 1316 declare `LineHeight="auto"`, 28 declare `variable`, and none give a number. Fitting box
+ * height against line count over the 94 multi-line captions in the corpus puts the line advance at
+ * 10.839pt for 10pt text.
+ *
+ * We previously advanced by exactly the font size, which sets multi-line captions about 8% tight.
+ */
+export const AUTO_LINE_HEIGHT_RATIO = 1.084;
+
+/**
  * Distance from an atom's centre down to its label's baseline.
  *
  * Cap height rather than point size because that is what tracks the face: across Arial, a serif and

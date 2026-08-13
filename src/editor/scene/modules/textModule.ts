@@ -3,6 +3,7 @@ import {
   getTextBoxRenderLines,
   measureRunWidth,
 } from '../../../lib/textRunPresentation';
+import { AUTO_LINE_HEIGHT_RATIO } from '../../../lib/chemdrawMetrics';
 import { adaptColor, drawRunText } from '../drawPrimitives';
 import type { ObjectModule } from '../types';
 
@@ -47,7 +48,7 @@ export const TEXT_MODULE: ObjectModule = {
             ? textW / 2 - lineWidth
             : -textW / 2;
       let cursorX = lineStartX;
-      const lineY = -textH / 2 + lineIndex * textBox.fontSize;
+      const lineY = -textH / 2 + lineIndex * textBox.fontSize * AUTO_LINE_HEIGHT_RATIO;
       lineRuns.forEach((run) => {
         drawRunText(
           ctx,

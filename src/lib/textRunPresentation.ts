@@ -1,5 +1,6 @@
 import type { TextBox, TextRun } from '../types/chemistry';
 import { measureText } from './textMetrics';
+import { AUTO_LINE_HEIGHT_RATIO } from './chemdrawMetrics';
 
 const RUN_WIDTH_CACHE = new Map<string, number>();
 const TEXT_BOX_DIMENSIONS_CACHE = new Map<
@@ -314,7 +315,7 @@ export function getTextBoxDimensions(
   );
   const intrinsicW = Math.max(40, ...lineWidths);
   const textW = Math.max(textBox.width ?? 0, intrinsicW);
-  const textH = lines.length * textBox.fontSize;
+  const textH = lines.length * textBox.fontSize * AUTO_LINE_HEIGHT_RATIO;
   const align = textBox.textAlign ?? 'center';
   const startX =
     align === 'center' ? textBox.x - textW / 2 : align === 'right' ? textBox.x - textW : textBox.x;
