@@ -58,13 +58,24 @@ Document model:
 capability tri-state. **Extend that mechanism rather than routing around it** — it is what keeps
 files authored in real ChemDraw from degrading on a round trip.
 
-CDXML defaults are a recurring source of silent infidelity, because a wrong default is invisible
-until compared against ChemDraw itself. Several were found by measuring a real corpus rather than
-by reading: an absent `Justification` means Left (not Center); colour indices 0 and 1 are the
-reserved black and white, not absent colours; `<t BoundingBox>` measures laid-out text and is not a
-wrap width; and an arrow is an arc only when it carries `AngularSize`, not merely the axis
-attributes ChemDraw writes on every arrow. **When a default is in doubt, measure it against a
-corpus before assuming it** — `development/chemdraw-fidelity.md` describes the harness that does.
+CDXML conventions are a recurring source of silent infidelity, because a wrong reading is
+invisible until compared against ChemDraw itself. None of these were discoverable by reading the
+format:
+
+- an absent `Justification` means Left, not Center
+- colour indices 0 and 1 are the reserved black and white, not absent colours
+- `<t BoundingBox>` measures laid-out text; `LineStarts` is where the breaks are recorded
+- `LineStarts` offsets are **UTF-8 bytes**, so any caption containing `°`, a subscript or Greek
+  breaks in the wrong place if they are read as characters
+- `p` on a `<t>` is the first line's baseline, and on an atom label sits 0.529 cap heights below
+  the atom
+- an arrow is an arc only when it carries `AngularSize`, not merely the axis attributes ChemDraw
+  writes on every arrow
+- a bracket's lip is a fraction of its own height, not the `LipSize` value in points
+
+**When a convention is in doubt, measure it rather than assume it** — and prefer asking ChemDraw
+directly over mining the corpus, which confounds what you are measuring with everything else on the
+page. `development/chemdraw-fidelity.md` describes both, and the traps in driving ChemDraw.
 
 ## Testing
 
