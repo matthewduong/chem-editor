@@ -377,14 +377,52 @@ export function createChemDrawSession(config = {}) {
       execute('quit', [`tell ${activeAppRef}`, '  quit saving no', 'end tell'], [], {
         timeoutMs: commandTimeoutMs,
       });
+      return true;
     } catch (error) {
-      if (error instanceof ChemDrawSessionError) return;
+      if (error instanceof ChemDrawSessionError) return false;
       throw error;
     }
   };
 
+  /**
+   * Kills the app outright, for when it has stopped answering AppleScript.
+   *
+   * Asking a wedged ChemDraw to quit is itself an AppleScript command, so it hangs the same way
+   * everything else does. Recovery that only asks politely leaves the session exactly as stuck as
+   * it found it, and every remaining case in the run fails against the same wedged process.
+   *
+   * The pid is found by matching the executable inside the app bundle, not by asking System Events
+   * for it: that query is itself an Apple event, and it times out against a wedged app just like
+   * everything else. Matching `MacOS/<name>` keeps it to a bundle executable rather than anything
+   * that merely mentions the name.
+   */
+  const forceQuit = () => {
+    const executableName = appId.split('.').pop();
+    if (!executableName) return false;
+    const found = spawnSync('/usr/bin/pgrep', ['-f', `MacOS/${executableName}`], {
+      encoding: 'utf8',
+      timeout: commandTimeoutMs,
+    });
+    const pids = (found.stdout ?? '')
+      .trim()
+      .split('\n')
+      .map((value) => Number.parseInt(value, 10))
+      .filter((pid) => Number.isInteger(pid) && pid > 0);
+    if (pids.length === 0) return false;
+    for (const pid of pids) {
+      try {
+        process.kill(pid, 'SIGKILL');
+      } catch {
+        /* already gone */
+      }
+    }
+    // Give the kernel a moment to reap it, or the relaunch attaches to a dying process.
+    blockingSleepMs(2000);
+    return true;
+  };
+
   const recoverSession = () => {
-    quit();
+    if (!quit()) forceQuit();
     const version = ensureLaunched();
     ensureCleanState();
     return version;
