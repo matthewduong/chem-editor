@@ -133,3 +133,38 @@ test.describe('CDXML round-trip', { skip: !XMLLINT }, () => {
     assert.ok(arrowMatches.length > 0, 'expected at least one self-closing <arrow/> tag');
   });
 });
+
+test('a text anchor survives a round trip at a non-default BondLength', async () => {
+  // The baseline correction is applied in canvas units on import and native units on export, so a
+  // scaling mistake cancels itself out at BondLength 14.4 -- which is what 120 of the 121 files in
+  // the reference corpus use. Only a document with a different bond length can catch it.
+  const { cdxmlToChemDrawDocument } = await import('../.unit-test-dist/src/utils/cdxml.js');
+  const source = (bondLength, size) =>
+    `<?xml version="1.0" encoding="UTF-8" ?>\n` +
+    `<CDXML BondLength="${bondLength}" LineWidth="0.60">` +
+    `<colortable><color r="1" g="1" b="1"/><color r="0" g="0" b="0"/></colortable>` +
+    `<fonttable><font id="3" charset="iso-8859-1" name="Arial"/></fonttable>` +
+    `<page id="p1" BoundingBox="0 0 540 720" HeightPages="1" WidthPages="1">` +
+    `<t id="t1" p="80 120" Justification="Left">` +
+    `<s font="3" size="${size}" face="0" color="0">Hxy</s></t>` +
+    `</page></CDXML>`;
+
+  // Bond lengths below 8 are a separate, pre-existing problem: the style sheet clamps
+  // nativeMetrics.bondLength to a minimum of 8 while coordinates keep scaling by the raw value, so
+  // every coordinate in such a document drifts by the ratio on a round trip, text or not.
+  for (const [bondLength, size] of [
+    ['14.40', 10],
+    ['30', 20],
+    ['8', 6],
+  ]) {
+    const { document } = cdxmlToChemDrawDocument(source(bondLength, size));
+    const exported = chemDrawDocumentToCDXML(document);
+    const p = /<t [^>]*p="([\d.]+) ([\d.]+)"/.exec(exported);
+    assert.ok(p, `BondLength ${bondLength}: expected a <t> in the export`);
+    assert.equal(
+      Number(p[2]).toFixed(2),
+      '120.00',
+      `BondLength ${bondLength}: anchor drifted on round trip`,
+    );
+  }
+});

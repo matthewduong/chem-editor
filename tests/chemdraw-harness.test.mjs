@@ -464,3 +464,33 @@ test('a drop larger than its known cause still surfaces', () => {
   assert.equal(delta.elements.unexplained.graphic.unexplained, 2);
   assert.equal(delta.elements.expected.graphic.covered, 1);
 });
+
+test('an atom label loss cannot hide behind the nickname category', () => {
+  // A nickname's expanded <fragment> carries labels that collapse with it, but an atom's own <t>
+  // sits directly under the <n> and is exported. Only the former may be written off.
+  const source = buildCdxmlElementSummary(
+    `<CDXML><page><fragment>` +
+      `<n id="n1"><t><s>Ph</s></t><fragment><n id="n2"><t><s>C</s></t></n></fragment></n>` +
+      `<n id="n3"><t><s>OMe</s></t></n>` +
+      `</fragment></page></CDXML>`,
+  );
+
+  // Only the expansion's label is gone: expected, nothing left over.
+  const collapsed = buildCdxmlElementSummary(
+    `<CDXML><page><fragment>` +
+      `<n id="n1"><t><s>Ph</s></t></n><n id="n3"><t><s>OMe</s></t></n>` +
+      `</fragment></page></CDXML>`,
+  );
+  const fine = diffCdxmlElementSummaries(source, collapsed);
+  assert.equal(fine.elements.expected.t.covered, 1);
+  assert.ok(!('t' in fine.elements.unexplained), 'a collapsed nickname label is expected');
+
+  // A real atom label goes missing too: the extra loss must still surface.
+  const lossy = buildCdxmlElementSummary(
+    `<CDXML><page><fragment>` +
+      `<n id="n1"><t><s>Ph</s></t></n><n id="n3"/>` +
+      `</fragment></page></CDXML>`,
+  );
+  const bad = diffCdxmlElementSummaries(source, lossy);
+  assert.equal(bad.elements.unexplained.t.unexplained, 1);
+});

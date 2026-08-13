@@ -199,26 +199,42 @@ CHEMDRAW_CORPUS_ROOT=/path/to/private/corpus CHEMDRAW_CAPTURE_VISUAL_BASELINE=1 
 
 ## Known Gaps
 
-### Caption baselines sit about 0.9 em too low
+### Atom labels sit about 1.8pt too low
 
-The largest remaining geometric difference. ChemDraw's `p` on a page-level `<t>` is the **baseline**
-of the first line; we treat it as the line top, so every caption is painted roughly one ascent too
-low. It is why our trimmed renders come out ~30px taller than ChemDraw's at 4x zoom while the widths
-agree to within a pixel or two.
+The largest remaining geometric difference, now that captions are anchored correctly.
 
-The arithmetic is exact on any captioned structure. For one caption at 10pt with `p="178.64 58.78"`
-and `BoundingBox="... 51.5 ... 60.89"`: a 10pt ascent of ~7.2 and descent of ~2.1 put the baseline
-at 51.5 + 7.2 = 58.7 and the bottom at 60.9, matching both `p.y` and the box. We paint that
-baseline at 67.83.
+`nodeModule` places a label with `labelY = atom.y - fontSize * 0.36`, a guessed ratio of exactly
+the kind `getFaceMetrics` exists to replace. That puts the baseline `0.792 * capHeight` below the
+atom. ChemDraw puts it at **0.529 \* capHeight**, measured over 1071 centred labels across the
+corpus with a tight spread (p25 0.522, p75 0.535). The difference is 1.81pt at 10pt, and it is what
+remains of the mean height error against ChemDraw's renders.
 
-The line _origin_ is already right: measured over 984 page-level captions in the corpus, our first
-line origin sits within 0.19pt of `p.y` on average. The error is entirely in the origin-to-baseline
-step, where `drawRunText` sets `textBaseline = 'top'`.
+`p.y` is the baseline for atom labels too, the same as for captions: over 2022 descender-free
+labels, ChemDraw's own ink box bottom sits a median of 0.19pt from the anchor.
 
-Fix it at import rather than in the primitive: shift the imported anchor up by the ascent
-(`measureText` in `src/lib/textMetrics.ts` has real ascents from the vendored metrics), so the
-existing top-based convention lands the baseline on `p.y`. Changing `drawRunText` instead would
-move atom labels too, which use the same primitive but are positioned by their atom.
+Before settling the constant, probe ChemDraw the way the caption fix did (see "Probing ChemDraw"
+below) — 0.529 is close enough to a half that the remainder may be a line-width term rather than
+part of the ratio.
+
+### Bond lengths below 8 scale every coordinate
+
+`normalizeChemDrawStyleSheet` clamps `nativeMetrics.bondLength` to a minimum of 8
+(`src/lib/chemdrawMetrics.ts`), but coordinates are scaled by the document's raw `BondLength`. A
+document declaring `BondLength="7.2"` comes back from a round trip with every coordinate multiplied
+by 8/7.2: nodes at `(100, 200)` export as `(111.11, 222.22)`. No text is involved. The corpus does
+not catch this because 120 of its 121 files use the ACS default of 14.4.
+
+## Probing ChemDraw
+
+Some conventions cannot be recovered from the corpus, because every real file confounds the thing
+being measured with everything else drawn near it. Measuring the caption offset that way gave a
+median of 5.5pt with a spread from -13px to +36px; the true answer was 9.05pt.
+
+The way to settle one is to ask ChemDraw directly with a purpose-built page. Put horizontal
+fiducial lines at known y values next to the construct under test, render it through
+`createChemDrawSession`, rasterize at 288dpi, and read the row profile: the fiducials recover the
+page-to-pixel mapping that ChemDraw's crop-to-content otherwise destroys. Probe at several font
+sizes at once, so an offset that scales is distinguishable from one that does not.
 
 ### Reaction schemes and steps are preserved, not modelled
 

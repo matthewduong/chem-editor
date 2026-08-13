@@ -218,20 +218,23 @@ export function buildCdxmlElementSummary(xml) {
   const superseded = new Map();
   const insideNickname = new Map();
 
-  const walk = (element, nested) => {
+  const walk = (element, insideAtom, insideExpansion) => {
     const tag = element.tagName.toLowerCase();
     incrementCounter(elements, tag);
     if (element.getAttribute?.('SupersededBy')) incrementCounter(superseded, tag);
+    // A <fragment> hanging off an <n> is that atom's expanded nickname; it and everything in it
+    // collapse into the atom's label. An atom's own <t> label sits directly under the <n> and is
+    // deliberately excluded, so a genuine loss of atom labels cannot hide in this category.
+    const nested = insideExpansion || (insideAtom && tag === 'fragment');
     if (nested) incrementCounter(insideNickname, tag);
     for (const attribute of element.attributes ?? []) {
       incrementCounter(attributes, attribute.name);
     }
-    // Everything below an <n> is that atom's expanded nickname, which we collapse to its label.
-    for (const child of element.children ?? []) walk(child, nested || tag === 'n');
+    for (const child of element.children ?? []) walk(child, insideAtom || tag === 'n', nested);
   };
 
   const root = parsed.documentElement;
-  if (root && root.tagName !== 'parsererror') walk(root, false);
+  if (root && root.tagName !== 'parsererror') walk(root, false, false);
   return {
     elements: normalizeCounter(elements),
     attributes: normalizeCounter(attributes),
@@ -267,6 +270,14 @@ const EXPECTED_DROP_RULES = {
   fragment: {
     reason: 'a nickname expansion hanging off an <n>, collapsed into the atom label',
     covered: (summary) => summary.insideNickname?.fragment ?? 0,
+  },
+  t: {
+    reason: 'a label on an atom of an expanded nickname, collapsed into the parent atom label',
+    covered: (summary) => summary.insideNickname?.t ?? 0,
+  },
+  s: {
+    reason: 'a styled run inside an expanded nickname, collapsed into the parent atom label',
+    covered: (summary) => summary.insideNickname?.s ?? 0,
   },
 };
 
