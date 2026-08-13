@@ -667,8 +667,11 @@ function textAnchorBaselineOffset(
  * It lists the character offset at which each line after the first begins, over the text of all the
  * element's runs concatenated, ending with a sentinel equal to the total length. Sometimes a
  * literal newline sits at the break as well and sometimes it does not -- a wrapped caption has only
- * the offsets -- so this treats the offsets as the authority and drops any newline already in the
- * text, which would otherwise break the same line twice.
+ * the offsets -- so the offsets are the authority, and a newline that one of them already accounts
+ * for is dropped rather than breaking the same line twice.
+ *
+ * A newline no offset accounts for still breaks the line. Nothing in the corpus writes one, since
+ * ChemDraw keeps the two consistent, but discarding it would lose a break with no way to notice.
  *
  * Without it, a caption ChemDraw wrapped comes out as one long line, because nothing else in the
  * file records the break: the bounding box measures the result rather than constraining it.
@@ -695,11 +698,13 @@ function applyLineStarts(runs: TextRun[], lineStartsAttr: string | null): TextRu
     };
     // Indexed by code unit, to match the `length` the offsets are measured against.
     for (let position = 0; position < run.text.length; position += 1) {
-      if (breaks.has(index)) {
+      const character = run.text[position];
+      // A newline sits immediately before the offset that marks the line it starts.
+      const accountedFor = breaks.has(index) || breaks.has(index + 1);
+      if (breaks.has(index) || (character === '\n' && !accountedFor)) {
         flush();
         result.push({ ...run, text: '\n' });
       }
-      const character = run.text[position];
       if (character !== '\n') pending += character;
       index += 1;
     }

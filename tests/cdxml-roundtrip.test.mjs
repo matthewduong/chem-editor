@@ -221,3 +221,36 @@ test('a wrapped caption keeps its line count through repeated round trips', asyn
     assert.equal(lineCount(xml), 3, `line count drifted on round trip ${pass + 1}`);
   }
 });
+
+test('a line break survives whichever way ChemDraw recorded it', async () => {
+  const { cdxmlToChemDrawDocument } = await import('../.unit-test-dist/src/utils/cdxml.js');
+  const { chemDrawDocumentToCanvasState } =
+    await import('../.unit-test-dist/src/lib/chemdrawModel.js');
+  const { getTextBoxRenderLines } =
+    await import('../.unit-test-dist/src/lib/textRunPresentation.js');
+
+  const lines = (text, lineStarts) => {
+    const attribute = lineStarts ? ` LineStarts="${lineStarts}"` : '';
+    const xml =
+      `<CDXML BondLength="14.40">` +
+      `<colortable><color r="1" g="1" b="1"/><color r="0" g="0" b="0"/></colortable>` +
+      `<fonttable><font id="3" charset="iso-8859-1" name="Arial"/></fonttable>` +
+      `<page id="1" BoundingBox="0 0 540 720" HeightPages="1" WidthPages="1">` +
+      `<t id="9" p="40 100"${attribute}><s font="3" size="10" face="0">${text}</s></t>` +
+      `</page></CDXML>`;
+    const { state } = chemDrawDocumentToCanvasState(cdxmlToChemDrawDocument(xml).document);
+    return getTextBoxRenderLines(state.textBoxes[0]).map((line) =>
+      line.map((run) => run.text).join(''),
+    );
+  };
+
+  // How ChemDraw writes an authored break: the newline and an offset for the line it starts.
+  // Honouring both would split the text twice.
+  assert.deepEqual(lines('PIDA\n68%', '5 8'), ['PIDA', '68%']);
+  // How it writes a caption it wrapped itself: offsets and nothing else.
+  assert.deepEqual(lines('one two three', '4 8 13'), ['one ', 'two ', 'three']);
+  // Neither form present for this break, so the newline has to carry it.
+  assert.deepEqual(lines('AAA\nBBBCCC', '7 10'), ['AAA', 'BBB', 'CCC']);
+  // No offsets at all.
+  assert.deepEqual(lines('AAA\nBBB', null), ['AAA', 'BBB']);
+});
