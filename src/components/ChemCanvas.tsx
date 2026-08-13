@@ -1212,6 +1212,7 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
       hoveredNativeObjectId,
       editingTextBoxId,
       rdkitInvalidAtomIds,
+      showValenceErrors: true,
     }),
     [
       documentIndex,
@@ -1265,6 +1266,7 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
       hoveredNativeObjectId: contentHoveredNativeObjectId,
       editingTextBoxId,
       rdkitInvalidAtomIds,
+      showValenceErrors: true,
     }),
     [
       contentHoveredArrowId,

@@ -42,6 +42,7 @@ export interface SceneInteractionState {
   hoveredNativeObjectId: string | null;
   editingTextBoxId: string | null;
   rdkitInvalidAtomIds: Set<string>;
+  showValenceErrors: boolean;
 }
 
 export interface BuildSceneInput {
@@ -71,6 +72,7 @@ function defaultInteractionState(): SceneInteractionState {
     hoveredNativeObjectId: null,
     editingTextBoxId: null,
     rdkitInvalidAtomIds: new Set(),
+    showValenceErrors: false,
   };
 }
 

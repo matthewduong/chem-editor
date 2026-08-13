@@ -50,6 +50,15 @@ export interface DocumentSceneState {
   hoveredNativeObjectId: string | null;
   editingTextBoxId: string | null;
   rdkitInvalidAtomIds: Set<string>;
+  /**
+   * Whether to flag atoms whose bonding exceeds their valence.
+   *
+   * An editing affordance, like selection and hover, so it defaults off for headless callers.
+   * Exports and fidelity renders must not carry it: ChemDraw draws no such thing, and the valence
+   * table holds one value per element, so ordinary hypervalent phosphorus and sulfur -- every
+   * phosphonate and sulfone -- would export with a red blob on them.
+   */
+  showValenceErrors: boolean;
 }
 
 export interface RenderSceneOptions {

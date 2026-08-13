@@ -40,8 +40,9 @@ export const NODE_MODULE: ObjectModule = {
       else if (getAtomLeadElement(atom) === 'B') effectiveValence = knownValence + Math.abs(charge);
     }
     const error =
-      (knownValence !== null && bondOrderSum > effectiveValence) ||
-      scene.rdkitInvalidAtomIds.has(atom.id);
+      scene.showValenceErrors &&
+      ((knownValence !== null && bondOrderSum > effectiveValence) ||
+        scene.rdkitInvalidAtomIds.has(atom.id));
     const canShowImplicitHydrogens = !atom.alias || Boolean(SHORTHAND_DATA[atom.alias]);
     const hydrogenCount =
       scene.showHydrogens && canShowImplicitHydrogens && knownValence !== null
