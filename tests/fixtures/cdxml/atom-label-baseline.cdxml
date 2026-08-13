@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Where an atom label sits relative to the atom it belongs to.
+
+  ChemDraw puts the label's baseline 0.529 cap heights below the atom centre. That was measured by
+  handing ChemDraw heteroatoms carrying no label of their own and reading back the anchor it wrote:
+  the ratio held from 6pt to 24pt, where the same figure expressed as "half the cap height plus a
+  constant" did not, so it is a ratio and not a centring plus a fudge.
+
+  Each labelled atom here also carries a horizontal rule at the atom's own y, so the golden pins the
+  relationship: the rule marks the atom centre, and the label baseline must sit just over half a cap
+  height below it. Two label sizes, since an offset that failed to scale would show up as a
+  difference between them.
+-->
+<CDXML BondLength="14.4" LineWidth="0.6" LabelSize="10" LabelFont="3">
+  <page id="page-1">
+    <fonttable>
+      <font id="3" charset="iso-8859-1" name="Arial"/>
+    </fonttable>
+    <graphic id="rule1" GraphicType="Line" BoundingBox="0 60 30 60"/>
+    <fragment id="f1">
+      <n id="n1" p="60 60"/>
+      <n id="n2" p="90 60" Element="8">
+        <t p="90 63.6" LabelJustification="Left"><s font="3" size="10" face="0">OH</s></t>
+      </n>
+      <b id="b1" B="n1" E="n2"/>
+    </fragment>
+    <graphic id="rule2" GraphicType="Line" BoundingBox="0 140 30 140"/>
+    <fragment id="f2">
+      <n id="n3" p="60 140"/>
+      <n id="n4" p="90 140" Element="7">
+        <t p="90 147.3" LabelJustification="Left"><s font="3" size="20" face="0">NH</s></t>
+      </n>
+      <b id="b2" B="n3" E="n4"/>
+    </fragment>
+  </page>
+</CDXML>

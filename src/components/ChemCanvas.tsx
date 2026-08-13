@@ -84,6 +84,7 @@ import {
   measureRunWidth,
   runsToHTML,
 } from '../lib/textRunPresentation';
+import { getFaceMetrics } from '../lib/textMetrics';
 import { generateCanvasSVG } from '../lib/svgExport';
 import {
   applyArrowStyleEdit,
@@ -99,6 +100,7 @@ import {
 import {
   convertNativeToCanvas,
   DEFAULT_CANVAS_BOND_LENGTH,
+  getAtomLabelBaselineOffset,
   getDocumentCaptionFontSize,
   getNodeLabelVerticalOffset,
   resolveArrowHeadType,
@@ -4564,9 +4566,12 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
             return displayRuns.map((run, index) => {
               const runWidth = measureRunWidth(run, labelFontSize, labelFontFamily);
               const runFontSize = run.sub || run.sup ? labelFontSize * 0.65 : labelFontSize;
+              // Konva anchors Text at its top, as the scene renderer does, so this mirrors
+              // nodeModule: baseline where ChemDraw puts it, less the ascent.
               const runY =
-                a.y -
-                labelFontSize * 0.36 +
+                a.y +
+                getAtomLabelBaselineOffset(labelFontSize, labelFontFamily) -
+                getFaceMetrics({ family: labelFontFamily, sizePx: labelFontSize }).ascent +
                 verticalLabelOffset +
                 (run.sub ? labelFontSize * 0.22 : run.sup ? -labelFontSize * 0.18 : 0);
               const node = (

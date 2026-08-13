@@ -1,6 +1,7 @@
 import type { ArrowType, TextRun } from '../types/chemistry';
 import type { ChemDrawArrow, ChemDrawArrowHeadType, ChemDrawBond } from '../types/chemdraw';
 import type { ChemDrawStyleSheet, DocumentStyleSettings, TextFormat } from '../types/settings';
+import { getFaceMetrics } from './textMetrics';
 
 const ACS_1996_BOND_LENGTH = 14.4;
 
@@ -264,6 +265,42 @@ export function getNodeLabelVerticalOffset(
   if (labelAlignment === 'above') return -fontSize * 0.7;
   if (labelAlignment === 'below') return fontSize * 0.55;
   return 0;
+}
+
+/**
+ * How far below the atom centre ChemDraw puts an atom label's baseline, as a fraction of the
+ * face's cap height.
+ *
+ * Measured by handing ChemDraw heteroatoms with no label of their own and reading back the anchor
+ * it chose: 0.5298, 0.5287, 0.5291, 0.5293, 0.5295, 0.5297 and 0.5293 at 6, 8, 10, 12, 14, 18 and
+ * 24pt. Steady over a fourfold range, where the same measurement expressed as "half the cap height
+ * plus a constant" is not, so this is a ratio rather than a centring plus a fudge.
+ *
+ * Slightly more than half, so the label sits a shade low of a true cap-box centring.
+ */
+const ATOM_LABEL_BASELINE_CAP_FRACTION = 0.5293;
+
+/**
+ * Distance from an atom's centre down to its label's baseline.
+ *
+ * Cap height rather than point size because that is what tracks the face: across Arial, a serif and
+ * a monospace face at the same point size ChemDraw's offset moves with the cap height, not the
+ * size. The remaining disagreement on non-sans faces is our own metrics approximating them, since
+ * `FONT_METRICS` carries one representative face per generic family.
+ */
+export function getAtomLabelBaselineOffset(
+  fontSize: number,
+  fontFamily?: string,
+  faceStyle?: { bold?: boolean; italic?: boolean },
+): number {
+  if (!isFinitePositiveNumber(fontSize)) return 0;
+  const { capHeight } = getFaceMetrics({
+    family: fontFamily ?? DEFAULT_CHEMDRAW_STYLE_SHEET.labelFontFamily,
+    sizePx: fontSize,
+    bold: Boolean(faceStyle?.bold),
+    italic: Boolean(faceStyle?.italic),
+  });
+  return capHeight * ATOM_LABEL_BASELINE_CAP_FRACTION;
 }
 
 export function getDefaultArrowHeadType(type?: ArrowType): ChemDrawArrowHeadType {

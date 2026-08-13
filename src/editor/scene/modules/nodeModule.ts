@@ -1,6 +1,7 @@
 import { buildAtomLabelRuns, getLeadElementAnchorOffset } from '../../../lib/atomLabelPresentation';
-import { getPaintFontFamily } from '../../../lib/textMetrics';
+import { getFaceMetrics, getPaintFontFamily } from '../../../lib/textMetrics';
 import {
+  getAtomLabelBaselineOffset,
   getNodeLabelVerticalOffset,
   resolveDocumentLabelTextStyle,
 } from '../../../lib/chemdrawMetrics';
@@ -139,7 +140,13 @@ export const NODE_MODULE: ObjectModule = {
     if (labelVisible) {
       const textStartX = atom.x - offset + padding;
       let cursorX = textStartX;
-      const labelY = atom.y - labelFontSize * 0.36 + verticalOffset;
+      // drawRunText takes the top of the line, so back off by the ascent to land the baseline
+      // where ChemDraw puts it.
+      const labelY =
+        atom.y +
+        getAtomLabelBaselineOffset(labelFontSize, labelFontFamily) -
+        getFaceMetrics({ family: labelFontFamily, sizePx: labelFontSize }).ascent +
+        verticalOffset;
       displayRuns.forEach((run) => {
         drawRunText(
           ctx,
