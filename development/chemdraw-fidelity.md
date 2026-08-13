@@ -141,6 +141,17 @@ Typical contents include:
 Case directories are written for passing cases too, not only failures: import fidelity is
 report-only, so a run where every case passes is exactly the run whose data matters most.
 
+Comparing two runs is what tells you whether a change helped:
+
+```bash
+node scripts/compare-chemdraw-runs.mjs .chemdraw-test-artifacts/<before> .chemdraw-test-artifacts/<after>
+```
+
+Watch the rendered extent rather than the differing-pixel count. Pixel counts move with font
+rasterization and with how much of the page is inked, so they shift for reasons that are not
+fidelity; how far our width and height sit from ChemDraw's does not, and a geometry mistake shows
+up there first.
+
 `<run-id>/run-summary.json` aggregates the whole run — pass/fail counts, cases ranked by visual
 diff, and how many cases each dropped construct affects. Read that first; the per-case directories
 are for drilling into one failure.
