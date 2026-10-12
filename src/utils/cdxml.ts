@@ -925,7 +925,7 @@ function emitTextBoxT(
     : '';
   const rawAttributesAttr = emitRawAttributes(options?.rawAttributes);
 
-  let out = `${indent}<t p="${xs} ${ys}" Justification="${just}"${rotationAttr}${widthAttr}${lineStartsAttr}${chemicalMetadataAttr}${semanticModeAttr}${conversionStatusAttr}${rawAttributesAttr}>\n`;
+  let out = `${indent}<t id="${tb.id}" p="${xs} ${ys}" Justification="${just}"${rotationAttr}${widthAttr}${lineStartsAttr}${chemicalMetadataAttr}${semanticModeAttr}${conversionStatusAttr}${rawAttributesAttr}>\n`;
   for (const run of tb.runs) {
     let face = 0;
     if (run.bold) face |= 1;
@@ -3582,6 +3582,14 @@ export function cdxmlToChemDrawDocument(xmlString: string): ChemDrawConversionRe
       // on open (since it uses internal attribute encoding our export doesn't reproduce exactly).
       // ChemDraw drops it on re-export anyway, so preserving it has no round-trip value.
       if (tag === 'chemicalproperty') continue;
+      // <colortable>/<fonttable> are normally siblings of <page>, not children of it, but the
+      // reader above (`doc.querySelector('colortable'/'fonttable')`) finds them wherever they
+      // sit in the document, so their content is already captured. Preserving them again here as
+      // unrecognized page content duplicated it into the export's own page body — a second,
+      // smaller colour/font table nested where ChemDraw never puts one, which does not round-trip:
+      // the colour/font ids our own synthesized tables assign can drift between export rounds
+      // depending on what else got swept into that same preserved-content bucket.
+      if (tag === 'colortable' || tag === 'fonttable') continue;
       if (tag === 'group' || tag === 'scheme' || tag === 'step') {
         const hasModeledDescendants = Boolean(
           child.querySelector(
