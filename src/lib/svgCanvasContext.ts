@@ -130,8 +130,32 @@ export class SvgCanvasContext {
   private pathCursor: [number, number] | null = null;
   private defs: string[] = [];
   private shadowSeq = 0;
+  /** Device-space points of the path being built, used to accumulate ink bounds on paint. */
+  private pathPoints: Array<[number, number]> = [];
+  private ink: { minX: number; minY: number; maxX: number; maxY: number } | null = null;
 
   constructor(private readonly options: SvgCanvasOptions) {}
+
+  /** Extent of everything painted so far (stroke widths included), or null if nothing was. */
+  getInkBounds(): { minX: number; minY: number; maxX: number; maxY: number } | null {
+    return this.ink ? { ...this.ink } : null;
+  }
+
+  private extendInk(x: number, y: number, pad = 0): void {
+    if (!Number.isFinite(x) || !Number.isFinite(y)) return;
+    if (!this.ink) {
+      this.ink = { minX: x - pad, minY: y - pad, maxX: x + pad, maxY: y + pad };
+      return;
+    }
+    this.ink.minX = Math.min(this.ink.minX, x - pad);
+    this.ink.minY = Math.min(this.ink.minY, y - pad);
+    this.ink.maxX = Math.max(this.ink.maxX, x + pad);
+    this.ink.maxY = Math.max(this.ink.maxY, y + pad);
+  }
+
+  private commitPathInk(pad: number): void {
+    for (const [x, y] of this.pathPoints) this.extendInk(x, y, pad);
+  }
 
   // ── state ────────────────────────────────────────────────────────────────
   save(): void {
@@ -274,6 +298,7 @@ export class SvgCanvasContext {
   // groups to keep in sync with the canvas state stack.
   beginPath(): void {
     this.path = [];
+    this.pathPoints = [];
     this.pathStart = null;
     this.pathCursor = null;
   }
@@ -281,6 +306,7 @@ export class SvgCanvasContext {
   moveTo(x: number, y: number): void {
     const point = applyMatrix(this.state.transform, x, y);
     this.path.push(`M${num(point[0])} ${num(point[1])}`);
+    this.pathPoints.push(point);
     this.pathStart = point;
     this.pathCursor = point;
   }
@@ -292,6 +318,7 @@ export class SvgCanvasContext {
       return;
     }
     this.path.push(`L${num(point[0])} ${num(point[1])}`);
+    this.pathPoints.push(point);
     this.pathCursor = point;
   }
 
@@ -299,6 +326,8 @@ export class SvgCanvasContext {
     const control = applyMatrix(this.state.transform, cx, cy);
     const point = applyMatrix(this.state.transform, x, y);
     this.path.push(`Q${num(control[0])} ${num(control[1])} ${num(point[0])} ${num(point[1])}`);
+    // Control points bound the curve, which is conservative but never clips ink.
+    this.pathPoints.push(control, point);
     this.pathCursor = point;
   }
 
@@ -309,6 +338,7 @@ export class SvgCanvasContext {
     this.path.push(
       `C${num(c1[0])} ${num(c1[1])} ${num(c2[0])} ${num(c2[1])} ${num(point[0])} ${num(point[1])}`,
     );
+    this.pathPoints.push(c1, c2, point);
     this.pathCursor = point;
   }
 
@@ -340,6 +370,7 @@ export class SvgCanvasContext {
     ];
 
     this.path.push(`L${num(arcStart[0])} ${num(arcStart[1])}`);
+    this.pathPoints.push(arcStart, arcEnd);
     if (r > 0) {
       // Sweep direction from the cross product of the two edge vectors.
       const cross =
@@ -370,6 +401,11 @@ export class SvgCanvasContext {
     else {
       this.path.push(`M${num(from[0])} ${num(from[1])}`);
       this.pathStart = from;
+    }
+    {
+      // The circle's bounding box contains every arc of it.
+      const centre = applyMatrix(this.state.transform, cx, cy);
+      this.pathPoints.push([centre[0] - r, centre[1] - r], [centre[0] + r, centre[1] + r]);
     }
 
     if (sweep >= Math.PI * 2 - 1e-9) {
@@ -413,6 +449,13 @@ export class SvgCanvasContext {
       ];
     };
     const from = point(start);
+    {
+      const reach = Math.max(rx, ry) * scale;
+      this.pathPoints.push(
+        [center[0] - reach, center[1] - reach],
+        [center[0] + reach, center[1] + reach],
+      );
+    }
     if (this.pathCursor) this.path.push(`L${num(from[0])} ${num(from[1])}`);
     else {
       this.path.push(`M${num(from[0])} ${num(from[1])}`);
@@ -485,6 +528,7 @@ export class SvgCanvasContext {
 
   stroke(): void {
     if (this.path.length === 0) return;
+    this.commitPathInk((this.state.lineWidth * matrixScale(this.state.transform)) / 2);
     this.parts.push(
       `<path d="${this.path.join('')}" fill="none"${this.strokeAttrs()}${this.shadowAttr()}/>`,
     );
@@ -492,6 +536,7 @@ export class SvgCanvasContext {
 
   fill(): void {
     if (this.path.length === 0) return;
+    this.commitPathInk(0);
     this.parts.push(
       `<path d="${this.path.join('')}"${this.fillAttrs()} stroke="none"${this.shadowAttr()}/>`,
     );
@@ -509,13 +554,27 @@ export class SvgCanvasContext {
       .join('')}Z`;
   }
 
+  private extendInkRect(x: number, y: number, w: number, h: number, pad = 0): void {
+    for (const [cx, cy] of [
+      [x, y],
+      [x + w, y],
+      [x + w, y + h],
+      [x, y + h],
+    ] as Array<[number, number]>) {
+      const point = applyMatrix(this.state.transform, cx, cy);
+      this.extendInk(point[0], point[1], pad);
+    }
+  }
+
   fillRect(x: number, y: number, w: number, h: number): void {
+    this.extendInkRect(x, y, w, h);
     this.parts.push(
       `<path d="${this.rectPath(x, y, w, h)}"${this.fillAttrs()} stroke="none"${this.shadowAttr()}/>`,
     );
   }
 
   strokeRect(x: number, y: number, w: number, h: number): void {
+    this.extendInkRect(x, y, w, h, (this.state.lineWidth * matrixScale(this.state.transform)) / 2);
     this.parts.push(
       `<path d="${this.rectPath(x, y, w, h)}" fill="none"${this.strokeAttrs()}${this.shadowAttr()}/>`,
     );
@@ -560,6 +619,12 @@ export class SvgCanvasContext {
         break;
     }
 
+    this.extendInkRect(
+      penX,
+      baselineY - metrics.ascent,
+      metrics.advance,
+      metrics.ascent + metrics.descent,
+    );
     const [px, py] = applyMatrix(this.state.transform, penX, baselineY);
     const scale = matrixScale(this.state.transform);
     let attrs = `x="${num(px)}" y="${num(py)}"`;
@@ -578,6 +643,7 @@ export class SvgCanvasContext {
   drawImage(image: { src?: string }, x: number, y: number, w: number, h: number): void {
     const href = typeof image?.src === 'string' ? image.src : '';
     if (!href) return;
+    this.extendInkRect(x, y, w, h);
     const [px, py] = applyMatrix(this.state.transform, x, y);
     const scale = matrixScale(this.state.transform);
     this.parts.push(
