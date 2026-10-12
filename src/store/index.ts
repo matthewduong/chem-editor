@@ -149,6 +149,49 @@ function markDocumentFileDirty(documentFile: DocumentFileState): DocumentFileSta
   return documentFile.dirty ? documentFile : { ...documentFile, dirty: true };
 }
 
+/** The store fields that change when `nextDocument`/`nextState` becomes a new undo step. */
+function historyCommitPatch(
+  s: AppState,
+  nextDocument: ChemDrawDocument,
+  nextState: CanvasState,
+): Partial<AppState> {
+  const hist = s.history.slice(0, s.historyIndex + 1);
+  const docHist = s.documentHistory.slice(0, s.historyIndex + 1);
+  hist.push(nextState);
+  docHist.push(nextDocument);
+  if (hist.length > 50) hist.shift();
+  if (docHist.length > 50) docHist.shift();
+  return {
+    history: hist,
+    documentHistory: docHist,
+    historyIndex: hist.length - 1,
+    atoms: nextState.atoms,
+    bonds: nextState.bonds,
+    arrows: nextState.arrows,
+    groups: nextState.groups ?? [],
+    textBoxes: nextState.textBoxes ?? [],
+    chemDrawDocument: nextDocument,
+    previewChemDrawDocument: null,
+    selectionPreviewTransform: null,
+    pageSetup: resolveDocumentPageSetup(nextDocument, s.appPreferences),
+    documentFile: markDocumentFileDirty(s.documentFile),
+    documentRevision: s.documentRevision + 1,
+    projectionRevision: s.projectionRevision + 1,
+    ...describeDocumentState(nextDocument),
+    selectedObjectIds: new Set(
+      [
+        ...nextState.atoms.map((a) => a.id),
+        ...nextState.bonds.map((b) => b.id),
+        ...nextState.arrows.map((a) => a.id),
+        ...(nextState.textBoxes ?? []).map((t) => t.id),
+      ].filter((id) => s.selectedObjectIds.has(id)),
+    ),
+    selectedBondIds: new Set(
+      nextState.bonds.map((b) => b.id).filter((id) => s.selectedBondIds.has(id)),
+    ),
+  };
+}
+
 function normalizeCanvasState<T extends CanvasState>(state: T): T {
   return sanitizeRingTemplateState({
     ...state,
@@ -352,6 +395,11 @@ export interface AppState {
 
   // ── Canvas actions ───────────────────────────────────────────────────────────
   pushToHistory: (state: CanvasState) => void;
+  /**
+   * Commit an already-built document as one undo step. The flat arrays are derived from it by
+   * projection; the document itself is stored as given, never re-materialized from the arrays.
+   */
+  commitDocument: (document: ChemDrawDocument) => void;
   setCurrentCanvasState: (state: CanvasState) => void;
   undo: () => void;
   redo: () => void;
@@ -676,43 +724,17 @@ export const useStore = create<AppState>((set, get) => ({
           textBoxes: projected.textBoxes ?? [],
         });
       }
-      const nextDocumentMeta = describeDocumentState(nextDocument);
-      const hist = s.history.slice(0, s.historyIndex + 1);
-      const docHist = s.documentHistory.slice(0, s.historyIndex + 1);
-      hist.push(nextState);
-      docHist.push(nextDocument);
-      if (hist.length > 50) hist.shift();
-      if (docHist.length > 50) docHist.shift();
-      return {
-        history: hist,
-        documentHistory: docHist,
-        historyIndex: hist.length - 1,
-        atoms: nextState.atoms,
-        bonds: nextState.bonds,
-        arrows: nextState.arrows,
-        groups: nextState.groups ?? [],
-        textBoxes: nextState.textBoxes ?? [],
-        chemDrawDocument: nextDocument,
-        previewChemDrawDocument: null,
-        selectionPreviewTransform: null,
-        pageSetup: resolveDocumentPageSetup(nextDocument, s.appPreferences),
-        documentFile: markDocumentFileDirty(s.documentFile),
-        documentRevision: s.documentRevision + 1,
-        projectionRevision: s.projectionRevision + 1,
-        ...nextDocumentMeta,
-        selectedObjectIds: new Set(
-          [
-            ...nextState.atoms.map((a) => a.id),
-            ...nextState.bonds.map((b) => b.id),
-            ...nextState.arrows.map((a) => a.id),
-            ...(nextState.textBoxes ?? []).map((t) => t.id),
-          ].filter((id) => s.selectedObjectIds.has(id)),
-        ),
-        selectedBondIds: new Set(
-          nextState.bonds.map((b) => b.id).filter((id) => s.selectedBondIds.has(id)),
-        ),
-      };
+      return historyCommitPatch(s, nextDocument, nextState);
     }),
+
+  commitDocument: (document) =>
+    set((s) =>
+      historyCommitPatch(
+        s,
+        document,
+        normalizeCanvasState(chemDrawDocumentToCanvasState(document).state),
+      ),
+    ),
 
   setCurrentCanvasState: (newState) =>
     set((s) => {
@@ -1601,8 +1623,7 @@ export const useStore = create<AppState>((set, get) => ({
     const { chemDrawDocument, selectedObjectIds } = get();
     if (chemDrawDocument && selectedObjectIds.size >= 2) {
       const nextDocument = createGroupFromSelection(chemDrawDocument, selectedObjectIds);
-      set({ chemDrawDocument: nextDocument, previewChemDrawDocument: null });
-      get().pushToHistory(chemDrawDocumentToCanvasState(nextDocument).state);
+      get().commitDocument(nextDocument);
       return;
     }
     const {
@@ -1644,8 +1665,7 @@ export const useStore = create<AppState>((set, get) => ({
     const { chemDrawDocument, selectedObjectIds } = get();
     if (chemDrawDocument && selectedObjectIds.size > 0) {
       const nextDocument = removeGroupsFromSelection(chemDrawDocument, selectedObjectIds);
-      set({ chemDrawDocument: nextDocument, previewChemDrawDocument: null });
-      get().pushToHistory(chemDrawDocumentToCanvasState(nextDocument).state);
+      get().commitDocument(nextDocument);
       return;
     }
     const { atoms, bonds, arrows, groups, textBoxes, selectedAtomIds, pushToHistory } = get();
@@ -1664,8 +1684,7 @@ export const useStore = create<AppState>((set, get) => ({
     const { chemDrawDocument, selectedObjectIds } = get();
     if (chemDrawDocument && selectedObjectIds.size > 1) {
       const nextDocument = alignSelectedObjects(chemDrawDocument, selectedObjectIds, op);
-      set({ chemDrawDocument: nextDocument, previewChemDrawDocument: null });
-      get().pushToHistory(chemDrawDocumentToCanvasState(nextDocument).state);
+      get().commitDocument(nextDocument);
       return;
     }
     const {
@@ -1713,8 +1732,6 @@ export const useStore = create<AppState>((set, get) => ({
       selectedBondIds,
       selectedArrowIds,
       selectedTextBoxIds,
-      pushToHistory,
-      setChemDrawDocument,
     } = get();
     const document = createEditorSessionState({
       document: chemDrawDocument,
@@ -1743,8 +1760,7 @@ export const useStore = create<AppState>((set, get) => ({
       },
     });
     const result = applyEditorCommand(document, command, context);
-    setChemDrawDocument(result.document);
-    pushToHistory(chemDrawDocumentToCanvasState(result.document).state);
+    get().commitDocument(result.document);
   },
 
   runEditorTransaction: (transaction) => {
@@ -1762,8 +1778,6 @@ export const useStore = create<AppState>((set, get) => ({
       selectedBondIds,
       selectedArrowIds,
       selectedTextBoxIds,
-      pushToHistory,
-      setChemDrawDocument,
     } = get();
     const document = createEditorSessionState({
       document: chemDrawDocument,
@@ -1792,8 +1806,7 @@ export const useStore = create<AppState>((set, get) => ({
       },
     });
     const result = applyEditorTransaction(document, transaction, context);
-    setChemDrawDocument(result.document);
-    pushToHistory(chemDrawDocumentToCanvasState(result.document).state);
+    get().commitDocument(result.document);
   },
 
   closeAllMenus: () =>
