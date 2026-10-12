@@ -208,7 +208,64 @@ function parsePngDimensions(output, label) {
 }
 
 function sanitizeSvgForRasterization(svg) {
-  return svg.replace(/\sfont-family=""/g, ' font-family="Helvetica"');
+  return roundSvgCanvasDimensions(svg.replace(/\sfont-family=""/g, ' font-family="Helvetica"'));
+}
+
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
+ * Rounds the SVG root's declared width/height/viewBox (and a background <rect> sized to match)
+ * up to the nearest 0.25, so `rsvg-convert --zoom 4` always lands on an integer pixel count.
+ *
+ * Without this, a non-integer canvas size -- which is the common case, since our SVGs are sized
+ * from document geometry rather than snapped to a grid -- makes rsvg-convert round the raster up
+ * and fill the sub-pixel sliver with `--background-color white`. That differs from our own canvas
+ * fill (`#f5f5f5`) by more than `TRIM_FUZZ`, and because the sliver touches all four edges,
+ * `trimToContent`'s bounding-box search finds "content" everywhere and returns the near-full
+ * canvas instead of the drawn ink. Confirmed on `bond-crossing.cdxml`: before this fix the trimmed
+ * render was 435x435 out of a 436x436 raster (effectively untrimmed); after, it correctly trims to
+ * 119x119. Nothing about what's drawn changes -- only the canvas's own declared size, by at most a
+ * quarter unit (one pixel at this zoom).
+ */
+function roundSvgCanvasDimensions(svg) {
+  const svgTagMatch = /^<svg\b[^>]*>/.exec(svg);
+  if (!svgTagMatch) return svg;
+  const [svgTag] = svgTagMatch;
+  const widthMatch = / width="([\d.]+)"/.exec(svgTag);
+  const heightMatch = / height="([\d.]+)"/.exec(svgTag);
+  if (!widthMatch || !heightMatch) return svg;
+
+  const width = Number(widthMatch[1]);
+  const height = Number(heightMatch[1]);
+  const roundedWidth = Math.ceil(width / 0.25) * 0.25;
+  const roundedHeight = Math.ceil(height / 0.25) * 0.25;
+  if (roundedWidth === width && roundedHeight === height) return svg;
+
+  const widthStr = widthMatch[1];
+  const heightStr = heightMatch[1];
+  const roundedWidthStr = String(roundedWidth);
+  const roundedHeightStr = String(roundedHeight);
+
+  const roundedSvgTag = svgTag
+    .replace(`width="${widthStr}"`, `width="${roundedWidthStr}"`)
+    .replace(`height="${heightStr}"`, `height="${roundedHeightStr}"`)
+    .replace(
+      `viewBox="0 0 ${widthStr} ${heightStr}"`,
+      `viewBox="0 0 ${roundedWidthStr} ${roundedHeightStr}"`,
+    );
+
+  // Only the SVG root's own tag and a background <rect> sized to match the canvas exactly are
+  // touched -- not any coincidentally-sized drawn content elsewhere in the document.
+  return svg
+    .replace(svgTag, roundedSvgTag)
+    .replace(
+      new RegExp(
+        `<rect width="${escapeRegExp(widthStr)}" height="${escapeRegExp(heightStr)}" fill="`,
+      ),
+      `<rect width="${roundedWidthStr}" height="${roundedHeightStr}" fill="`,
+    );
 }
 
 function serializeError(error) {
