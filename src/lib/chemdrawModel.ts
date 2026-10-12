@@ -1530,10 +1530,22 @@ export function createGroupFromSelection(
 ): ChemDrawDocument {
   const objects = clonePageObjects(document);
   if (!objects || selectedObjectIds.size < 2) return document;
+  // CDXML's <group> can only nest the same page-level containers page.objects already holds --
+  // a fragment, not the loose atoms/bonds inside one. selectedObjectIds can carry raw node/bond
+  // ids (e.g. from a box-select), so each one is resolved to its owning fragment before becoming
+  // a group member; two bonds in the same fragment collapse to that one fragment id.
+  const fragmentIdByMemberId = new Map<string, string>();
+  for (const object of objects) {
+    if (object.type !== 'fragment') continue;
+    for (const nodeId of object.nodeIds) fragmentIdByMemberId.set(nodeId, object.id);
+    for (const bondId of object.bondIds) fragmentIdByMemberId.set(bondId, object.id);
+  }
+  const childIds = new Set([...selectedObjectIds].map((id) => fragmentIdByMemberId.get(id) ?? id));
+  if (childIds.size < 2) return document;
   const group: ChemDrawGroup = {
     id: crypto.randomUUID(),
     type: 'group',
-    childIds: [...selectedObjectIds],
+    childIds: [...childIds],
   };
   return commitObjects(document, [...objects, group]);
 }

@@ -210,12 +210,6 @@ CHEMDRAW_CORPUS_ROOT=/path/to/private/corpus CHEMDRAW_CAPTURE_VISUAL_BASELINE=1 
 
 ## Known Gaps
 
-### Groups do not serialize
-
-`<group>` is flattened to page-level objects on import, so grouping is lost on save. Children render
-correctly; only the grouping is dropped. It is the only construct the corpus sweep still reports as
-unexplained, in 60 of 121 cases. See `CLAUDE.md` on the document/CanvasState split.
-
 ### Reaction schemes and steps are preserved, not modelled
 
 `<scheme>` and `<step>` are carried through as raw XML. ChemDraw rebuilds them from structure on

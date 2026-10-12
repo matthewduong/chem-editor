@@ -50,8 +50,11 @@ Document model:
   round-trip preservation metadata.
 - `CanvasState` (flat `atoms`/`bonds`/`arrows`/`groups`/`textBoxes`) is the legacy editing model.
 - **Both are currently authoritative** in `src/store/index.ts`, with two parallel undo stacks kept
-  index-aligned. Unifying onto the document is planned work. Note that `groups` exist only in the
-  flat arrays, which is why `<group>` does not serialize yet.
+  index-aligned. Unifying onto the document is planned work. `<group>` serializes via
+  `ChemDrawGroup` in the document model; the legacy flat `groups` array is a separate,
+  unconverted representation that `canvasStateToChemDrawDocument`/`chemDrawDocumentToCanvasState`
+  still drop rather than bridge — in practice harmless today, since live grouping goes through
+  `selectedObjectIds` and the document model, not the flat array.
 
 `src/utils/cdxml.ts` is the CDXML reader/writer. It preserves unknown attributes and children via
 `ChemDrawPreservationMetadata` and gates edits with an `editable`/`round-trip-only`/`render-only`

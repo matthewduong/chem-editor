@@ -32,6 +32,7 @@ import type {
   ChemDrawEmbeddedObject,
   ChemDrawFragment,
   ChemDrawGraphic,
+  ChemDrawGroup,
   ChemDrawNode,
   ChemDrawObject,
   ChemDrawObjectTag,
@@ -1139,6 +1140,43 @@ function chemDrawDocumentToCDXMLInternal(document: ChemDrawDocument): string {
     (object): object is ChemDrawEmbeddedObject => object.type === 'embedded-object',
   );
   const tables = page.objects.filter((object): object is ChemDrawTable => object.type === 'table');
+  const groups = page.objects.filter((object): object is ChemDrawGroup => object.type === 'group');
+
+  // CDXML has no way to reference a grouped object from outside <group> -- it must be written as
+  // a nested child. Every id a group claims is therefore rendered inline under its <group> instead
+  // of at the page's top level; groupMemberXmlById holds each one's markup until the group that
+  // owns it is ready to be written.
+  const groupById = new Map(groups.map((group) => [group.id, group]));
+  const groupChildIds = new Set(groups.flatMap((group) => group.childIds));
+  const groupMemberXmlById = new Map<string, string>();
+  // A grouped object is written later (nested under its <group>, emitted after every other
+  // top-level block) than an ungrouped one of the same type, regardless of where it sat in
+  // page.objects. Re-importing that output discovers objects of each tag in that same physical
+  // order, so node/bond IDs -- allocated in iteration order -- would renumber on a second round
+  // unless this writer's own iteration order already matches it. Stable-sorting grouped objects
+  // after ungrouped ones here (same relative order within each half) makes it match up front.
+  const byGroupedLast = (a: { id: string }, b: { id: string }) =>
+    Number(groupChildIds.has(a.id)) - Number(groupChildIds.has(b.id));
+  fragments.sort(byGroupedLast);
+  arrows.sort(byGroupedLast);
+  textObjects.sort(byGroupedLast);
+  embeddedObjects.sort(byGroupedLast);
+  tables.sort(byGroupedLast);
+  const bracketsAndGraphics = page.objects
+    .filter(
+      (object): object is ChemDrawBracket | ChemDrawGraphic =>
+        object.type === 'bracket' || object.type === 'graphic',
+    )
+    .sort(byGroupedLast);
+  // Called at the end of each per-object-type loop below, after that object's markup has been
+  // appended to `xml` exactly as it would be outside a group. If the object is grouped, its span
+  // is sliced back out of `xml` and held for the group-emission pass instead.
+  const redirectIfGrouped = (id: string, spanStart: number) => {
+    if (groupChildIds.has(id)) {
+      groupMemberXmlById.set(id, xml.slice(spanStart));
+      xml = xml.slice(0, spanStart);
+    }
+  };
 
   const textBoxes = textObjects.map((text) => ({
     id: text.id,
@@ -1304,6 +1342,7 @@ function chemDrawDocumentToCDXMLInternal(document: ChemDrawDocument): string {
   const atomById = new Map(canvasAtoms.map((atom) => [atom.id, atom]));
 
   for (const fragment of fragments) {
+    const __spanStart = xml.length;
     const fragId = fragment.id || getId();
     xml += `    <fragment id="${fragId}"${emitRawAttributes(fragment.preservation?.rawAttributes)}>\n`;
 
@@ -1494,10 +1533,12 @@ function chemDrawDocumentToCDXMLInternal(document: ChemDrawDocument): string {
     }
 
     xml += `    </fragment>\n`;
+    redirectIfGrouped(fragId, __spanStart);
   }
 
   // ── Arrows ─────────────────────────────────────────────────────────────────
   for (const arrow of arrows) {
+    const __spanStart = xml.length;
     const cdxId = arrow.id || getId();
     const arrowGeometry = resolveArrowGeometryMetrics(
       {
@@ -1625,10 +1666,12 @@ function chemDrawDocumentToCDXMLInternal(document: ChemDrawDocument): string {
     } else {
       xml += `    <arrow id="${cdxId}"${strokeColorAttr}${lineWidthAttr}${headSizeAttr}${headCenterSizeAttr}${headWidthAttr}${shaftSpacingAttr}${equilibriumRatioAttr}${lineTypeAttr}${editorArrowTypeAttr}${editorCurveAttr}${curvedGeometryAttr || linearGeometryAttr} ArrowheadHead="Full"${arrowheadTypeAttr}${fillTypeAttr}${rawArrowAttributes}${openTag}${closeTag}`;
     }
+    redirectIfGrouped(arrow.id, __spanStart);
   }
 
   // ── Text boxes (rich text) ─────────────────────────────────────────────────
   for (const text of textObjects) {
+    const __spanStart = xml.length;
     const tb = {
       id: text.id,
       x: text.anchor.x,
@@ -1665,9 +1708,11 @@ function chemDrawDocumentToCDXMLInternal(document: ChemDrawDocument): string {
         ...(text.preservation?.rawChildrenXml ?? []),
       ],
     });
+    redirectIfGrouped(text.id, __spanStart);
   }
 
-  for (const object of page.objects) {
+  for (const object of bracketsAndGraphics) {
+    const __spanStart = xml.length;
     if (object.type === 'bracket') {
       const bounds = boundsToCdxml(object.bounds, exportScaleFactor);
       const usage =
@@ -1844,9 +1889,11 @@ function chemDrawDocumentToCDXMLInternal(document: ChemDrawDocument): string {
           : `    <${tag} id="${object.id}"${boundsAttr}${graphicTypeExportAttr}${pointsAttr}${colorAttr}${fillColorAttr}${fillTypeAttr}${lineWidthAttr}${lineTypeAttr}${zIndexAttr}${visibleAttr}${rawAttributesAttr}/>\n`;
       }
     }
+    redirectIfGrouped(object.id, __spanStart);
   }
 
   for (const object of embeddedObjects) {
+    const __spanStart = xml.length;
     const boundsAttr = ` BoundingBox="${boundsToCdxml(object.bounds, exportScaleFactor)}"`;
     const payloadAttr =
       object.payloadKind === 'pdf'
@@ -1866,9 +1913,11 @@ function chemDrawDocumentToCDXMLInternal(document: ChemDrawDocument): string {
     xml += rawChildren
       ? `    <embeddedobject id="${object.id}"${boundsAttr}${zIndexAttr}${visibleAttr}${payloadAttr}${rawAttributesAttr}>\n${rawChildren}    </embeddedobject>\n`
       : `    <embeddedobject id="${object.id}"${boundsAttr}${zIndexAttr}${visibleAttr}${payloadAttr}${rawAttributesAttr}/>\n`;
+    redirectIfGrouped(object.id, __spanStart);
   }
 
   for (const object of tables) {
+    const __spanStart = xml.length;
     const boundsAttr = ` BoundingBox="${boundsToCdxml(object.bounds, exportScaleFactor)}"`;
     const zIndexAttr =
       object.style?.zIndex != null ? ` Z="${Math.round(object.style.zIndex)}"` : '';
@@ -1928,6 +1977,39 @@ function chemDrawDocumentToCDXMLInternal(document: ChemDrawDocument): string {
     xml += content
       ? `    <table id="${object.id}"${boundsAttr}${zIndexAttr}${visibleAttr}${colorAttr}${fillColorAttr}${rawAttributesAttr}>\n${content}    </table>\n`
       : `    <table id="${object.id}"${boundsAttr}${zIndexAttr}${visibleAttr}${colorAttr}${fillColorAttr}${rawAttributesAttr}/>\n`;
+    redirectIfGrouped(object.id, __spanStart);
+  }
+
+  // Every other object type has been written (and redirected into groupMemberXmlById where
+  // grouped); now write each top-level <group>, nesting its members' already-rendered markup
+  // and recursing into any nested group by its childIds.
+  const emitGroupXml = (group: ChemDrawGroup): string => {
+    let content = '';
+    for (const childId of group.childIds) {
+      const nestedGroup = groupById.get(childId);
+      if (nestedGroup) {
+        content += emitGroupXml(nestedGroup);
+      } else {
+        content += groupMemberXmlById.get(childId) ?? '';
+      }
+    }
+    const zIndexAttr = group.style?.zIndex != null ? ` Z="${Math.round(group.style.zIndex)}"` : '';
+    const visibleAttr = group.style?.visible === false ? ' Visible="no"' : '';
+    const colorAttr = group.style?.color ? ` Color="${getColorIndex(group.style.color)}"` : '';
+    const fillColorAttr = group.style?.fillColor
+      ? ` FillColor="${getColorIndex(group.style.fillColor)}"`
+      : '';
+    const rawAttributesAttr = emitRawAttributes(group.preservation?.rawAttributes);
+    content +=
+      emitObjectTags(group.objectTags, '      ', exportScaleFactor, getColorIndex, getFontId) +
+      emitRawChildren(group.preservation?.rawChildrenXml, '      ');
+    return content
+      ? `    <group id="${group.id}"${zIndexAttr}${visibleAttr}${colorAttr}${fillColorAttr}${rawAttributesAttr}>\n${content}    </group>\n`
+      : `    <group id="${group.id}"${zIndexAttr}${visibleAttr}${colorAttr}${fillColorAttr}${rawAttributesAttr}/>\n`;
+  };
+  for (const group of groups) {
+    if (groupChildIds.has(group.id)) continue; // nested; written by its parent group above
+    xml += emitGroupXml(group);
   }
 
   for (const preservedChild of page.preservedPageChildren ?? []) {
@@ -3570,6 +3652,67 @@ export function cdxmlToChemDrawDocument(xmlString: string): ChemDrawConversionRe
     'polygon',
     'arc',
   ]);
+  // <group> wraps other top-level objects, which the loops above already found and parsed
+  // document-wide (isElementOnPage climbs to the nearest <page>, not caring what's in between) --
+  // so this only needs to record which already-parsed ids belong to the group, recursing for a
+  // nested <group>. Real ChemDraw groups commonly carry a BoundingBox, but nothing here stores a
+  // bounds for a group (it's always re-derived from current member geometry, like the rest of the
+  // document model), so BoundingBox is read and dropped rather than preserved as unmodeled data.
+  function importGroupElement(groupEl: Element): ChemDrawGroup {
+    const childIds: string[] = [];
+    for (let i = 0; i < groupEl.children.length; i++) {
+      const child = groupEl.children[i];
+      const childTag = child.tagName.toLowerCase();
+      if (childTag === 'group') {
+        const nested = importGroupElement(child);
+        objects.push(nested);
+        childIds.push(nested.id);
+        continue;
+      }
+      if (!handledTopLevelTags.has(childTag)) continue;
+      const childId = child.getAttribute('id');
+      if (childId) childIds.push(childId);
+    }
+    const id = groupEl.getAttribute('id') ?? makeIdGen()();
+    const objectTags = parseObjectTags(groupEl);
+    const style = {
+      ...(groupEl.getAttribute('Z') != null &&
+      !Number.isNaN(parseInt(groupEl.getAttribute('Z') ?? '', 10))
+        ? { zIndex: parseInt(groupEl.getAttribute('Z') ?? '', 10) }
+        : {}),
+      ...(parseChemDrawBoolean(groupEl.getAttribute('Visible') ?? undefined) != null
+        ? { visible: parseChemDrawBoolean(groupEl.getAttribute('Visible') ?? undefined) }
+        : {}),
+      ...(groupEl.getAttribute('Color') != null
+        ? { color: getImportColor(parseInt(groupEl.getAttribute('Color') ?? '', 10)) }
+        : {}),
+      ...(groupEl.getAttribute('FillColor') != null
+        ? { fillColor: getImportColor(parseInt(groupEl.getAttribute('FillColor') ?? '', 10)) }
+        : {}),
+    };
+    const preservation = buildPreservationMetadata({
+      el: groupEl,
+      handledAttributeNames: ['id', 'BoundingBox', 'Z', 'Visible', 'Color', 'FillColor'],
+      preserveChild: (child) => {
+        const childTag = child.tagName.toLowerCase();
+        return (
+          childTag !== 'group' && !handledTopLevelTags.has(childTag) && childTag !== 'objecttag'
+        );
+      },
+      capability: 'round-trip-only',
+      reasons: [
+        'Group membership is modeled; unrecognized group content is preserved for export only.',
+      ],
+    });
+    return {
+      id,
+      type: 'group',
+      childIds,
+      ...(Object.keys(style).length > 0 ? { style } : {}),
+      ...(objectTags ? { objectTags } : {}),
+      ...(preservation ? { preservation } : {}),
+    };
+  }
   if (pageEl) {
     for (let i = 0; i < pageEl.children.length; i++) {
       const child = pageEl.children[i];
@@ -3590,7 +3733,11 @@ export function cdxmlToChemDrawDocument(xmlString: string): ChemDrawConversionRe
       // the colour/font ids our own synthesized tables assign can drift between export rounds
       // depending on what else got swept into that same preserved-content bucket.
       if (tag === 'colortable' || tag === 'fonttable') continue;
-      if (tag === 'group' || tag === 'scheme' || tag === 'step') {
+      if (tag === 'group') {
+        objects.push(importGroupElement(child));
+        continue;
+      }
+      if (tag === 'scheme' || tag === 'step') {
         const hasModeledDescendants = Boolean(
           child.querySelector(
             'fragment,arrow,t,bracketedgroup,embeddedobject,table,graphic,curve,line,rect,rectangle,oval,ellipse,polygon,arc',
