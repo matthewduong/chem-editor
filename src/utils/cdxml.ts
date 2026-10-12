@@ -1731,7 +1731,7 @@ function chemDrawDocumentToCDXMLInternal(document: ChemDrawDocument): string {
         emitRawChildren(object.preservation?.rawChildrenXml, '      ');
       // CDXML has no <line>/<oval> elements: lines and ellipses are <graphic GraphicType="...">.
       // Real ChemDraw ignores the bare tags, so the shape would vanish on open.
-      const tag = object.graphicType === 'polygon' ? 'polygon' : 'graphic';
+      const tag = 'graphic';
       const graphicTypeExportAttr =
         object.graphicType === 'line'
           ? ' GraphicType="Line"'
@@ -1818,6 +1818,26 @@ function chemDrawDocumentToCDXMLInternal(document: ChemDrawDocument): string {
         xml += rawChildren
           ? `    <graphic id="${object.id}"${boundsAttr}${colorAttr}${fillColorAttr}${fillTypeAttr}${lineWidthAttr}${lineTypeAttr}${zIndexAttr}${visibleAttr} GraphicType="Rectangle"${rectangleTypeAttr}${cornerRadiusAttr}${shadowSizeAttr}${rawAttributesAttr}>\n${rawChildren}    </graphic>\n`
           : `    <graphic id="${object.id}"${boundsAttr}${colorAttr}${fillColorAttr}${fillTypeAttr}${lineWidthAttr}${lineTypeAttr}${zIndexAttr}${visibleAttr} GraphicType="Rectangle"${rectangleTypeAttr}${cornerRadiusAttr}${shadowSizeAttr}${rawAttributesAttr}/>\n`;
+      } else if (object.graphicType === 'polygon') {
+        // CDXML has no <polygon> element (confirmed against the real DTD and real ChemDraw: a
+        // bare <polygon> isn't an error, it's just silently dropped on open). A closed polygon is
+        // a closed <curve>. CurvePoints feeds ChemDraw's cubic-Bezier interpolation, so a vertex
+        // written once draws a smoothed curve through it rather than a corner; repeating each
+        // vertex three times gives it coincident, zero-length control points on both sides, which
+        // forces a sharp corner. Confirmed against real ChemDraw: tripled points round-trip
+        // byte-identical, untripled points come back as a visibly smoothed shape.
+        const curvePointsAttr = object.points?.length
+          ? ` CurvePoints="${object.points
+              .flatMap((point) => [point, point, point])
+              .map(
+                (point) =>
+                  `${formatCdxmlNumber(point.x * exportScaleFactor)} ${formatCdxmlNumber(point.y * exportScaleFactor)}`,
+              )
+              .join(' ')}"`
+          : '';
+        xml += rawChildren
+          ? `    <curve id="${object.id}"${boundsAttr} Closed="yes"${curvePointsAttr}${colorAttr}${fillColorAttr}${fillTypeAttr}${lineWidthAttr}${lineTypeAttr}${zIndexAttr}${visibleAttr}${rawAttributesAttr}>\n${rawChildren}    </curve>\n`
+          : `    <curve id="${object.id}"${boundsAttr} Closed="yes"${curvePointsAttr}${colorAttr}${fillColorAttr}${fillTypeAttr}${lineWidthAttr}${lineTypeAttr}${zIndexAttr}${visibleAttr}${rawAttributesAttr}/>\n`;
       } else {
         xml += rawChildren
           ? `    <${tag} id="${object.id}"${boundsAttr}${graphicTypeExportAttr}${pointsAttr}${colorAttr}${fillColorAttr}${fillTypeAttr}${lineWidthAttr}${lineTypeAttr}${zIndexAttr}${visibleAttr}${rawAttributesAttr}>\n${rawChildren}    </${tag}>\n`
@@ -2720,6 +2740,11 @@ export function cdxmlToChemDrawDocument(xmlString: string): ChemDrawConversionRe
   for (let i = 0; i < cdxArrows.length; i++) {
     const a = cdxArrows[i];
     if (!isElementOnPage(a, pageEl) || hasAncestorTag(a, 'table')) continue;
+    // ChemDraw marks a stale arrow SupersededBy="<new id>" rather than removing it -- the same
+    // mechanism the generic-graphic import loop above already honours. Real ChemDraw was observed
+    // doing this to the line-as-arrow conversion it performs on every resave (see gaps.md); without
+    // this check, the dead arrow would import as a second, live object alongside its replacement.
+    if (a.getAttribute('SupersededBy')) continue;
     const id = a.getAttribute('id') ?? makeIdGen()();
     const head3D = a.getAttribute('Head3D');
     const tail3D = a.getAttribute('Tail3D');
@@ -3227,11 +3252,26 @@ export function cdxmlToChemDrawDocument(xmlString: string): ChemDrawConversionRe
                           (normalizedTag === 'graphic' && graphicTypeAttr === 'oval')
                         ? 'ellipse'
                         : normalizedTag === 'polygon' ||
-                            (normalizedTag === 'graphic' && graphicTypeAttr === 'polygon')
+                            (normalizedTag === 'graphic' && graphicTypeAttr === 'polygon') ||
+                            (normalizedTag === 'curve' &&
+                              el.getAttribute('Closed')?.toLowerCase() === 'yes')
                           ? 'polygon'
                           : 'unknown';
+      // A closed <curve> draws a smoothed Bezier through its CurvePoints; our own writer forces
+      // sharp corners by repeating each vertex three times (coincident control points). Collapse
+      // consecutive duplicates back to one vertex each so the in-app model is a plain polygon
+      // again. A real smooth closed curve has no consecutive duplicates, so this is a no-op there.
+      const dedupedPoints =
+        explicitPoints && graphicType === 'polygon' && normalizedTag === 'curve'
+          ? explicitPoints.filter(
+              (point, index) =>
+                index === 0 ||
+                point.x !== explicitPoints[index - 1].x ||
+                point.y !== explicitPoints[index - 1].y,
+            )
+          : explicitPoints;
       const points =
-        explicitPoints ??
+        dedupedPoints ??
         (bboxEndpoints &&
         (graphicType === 'line' || graphicType === 'bracket' || graphicType === 'orbital')
           ? [
@@ -3346,6 +3386,7 @@ export function cdxmlToChemDrawDocument(xmlString: string): ChemDrawConversionRe
           'BoundingBox',
           'CurvePoints',
           'Points',
+          'Closed',
           'GraphicType',
           'color',
           'Color',

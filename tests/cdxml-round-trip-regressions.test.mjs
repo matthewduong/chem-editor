@@ -47,6 +47,46 @@ test('lines and ovals export as <graphic GraphicType>, which is the only form CD
   assert.doesNotMatch(out, /<oval[\s>]|<line[\s>]/);
 });
 
+test('closed polygons export as a closed <curve>, which is the only form CDXML defines', () => {
+  const out = exportXml(`<?xml version="1.0"?><CDXML><page id="1">
+    <graphic id="7" GraphicType="Polygon" Points="0 80 40 80 20 110"/>
+  </page></CDXML>`);
+  assert.doesNotMatch(out, /<polygon[\s>]/);
+  const match = /<curve id="7"[^>]*Closed="yes"[^>]*CurvePoints="([^"]+)"/.exec(out);
+  assert.ok(match, `expected a closed <curve id="7"> with CurvePoints in ${out}`);
+  // Each vertex repeated three times (coincident Bezier control points) is what makes ChemDraw
+  // draw a sharp corner instead of a smoothed curve through the points -- confirmed against real
+  // ChemDraw, see development/gaps.md.
+  const values = match[1].trim().split(/\s+/).map(Number);
+  assert.deepEqual(
+    values,
+    [0, 80, 0, 80, 0, 80, 40, 80, 40, 80, 40, 80, 20, 110, 20, 110, 20, 110],
+    'expected each vertex tripled',
+  );
+});
+
+test('a closed <curve> re-imports with its vertices deduplicated back to one per corner', () => {
+  const { document } = cdxmlToChemDrawDocument(`<?xml version="1.0"?><CDXML><page id="1">
+    <curve id="7" Closed="yes" CurvePoints="0 80 0 80 0 80 40 80 40 80 40 80 20 110 20 110 20 110"/>
+  </page></CDXML>`);
+  const graphic = document.pages[0].objects.find((o) => o.id === '7');
+  assert.equal(graphic?.graphicType, 'polygon');
+  assert.equal(graphic?.points?.length, 3);
+});
+
+test('a superseded arrow is skipped on import, like a superseded graphic already is', () => {
+  // Real ChemDraw marks a stale arrow SupersededBy="<new id>" rather than deleting it -- observed
+  // on every resave of a line-as-arrow conversion (development/gaps.md). Importing both would
+  // leave a dead duplicate object in the document.
+  const { document } = cdxmlToChemDrawDocument(`<?xml version="1.0"?><CDXML><page id="1">
+    <arrow id="5" SupersededBy="8" Head3D="0 0 0" Tail3D="10 10 0"/>
+    <arrow id="8" Head3D="0 0 0" Tail3D="10 10 0"/>
+  </page></CDXML>`);
+  const arrows = document.pages[0].objects.filter((o) => o.type === 'arrow');
+  assert.equal(arrows.length, 1);
+  assert.equal(arrows[0].id, '8');
+});
+
 test('an infinite-canvas page does not become a finite letter page after one save and reopen', () => {
   const first = exportXml(`<?xml version="1.0"?><CDXML><page id="1">
     <fragment id="2"><n id="3" p="0 0"/></fragment></page></CDXML>`);
