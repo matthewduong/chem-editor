@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import App from '../../src/App';
 import { useStore } from '../../src/store';
 import { resetStore } from './helpers';
+import { cdxmlToChemDrawDocument } from '../../src/utils/cdxml';
 
 const mocks = vi.hoisted(() => ({
   invokeTauri: vi.fn(),
@@ -301,6 +302,44 @@ describe('App', () => {
       path: '/tmp/dirty.cdxml',
       dirty: true,
     });
+  });
+
+  it('copies and pastes document objects, including native graphics, as one undo step', async () => {
+    const xml =
+      '<?xml version="1.0"?><CDXML><page id="1"><fragment id="2"><n id="3" p="0 0"/>' +
+      '<n id="4" p="14.4 0"/><b id="5" B="3" E="4"/></fragment>' +
+      '<graphic id="6" BoundingBox="40 40 80 80" GraphicType="Rectangle" RectangleType="Plain"/>' +
+      '</page></CDXML>';
+    const { document } = cdxmlToChemDrawDocument(xml);
+    useStore.getState().replaceDocument(document, [], '/tmp/c.cdxml');
+    let clipboard = '';
+    mocks.writeClipboardText.mockImplementation(async (text: string) => {
+      clipboard = text;
+    });
+    mocks.readClipboardText.mockImplementation(async () => clipboard);
+
+    render(<App />);
+    const before = useStore.getState().chemDrawDocument!.pages[0].objects.length;
+    const historyBefore = useStore.getState().history.length;
+    useStore.setState({
+      selectedObjectIds: new Set(
+        useStore.getState().chemDrawDocument!.pages[0].objects.map((o) => o.id),
+      ),
+    });
+
+    fireEvent.keyDown(screen.getByTestId('chem-canvas'), { key: 'c', ctrlKey: true });
+    await waitFor(() => expect(clipboard).toContain('GraphicType="Rectangle"'));
+    fireEvent.keyDown(screen.getByTestId('chem-canvas'), { key: 'v', ctrlKey: true });
+
+    await waitFor(() => {
+      const objects = useStore.getState().chemDrawDocument!.pages[0].objects;
+      expect(objects).toHaveLength(before * 2);
+      expect(objects.filter((o) => o.type === 'graphic')).toHaveLength(2);
+    });
+    expect(useStore.getState().history).toHaveLength(historyBefore + 1);
+    expect(
+      new Set(useStore.getState().chemDrawDocument!.pages[0].objects.map((o) => o.id)).size,
+    ).toBe(before * 2);
   });
 
   it('shows a toast when opening a file fails', async () => {

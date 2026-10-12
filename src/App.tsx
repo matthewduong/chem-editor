@@ -1,6 +1,13 @@
 import { useDocumentLifecycle } from './hooks/useDocumentLifecycle';
 import { molblockToState, parseMolblockGeometry } from './lib/graph';
 import { canvasStateToChemDrawDocument } from './lib/chemdrawModel';
+import {
+  extractDocumentSelection,
+  forgetDocumentCopy,
+  getDocumentCopyFor,
+  pasteDocumentFragment,
+  rememberDocumentCopy,
+} from './lib/documentClipboard';
 import { useRef, useEffect, useCallback, useState, lazy, Suspense, useMemo } from 'react';
 import {
   extractSelection,
@@ -29,7 +36,8 @@ import { useRDKit } from './hooks/useRDKit';
 import { useToolPaletteManager } from './hooks/useToolPaletteManager';
 import { useStore } from './store';
 import './App.css';
-import { stateToCDXML, cdxmlToState } from './utils/cdxml';
+import { stateToCDXML, cdxmlToState, chemDrawDocumentToCDXML } from './utils/cdxml';
+import type { ChemDrawDocument } from './types/chemdraw';
 import {
   createDeleteSelectionCommand,
   createRotateSelectionCommand,
@@ -1821,7 +1829,26 @@ function App() {
     );
     setClipboardBuffer(buf);
     resetPasteCount();
-    writeClipboardText(stateToCDXML(buf, { documentStyleSettings })).catch(() => {
+    // Prefer copying document objects so graphics, brackets, tables and preserved metadata
+    // survive; the flat buffer above remains the fallback and drives the preview image.
+    const { chemDrawDocument, selectedObjectIds } = useStore.getState();
+    const fragment = chemDrawDocument
+      ? extractDocumentSelection(
+          chemDrawDocument,
+          selectedObjectIds.size > 0
+            ? selectedObjectIds
+            : new Set(chemDrawDocument.pages[0]?.objects.map((object) => object.id)),
+        )
+      : null;
+    let clipboardText: string;
+    if (fragment) {
+      clipboardText = chemDrawDocumentToCDXML(fragment);
+      rememberDocumentCopy(fragment, clipboardText);
+    } else {
+      clipboardText = stateToCDXML(buf, { documentStyleSettings });
+      forgetDocumentCopy();
+    }
+    writeClipboardText(clipboardText).catch(() => {
       /* intentional */
     });
     try {
@@ -1912,11 +1939,25 @@ function App() {
     }
   }, [handleCopy]);
 
+  /** Paste a copied document fragment as one undo step. Returns false to use the flat path. */
+  const pasteFragment = useCallback((fragment: ChemDrawDocument): boolean => {
+    const state = useStore.getState();
+    if (!state.chemDrawDocument) return false;
+    const offset = bumpPasteCount() * (state.documentStyleSettings.bondLength || 14.4);
+    const result = pasteDocumentFragment(state.chemDrawDocument, fragment, offset, offset);
+    if (result.objectIds.length === 0) return false;
+    state.commitDocument(result.document);
+    useStore.getState().setSelectedObjectIds(new Set(result.objectIds));
+    return true;
+  }, []);
+
   const handlePaste = useCallback(async () => {
     try {
       const text = await readClipboardText();
       const fmt = detectPasteFormat(text);
       if (fmt === 'cdxml') {
+        const fragment = getDocumentCopyFor(text);
+        if (fragment && pasteFragment(fragment)) return;
         const parsed = cdxmlToState(text);
         const offset = bumpPasteCount();
         canvasRef.current?.addFromState(
@@ -1961,6 +2002,8 @@ function App() {
     // Fall back to internal buffer
     useStore.getState().setRawConformer(null);
     useStore.getState().setMinimizeGeometry(true);
+    const remembered = getDocumentCopyFor(null);
+    if (remembered && pasteFragment(remembered)) return;
     const buf = getClipboardBuffer();
     if (buf) {
       const offset = bumpPasteCount();
@@ -1968,7 +2011,7 @@ function App() {
         applyPasteOffset(buf, offset, useStore.getState().documentStyleSettings.bondLength),
       );
     }
-  }, []);
+  }, [pasteFragment]);
 
   // Keyboard shortcuts
   useEffect(() => {
