@@ -130,4 +130,29 @@ describe('flat-state commits', () => {
         .sort(),
     ).toEqual(['2', '6']);
   });
+
+  for (const { name, xml } of fixtures) {
+    it(`${name}: nudging one atom changes only that atom's lines in the export`, () => {
+      const { document } = cdxmlToChemDrawDocument(xml);
+      useStore.getState().replaceDocument(document, [], '/tmp/m.cdxml');
+      const { atoms, bonds, arrows, groups, textBoxes } = useStore.getState();
+      if (atoms.length === 0) return;
+      const baseline = chemDrawDocumentToCDXML(useStore.getState().chemDrawDocument!).split('\n');
+
+      useStore.getState().pushToHistory({
+        atoms: atoms.map((a, i) => (i === 0 ? { ...a, x: a.x + 5 } : a)),
+        bonds,
+        arrows,
+        groups,
+        textBoxes,
+      });
+
+      const after = chemDrawDocumentToCDXML(useStore.getState().chemDrawDocument!).split('\n');
+      expect(after).toHaveLength(baseline.length);
+      // The atom's own position, plus at most its label/tag that travels with it.
+      const changed = baseline.filter((line, i) => line !== after[i]);
+      expect(changed.length).toBeGreaterThan(0);
+      expect(changed.length).toBeLessThanOrEqual(2);
+    });
+  }
 });
