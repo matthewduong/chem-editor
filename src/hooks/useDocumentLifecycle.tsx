@@ -86,8 +86,10 @@ export function useDocumentLifecycle(canvas: RefObject<ChemCanvasRef | null>) {
         setRecoveryReady(!value);
       })
       .catch((error) => {
-        if (mounted)
-          useStore.getState().showToast(`Could not read recovery data: ${String(error)}`);
+        if (!mounted) return;
+        useStore.getState().showToast(`Could not read recovery data: ${String(error)}`);
+        // An unreadable snapshot must not disable autosave; the next autosave replaces it.
+        setRecoveryReady(true);
       });
     return () => {
       mounted = false;

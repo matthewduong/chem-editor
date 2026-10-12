@@ -1,13 +1,8 @@
 import { isTauri } from '@tauri-apps/api/core';
 import { invokeTauri } from './tauri';
-import type { ChemDrawDocument } from '../types/chemdraw';
+import { parseDocumentRecovery, type DocumentRecovery } from './recoveryFormat';
 
-export interface DocumentRecovery {
-  version: 1;
-  savedAt: string;
-  path: string | null;
-  document: ChemDrawDocument;
-}
+export type { DocumentRecovery };
 
 const STORAGE_KEY = 'chem-editor.document-recovery.v1';
 let pendingWrite = Promise.resolve();
@@ -26,11 +21,7 @@ export async function loadDocumentRecovery(): Promise<DocumentRecovery | null> {
     ? await invokeTauri<string | null>('load_document_recovery')
     : (browserStorage()?.getItem(STORAGE_KEY) ?? null);
   if (!contents) return null;
-  const parsed = JSON.parse(contents) as DocumentRecovery;
-  if (parsed.version !== 1 || !Array.isArray(parsed.document?.pages)) {
-    throw new Error('The recovery document has an unsupported format.');
-  }
-  return parsed;
+  return parseDocumentRecovery(contents);
 }
 
 /** Serialize writes so a slow autosave cannot resurrect a discarded snapshot. */
