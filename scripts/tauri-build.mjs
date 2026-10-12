@@ -1,33 +1,9 @@
-import { homedir } from 'node:os';
-import { existsSync, readdirSync, rmSync } from 'node:fs';
+import { existsSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import { run } from './lib/command-utils.mjs';
 
-const APP_IDENTIFIER = 'com.mrd.chem-editor';
 const requestedBundles = process.env.CHEM_EDITOR_BUNDLE_TARGETS?.trim();
 const defaultBundles = process.platform === 'darwin' ? 'app' : null;
-
-function getSettingsPath() {
-  const home = homedir();
-  switch (process.platform) {
-    case 'darwin':
-      return path.join(home, 'Library', 'Application Support', APP_IDENTIFIER, 'settings.json');
-    case 'win32': {
-      const appData = process.env.APPDATA ?? path.join(home, 'AppData', 'Roaming');
-      return path.join(appData, APP_IDENTIFIER, 'settings.json');
-    }
-    default:
-      return path.join(
-        process.env.XDG_CONFIG_HOME ?? path.join(home, '.config'),
-        APP_IDENTIFIER,
-        'settings.json',
-      );
-  }
-}
-
-function clearPersistedSettings() {
-  rmSync(getSettingsPath(), { force: true });
-}
 
 function hasForbiddenSidecarPayload(rootDir) {
   if (!existsSync(rootDir)) {
@@ -51,8 +27,6 @@ function hasForbiddenSidecarPayload(rootDir) {
   }
   return false;
 }
-
-clearPersistedSettings();
 
 run(['node'], ['scripts/prepare-tauri-build.mjs'], { description: 'Node.js', env: process.env });
 
