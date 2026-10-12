@@ -44,5 +44,31 @@ export default tseslint.config(
       'react-hooks/set-state-in-effect': 'off',
     },
   },
+  // Layering: pure modules (document model, commands, scene, CDXML, geometry, SVG) must stay
+  // runnable headless. They may not reach up into the store or into UI frameworks.
+  {
+    files: ['src/{lib,editor,utils,types}/**/*.ts'],
+    ignores: [
+      // Store-bound adapters: these are the sanctioned bridge from pure code to live state.
+      'src/lib/svgExportFromStore.ts',
+    ],
+    rules: {
+      '@typescript-eslint/no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['**/store', '**/store/*'],
+              message: 'Pure layers must not import the store; take state as an argument.',
+            },
+            {
+              group: ['react', 'react-dom', 'react-konva', 'konva', 'zustand'],
+              message: 'Pure layers must not depend on UI frameworks.',
+            },
+          ],
+        },
+      ],
+    },
+  },
   prettierConfig,
 );

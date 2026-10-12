@@ -86,8 +86,10 @@ Two JS suites exist because of a DOM split:
   `--import`ed to provide `DOMParser`/`XMLSerializer` for the CDXML tests.
 - `tests/ui/` run under vitest + jsdom for anything needing React or Konva.
 
-Anything DOM-free belongs in the first suite. If you add a module there, add it to
-`tsconfig.unit.json`'s `include` list.
+Anything DOM-free belongs in the first suite. `tsconfig.unit.json` globs `src/lib`, `src/utils`,
+`src/editor`, `src/types`; DOM/Tauri-bound modules are listed in its `exclude`. ESLint also bans
+store/React/Konva imports from those directories (`eslint.config.js`), so a module that compiles
+there is headless by construction.
 
 `pnpm test:chemdraw:mac` is the real-ChemDraw acceptance harness. It needs macOS, an installed
 ChemDraw, and a private corpus via `CHEMDRAW_CORPUS_ROOT`. See

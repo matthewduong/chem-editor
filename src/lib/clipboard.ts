@@ -1,6 +1,5 @@
 import type { Atom, Bond, Arrow, TextBox } from '../types/chemistry';
 import { DEFAULT_DOCUMENT_STYLE_SETTINGS } from './settings';
-import { useStore } from '../store';
 
 export interface ClipboardBuffer {
   atoms: Atom[];
@@ -47,9 +46,12 @@ export function extractSelection(
   return { atoms: selAtoms, bonds: selBonds, arrows: selArrows, textBoxes: selTextBoxes };
 }
 
-export function applyPasteOffset(buf: ClipboardBuffer, pasteCount: number): ClipboardBuffer {
-  const offset =
-    pasteCount * (useStore.getState().documentStyleSettings.bondLength || PASTE_OFFSET);
+export function applyPasteOffset(
+  buf: ClipboardBuffer,
+  pasteCount: number,
+  bondLength: number = PASTE_OFFSET,
+): ClipboardBuffer {
+  const offset = pasteCount * (bondLength || PASTE_OFFSET);
   const idMap = new Map<string, string>();
 
   const newAtoms: Atom[] = buf.atoms.map((a) => {

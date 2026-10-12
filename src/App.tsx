@@ -8,7 +8,7 @@ import {
   resetPasteCount,
   bumpPasteCount,
 } from './lib/clipboard';
-import { generateCanvasSVG } from './lib/svgExport';
+import { generateCanvasSVG } from './lib/svgExportFromStore';
 import type { Molecule3DRef } from './components/Molecule3DRef';
 const PropertiesPanel = lazy(() =>
   import('./components/PropertiesPanel').then((m) => ({ default: m.PropertiesPanel })),
@@ -1946,7 +1946,9 @@ function App() {
       if (fmt === 'cdxml') {
         const parsed = cdxmlToState(text);
         const offset = bumpPasteCount();
-        canvasRef.current?.addFromState(applyPasteOffset(parsed, offset));
+        canvasRef.current?.addFromState(
+          applyPasteOffset(parsed, offset, useStore.getState().documentStyleSettings.bondLength),
+        );
         return;
       }
       if (fmt === 'smiles' || fmt === 'molblock') {
@@ -1989,7 +1991,9 @@ function App() {
     const buf = getClipboardBuffer();
     if (buf) {
       const offset = bumpPasteCount();
-      canvasRef.current?.addFromState(applyPasteOffset(buf, offset));
+      canvasRef.current?.addFromState(
+        applyPasteOffset(buf, offset, useStore.getState().documentStyleSettings.bondLength),
+      );
     }
   }, []);
 

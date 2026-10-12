@@ -367,6 +367,11 @@ export interface ChemDrawDocument {
     documentViewSettings?: DocumentViewSettings;
     preservedDocumentAttributes?: Record<string, string>;
     preservedPageAttributes?: Record<string, string>;
+    /**
+     * Pages after the first, kept verbatim. Only the first page is modelled and editable; these
+     * are re-emitted untouched on export so a multi-page ChemDraw file does not lose pages.
+     */
+    preservedExtraPages?: Array<{ id: string; xml: string }>;
     ignoredSemantics?: string[];
   };
 }

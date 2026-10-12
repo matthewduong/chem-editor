@@ -7,7 +7,6 @@ import { renderDocumentScene } from '../editor/scene/renderDocumentScene';
 import type { DocumentSceneState } from '../editor/scene/types';
 import { canvasStateToChemDrawDocument, chemDrawDocumentToCanvasState } from './chemdrawModel';
 import { SvgCanvasContext } from './svgCanvasContext';
-import { useStore } from '../store';
 import {
   CHEMDRAW_FIDELITY_DOCUMENT_VIEW_SETTINGS,
   DEFAULT_DOCUMENT_STYLE_SETTINGS,
@@ -24,6 +23,9 @@ import {
  * `renderDocumentScene` with a context that emits markup instead of pixels, so exported SVG comes
  * from the same draw calls that paint the screen. Anything that changes how an object looks is
  * changed once, in that object's scene module.
+ *
+ * This module is store-free so it can run headless (see CLAUDE.md's layering rule); the live
+ * document's settings are read by `svgExportFromStore.ts` instead.
  */
 
 /** Margin around the drawing when there is no finite page to size against. */
@@ -159,7 +161,12 @@ function documentCoversCanvasState(
   return atoms.every((atom) => nodeIds.has(atom.id)) && bonds.every((bond) => bondIds.has(bond.id));
 }
 
-function generateCanvasSVGWithContext(
+/**
+ * Store-free entry point: everything the renderer needs is passed in explicitly.
+ * `svgExportFromStore.ts` is the store-bound adapter that calls this with the live document's
+ * settings.
+ */
+export function generateCanvasSVGWithContext(
   atoms: Atom[],
   bonds: Bond[],
   arrows: Arrow[],
@@ -200,27 +207,6 @@ function generateCanvasSVGWithContext(
     interaction: { isDarkMode },
   });
   return renderSceneToSvg(scene, transparent);
-}
-
-export function generateCanvasSVG(
-  atoms: Atom[],
-  bonds: Bond[],
-  arrows: Arrow[],
-  isDarkMode: boolean,
-  transparent = false,
-  textBoxes: TextBox[] = [],
-  pageSetup?: PageSetup,
-): string {
-  const { documentStyleSettings, documentViewSettings, chemDrawDocument } = useStore.getState();
-  return generateCanvasSVGWithContext(atoms, bonds, arrows, {
-    chemDrawDocument,
-    documentStyleSettings,
-    documentViewSettings,
-    isDarkMode,
-    transparent,
-    textBoxes,
-    pageSetup,
-  });
 }
 
 export function generateDocumentSVG(

@@ -43,6 +43,7 @@ import {
   getAtomDisplayText,
   getAtomHydrogenCount,
   inferAtomLabelFromDisplayedText,
+  normalizeAtomDisplayText,
 } from '../lib/atomLabels';
 import { getAtomAlias, getAtomLeadElement } from '../lib/atomIdentity';
 import { VALENCIES } from '../lib/elements';
@@ -633,7 +634,10 @@ function emitT(
               ? 'Center'
               : null;
   const labelAlignmentAttr = labelAlignment ? ` LabelAlignment="${labelAlignment}"` : '';
-  return `${indent}<t p="${xs} ${ys}" Justification="${justification}"${labelAlignmentAttr}><s font="${fontId}" size="${size}" face="${face}"${colorAttr}>${xmlEscape(text)}</s></t>\n`;
+  // Face 96 is ChemDraw's "formula" style: it subscripts digits itself. Pre-subscripted Unicode
+  // digits would be double-styled and are not what ChemDraw writes (it stores plain ASCII).
+  const emittedText = face === 96 ? normalizeAtomDisplayText(text) : text;
+  return `${indent}<t p="${xs} ${ys}" Justification="${justification}"${labelAlignmentAttr}><s font="${fontId}" size="${size}" face="${face}"${colorAttr}>${xmlEscape(emittedText)}</s></t>\n`;
 }
 
 // ─── Color table management ───────────────────────────────────────────────────
@@ -1044,9 +1048,34 @@ function emitObjectTags(
 
 // ─── ID generation ───────────────────────────────────────────────────────────
 
-function makeIdGen() {
+/**
+ * Sequential ID generator that never returns an ID in `reserved`. CDXML IDs are document-wide, and
+ * objects that keep their original ID (fragments, arrows, graphics, preserved XML) would otherwise
+ * collide with the freshly numbered nodes and bonds.
+ */
+function makeIdGen(reserved: ReadonlySet<string> = new Set()) {
   let n = 1;
-  return () => (n++).toString();
+  return () => {
+    while (reserved.has(String(n))) n++;
+    return (n++).toString();
+  };
+}
+
+function collectReservedExportIds(document: ChemDrawDocument): Set<string> {
+  const reserved = new Set<string>();
+  const addFromXml = (xml: string) => {
+    for (const match of xml.matchAll(/\sid="([^"]+)"/g)) reserved.add(match[1]);
+  };
+  for (const page of document.pages) {
+    reserved.add(page.id);
+    for (const object of page.objects) {
+      if (object.type === 'node' || object.type === 'bond') continue;
+      reserved.add(object.id);
+    }
+    for (const child of page.preservedPageChildren ?? []) addFromXml(child.xml);
+  }
+  for (const extraPage of document.metadata?.preservedExtraPages ?? []) addFromXml(extraPage.xml);
+  return reserved;
 }
 
 // ─── Export ──────────────────────────────────────────────────────────────────
@@ -1073,7 +1102,7 @@ export function stateToCDXML(
 }
 
 function chemDrawDocumentToCDXMLInternal(document: ChemDrawDocument): string {
-  const getId = makeIdGen();
+  const getId = makeIdGen(collectReservedExportIds(document));
   const idMap = new Map<string, string>(); // logical id → CDXML id
   const page = document.pages[0];
   const documentStyleSettings =
@@ -1699,14 +1728,15 @@ function chemDrawDocumentToCDXMLInternal(document: ChemDrawDocument): string {
       const rawChildren =
         emitObjectTags(object.objectTags, '      ', exportScaleFactor, getColorIndex, getFontId) +
         emitRawChildren(object.preservation?.rawChildrenXml, '      ');
-      const tag =
+      // CDXML has no <line>/<oval> elements: lines and ellipses are <graphic GraphicType="...">.
+      // Real ChemDraw ignores the bare tags, so the shape would vanish on open.
+      const tag = object.graphicType === 'polygon' ? 'polygon' : 'graphic';
+      const graphicTypeExportAttr =
         object.graphicType === 'line'
-          ? 'line'
+          ? ' GraphicType="Line"'
           : object.graphicType === 'ellipse'
-            ? 'oval'
-            : object.graphicType === 'polygon'
-              ? 'polygon'
-              : 'graphic';
+            ? ' GraphicType="Oval"'
+            : '';
       if (object.graphicType === 'symbol') {
         const symbolTypeAttr = object.symbolType
           ? ` SymbolType="${xmlEscape(object.symbolType)}"`
@@ -1789,8 +1819,8 @@ function chemDrawDocumentToCDXMLInternal(document: ChemDrawDocument): string {
           : `    <graphic id="${object.id}"${boundsAttr}${colorAttr}${fillColorAttr}${fillTypeAttr}${lineWidthAttr}${lineTypeAttr}${zIndexAttr}${visibleAttr} GraphicType="Rectangle"${rectangleTypeAttr}${cornerRadiusAttr}${shadowSizeAttr}${rawAttributesAttr}/>\n`;
       } else {
         xml += rawChildren
-          ? `    <${tag} id="${object.id}"${boundsAttr}${pointsAttr}${colorAttr}${fillColorAttr}${fillTypeAttr}${lineWidthAttr}${lineTypeAttr}${zIndexAttr}${visibleAttr}${rawAttributesAttr}>\n${rawChildren}    </${tag}>\n`
-          : `    <${tag} id="${object.id}"${boundsAttr}${pointsAttr}${colorAttr}${fillColorAttr}${fillTypeAttr}${lineWidthAttr}${lineTypeAttr}${zIndexAttr}${visibleAttr}${rawAttributesAttr}/>\n`;
+          ? `    <${tag} id="${object.id}"${boundsAttr}${graphicTypeExportAttr}${pointsAttr}${colorAttr}${fillColorAttr}${fillTypeAttr}${lineWidthAttr}${lineTypeAttr}${zIndexAttr}${visibleAttr}${rawAttributesAttr}>\n${rawChildren}    </${tag}>\n`
+          : `    <${tag} id="${object.id}"${boundsAttr}${graphicTypeExportAttr}${pointsAttr}${colorAttr}${fillColorAttr}${fillTypeAttr}${lineWidthAttr}${lineTypeAttr}${zIndexAttr}${visibleAttr}${rawAttributesAttr}/>\n`;
       }
     }
   }
@@ -1884,6 +1914,16 @@ function chemDrawDocumentToCDXMLInternal(document: ChemDrawDocument): string {
   }
 
   xml += `  </page>\n`;
+  // Extra pages are emitted verbatim. IDs are document-wide in CDXML, and the first page's IDs are
+  // renumbered above, so skip any preserved page that would now collide rather than write a file
+  // with duplicate IDs (ChemDraw would reject or mangle it). Import already warned about them.
+  const emittedIds = new Set(Array.from(xml.matchAll(/\sid="([^"]+)"/g), (match) => match[1]));
+  for (const extraPage of document.metadata?.preservedExtraPages ?? []) {
+    const extraIds = Array.from(extraPage.xml.matchAll(/\sid="([^"]+)"/g), (match) => match[1]);
+    if (extraIds.some((id) => emittedIds.has(id))) continue;
+    extraIds.forEach((id) => emittedIds.add(id));
+    xml += `  ${extraPage.xml.endsWith('\n') ? extraPage.xml : `${extraPage.xml}\n`}`;
+  }
   xml += `</CDXML>\n`;
   return xml;
 }
@@ -1897,6 +1937,21 @@ export function cdxmlToChemDrawDocument(xmlString: string): ChemDrawConversionRe
   const objects: ChemDrawObject[] = [];
   const pageEl = doc.querySelector('page');
   const root = doc.documentElement;
+  const preservedExtraPages: Array<{ id: string; xml: string }> = [];
+  Array.from(root.children)
+    .filter((child) => child.tagName === 'page' && child !== pageEl)
+    .forEach((extraPage, index) => {
+      preservedExtraPages.push({
+        id: extraPage.getAttribute('id') ?? `page-${index + 2}`,
+        xml: new XMLSerializer().serializeToString(extraPage),
+      });
+    });
+  if (preservedExtraPages.length) {
+    warnings.push(
+      `Document has ${preservedExtraPages.length + 1} pages; only the first page is editable. ` +
+        `The other ${preservedExtraPages.length} are preserved for export only.`,
+    );
+  }
   const preservedPageChildren: NonNullable<
     ChemDrawDocument['pages'][number]['preservedPageChildren']
   > = [];
@@ -3684,12 +3739,13 @@ export function cdxmlToChemDrawDocument(xmlString: string): ChemDrawConversionRe
   const explicitWidth = parseFloat(root.getAttribute('ChemEditorPageWidth') ?? '');
   const explicitHeight = parseFloat(root.getAttribute('ChemEditorPageHeight') ?? '');
   const importedPageSetup = inferImportedPageSetup({
-    mode:
-      root.getAttribute('ChemEditorPageMode') === 'finite'
-        ? 'finite'
-        : pageBounds
-          ? 'finite'
-          : 'infinite',
+    // Our own files always carry an explicit mode; honour it. Only files from other producers
+    // (real ChemDraw writes no ChemEditor* attributes) fall back to inferring from page bounds.
+    mode: (() => {
+      const explicitMode = root.getAttribute('ChemEditorPageMode');
+      if (explicitMode === 'finite' || explicitMode === 'infinite') return explicitMode;
+      return pageBounds ? 'finite' : 'infinite';
+    })(),
     unit: importedUnit,
     presetId: (root.getAttribute('ChemEditorPagePresetId') as PagePresetId | null) ?? undefined,
     orientation:
@@ -3727,6 +3783,7 @@ export function cdxmlToChemDrawDocument(xmlString: string): ChemDrawConversionRe
         documentStyleSettings: importedDocumentStyleSettings,
         ...(preservedDocumentAttributes ? { preservedDocumentAttributes } : {}),
         ...(preservedPageAttributes ? { preservedPageAttributes } : {}),
+        ...(preservedExtraPages.length ? { preservedExtraPages } : {}),
         ignoredSemantics: warnings.length ? warnings : undefined,
       },
     },

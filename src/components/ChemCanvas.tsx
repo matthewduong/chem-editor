@@ -85,7 +85,7 @@ import {
   runsToHTML,
 } from '../lib/textRunPresentation';
 import { getFaceMetrics } from '../lib/textMetrics';
-import { generateCanvasSVG } from '../lib/svgExport';
+import { generateCanvasSVG } from '../lib/svgExportFromStore';
 import {
   applyArrowStyleEdit,
   applyBondEdit,
