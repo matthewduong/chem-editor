@@ -78,6 +78,8 @@ export interface ParsedMolblockAtom {
   element: string;
   charge?: number;
   isotope?: number;
+  /** Unpaired electron count (0 for singlet/none), mapped from the molfile RAD code. */
+  radicalElectrons?: number;
 }
 
 export interface ParsedMolblockBond {
@@ -121,6 +123,9 @@ export function parseMolblockGeometry(
   mb: string,
   coordinateScale = MOLBLOCK_SCALE,
 ): ParsedMolblockGeometry | null {
+  if (/\bV3000\b/.test(mb.split('\n')[3] ?? '')) {
+    return parseMolblockV3000Geometry(mb, coordinateScale);
+  }
   const parsedCounts = parseMolblockCounts(mb);
   if (!parsedCounts) return null;
 
@@ -129,11 +134,11 @@ export function parseMolblockGeometry(
   for (let index = 0; index < atomCount; index += 1) {
     const line = lines[index + 4];
     if (!line || line.length < 34) return null;
-    atoms.push({
-      x: Number.parseFloat(line.substring(0, 10)) * coordinateScale,
-      y: -Number.parseFloat(line.substring(10, 20)) * coordinateScale,
-      element: line.substring(31, 34).trim(),
-    });
+    const x = Number.parseFloat(line.substring(0, 10)) * coordinateScale;
+    const y = -Number.parseFloat(line.substring(10, 20)) * coordinateScale;
+    // A non-numeric coordinate would otherwise poison every downstream layout calculation.
+    if (!Number.isFinite(x) || !Number.isFinite(y)) return null;
+    atoms.push({ x, y, element: line.substring(31, 34).trim() });
   }
 
   const bonds: ParsedMolblockBond[] = [];
@@ -175,10 +180,111 @@ export function parseMolblockGeometry(
           atoms[atomIndex] = { ...atoms[atomIndex], isotope };
         }
       }
+      continue;
+    }
+
+    if (line.startsWith('M  RAD')) {
+      const count = Number.parseInt(line.substring(6, 9).trim(), 10);
+      for (let index = 0; index < count; index += 1) {
+        const atomIndex =
+          Number.parseInt(line.substring(9 + index * 8, 13 + index * 8).trim(), 10) - 1;
+        const code = Number.parseInt(line.substring(13 + index * 8, 17 + index * 8).trim(), 10);
+        const electrons = radicalCodeToElectrons(code);
+        if (atomIndex >= 0 && atomIndex < atoms.length && electrons != null) {
+          atoms[atomIndex] = { ...atoms[atomIndex], radicalElectrons: electrons };
+        }
+      }
     }
   }
 
   return { atoms, bonds };
+}
+
+/** Molfile RAD codes: 0 none, 1 singlet (two paired), 2 doublet, 3 triplet. */
+function radicalCodeToElectrons(code: number): number | null {
+  if (code === 2) return 1;
+  if (code === 3) return 2;
+  if (code === 0 || code === 1) return 0;
+  return null;
+}
+
+function electronsToRadicalCode(electrons: number): number {
+  return electrons >= 2 ? 3 : electrons === 1 ? 2 : 0;
+}
+
+/**
+ * Minimal V3000 reader: atom and bond blocks with CHG/MASS/RAD properties. RDKit emits V3000 for
+ * large molecules, and the V2000 reader would otherwise report such files as empty.
+ */
+function parseMolblockV3000Geometry(
+  mb: string,
+  coordinateScale: number,
+): ParsedMolblockGeometry | null {
+  const lines = mb.split('\n').map((line) => line.replace(/\r$/, ''));
+  const atoms: ParsedMolblockAtom[] = [];
+  const bonds: ParsedMolblockBond[] = [];
+  const indexByAtomId = new Map<number, number>();
+  let section: 'atom' | 'bond' | null = null;
+  let sawCounts = false;
+
+  // Continuation lines end with "-" and carry on in the next M  V30 record.
+  const records: string[] = [];
+  let pending = '';
+  for (const raw of lines) {
+    if (!raw.startsWith('M  V30 ')) continue;
+    const content = raw.slice(7).trimEnd();
+    if (content.endsWith('-')) {
+      pending += `${content.slice(0, -1)} `;
+      continue;
+    }
+    records.push(`${pending}${content}`.trim());
+    pending = '';
+  }
+
+  for (const record of records) {
+    if (record.startsWith('COUNTS')) sawCounts = true;
+    if (record === 'BEGIN ATOM') section = 'atom';
+    else if (record === 'BEGIN BOND') section = 'bond';
+    else if (record.startsWith('END ')) section = null;
+    else if (section === 'atom') {
+      const fields = record.split(/\s+/);
+      if (fields.length < 5) return null;
+      const id = Number.parseInt(fields[0]!, 10);
+      const x = Number.parseFloat(fields[2]!) * coordinateScale;
+      const y = -Number.parseFloat(fields[3]!) * coordinateScale;
+      if (!Number.isFinite(id) || !Number.isFinite(x) || !Number.isFinite(y)) return null;
+      const atom: ParsedMolblockAtom = { x, y, element: fields[1]! };
+      for (const field of fields.slice(6)) {
+        const [key, value] = field.split('=');
+        const number = Number.parseInt(value ?? '', 10);
+        if (Number.isNaN(number)) continue;
+        if (key === 'CHG') atom.charge = number;
+        else if (key === 'MASS') atom.isotope = number;
+        else if (key === 'RAD') {
+          const electrons = radicalCodeToElectrons(number);
+          if (electrons != null) atom.radicalElectrons = electrons;
+        }
+      }
+      indexByAtomId.set(id, atoms.length);
+      atoms.push(atom);
+    } else if (section === 'bond') {
+      const fields = record.split(/\s+/);
+      if (fields.length < 4) return null;
+      const from = indexByAtomId.get(Number.parseInt(fields[2]!, 10));
+      const to = indexByAtomId.get(Number.parseInt(fields[3]!, 10));
+      if (from == null || to == null) continue;
+      let stereo = 0;
+      for (const field of fields.slice(4)) {
+        if (field.startsWith('CFG=')) {
+          const cfg = Number.parseInt(field.slice(4), 10);
+          // V3000 CFG: 1 wedge, 3 either, 2 hash. V2000 stereo codes: 1 wedge, 4 either, 6 hash.
+          stereo = cfg === 1 ? 1 : cfg === 2 ? 6 : cfg === 3 ? 4 : 0;
+        }
+      }
+      bonds.push({ from, to, order: Number.parseInt(fields[1]!, 10) || 1, stereo });
+    }
+  }
+  return sawCounts ? { atoms, bonds } : null;
 }
 
 export function getMedianBondLength(
@@ -270,8 +376,31 @@ export function graphToMolblock(
     }
     chgBlock += '\n';
   }
+  const propertyBlock = (tag: string, entries: Array<[number, number]>): string => {
+    let block = '';
+    for (let i = 0; i < entries.length; i += 8) {
+      const chunk = entries.slice(i, i + 8);
+      block += `M  ${tag}${chunk.length.toString().padStart(3)}`;
+      for (const [index, value] of chunk) {
+        block += `${index.toString().padStart(4)}${value.toString().padStart(4)}`;
+      }
+      block += '\n';
+    }
+    return block;
+  };
+  const isotopeEntries: Array<[number, number]> = [];
+  const radicalEntries: Array<[number, number]> = [];
+  for (const atom of atoms) {
+    const index = atomIndexById.get(atom.id) ?? 0;
+    if (!index) continue;
+    if (atom.isotope) isotopeEntries.push([index, atom.isotope]);
+    const radicalCode = electronsToRadicalCode(atom.radicalElectrons ?? 0);
+    if (radicalCode) radicalEntries.push([index, radicalCode]);
+  }
+  const isoBlock = propertyBlock('ISO', isotopeEntries);
+  const radBlock = propertyBlock('RAD', radicalEntries);
   return {
-    molblock: `${header}${counts}${atomBlock}${bondBlock}${chgBlock}M  END\n`,
+    molblock: `${header}${counts}${atomBlock}${bondBlock}${chgBlock}${isoBlock}${radBlock}M  END\n`,
     shorthandMap,
   };
 }
@@ -304,6 +433,7 @@ export function molblockToState(
     element: atom.element,
     ...(atom.charge != null ? { charge: atom.charge } : {}),
     ...(atom.isotope != null ? { isotope: atom.isotope } : {}),
+    ...(atom.radicalElectrons ? { radicalElectrons: atom.radicalElectrons } : {}),
   }));
   const bonds: Bond[] = geometry.bonds.map((bond) => ({
     id: crypto.randomUUID(),

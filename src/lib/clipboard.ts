@@ -106,9 +106,8 @@ export function detectPasteFormat(
   ) {
     return 'cdxml';
   }
-
-  // Molblock: line 4 (index 3) matches V2000 counts line
-  if (lines.length >= 4 && /^\s*\d+\s+\d+.*V2000/.test(lines[3])) return 'molblock';
+  // Molblock: line 4 (index 3) is the counts line, tagged V2000 or V3000
+  if (lines.length >= 4 && /^\s*\d+\s+\d+.*V[23]000/.test(lines[3])) return 'molblock';
 
   // XYZ: line 1 is a pure integer, line 3+ is <element> <float> <float> <float>
   if (
