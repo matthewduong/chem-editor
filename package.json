@@ -82,5 +82,6 @@
     "clean": "node scripts/clean.mjs",
     "clean:deep": "node scripts/clean.mjs --deep",
     "test:py:qm": "node scripts/run-python-tests.mjs --qm"
-  }
+  },
+  "license": "Apache-2.0"
 }
