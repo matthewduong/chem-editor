@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readdirSync, readFileSync } from 'node:fs';
+import { appendFileSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 
 import {
   cdxmlToChemDrawDocument,
@@ -67,6 +67,10 @@ const mutations = [
   },
 ];
 
+// Set CDXML_FUZZ_TRACE=<file> to log each case before it runs; after a hang the last line names it.
+const TRACE = process.env.CDXML_FUZZ_TRACE;
+if (TRACE) writeFileSync(TRACE, '');
+
 const ITERATIONS = Number(process.env.CDXML_FUZZ_ITERATIONS ?? 60);
 
 for (const { name, xml } of fixtures) {
@@ -81,6 +85,7 @@ for (const { name, xml } of fixtures) {
         applied.push(mutate.name);
       }
       const label = `${name} seed=${seed} [${applied.join(', ')}]`;
+      if (TRACE) appendFileSync(TRACE, `${label}\n`);
       let imported;
       try {
         imported = cdxmlToChemDrawDocument(mutated);

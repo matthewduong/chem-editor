@@ -100,3 +100,22 @@ export function validateCdxmlInput(xml: Document): void {
     }
   }
 }
+
+/**
+ * Throw if any number reachable from `value` is NaN or infinite, naming the path to it. Walks
+ * plain objects and arrays only, which is all the document model contains.
+ */
+export function assertFiniteNumbers(value: unknown, path: string): void {
+  if (typeof value === 'number') {
+    if (!Number.isFinite(value)) {
+      throw new Error(`Invalid CDXML: non-finite number at ${path}.`);
+    }
+    return;
+  }
+  if (value === null || typeof value !== 'object') return;
+  if (Array.isArray(value)) {
+    value.forEach((item, index) => assertFiniteNumbers(item, `${path}[${index}]`));
+    return;
+  }
+  for (const [key, item] of Object.entries(value)) assertFiniteNumbers(item, `${path}.${key}`);
+}

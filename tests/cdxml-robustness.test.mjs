@@ -118,6 +118,22 @@ test('id-less elements get distinct fallback ids that avoid every id the source 
   assert.equal(second.document.pages[0].objects.length, 6);
 });
 
+test('junk in a numeric attribute is rejected by name instead of becoming NaN', () => {
+  expectRejected(
+    wrap(
+      '<graphic id="2" GraphicType="Rectangle" RectangleType="RoundEdge" ' +
+        'CornerRadius="x y" BoundingBox="50 0 90 30"/>',
+    ),
+    /non-finite number/,
+    'CornerRadius="x y" must not import as NaN',
+  );
+  expectRejected(
+    wrap('<t id="2" p="0 0"><s font="1" size="1e999">a</s></t>'),
+    /non-finite number/,
+    'an overflowing font size must be rejected',
+  );
+});
+
 for (const { name, xml } of fixtures) {
   test(`${name}: re-export is a fixed point after one round trip`, () => {
     const first = chemDrawDocumentToCDXML(cdxmlToChemDrawDocument(xml).document);

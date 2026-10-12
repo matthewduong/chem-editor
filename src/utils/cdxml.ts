@@ -1,4 +1,4 @@
-import { validateCdxmlInput } from '../lib/cdxmlValidation';
+import { assertFiniteNumbers, validateCdxmlInput } from '../lib/cdxmlValidation';
 /**
  * cdxml.ts — ChemDraw CDXML import/export
  *
@@ -3963,7 +3963,7 @@ export function cdxmlToChemDrawDocument(xmlString: string): ChemDrawConversionRe
     pageBounds: pageBounds ?? null,
   });
 
-  return {
+  const result: ChemDrawConversionResult = {
     document: {
       schemaVersion: 1,
       source: 'cdxml-import',
@@ -3994,6 +3994,11 @@ export function cdxmlToChemDrawDocument(xmlString: string): ChemDrawConversionRe
     },
     warnings,
   };
+  // Attributes are read by name, so a junk value in a numeric attribute (CornerRadius="x y")
+  // surfaces as NaN deep in the model. Refuse the file here, naming where, rather than hand
+  // the editor a document it cannot draw or save.
+  assertFiniteNumbers(result.document, 'document');
+  return result;
 }
 
 export function cdxmlToState(xmlString: string): {
