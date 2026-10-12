@@ -55,6 +55,41 @@ test('malformed CDXML is rejected with a descriptive error, not a blank document
   );
 });
 
+// ChemDraw gives each <graphic GraphicType="Bracket">'s own <objecttag> children (the hidden
+// "parameterizedBracketLabel"/"bracketusage" pair a multiplied-group bracket carries) their own
+// id namespace, scoped per bracket rather than per page. A real ChemDraw file with several such
+// brackets legitimately reuses id="1"/id="2" once per bracket; minimized from a real-ChemDraw
+// corpus file that first surfaced this.
+const bracketWithObjectTags = (id) =>
+  `<graphic id="${id}" GraphicType="Bracket" BracketType="Round" BracketUsage="MultipleGroup" BoundingBox="0 0 10 10">` +
+  `<objecttag id="1" TagType="Unknown" Name="parameterizedBracketLabel"><t p="0 0"><s font="1" size="6">4</s></t></objecttag>` +
+  `<objecttag id="2" TagType="Unknown" Name="bracketusage"><t p="0 0"><s font="1" size="6">4</s></t></objecttag>` +
+  `</graphic>`;
+
+test('objecttag ids reused across separate bracket graphics are not rejected', () => {
+  const xml = wrap(
+    `<fragment id="3"><n id="4" p="0 0"/></fragment>${bracketWithObjectTags(10)}${bracketWithObjectTags(11)}`,
+  );
+  assert.doesNotThrow(() => cdxmlToChemDrawDocument(xml));
+});
+
+test('the bracket-objecttag exemption does not widen into a general duplicate-id pass', () => {
+  expectRejected(
+    wrap('<fragment id="2"><n id="3" p="0 0"/><n id="3" p="1 1"/></fragment>'),
+    /duplicate or empty object ID/,
+    'two plain nodes sharing an id must still be rejected',
+  );
+  expectRejected(
+    wrap(
+      '<fragment id="2"><n id="3" p="0 0"/></fragment>' +
+        '<objecttag id="9" TagType="Unknown"><t p="0 0"><s font="1" size="6">x</s></t></objecttag>' +
+        '<objecttag id="9" TagType="Unknown"><t p="0 0"><s font="1" size="6">y</s></t></objecttag>',
+    ),
+    /duplicate or empty object ID/,
+    'objecttags outside a bracket must still be unique',
+  );
+});
+
 for (const { name, xml } of fixtures) {
   test(`${name}: re-export is a fixed point after one round trip`, () => {
     const first = chemDrawDocumentToCDXML(cdxmlToChemDrawDocument(xml).document);
