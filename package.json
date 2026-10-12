@@ -80,6 +80,7 @@
     "lint": "pnpm lint:js && pnpm lint:format && pnpm lint:py && pnpm lint:rs",
     "install-hooks": "node scripts/install-hooks.mjs",
     "clean": "node scripts/clean.mjs",
-    "clean:deep": "node scripts/clean.mjs --deep"
+    "clean:deep": "node scripts/clean.mjs --deep",
+    "test:py:qm": "node scripts/run-python-tests.mjs --qm"
   }
 }

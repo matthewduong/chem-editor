@@ -90,21 +90,13 @@ class StructureValidationTests(unittest.TestCase):
             )
 
 
-class GeometryOptimizationTests(unittest.TestCase):
-    def test_optimize_hartree_fock_geometry_returns_atoms_and_bonds_for_h2(self):
-        result = chem_engine.optimize_hartree_fock_geometry(
-            smiles="[H][H]",
-            atoms=[
-                {"element": "H", "x": 0.0, "y": 0.0, "z": 0.0},
-                {"element": "H", "x": 0.0, "y": 0.0, "z": 0.9},
-            ],
-            bonds=[{"a1": 0, "a2": 1, "order": 1.0}],
-            basis="STO-3G",
-        )
-
-        self.assertNotIn("error", result)
-        self.assertEqual(len(result["atoms"]), 2)
-        self.assertEqual(len(result["bonds"]), 1)
+class MissingQmRuntimeTests(unittest.TestCase):
+    def test_geometry_optimization_reports_missing_optional_runtime(self):
+        with mock.patch.object(chem_engine.importlib.util, "find_spec", return_value=None):
+            result = chem_engine.optimize_hartree_fock_geometry(
+                smiles="[H][H]", atoms=[], bonds=[], basis="STO-3G"
+            )
+        self.assertEqual(result, {"error": "pyscf not installed", "fallback": True})
 
 
 if __name__ == "__main__":

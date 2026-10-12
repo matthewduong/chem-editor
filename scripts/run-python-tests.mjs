@@ -10,10 +10,14 @@ const uvCacheDir =
   process.env.UV_CACHE_DIR ??
   (process.platform === 'win32' ? path.join(rootDir, '.uv-cache') : '/tmp/uv-cache');
 
+const integration = process.argv.includes('--qm');
+
 const testRun = spawnSync(
   uv,
   [
     'run',
+    '--locked',
+    ...(integration ? ['--group', 'nmr-dft'] : []),
     '--project',
     'src-tauri',
     'python',
@@ -23,7 +27,7 @@ const testRun = spawnSync(
     '-s',
     'src-tauri/tests',
     '-p',
-    'test_*.py',
+    integration ? 'integration_*.py' : 'test_*.py',
   ],
   {
     cwd: rootDir,

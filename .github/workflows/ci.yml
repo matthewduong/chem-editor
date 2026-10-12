@@ -80,3 +80,15 @@ jobs:
           uvx ruff@0.16.2 format --check development/build_nmr_hose_db.py src-tauri/bin/ src-tauri/tests/
       - name: Unit tests
         run: uv run --project src-tauri python -m unittest discover -s src-tauri/tests -p 'test_*.py'
+
+  python-qm:
+    name: Python QM integration
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+      - run: uv run --locked --project src-tauri --group nmr-dft python -m unittest discover -s src-tauri/tests -p 'integration_*.py'
+        env:
+          OMP_NUM_THREADS: 2
