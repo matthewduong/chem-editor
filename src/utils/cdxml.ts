@@ -2037,6 +2037,13 @@ export function cdxmlToChemDrawDocument(xmlString: string): ChemDrawConversionRe
   const parser = new DOMParser();
   const doc = parser.parseFromString(xmlString, 'application/xml');
   validateCdxmlInput(doc);
+  // One generator for the whole import, seeded with every id the source already uses, so two
+  // id-less elements can never synthesize the same id or take one that another element owns.
+  const fallbackId = makeIdGen(
+    new Set(
+      Array.from(doc.querySelectorAll('[id]'), (el) => el.getAttribute('id') ?? '').filter(Boolean),
+    ),
+  );
   const warnings: string[] = [];
   const objects: ChemDrawObject[] = [];
   const pageEl = doc.querySelector('page');
@@ -2307,7 +2314,7 @@ export function cdxmlToChemDrawDocument(xmlString: string): ChemDrawConversionRe
   );
   for (let i = 0; i < fragmentEls.length; i++) {
     const fragmentEl = fragmentEls[i];
-    const fragmentId = fragmentEl.getAttribute('id') ?? makeIdGen()();
+    const fragmentId = fragmentEl.getAttribute('id') ?? fallbackId();
     const nodeIds: string[] = [];
     const bondIds: string[] = [];
 
@@ -2655,7 +2662,7 @@ export function cdxmlToChemDrawDocument(xmlString: string): ChemDrawConversionRe
         nodeObjectIds.add(cdxId);
         objects.push(node);
       } else if (child.tagName === 'b') {
-        const bondId = child.getAttribute('id') ?? makeIdGen()();
+        const bondId = child.getAttribute('id') ?? fallbackId();
         const beginId = child.getAttribute('B');
         const endId = child.getAttribute('E');
         if (!beginId || !endId) continue;
@@ -2827,7 +2834,7 @@ export function cdxmlToChemDrawDocument(xmlString: string): ChemDrawConversionRe
     // doing this to the line-as-arrow conversion it performs on every resave (see gaps.md); without
     // this check, the dead arrow would import as a second, live object alongside its replacement.
     if (a.getAttribute('SupersededBy')) continue;
-    const id = a.getAttribute('id') ?? makeIdGen()();
+    const id = a.getAttribute('id') ?? fallbackId();
     const head3D = a.getAttribute('Head3D');
     const tail3D = a.getAttribute('Tail3D');
     const center3D = a.getAttribute('Center3D');
@@ -3146,7 +3153,7 @@ export function cdxmlToChemDrawDocument(xmlString: string): ChemDrawConversionRe
     );
 
     const textObject: ChemDrawText = {
-      id: child.getAttribute('id') ?? makeIdGen()(),
+      id: child.getAttribute('id') ?? fallbackId(),
       type: 'text',
       anchor: { x, y: y - baselineOffset },
       text: {
@@ -3224,7 +3231,7 @@ export function cdxmlToChemDrawDocument(xmlString: string): ChemDrawConversionRe
   for (let i = 0; i < bracketEls.length; i++) {
     const bracket = bracketEls[i];
     if (!isElementOnPage(bracket, pageEl) || hasAncestorTag(bracket, 'table')) continue;
-    const id = bracket.getAttribute('id') ?? makeIdGen()();
+    const id = bracket.getAttribute('id') ?? fallbackId();
     const bracketType =
       bracket.getAttribute('BracketUsage') ?? bracket.getAttribute('RepeatPattern') ?? 'generic';
     const bounds =
@@ -3283,7 +3290,7 @@ export function cdxmlToChemDrawDocument(xmlString: string): ChemDrawConversionRe
     for (let i = 0; i < els.length; i++) {
       const el = els[i];
       if (!isElementOnPage(el, pageEl) || hasAncestorTag(el, 'table')) continue;
-      const id = el.getAttribute('id') ?? makeIdGen()();
+      const id = el.getAttribute('id') ?? fallbackId();
       if (seenGraphicIds.has(id)) continue;
       seenGraphicIds.add(id);
       if (el.getAttribute('SupersededBy')) continue;
@@ -3516,7 +3523,7 @@ export function cdxmlToChemDrawDocument(xmlString: string): ChemDrawConversionRe
     if (!isElementOnPage(embeddedObjectEl, pageEl) || hasAncestorTag(embeddedObjectEl, 'table')) {
       continue;
     }
-    const id = embeddedObjectEl.getAttribute('id') ?? makeIdGen()();
+    const id = embeddedObjectEl.getAttribute('id') ?? fallbackId();
     const bounds =
       parseBounds(embeddedObjectEl.getAttribute('BoundingBox'), importScaleFactor) ??
       parseBounds(embeddedObjectEl.getAttribute('Bounds'), importScaleFactor);
@@ -3572,7 +3579,7 @@ export function cdxmlToChemDrawDocument(xmlString: string): ChemDrawConversionRe
   for (let i = 0; i < tableEls.length; i++) {
     const tableEl = tableEls[i];
     if (!isElementOnPage(tableEl, pageEl)) continue;
-    const id = tableEl.getAttribute('id') ?? makeIdGen()();
+    const id = tableEl.getAttribute('id') ?? fallbackId();
     const bounds =
       parseBounds(tableEl.getAttribute('BoundingBox'), importScaleFactor) ??
       parseBounds(tableEl.getAttribute('Bounds'), importScaleFactor);
@@ -3673,7 +3680,7 @@ export function cdxmlToChemDrawDocument(xmlString: string): ChemDrawConversionRe
       const childId = child.getAttribute('id');
       if (childId) childIds.push(childId);
     }
-    const id = groupEl.getAttribute('id') ?? makeIdGen()();
+    const id = groupEl.getAttribute('id') ?? fallbackId();
     const objectTags = parseObjectTags(groupEl);
     const style = {
       ...(groupEl.getAttribute('Z') != null &&

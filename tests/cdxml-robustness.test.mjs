@@ -90,6 +90,34 @@ test('the bracket-objecttag exemption does not widen into a general duplicate-id
   );
 });
 
+test('id-less elements get distinct fallback ids that avoid every id the source uses', () => {
+  const text = (id, label) =>
+    `<t${id ? ` id="${id}"` : ''} p="0 0"><s font="1" size="10">${label}</s></t>`;
+  const graphic = (id) =>
+    `<graphic${id ? ` id="${id}"` : ''} BoundingBox="0 0 10 10" GraphicType="Line" LineType="Solid"/>`;
+  // "2" and "3" are taken by explicit ids; the id-less elements must dodge them and each other.
+  const { document } = cdxmlToChemDrawDocument(
+    wrap(
+      text('2', 'kept') +
+        text(null, 'a') +
+        text(null, 'b') +
+        graphic('3') +
+        graphic(null) +
+        graphic(null),
+    ),
+  );
+  const ids = document.pages[0].objects.map((object) => object.id);
+  assert.equal(ids.length, 6, 'every element should import as one object');
+  assert.equal(new Set(ids).size, ids.length, `duplicate ids synthesized: ${ids.join(', ')}`);
+  const generated = ids.filter((id) => !['2', '3'].includes(id));
+  assert.equal(generated.length, 4);
+  for (const id of generated)
+    assert.ok(!['1', '2', '3'].includes(id), `${id} collides with the source`);
+  // The export must also be valid under the importer's own duplicate-id gate.
+  const second = cdxmlToChemDrawDocument(chemDrawDocumentToCDXML(document));
+  assert.equal(second.document.pages[0].objects.length, 6);
+});
+
 for (const { name, xml } of fixtures) {
   test(`${name}: re-export is a fixed point after one round trip`, () => {
     const first = chemDrawDocumentToCDXML(cdxmlToChemDrawDocument(xml).document);
