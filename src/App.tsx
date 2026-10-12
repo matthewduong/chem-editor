@@ -1,3 +1,6 @@
+import { useDocumentLifecycle } from './hooks/useDocumentLifecycle';
+import { molblockToState, parseMolblockGeometry } from './lib/graph';
+import { canvasStateToChemDrawDocument } from './lib/chemdrawModel';
 import { useRef, useEffect, useCallback, useState, lazy, Suspense, useMemo } from 'react';
 import {
   extractSelection,
@@ -625,6 +628,11 @@ function cloneDefaultToolPalettes() {
 function App() {
   const { rdkit } = useRDKit();
   const canvasRef = useRef<ChemCanvasRef>(null);
+  const {
+    save: saveDocument,
+    confirmReplace: confirmDiscardUnsavedChanges,
+    dialog: lifecycleDialog,
+  } = useDocumentLifecycle(canvasRef);
   const molecule3DRef = useRef<Molecule3DRef>(null);
   const appShellRef = useRef<HTMLDivElement>(null);
   const workspaceRef = useRef<HTMLDivElement>(null);
@@ -1039,8 +1047,6 @@ function App() {
     setAppPreferences,
     setDocumentStyleSettings,
     setDocumentViewSettings,
-    markDocumentDirty,
-    markDocumentSaved,
     addRecentFile,
     removeRecentFile,
     applyDefaultsToCurrentDocument,
@@ -1611,50 +1617,43 @@ function App() {
     loadLicenses();
   }, [setLicensesText]);
 
-  const confirmDiscardUnsavedChanges = useCallback((nextAction: string) => {
-    const currentFile = useStore.getState().documentFile;
-    if (!currentFile.dirty) return true;
-    return window.confirm(
-      `Discard unsaved changes to ${currentFile.name}? ${nextAction} will replace the current document.`,
-    );
-  }, []);
-
   const loadChemicalFile = useCallback(
     async (file: OpenedChemicalTextFile) => {
       if (file.extension === 'cdxml') {
-        await canvasRef.current?.loadNative(file.content);
-        markDocumentSaved(file.filePath);
-        addRecentFile(file.filePath);
+        const loaded = await canvasRef.current?.loadNative(
+          file.content,
+          () => confirmDiscardUnsavedChanges('Open'),
+          file.filePath,
+        );
+        if (loaded) addRecentFile(file.filePath);
         return;
       }
-
       const result = await invokeTauri<SidecarParseResult>('parse_chemical_file', {
         content: file.content,
         format: file.extension,
       });
-      if (result.error) {
-        useStore.getState().showToast(`Could not parse file: ${result.error}`);
-        return;
-      }
-      clearDocumentFile();
-      canvasRef.current?.loadFromSmiles(result.molblock);
-      markDocumentDirty();
+      if (result.error) throw new Error(result.error);
+      if (!parseMolblockGeometry(result.molblock)) throw new Error('Invalid structure data');
+      const size = useStore.getState().canvasSize;
+      const state = molblockToState(result.molblock, size.width, size.height);
+      const candidate = canvasStateToChemDrawDocument(state).document;
+      if (!(await confirmDiscardUnsavedChanges('Open'))) return;
+      useStore.getState().replaceDocument(candidate);
       addRecentFile(file.filePath);
     },
-    [addRecentFile, clearDocumentFile, markDocumentDirty, markDocumentSaved],
+    [addRecentFile, confirmDiscardUnsavedChanges],
   );
 
   // File operations
-  const handleNewDocument = useCallback(() => {
+  const handleNewDocument = useCallback(async () => {
     setIsFileDropdownOpen(false);
-    if (!confirmDiscardUnsavedChanges('New')) return;
+    if (!(await confirmDiscardUnsavedChanges('New'))) return;
     clearCanvas();
     clearDocumentFile();
   }, [clearCanvas, clearDocumentFile, confirmDiscardUnsavedChanges, setIsFileDropdownOpen]);
 
   const handleOpen = useCallback(async () => {
     setIsFileDropdownOpen(false);
-    if (!confirmDiscardUnsavedChanges('Open')) return;
     try {
       const file = await openChemicalTextFile();
       if (!file) {
@@ -1665,47 +1664,21 @@ function App() {
       useStore.getState().showToast('Failed to open file');
       console.error(e);
     }
-  }, [confirmDiscardUnsavedChanges, loadChemicalFile, setIsFileDropdownOpen]);
+  }, [loadChemicalFile, setIsFileDropdownOpen]);
 
   const handleSaveNative = useCallback(async () => {
     setIsFileDropdownOpen(false);
-    try {
-      const currentFile = useStore.getState().documentFile;
-      const result = await canvasRef.current?.saveNative({
-        path: currentFile.path,
-        prompt: !currentFile.path,
-      });
-      if (result?.saved && result.path) {
-        markDocumentSaved(result.path);
-        addRecentFile(result.path);
-      }
-    } catch (e) {
-      useStore.getState().showToast('Failed to save file');
-      console.error(e);
-    }
-  }, [addRecentFile, markDocumentSaved, setIsFileDropdownOpen]);
+    await saveDocument();
+  }, [saveDocument, setIsFileDropdownOpen]);
 
   const handleSaveAsNative = useCallback(async () => {
     setIsFileDropdownOpen(false);
-    try {
-      const result = await canvasRef.current?.saveNative({
-        path: useStore.getState().documentFile.path,
-        prompt: true,
-      });
-      if (result?.saved && result.path) {
-        markDocumentSaved(result.path);
-        addRecentFile(result.path);
-      }
-    } catch (e) {
-      useStore.getState().showToast('Failed to save file');
-      console.error(e);
-    }
-  }, [addRecentFile, markDocumentSaved, setIsFileDropdownOpen]);
+    await saveDocument(true);
+  }, [saveDocument, setIsFileDropdownOpen]);
 
   const handleOpenRecent = useCallback(
     async (filePath: string) => {
       setIsFileDropdownOpen(false);
-      if (!confirmDiscardUnsavedChanges('Open Recent')) return;
       try {
         await loadChemicalFile(await readChemicalTextFileAtPath(filePath));
       } catch (error) {
@@ -1716,7 +1689,7 @@ function App() {
         console.error(error);
       }
     },
-    [confirmDiscardUnsavedChanges, loadChemicalFile, removeRecentFile, setIsFileDropdownOpen],
+    [loadChemicalFile, removeRecentFile, setIsFileDropdownOpen],
   );
 
   const handleInsertImage = useCallback(async () => {
@@ -3475,6 +3448,7 @@ function App() {
         position: 'relative',
       }}
     >
+      {lifecycleDialog}
       <style>
         {pageSetup.mode === 'finite'
           ? `@media print { @page { size: ${pageSetup.pageWidth}${pageSetup.unit} ${pageSetup.pageHeight}${pageSetup.unit}; margin: 0; } }`

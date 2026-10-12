@@ -222,6 +222,8 @@ export interface AppState {
   chemDrawDocument: ChemDrawDocument | null;
   previewChemDrawDocument: ChemDrawDocument | null;
   documentFile: DocumentFileState;
+  documentSessionId: string;
+  savedDocument: ChemDrawDocument | null;
   selectionPreviewTransform: SelectionPreviewTransform | null;
   chemDrawWarnings: string[];
   objectCount: number;
@@ -370,7 +372,11 @@ export interface AppState {
   setDocumentFile: (file: DocumentFileState) => void;
   clearDocumentFile: () => void;
   markDocumentDirty: () => void;
-  markDocumentSaved: (path: string) => void;
+  markDocumentSaved: (
+    path: string,
+    snapshot?: { document: ChemDrawDocument | null; revision: number; sessionId: string },
+  ) => void;
+  replaceDocument: (document: ChemDrawDocument, warnings?: string[], path?: string | null) => void;
   addRecentFile: (path: string) => void;
   removeRecentFile: (path: string) => void;
   setSelectionPreviewTransform: (preview: SelectionPreviewTransform | null) => void;
@@ -514,6 +520,8 @@ export const useStore = create<AppState>((set, get) => ({
   chemDrawDocument: null,
   previewChemDrawDocument: null,
   documentFile: createUntitledDocumentFile(),
+  documentSessionId: crypto.randomUUID(),
+  savedDocument: null,
   selectionPreviewTransform: null,
   chemDrawWarnings: [],
   objectCount: 0,
@@ -766,7 +774,7 @@ export const useStore = create<AppState>((set, get) => ({
           previewChemDrawDocument: null,
           selectionPreviewTransform: null,
           pageSetup: resolveDocumentPageSetup(nextDocument, s.appPreferences),
-          documentFile: markDocumentFileDirty(s.documentFile),
+          documentFile: { ...s.documentFile, dirty: nextDocument !== s.savedDocument },
           documentRevision: s.documentRevision + 1,
           projectionRevision: s.projectionRevision + 1,
           ...nextDocumentMeta,
@@ -785,7 +793,7 @@ export const useStore = create<AppState>((set, get) => ({
           selectionPreviewTransform: null,
           objectCount: 0,
           largeDocumentMode: false,
-          documentFile: markDocumentFileDirty(s.documentFile),
+          documentFile: { ...s.documentFile, dirty: s.savedDocument !== null },
           documentRevision: s.documentRevision + 1,
           projectionRevision: s.projectionRevision + 1,
         };
@@ -817,7 +825,7 @@ export const useStore = create<AppState>((set, get) => ({
           previewChemDrawDocument: null,
           selectionPreviewTransform: null,
           pageSetup: resolveDocumentPageSetup(nextDocument, s.appPreferences),
-          documentFile: markDocumentFileDirty(s.documentFile),
+          documentFile: { ...s.documentFile, dirty: nextDocument !== s.savedDocument },
           documentRevision: s.documentRevision + 1,
           projectionRevision: s.projectionRevision + 1,
           ...nextDocumentMeta,
@@ -998,15 +1006,60 @@ export const useStore = create<AppState>((set, get) => ({
       ...describeDocumentState(get().chemDrawDocument),
     }),
   setDocumentFile: (documentFile) => set({ documentFile }),
-  clearDocumentFile: () => set({ documentFile: createUntitledDocumentFile() }),
+  clearDocumentFile: () =>
+    set((s) => ({
+      documentFile: createUntitledDocumentFile(),
+      documentSessionId: crypto.randomUUID(),
+      savedDocument: s.chemDrawDocument,
+    })),
   markDocumentDirty: () =>
     set((s) => ({
       documentFile: markDocumentFileDirty(s.documentFile),
     })),
-  markDocumentSaved: (path) =>
-    set((s) => ({
-      documentFile: createSavedDocumentFile(path, s.documentRevision),
-    })),
+  markDocumentSaved: (path, snapshot) =>
+    set((s) => {
+      if (snapshot && snapshot.sessionId !== s.documentSessionId) return {};
+      const document = snapshot ? snapshot.document : s.chemDrawDocument;
+      return {
+        savedDocument: document,
+        documentFile: {
+          ...createSavedDocumentFile(path, snapshot?.revision ?? s.documentRevision),
+          dirty: document !== s.chemDrawDocument,
+        },
+      };
+    }),
+  replaceDocument: (document, warnings = [], path = null) =>
+    set((s) => {
+      const projected = normalizeCanvasState(chemDrawDocumentToCanvasState(document).state);
+      const documentStyleSettings = resolveDocumentStyleSettings(document, s.appPreferences);
+      return {
+        ...projected,
+        chemDrawDocument: document,
+        previewChemDrawDocument: null,
+        selectionPreviewTransform: null,
+        history: [projected],
+        documentHistory: [document],
+        historyIndex: 0,
+        documentStyleSettings,
+        documentViewSettings: resolveDocumentViewSettings(document, s.appPreferences),
+        textFormat: buildTextFormatFromDocumentSettings(documentStyleSettings),
+        pageSetup: resolveDocumentPageSetup(document, s.appPreferences),
+        chemDrawWarnings: warnings,
+        selectedObjectIds: new Set<string>(),
+        selectedAtomIds: new Set<string>(),
+        selectedBondIds: new Set<string>(),
+        selectedArrowIds: new Set<string>(),
+        selectedTextBoxIds: new Set<string>(),
+        documentSessionId: crypto.randomUUID(),
+        savedDocument: path ? document : null,
+        documentFile: path
+          ? createSavedDocumentFile(path, s.documentRevision + 1)
+          : { ...createUntitledDocumentFile(), dirty: true },
+        documentRevision: s.documentRevision + 1,
+        projectionRevision: s.projectionRevision + 1,
+        ...describeDocumentState(document),
+      };
+    }),
   addRecentFile: (path) =>
     set((s) => {
       const trimmedPath = path.trim();

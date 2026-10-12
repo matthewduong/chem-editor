@@ -186,8 +186,17 @@ export interface ChemCanvasRef {
   saveNative: (options?: { path?: string | null; prompt?: boolean }) => Promise<{
     path: string | null;
     saved: boolean;
+    snapshot?: {
+      document: import('../types/chemdraw').ChemDrawDocument | null;
+      revision: number;
+      sessionId: string;
+    };
   }>;
-  loadNative: (content: string) => Promise<void>;
+  loadNative: (
+    content: string,
+    beforeReplace?: () => Promise<boolean>,
+    path?: string | null,
+  ) => Promise<boolean>;
   exportPNG: () => Promise<void>;
   exportSVG: () => Promise<void>;
   insertImage: (options: {
@@ -3765,6 +3774,11 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
             groups: g,
             chemDrawDocument,
           } = store;
+          const snapshot = {
+            document: chemDrawDocument,
+            revision: store.documentRevision,
+            sessionId: store.documentSessionId,
+          };
           const canvasState = {
             atoms: a,
             bonds: b,
@@ -3778,13 +3792,9 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
             documentStyleSettings,
             pageSetup,
           });
-          if (prepared.document) {
-            store.setChemDrawDocument(prepared.document);
-            store.setChemDrawWarnings([]);
-          }
           if (options.path && !options.prompt) {
             const path = await saveTextToPath(options.path, prepared.xml);
-            return { path, saved: true };
+            return { path, saved: true, snapshot };
           }
           const path = await saveTextWithDialog({
             title: options.prompt ? 'Save Sketch As' : 'Save Sketch',
@@ -3793,26 +3803,21 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
             extensions: ['cdxml'],
             content: prepared.xml,
           });
-          return { path, saved: Boolean(path) };
+          return { path, saved: Boolean(path), snapshot };
         } catch (e) {
           useStore.getState().showToast('Failed to save file');
           console.error(e);
           return { path: null, saved: false };
         }
       },
-      loadNative: async (c: string) => {
-        try {
-          const loaded = await loadChemDrawDocumentForCanvasAsync(c);
-          const store = useStore.getState();
-          store.setChemDrawDocument(loaded.document);
-          store.setChemDrawWarnings(loaded.warnings);
-          for (const warning of loaded.warnings.slice(0, 3)) store.showToast(warning, 'info');
-          resetStageView();
-          pushToHistory(loaded.state);
-        } catch (e) {
-          useStore.getState().showToast('Failed to load file: invalid CDXML');
-          console.error(e);
-        }
+      loadNative: async (c, beforeReplace, path) => {
+        const loaded = await loadChemDrawDocumentForCanvasAsync(c);
+        if (beforeReplace && !(await beforeReplace())) return false;
+        const store = useStore.getState();
+        store.replaceDocument(loaded.document, loaded.warnings, path);
+        for (const warning of loaded.warnings.slice(0, 3)) store.showToast(warning, 'info');
+        resetStageView();
+        return true;
       },
       exportPNG: async () => {
         try {

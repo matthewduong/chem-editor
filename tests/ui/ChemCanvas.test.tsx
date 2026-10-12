@@ -136,8 +136,13 @@ describe('ChemCanvas', () => {
     expect(mocks.saveTextWithDialog).toHaveBeenCalledWith(
       expect.objectContaining({ content: '<CDXML />', defaultPath: 'sketch.cdxml' }),
     );
-    expect(result).toEqual({ path: '/tmp/sketch.cdxml', saved: true });
-    expect(useStore.getState().chemDrawDocument).toMatchObject(preparedDocument);
+    expect(result).toMatchObject({
+      path: '/tmp/sketch.cdxml',
+      saved: true,
+      snapshot: { document: createDocument(), sessionId: useStore.getState().documentSessionId },
+    });
+    // Saving must not rewrite the live document; the caller marks the saved snapshot.
+    expect(useStore.getState().chemDrawDocument).toEqual(createDocument());
   });
 
   it('saves native CDXML directly when a path is supplied', async () => {
@@ -158,7 +163,7 @@ describe('ChemCanvas', () => {
 
     expect(mocks.saveTextToPath).toHaveBeenCalledWith('/tmp/current.cdxml', '<CDXML />');
     expect(mocks.saveTextWithDialog).not.toHaveBeenCalled();
-    expect(result).toEqual({ path: '/tmp/current.cdxml', saved: true });
+    expect(result).toMatchObject({ path: '/tmp/current.cdxml', saved: true });
   });
 
   it('loads native documents into store history and forwards warnings as toasts', async () => {
@@ -166,21 +171,18 @@ describe('ChemCanvas', () => {
     mocks.loadChemDrawDocumentForCanvasAsync.mockResolvedValue({
       document: loadedDocument,
       warnings: ['Limited editing support'],
-      state: {
-        atoms: [{ id: 'n1', x: 40, y: 30, kind: 'element', element: 'N' }],
-        bonds: [],
-        arrows: [],
-        groups: [],
-        textBoxes: [],
-      },
     });
+    const store = useStore.getState();
+    useStore.setState({ documentFile: { ...store.documentFile, dirty: true } });
 
     const ref = React.createRef<ChemCanvasRef>();
     render(<ChemCanvas ref={ref} width={800} height={600} />);
 
+    let loaded: boolean | undefined;
     await act(async () => {
-      await ref.current?.loadNative('<CDXML />');
+      loaded = await ref.current?.loadNative('<CDXML />', async () => true, '/tmp/in.cdxml');
     });
+    expect(loaded).toBe(true);
 
     await waitFor(() => {
       expect(useStore.getState().chemDrawDocument?.schemaVersion).toBe(
@@ -188,28 +190,47 @@ describe('ChemCanvas', () => {
       );
       expect(useStore.getState().chemDrawDocument?.source).toBe(loadedDocument.source);
       expect(useStore.getState().chemDrawDocument?.pages[0]?.id).toBe('page-1');
-      expect(useStore.getState().chemDrawDocument?.pages[0]?.objects).toHaveLength(2);
-      expect(useStore.getState().atoms).toEqual([
-        { id: 'n1', x: 40, y: 30, kind: 'element', element: 'N' },
-      ]);
+      expect(useStore.getState().documentFile).toMatchObject({
+        path: '/tmp/in.cdxml',
+        dirty: false,
+      });
       expect(useStore.getState().history).toHaveLength(1);
       expect(useStore.getState().toasts[0]?.message).toBe('Limited editing support');
     });
   });
 
-  it('surfaces invalid native loads as error toasts', async () => {
+  it('rejects invalid native loads without touching the open document', async () => {
     mocks.loadChemDrawDocumentForCanvasAsync.mockRejectedValue(new Error('bad cdxml'));
+    const before = createDocument();
+    useStore.setState({ chemDrawDocument: before });
 
     const ref = React.createRef<ChemCanvasRef>();
     render(<ChemCanvas ref={ref} width={800} height={600} />);
 
     await act(async () => {
-      await ref.current?.loadNative('<bad />');
+      await expect(ref.current?.loadNative('<bad />')).rejects.toThrow('bad cdxml');
     });
+    expect(useStore.getState().chemDrawDocument).toBe(before);
+  });
 
-    await waitFor(() => {
-      expect(useStore.getState().toasts[0]?.message).toBe('Failed to load file: invalid CDXML');
+  it('keeps the open document when the replace confirmation is declined', async () => {
+    mocks.loadChemDrawDocumentForCanvasAsync.mockResolvedValue({
+      document: createDocument(),
+      warnings: [],
+      state: { atoms: [], bonds: [], arrows: [], groups: [], textBoxes: [] },
     });
+    const before = createDocument();
+    useStore.setState({ chemDrawDocument: before });
+
+    const ref = React.createRef<ChemCanvasRef>();
+    render(<ChemCanvas ref={ref} width={800} height={600} />);
+
+    let loaded: boolean | undefined;
+    await act(async () => {
+      loaded = await ref.current?.loadNative('<CDXML />', async () => false);
+    });
+    expect(loaded).toBe(false);
+    expect(useStore.getState().chemDrawDocument).toBe(before);
   });
 
   it('switches tools with hotkeys and deletes the selected canvas objects', async () => {

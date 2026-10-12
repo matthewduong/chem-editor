@@ -7,7 +7,10 @@ const mocks = vi.hoisted(() => ({
   readTextFile: vi.fn(),
   writeFile: vi.fn(),
   writeTextFile: vi.fn(),
+  invokeTauri: vi.fn(),
 }));
+
+vi.mock('../../src/lib/tauri', () => ({ invokeTauri: mocks.invokeTauri }));
 
 vi.mock('@tauri-apps/plugin-dialog', () => ({
   open: mocks.open,
@@ -46,13 +49,17 @@ describe('file dialog helpers', () => {
     expect(mocks.readTextFile).not.toHaveBeenCalled();
   });
 
-  it('writes text directly to an existing path', async () => {
+  it('writes text atomically through the native command', async () => {
     const { saveTextToPath } = await import('../../src/lib/fileDialogs');
 
     await expect(saveTextToPath('/tmp/sketch.cdxml', '<CDXML />')).resolves.toBe(
       '/tmp/sketch.cdxml',
     );
-    expect(mocks.writeTextFile).toHaveBeenCalledWith('/tmp/sketch.cdxml', '<CDXML />');
+    expect(mocks.invokeTauri).toHaveBeenCalledWith('atomic_write_file', {
+      path: '/tmp/sketch.cdxml',
+      contents: Array.from(new TextEncoder().encode('<CDXML />')),
+    });
+    expect(mocks.writeTextFile).not.toHaveBeenCalled();
   });
 
   it('derives display names across path separators', async () => {

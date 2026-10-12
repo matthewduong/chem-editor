@@ -1,3 +1,4 @@
+mod document_files;
 mod process_support;
 
 use crate::process_support::{kill_pid, write_crash_log, DftJobState, SidecarTracker};
@@ -897,6 +898,10 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            document_files::atomic_write_file,
+            document_files::finish_document_quit,
+            document_files::load_document_recovery,
+            document_files::save_document_recovery,
             generate_conformers,
             parse_chemical_file,
             export_chemical_file,
@@ -918,6 +923,16 @@ pub fn run() {
         .expect("error while building tauri application");
 
     app.run(|app_handle, event| {
+        if let tauri::RunEvent::ExitRequested {
+            code: None, api, ..
+        } = &event
+        {
+            if let Some(window) = app_handle.get_webview_window("main") {
+                api.prevent_exit();
+                let _ = window.emit("document-quit-requested", ());
+                return;
+            }
+        }
         if matches!(
             event,
             tauri::RunEvent::ExitRequested { .. } | tauri::RunEvent::Exit

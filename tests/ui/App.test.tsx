@@ -117,6 +117,20 @@ describe('App', () => {
     mocks.openImageBinaryFile.mockResolvedValue(null);
     mocks.readChemicalTextFileAtPath.mockRejectedValue(new Error('missing'));
     mocks.chemCanvasHandle.saveNative.mockResolvedValue({ path: '/tmp/sketch.cdxml', saved: true });
+    // Mirror ChemCanvas.loadNative: confirm, then replace the document and record the path.
+    mocks.chemCanvasHandle.loadNative.mockImplementation(
+      async (_content: string, beforeReplace?: () => Promise<boolean>, path?: string | null) => {
+        if (beforeReplace && !(await beforeReplace())) return false;
+        useStore
+          .getState()
+          .replaceDocument(
+            { schemaVersion: 1, source: 'manual', pages: [{ id: 'page-1', objects: [] }] },
+            [],
+            path,
+          );
+        return true;
+      },
+    );
   });
 
   it('syncs the macOS theme on mount and toggles native fullscreen with the shortcut', async () => {
@@ -149,7 +163,11 @@ describe('App', () => {
     fireEvent.click(screen.getByText(/^Open\.\.\./));
 
     await waitFor(() => {
-      expect(mocks.chemCanvasHandle.loadNative).toHaveBeenCalledWith('<CDXML />');
+      expect(mocks.chemCanvasHandle.loadNative).toHaveBeenCalledWith(
+        '<CDXML />',
+        expect.any(Function),
+        expect.stringMatching(/\.cdxml$/),
+      );
       expect(useStore.getState().documentFile).toMatchObject({
         path: '/tmp/test.cdxml',
         name: 'test.cdxml',
@@ -245,22 +263,24 @@ describe('App', () => {
 
     await waitFor(() => {
       expect(mocks.readChemicalTextFileAtPath).toHaveBeenCalledWith('/tmp/recent.cdxml');
-      expect(mocks.chemCanvasHandle.loadNative).toHaveBeenCalledWith('<CDXML />');
+      expect(mocks.chemCanvasHandle.loadNative).toHaveBeenCalledWith(
+        '<CDXML />',
+        expect.any(Function),
+        expect.stringMatching(/\.cdxml$/),
+      );
       expect(useStore.getState().documentFile.path).toBe('/tmp/recent.cdxml');
     });
   });
 
-  it('does not open another file when unsaved confirmation is cancelled', async () => {
-    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
-    useStore.setState({
-      documentFile: {
-        path: '/tmp/dirty.cdxml',
-        name: 'dirty.cdxml',
-        format: 'cdxml',
-        dirty: true,
-        lastSavedRevision: 1,
-      },
-    });
+  it('keeps the dirty document when the unsaved-changes dialog is cancelled', async () => {
+    const dirtyFile = {
+      path: '/tmp/dirty.cdxml',
+      name: 'dirty.cdxml',
+      format: 'cdxml' as const,
+      dirty: true,
+      lastSavedRevision: 1,
+    };
+    useStore.setState({ documentFile: dirtyFile });
     mocks.openChemicalTextFile.mockResolvedValue({
       filePath: '/tmp/next.cdxml',
       extension: 'cdxml',
@@ -272,13 +292,15 @@ describe('App', () => {
     fireEvent.click(screen.getByText('File'));
     fireEvent.click(screen.getByText(/^Open\.\.\./));
 
-    await waitFor(() => {
-      expect(confirmSpy).toHaveBeenCalled();
-      expect(mocks.openChemicalTextFile).not.toHaveBeenCalled();
-      expect(mocks.chemCanvasHandle.loadNative).not.toHaveBeenCalled();
-    });
+    fireEvent.click(await screen.findByRole('button', { name: 'Cancel' }));
 
-    confirmSpy.mockRestore();
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).toBeNull();
+    });
+    expect(useStore.getState().documentFile).toMatchObject({
+      path: '/tmp/dirty.cdxml',
+      dirty: true,
+    });
   });
 
   it('shows a toast when opening a file fails', async () => {

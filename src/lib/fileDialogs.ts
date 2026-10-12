@@ -1,5 +1,10 @@
 import { open, save } from '@tauri-apps/plugin-dialog';
-import { readFile, readTextFile, writeFile, writeTextFile } from '@tauri-apps/plugin-fs';
+import { readFile, readTextFile } from '@tauri-apps/plugin-fs';
+import { invokeTauri } from './tauri';
+
+export async function writeFileAtomically(path: string, contents: Uint8Array): Promise<void> {
+  await invokeTauri('atomic_write_file', { path, contents: Array.from(contents) });
+}
 
 export type ChemicalTextExtension = 'cdxml' | 'mol' | 'sdf' | 'xyz' | 'pdb' | 'cif';
 
@@ -117,12 +122,12 @@ export async function saveTextWithDialog(options: {
   if (!selectedPath) {
     return null;
   }
-  await writeTextFile(selectedPath, options.content);
+  await writeFileAtomically(selectedPath, new TextEncoder().encode(options.content));
   return selectedPath;
 }
 
 export async function saveTextToPath(filePath: string, content: string): Promise<string> {
-  await writeTextFile(filePath, content);
+  await writeFileAtomically(filePath, new TextEncoder().encode(content));
   return filePath;
 }
 
@@ -141,6 +146,6 @@ export async function saveBinaryWithDialog(options: {
   if (!selectedPath) {
     return null;
   }
-  await writeFile(selectedPath, options.content);
+  await writeFileAtomically(selectedPath, options.content);
   return selectedPath;
 }
