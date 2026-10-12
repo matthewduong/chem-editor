@@ -13,6 +13,27 @@ function isBracketObjectTag(element: Element): boolean {
   return parent?.tagName === 'graphic' && parent.getAttribute('GraphicType') === 'Bracket';
 }
 
+const NUMERIC_TOKEN = /^[+-]?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?$/;
+const NON_FINITE_TOKEN = /^[+-]?(NaN|Infinity)$/i;
+
+/**
+ * True when `value` is made only of numbers (it is a numeric attribute or a list of them) and at
+ * least one is NaN, Infinity or overflows to Infinity. Free text such as a name is never numeric
+ * in this sense, so only genuinely numeric attributes are affected.
+ */
+function hasNonFiniteNumber(value: string): boolean {
+  const tokens = value.trim().split(/\s+/);
+  if (tokens.length === 0 || tokens[0] === '') return false;
+  let nonFinite = false;
+  for (const token of tokens) {
+    if (NON_FINITE_TOKEN.test(token)) nonFinite = true;
+    else if (NUMERIC_TOKEN.test(token)) {
+      if (!Number.isFinite(Number(token))) nonFinite = true;
+    } else return false;
+  }
+  return nonFinite;
+}
+
 /** CDXML has separate font/color tables; drawing IDs are document-wide. */
 export function validateCdxmlInput(xml: Document): void {
   if (xml.querySelector('parsererror') || xml.documentElement?.tagName !== 'CDXML') {
@@ -27,20 +48,34 @@ export function validateCdxmlInput(xml: Document): void {
       throw new Error(`Invalid CDXML: duplicate or empty object ID ${id}.`);
     objects.set(id, element);
   }
-  const geometry = new Set([
-    'p',
-    'BoundingBox',
-    'Head3D',
-    'Tail3D',
-    'Center3D',
-    'MajorAxisEnd3D',
-    'MinorAxisEnd3D',
+  // Attribute name -> allowed value counts. A value with the wrong arity is as unusable as a
+  // non-numeric one: the importer would read the missing coordinates as NaN.
+  const geometry = new Map<string, number[]>([
+    ['p', [2, 3]],
+    ['BoundingBox', [4]],
+    ['BoundsInParent', [4]],
+    ['Head3D', [3]],
+    ['Tail3D', [3]],
+    ['Center3D', [3]],
+    ['MajorAxisEnd3D', [3]],
+    ['MinorAxisEnd3D', [3]],
   ]);
   for (const element of Array.from(xml.querySelectorAll('*'))) {
     for (const attribute of Array.from(element.attributes)) {
-      if (!geometry.has(attribute.name)) continue;
+      const arity = geometry.get(attribute.name);
+      if (!arity) {
+        if (hasNonFiniteNumber(attribute.value)) {
+          throw new Error(
+            `Invalid CDXML: ${element.tagName} ${attribute.name} contains a non-finite number.`,
+          );
+        }
+        continue;
+      }
       const values = attribute.value.trim().split(/\s+/);
-      if (!values.length || values.some((value) => !value || !Number.isFinite(Number(value)))) {
+      if (
+        !arity.includes(values.length) ||
+        values.some((value) => !value || !Number.isFinite(Number(value)))
+      ) {
         throw new Error(
           `Invalid CDXML: ${element.tagName} ${attribute.name} contains invalid coordinates.`,
         );
