@@ -37,12 +37,12 @@ Status as of 2026-10-12. "Measured" means a test pins it; "observed" means seen 
 
 ## Robustness
 
-| Gap                                                                 | Status | Notes                                                                                             |
-| ------------------------------------------------------------------- | ------ | ------------------------------------------------------------------------------------------------- |
-| No timeout on one-shot sidecar calls                                | open   | `run_bundled_engine` in `src-tauri/src/lib.rs`; the right limit for QM jobs is a product decision |
-| Sidecar protocol has no version handshake; errors are plain strings | open   |                                                                                                   |
-| No fuzz/property tests beyond the deterministic damage corpus       | open   |                                                                                                   |
-| `expect` in non-test Rust (`lib.rs`)                                | open   | two remain; clippy does not deny them                                                             |
+| Gap                                                                 | Status               | Notes                                                                                                                                                                                                                                                                                                                                 |
+| ------------------------------------------------------------------- | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| No timeout on one-shot sidecar calls                                | **fixed 2026-10-12** | `wait_with_timeout` (`process_support.rs`) bounds the one-shot commands: 120 s default, 600 s for conformers. Stdin is written and pipes drained off-thread, so a child that stops reading cannot hang the caller. DFT/NMR/orbital jobs are deliberately unbounded (user-cancellable); the right limits there are a product decision. |
+| Sidecar protocol has no version handshake; errors are plain strings | open                 |                                                                                                                                                                                                                                                                                                                                       |
+| No fuzz/property tests beyond the deterministic damage corpus       | open                 |                                                                                                                                                                                                                                                                                                                                       |
+| `expect` in non-test Rust (`lib.rs`)                                | **fixed 2026-10-12** | `expect_used`/`unwrap_used` are now `deny` in `Cargo.toml` (allowed in tests via `clippy.toml`); the two in `lib.rs` were replaced with returned errors / a logged exit.                                                                                                                                                              |
 
 ## Process
 

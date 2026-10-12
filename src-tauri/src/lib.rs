@@ -1,7 +1,9 @@
 mod document_files;
 mod process_support;
 
-use crate::process_support::{kill_pid, write_crash_log, DftJobState, SidecarTracker};
+use crate::process_support::{
+    kill_pid, wait_with_timeout, write_crash_log, DftJobState, SidecarTracker, ONE_SHOT_TIMEOUT,
+};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::env;
@@ -222,10 +224,10 @@ impl PersistentNmrEngine {
                 *guard = Some(process);
             }
 
-            let result = guard
-                .as_mut()
-                .expect("persistent NMR process initialized")
-                .send_request(app_handle, request);
+            let Some(process) = guard.as_mut() else {
+                return Err("Persistent NMR engine is not running".to_string());
+            };
+            let result = process.send_request(app_handle, request);
             match result {
                 Ok(value) => return Ok(value),
                 Err(error) if attempt == 0 => {
@@ -404,6 +406,9 @@ fn bundled_sidecar_dir_name() -> Result<String, String> {
     Ok(format!("chem-engine-{triple}"))
 }
 
+/// xtb minimisation of many conformers is slow but bounded.
+const CONFORMER_TIMEOUT: Duration = Duration::from_secs(600);
+
 #[tauri::command]
 async fn generate_conformers(
     app: tauri::AppHandle,
@@ -424,10 +429,10 @@ async fn generate_conformers(
     if let Some(molblock) = molblock {
         args.push("--molblock".to_string());
         args.push("-".to_string());
-        run_engine(app, args, Some(molblock))
+        run_bundled_engine(&app, &args, Some(molblock), Some(CONFORMER_TIMEOUT))
     } else if let Some(smiles) = smiles.filter(|value| !value.trim().is_empty()) {
         args.push(smiles);
-        run_engine(app, args, None)
+        run_bundled_engine(&app, &args, None, Some(CONFORMER_TIMEOUT))
     } else {
         Err("generate_conformers requires smiles or molblock".to_string())
     }
@@ -603,7 +608,7 @@ fn run_engine(
     args: Vec<String>,
     stdin_content: Option<String>,
 ) -> Result<Value, String> {
-    run_bundled_engine(&app, &args, stdin_content)
+    run_bundled_engine(&app, &args, stdin_content, Some(ONE_SHOT_TIMEOUT))
 }
 
 #[allow(clippy::needless_pass_by_value)]
@@ -612,7 +617,7 @@ fn run_orbital_engine(
     args: Vec<String>,
     stdin_content: Option<String>,
 ) -> Result<Value, String> {
-    let bundled = run_bundled_engine(&app, &args, stdin_content.clone());
+    let bundled = run_bundled_engine(&app, &args, stdin_content.clone(), None);
     match bundled {
         Ok(value) if orbital_engine_needs_workspace_fallback(&value) => {
             eprintln!(
@@ -646,6 +651,7 @@ fn run_bundled_engine(
     app: &tauri::AppHandle,
     args: &[String],
     stdin_content: Option<String>,
+    timeout: Option<Duration>,
 ) -> Result<Value, String> {
     let executable = resolve_sidecar_executable(app)?;
     let mut cmd = Command::new(&executable);
@@ -654,24 +660,14 @@ fn run_bundled_engine(
         cmd.stdin(Stdio::piped());
     }
 
-    let mut child = cmd
+    let child = cmd
         .spawn()
         .map_err(|e| format!("Failed to spawn sidecar {}: {e}", executable.display()))?;
     let pid = child.id();
     app.state::<SidecarTracker>().add_pid(pid);
-
-    if let Some(input) = stdin_content {
-        let mut stdin = child.stdin.take().ok_or("Failed to open sidecar stdin")?;
-        stdin
-            .write_all(input.as_bytes())
-            .map_err(|e| format!("Failed to write to sidecar: {e}"))?;
-        drop(stdin);
-    }
-
-    let output = child
-        .wait_with_output()
-        .map_err(|e| format!("Sidecar wait error: {e}"))?;
+    let output = wait_with_timeout(child, stdin_content.map(String::into_bytes), timeout);
     app.state::<SidecarTracker>().remove(pid);
+    let output = output?;
 
     handle_output(output.status.success(), &output.stdout, &output.stderr)
 }
@@ -920,7 +916,10 @@ pub fn run() {
             save_app_settings
         ])
         .build(tauri::generate_context!())
-        .expect("error while building tauri application");
+        .unwrap_or_else(|error| {
+            eprintln!("chem-editor: error while building tauri application: {error}");
+            std::process::exit(1);
+        });
 
     app.run(|app_handle, event| {
         if let tauri::RunEvent::ExitRequested {

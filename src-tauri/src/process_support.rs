@@ -1,9 +1,13 @@
+use std::io::{Read, Write};
 use std::path::PathBuf;
-use std::process::Command;
+use std::process::{Child, Command, Output};
+use std::sync::mpsc;
 use std::sync::{
     atomic::{AtomicBool, Ordering},
     Arc, Mutex,
 };
+use std::thread;
+use std::time::{Duration, Instant};
 
 enum TrackedProcess {
     Pid(u32),
@@ -72,6 +76,68 @@ pub(crate) fn kill_pid(pid: u32) {
             .args(["/PID", &pid.to_string(), "/T", "/F"])
             .status();
     }
+}
+
+/// How long a one-shot sidecar call may run before it is killed. Long scientific jobs (DFT, NMR,
+/// orbitals) are cancellable by the user and pass `None` instead.
+pub(crate) const ONE_SHOT_TIMEOUT: Duration = Duration::from_secs(120);
+
+/// Feed `stdin_content` to `child`, collect its output, and kill it if it outlives `timeout`.
+///
+/// Stdin is written and the pipes are drained on helper threads, so neither a child that stops
+/// reading nor one that never exits can block the caller. After a kill the pipe readers are
+/// abandoned rather than joined: a `PyInstaller` bootloader can leave a grandchild holding them.
+pub(crate) fn wait_with_timeout(
+    mut child: Child,
+    stdin_content: Option<Vec<u8>>,
+    timeout: Option<Duration>,
+) -> Result<Output, String> {
+    if let Some(input) = stdin_content {
+        let mut stdin = child.stdin.take().ok_or("Failed to open sidecar stdin")?;
+        thread::spawn(move || {
+            let _ = stdin.write_all(&input);
+        });
+    }
+    let mut stdout = child.stdout.take().ok_or("Failed to open sidecar stdout")?;
+    let mut stderr = child.stderr.take().ok_or("Failed to open sidecar stderr")?;
+    let (out_tx, out_rx) = mpsc::channel();
+    let (err_tx, err_rx) = mpsc::channel();
+    thread::spawn(move || {
+        let mut buffer = Vec::new();
+        let _ = stdout.read_to_end(&mut buffer);
+        let _ = out_tx.send(buffer);
+    });
+    thread::spawn(move || {
+        let mut buffer = Vec::new();
+        let _ = stderr.read_to_end(&mut buffer);
+        let _ = err_tx.send(buffer);
+    });
+
+    let deadline = timeout.map(|limit| Instant::now() + limit);
+    let status = loop {
+        if let Some(status) = child
+            .try_wait()
+            .map_err(|e| format!("Sidecar wait error: {e}"))?
+        {
+            break status;
+        }
+        if deadline.is_some_and(|d| Instant::now() >= d) {
+            kill_pid(child.id());
+            let _ = child.kill();
+            let _ = child.wait();
+            return Err(format!(
+                "Sidecar call timed out after {} s and was stopped",
+                timeout.map_or(0, |t| t.as_secs())
+            ));
+        }
+        thread::sleep(Duration::from_millis(20));
+    };
+    let grace = Duration::from_secs(5);
+    Ok(Output {
+        status,
+        stdout: out_rx.recv_timeout(grace).unwrap_or_default(),
+        stderr: err_rx.recv_timeout(grace).unwrap_or_default(),
+    })
 }
 
 pub(crate) struct DftJobState(Arc<AtomicBool>);
@@ -162,7 +228,56 @@ pub(crate) fn write_crash_log(info: &str) {
 
 #[cfg(test)]
 mod tests {
-    use super::{DftJobState, SidecarTracker};
+    use super::*;
+
+    #[cfg(unix)]
+    fn shell(script: &str) -> Child {
+        use std::process::Stdio;
+        Command::new("sh")
+            .args(["-c", script])
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()
+            .unwrap()
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn wait_with_timeout_returns_output_and_feeds_stdin() {
+        let output = wait_with_timeout(
+            shell("cat; echo err >&2"),
+            Some(b"hello".to_vec()),
+            Some(Duration::from_secs(10)),
+        )
+        .unwrap();
+        assert!(output.status.success());
+        assert_eq!(output.stdout, b"hello");
+        assert_eq!(output.stderr, b"err\n");
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn wait_with_timeout_kills_a_hung_child() {
+        let started = Instant::now();
+        let error = wait_with_timeout(shell("sleep 30"), None, Some(Duration::from_millis(200)))
+            .unwrap_err();
+        assert!(error.contains("timed out"), "{error}");
+        assert!(started.elapsed() < Duration::from_secs(5));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn wait_with_timeout_survives_a_child_that_never_reads_stdin() {
+        let big = vec![b'x'; 4 * 1024 * 1024];
+        let error = wait_with_timeout(
+            shell("sleep 30"),
+            Some(big),
+            Some(Duration::from_millis(200)),
+        )
+        .unwrap_err();
+        assert!(error.contains("timed out"), "{error}");
+    }
 
     #[test]
     fn dft_job_state_blocks_concurrent_acquire() {
