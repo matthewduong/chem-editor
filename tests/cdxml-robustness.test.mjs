@@ -15,8 +15,45 @@ const fixtures = readdirSync(FIXTURE_DIR)
 
 const wrap = (body) => `<?xml version="1.0"?><CDXML><page id="1">${body}</page></CDXML>`;
 
-// The malformed-input rejection test lives with cdxmlValidation.ts, which is not part of this
-// commit's tree.
+// Importing must either succeed or fail with a plain Error naming the problem. A TypeError or
+// RangeError means a parser assumption leaked, and in the app that is how a bad file turns into
+// a blank "successfully opened" document.
+function expectRejected(xml, pattern, label) {
+  assert.throws(
+    () => cdxmlToChemDrawDocument(xml),
+    (error) =>
+      error instanceof Error && !(error instanceof TypeError) && pattern.test(error.message),
+    label,
+  );
+}
+
+test('malformed CDXML is rejected with a descriptive error, not a blank document', () => {
+  expectRejected('<CDXML><page>', /Invalid CDXML/, 'truncated');
+  expectRejected('<notcdxml/>', /Invalid CDXML/, 'wrong root');
+  expectRejected('', /Invalid CDXML/, 'empty');
+  expectRejected(
+    wrap('<fragment id="2"><n id="3" p="0 0"/><n id="3" p="1 1"/></fragment>'),
+    /duplicate or empty object ID/,
+    'duplicate id',
+  );
+  expectRejected(
+    wrap('<fragment id="2"><n id="3" p="0 NaN"/></fragment>'),
+    /invalid coordinates/,
+    'NaN coordinate',
+  );
+  expectRejected(
+    wrap('<fragment id="2"><n id="3" p="0 0"/><b id="4" B="3" E="99"/></fragment>'),
+    /references missing node/,
+    'dangling bond end',
+  );
+  expectRejected(
+    wrap(
+      '<fragment id="2"><n id="3" p="0 0"/></fragment><bracketedgroup id="5" BracketedObjectIDs="42"/>',
+    ),
+    /missing bracketed object/,
+    'dangling bracketed object',
+  );
+});
 
 for (const { name, xml } of fixtures) {
   test(`${name}: re-export is a fixed point after one round trip`, () => {

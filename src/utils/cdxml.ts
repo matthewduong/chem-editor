@@ -1,3 +1,4 @@
+import { validateCdxmlInput } from '../lib/cdxmlValidation';
 /**
  * cdxml.ts — ChemDraw CDXML import/export
  *
@@ -1933,6 +1934,7 @@ function chemDrawDocumentToCDXMLInternal(document: ChemDrawDocument): string {
 export function cdxmlToChemDrawDocument(xmlString: string): ChemDrawConversionResult {
   const parser = new DOMParser();
   const doc = parser.parseFromString(xmlString, 'application/xml');
+  validateCdxmlInput(doc);
   const warnings: string[] = [];
   const objects: ChemDrawObject[] = [];
   const pageEl = doc.querySelector('page');
