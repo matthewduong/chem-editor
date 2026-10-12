@@ -12,7 +12,7 @@ use std::io::{BufRead, BufReader, Read, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Child, ChildStderr, ChildStdin, ChildStdout, Command, Stdio};
 use std::sync::{
-    atomic::{AtomicU32, Ordering},
+    atomic::{AtomicBool, AtomicU32, Ordering},
     Arc, Mutex, OnceLock,
 };
 use std::thread;
@@ -68,6 +68,7 @@ struct OrbitalBondInput {
 
 impl PersistentNmrProcess {
     fn spawn(app_handle: &tauri::AppHandle) -> Result<Self, String> {
+        verify_sidecar_protocol(app_handle)?;
         let executable = resolve_sidecar_executable(app_handle)?;
         let mut cmd = Command::new(executable);
         cmd.arg("--server");
@@ -647,7 +648,48 @@ fn run_orbital_engine(
     }
 }
 
+/// Version of the argument/reply contract with `chem-engine.py` (`PROTOCOL_VERSION` there).
+const EXPECTED_SIDECAR_PROTOCOL: i64 = 1;
+static SIDECAR_PROTOCOL_VERIFIED: AtomicBool = AtomicBool::new(false);
+
+/// Confirm once per run that the bundled sidecar speaks the protocol this shell expects, so a
+/// stale binary fails with an actionable message rather than an argparse error or misparsed JSON.
+fn verify_sidecar_protocol(app: &tauri::AppHandle) -> Result<(), String> {
+    if SIDECAR_PROTOCOL_VERIFIED.load(Ordering::Acquire) {
+        return Ok(());
+    }
+    let reply =
+        run_bundled_engine_unchecked(app, &["protocol".to_string()], None, Some(ONE_SHOT_TIMEOUT))
+            .map_err(|error| {
+                format!(
+            "The bundled sidecar did not answer the protocol check and is probably out of date \
+             (rebuild it with `pnpm sync:sidecar`): {error}"
+        )
+            })?;
+    match reply.get("protocol").and_then(Value::as_i64) {
+        Some(EXPECTED_SIDECAR_PROTOCOL) => {
+            SIDECAR_PROTOCOL_VERIFIED.store(true, Ordering::Release);
+            Ok(())
+        }
+        other => Err(format!(
+            "The bundled sidecar speaks protocol {} but this app expects {EXPECTED_SIDECAR_PROTOCOL}; \
+             rebuild it with `pnpm sync:sidecar`.",
+            other.map_or_else(|| "unknown".to_string(), |v| v.to_string())
+        )),
+    }
+}
+
 fn run_bundled_engine(
+    app: &tauri::AppHandle,
+    args: &[String],
+    stdin_content: Option<String>,
+    timeout: Option<Duration>,
+) -> Result<Value, String> {
+    verify_sidecar_protocol(app)?;
+    run_bundled_engine_unchecked(app, args, stdin_content, timeout)
+}
+
+fn run_bundled_engine_unchecked(
     app: &tauri::AppHandle,
     args: &[String],
     stdin_content: Option<String>,

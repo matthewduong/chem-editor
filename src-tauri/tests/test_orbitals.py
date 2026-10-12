@@ -93,9 +93,7 @@ class StructureValidationTests(unittest.TestCase):
 class MissingQmRuntimeTests(unittest.TestCase):
     def test_geometry_optimization_reports_missing_optional_runtime(self):
         with mock.patch.object(chem_engine.importlib.util, "find_spec", return_value=None):
-            result = chem_engine.optimize_hartree_fock_geometry(
-                smiles="[H][H]", atoms=[], bonds=[], basis="STO-3G"
-            )
+            result = chem_engine.optimize_hartree_fock_geometry(smiles="[H][H]", atoms=[], bonds=[], basis="STO-3G")
         self.assertEqual(result, {"error": "pyscf not installed", "fallback": True})
 
 

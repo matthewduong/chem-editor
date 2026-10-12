@@ -18,4 +18,3 @@ class GeometryOptimizationTests(unittest.TestCase):
         self.assertNotIn("error", result)
         self.assertEqual(len(result["atoms"]), 2)
         self.assertEqual(len(result["bonds"]), 1)
-

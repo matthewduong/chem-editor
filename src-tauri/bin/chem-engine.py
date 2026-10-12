@@ -1724,10 +1724,19 @@ def run_server() -> int:
     return 0
 
 
+# Bumped whenever a command's arguments or reply shape changes incompatibly. The Rust shell
+# compares this with its own expectation so a stale bundled sidecar fails with a clear message
+# instead of an argparse error or a reply it misparses.
+PROTOCOL_VERSION = 1
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--server", action="store_true")
     subparsers = parser.add_subparsers(dest="command")
+
+    # Protocol handshake
+    subparsers.add_parser("protocol")
 
     # Conformer command
     conf_parser = subparsers.add_parser("conformer")
@@ -1793,6 +1802,8 @@ if __name__ == "__main__":
     elif args.command == "xyz-conformer":
         content = sys.stdin.read()
         print(json.dumps(xyz_to_conformer(content)))
+    elif args.command == "protocol":
+        print(json.dumps({"protocol": PROTOCOL_VERSION}))
     elif args.command == "properties":
         print(json.dumps(compute_properties(args.smiles)))
     elif args.command == "orbitals":
