@@ -82,7 +82,7 @@ page. `development/chemdraw-fidelity.md` describes both, and the traps in drivin
 Two JS suites exist because of a DOM split:
 
 - `tests/*.test.mjs` run under `node --test` against `.unit-test-dist/`, compiled by
-  `tsconfig.unit.json`, which whitelists only DOM-free modules. `scripts/lib/dom-globals.mjs` is
+  `tsconfig.unit.json`, which compiles only DOM-free modules. `scripts/lib/dom-globals.mjs` is
   `--import`ed to provide `DOMParser`/`XMLSerializer` for the CDXML tests.
 - `tests/ui/` run under vitest + jsdom for anything needing React or Konva.
 
@@ -103,3 +103,26 @@ ChemDraw, and a private corpus via `CHEMDRAW_CORPUS_ROOT`. See
 - `pnpm install` runs `scripts/copy-rdkit.mjs`, which stages the RDKit wasm into `public/rdkit/`.
   That directory is generated; do not commit it.
 - Never hand-copy sidecar binaries into `src-tauri/bin/`. Use `pnpm sync:sidecar`.
+
+## Working rules
+
+These come from what has actually gone wrong here (see `development/audit-2026-09-11.md`).
+
+- **Layering.** `src/{types,lib,editor,utils}` stay runnable headless; ESLint forbids store, React,
+  Konva and zustand imports there. Take state as an argument, or add a thin adapter beside the
+  module (`src/lib/svgExportFromStore.ts` is the pattern).
+- **Untrusted input.** Files, clipboard text, molfiles and sidecar replies are untrusted. A failed
+  import must never replace the open document or arm a save over the source. Reject non-finite
+  numbers and dangling references with an `Error` that names the problem, not a stray
+  `TypeError`. Never silently drop content: preserve it for export and push a warning. A new
+  importer or parser gets malformed inputs in `tests/cdxml-robustness.test.mjs` (or equivalent)
+  in the same change.
+- **Fidelity.** Re-export of every fixture must be a fixed point after one round trip. Drawing
+  changes go through `src/editor/scene/` — `svgExport.ts` only assembles a scene and hands it to
+  `renderDocumentScene`, it does not draw — so a change made there lands on screen, in PNG and in
+  SVG at once; the Konva overlays in `ChemCanvas.tsx` are the one remaining exception. Claims about
+  ChemDraw behaviour need a source: the CDXML DTD, or `pnpm test:chemdraw:mac`.
+- **Progress.** `development/gaps.md` lists known losses and divergences; a change that fixes or
+  finds one updates it. Test allowlists carry a reason string, and removing an entry is progress.
+- **Commits.** The pre-commit hook runs `tsc` and `eslint src --max-warnings=0` over the whole
+  working tree, so unrelated in-progress files can block an unrelated commit.
