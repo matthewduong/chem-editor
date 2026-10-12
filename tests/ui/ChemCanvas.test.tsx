@@ -126,13 +126,9 @@ describe('ChemCanvas', () => {
       result = await ref.current?.saveNative();
     });
 
-    expect(mocks.prepareChemDrawDocumentForSaveAsync).toHaveBeenCalledWith(
-      expect.objectContaining({
-        canvasState: expect.objectContaining({
-          atoms: [{ id: 'a1', x: 10, y: 10, kind: 'element', element: 'C' }],
-        }),
-      }),
-    );
+    expect(mocks.prepareChemDrawDocumentForSaveAsync).toHaveBeenCalledWith({
+      document: useStore.getState().chemDrawDocument,
+    });
     expect(mocks.saveTextWithDialog).toHaveBeenCalledWith(
       expect.objectContaining({ content: '<CDXML />', defaultPath: 'sketch.cdxml' }),
     );
@@ -347,7 +343,7 @@ describe('ChemCanvas', () => {
     await waitFor(() => {
       expect(useStore.getState().bonds).toEqual([]);
       expect(useStore.getState().selectedBondIds.size).toBe(0);
-      expect(useStore.getState().history).toHaveLength(1);
+      expect(useStore.getState().history).toHaveLength(2);
     });
   });
 });

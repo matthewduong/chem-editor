@@ -1,11 +1,11 @@
-import { useState, useRef, useCallback } from 'react';
-import { useStore } from '../store';
-import type { Atom, Bond } from '../types/chemistry';
+import { useCallback, useRef, useState } from 'react';
 import { createReplaceDocumentCommand } from '../editor/commands';
+import { applyBondEdit, reverseBondDirection } from '../lib/chemdrawModel';
 import { SNAP_ANGLE } from '../lib/graph';
 import { DEFAULT_DOUBLE_BOND_MODE, getNextDoubleBondToolMode } from '../lib/renderGeometry';
-import { applyBondEdit, reverseBondDirection } from '../lib/chemdrawModel';
 import { getPreferredAttachmentAngle, resolveChairAttachmentSnapping } from '../lib/ringTemplates';
+import { commitCanvasEdit, getCanvasEditorState, previewCanvasEdit, useStore } from '../store';
+import type { Atom, Bond } from '../types/chemistry';
 
 export interface BondToolOverlay {
   activeAtomId: string | null;
@@ -60,13 +60,12 @@ export function useBondTool(): BondToolOverlay & BondToolActions {
         arrows,
         groups,
         textBoxes,
-        pushToHistory,
-        setCurrentCanvasState,
+
         bondOrder,
         stereo,
         setLastInteractedAtomId,
         chemDrawDocument,
-      } = useStore.getState();
+      } = getCanvasEditorState();
 
       if (hitAtom) {
         activeAtomWasExisting.current = true;
@@ -91,7 +90,7 @@ export function useBondTool(): BondToolOverlay & BondToolActions {
             .getState()
             .dispatchEditorCommand(createReplaceDocumentCommand(nextDocument, 'edit-bond'));
         } else if (hitBond.stereo === stereo && stereo !== 0) {
-          pushToHistory({
+          commitCanvasEdit({
             atoms,
             bonds: bonds.map((b) => (b.id === hitBond.id ? { ...b, from: b.to, to: b.from } : b)),
             arrows,
@@ -99,7 +98,7 @@ export function useBondTool(): BondToolOverlay & BondToolActions {
             textBoxes: textBoxes ?? [],
           });
         } else {
-          pushToHistory({
+          commitCanvasEdit({
             atoms,
             bonds: bonds.map((b) =>
               b.id === hitBond.id
@@ -131,7 +130,7 @@ export function useBondTool(): BondToolOverlay & BondToolActions {
         setActiveAtomIsNew(true);
         const nid = crypto.randomUUID();
         setLastInteractedAtomId(nid);
-        setCurrentCanvasState({
+        previewCanvasEdit({
           atoms: [...atoms, { id: nid, x: pos.x, y: pos.y, kind: 'element', element: 'C' }],
           bonds,
           arrows,
@@ -148,7 +147,7 @@ export function useBondTool(): BondToolOverlay & BondToolActions {
 
   const onMouseMove = useCallback((pos: { x: number; y: number }, hitAtom: Atom | null) => {
     if (!isDraggingRef.current || !activeAtomIdRef.current) return;
-    const { atoms, bonds, documentStyleSettings } = useStore.getState();
+    const { atoms, bonds, documentStyleSettings } = getCanvasEditorState();
     const bondLength = documentStyleSettings.bondLength;
     const start = atoms.find((a) => a.id === activeAtomIdRef.current);
     if (!start) return;
@@ -201,14 +200,12 @@ export function useBondTool(): BondToolOverlay & BondToolActions {
       arrows,
       groups,
       textBoxes,
-      pushToHistory,
-      setCurrentCanvasState,
+
       bondOrder,
       stereo,
-      history,
-      historyIndex,
+
       documentStyleSettings,
-    } = useStore.getState();
+    } = getCanvasEditorState();
     const bondLength = documentStyleSettings.bondLength;
     const preview = dragPreviewLineRef.current;
     const aid = activeAtomIdRef.current;
@@ -283,7 +280,7 @@ export function useBondTool(): BondToolOverlay & BondToolActions {
           stereo,
         });
       }
-      pushToHistory({
+      commitCanvasEdit({
         atoms: newAtoms,
         bonds: newBonds,
         arrows,
@@ -292,8 +289,7 @@ export function useBondTool(): BondToolOverlay & BondToolActions {
       });
     } else {
       // Dragged onto self — restore
-      if (historyIndex >= 0) setCurrentCanvasState(history[historyIndex]);
-      else setCurrentCanvasState({ atoms: [], bonds: [], arrows: [], groups: [], textBoxes: [] });
+      useStore.getState().clearPreviewChemDrawDocument();
     }
     setPreview(null);
     setActive(null);
@@ -302,9 +298,7 @@ export function useBondTool(): BondToolOverlay & BondToolActions {
 
   const cleanup = useCallback(() => {
     if (isDraggingRef.current && !activeAtomWasExisting.current) {
-      const { history, historyIndex, setCurrentCanvasState } = useStore.getState();
-      if (historyIndex >= 0) setCurrentCanvasState(history[historyIndex]);
-      else setCurrentCanvasState({ atoms: [], bonds: [], arrows: [] });
+      useStore.getState().clearPreviewChemDrawDocument();
     }
     setDragging(false);
     setPreview(null);

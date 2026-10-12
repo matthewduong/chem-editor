@@ -300,9 +300,12 @@ Key files for common work:
 | `rust`      | ubuntu                 | `cargo fmt --check`, `clippy -D warnings`, `cargo test` |
 | `python`    | ubuntu                 | `ruff check`, `ruff format --check`, `unittest`         |
 
-CI deliberately never builds the Python sidecar: that path downloads an 830 MB dataset and runs a
-live PySCF smoke test. The real-ChemDraw harness is also excluded, since it needs macOS with
-ChemDraw installed and a private corpus.
+CI includes a Linux sidecar build. The separate `packaged.yml` workflow builds Linux DEB,
+Windows NSIS and macOS arm64 APP artifacts on main/manual runs, checks extracted resources
+and native dependencies without quantum calculations, and runs installed UI acceptance on
+Linux/Windows. PySCF is required on Linux/macOS; native Windows HF/DFT is unavailable.
+See [validation and pending platform evidence](../docs/engineering-validation.md).
+The licensed ChemDraw harness requires a Mac with ChemDraw and remains a manual gate.
 
 ## Recommended First-Day Validation
 

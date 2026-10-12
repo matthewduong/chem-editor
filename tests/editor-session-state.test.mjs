@@ -6,7 +6,11 @@ import {
   DEFAULT_DOCUMENT_STYLE_SETTINGS,
   DEFAULT_PAGE_SETUP,
 } from '../.unit-test-dist/src/lib/settings.js';
-import { selectEditorSessionState, useStore } from '../.unit-test-dist/src/store/index.js';
+import {
+  selectEditorSessionState,
+  useStore,
+  commitCanvasEdit,
+} from '../.unit-test-dist/src/store/index.js';
 
 function createNodeAtom(id, x, y, element = 'C') {
   return { id, x, y, kind: 'element', element };
@@ -42,7 +46,6 @@ function createAppState(overrides = {}) {
     groups: [],
     textBoxes: [],
     history: [],
-    documentHistory: [],
     historyIndex: 1,
     selectedObjectIds: new Set(['n1']),
     selectedAtomIds: new Set(['n1']),
@@ -76,7 +79,6 @@ function resetStore() {
     groups: [],
     textBoxes: [],
     history: [],
-    documentHistory: [],
     historyIndex: -1,
     selectedObjectIds: new Set(),
     selectedAtomIds: new Set(),
@@ -156,7 +158,6 @@ test('dispatchEditorCommand commits native document changes and clears preview s
     groups: [],
     textBoxes: [],
     history: [],
-    documentHistory: [],
     historyIndex: -1,
     selectedObjectIds: new Set(['n1']),
     selectedAtomIds: new Set(['n1']),
@@ -181,14 +182,13 @@ test('dispatchEditorCommand commits native document changes and clears preview s
     nextState.atoms.map((atom) => ({ id: atom.id, x: atom.x, y: atom.y })),
     [{ id: 'n1', x: 17, y: 8 }],
   );
-  assert.equal(nextState.historyIndex, 0);
-  assert.equal(nextState.history.length, 1);
-  assert.equal(nextState.documentHistory.length, 1);
+  assert.equal(nextState.historyIndex, 1);
+  assert.equal(nextState.history.length, 2);
 });
 
 test('pushToHistory materializes a canonical document for canvas-only states', () => {
   resetStore();
-  useStore.getState().pushToHistory({
+  commitCanvasEdit({
     atoms: [createNodeAtom('n1', 14, 22)],
     bonds: [],
     arrows: [],
@@ -198,7 +198,6 @@ test('pushToHistory materializes a canonical document for canvas-only states', (
 
   const nextState = useStore.getState();
   assert.ok(nextState.chemDrawDocument);
-  assert.equal(nextState.documentHistory.length, 1);
   assert.equal(nextState.documentRevision, 1);
   assert.equal(nextState.projectionRevision, 1);
   const node = nextState.chemDrawDocument.pages[0].objects.find((object) => object.id === 'n1');

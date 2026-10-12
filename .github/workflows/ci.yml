@@ -118,3 +118,21 @@ jobs:
       - run: uv run --locked --project src-tauri --group nmr-dft python -m unittest discover -s src-tauri/tests -p 'integration_*.py'
         env:
           OMP_NUM_THREADS: 2
+
+  browser:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm test:browser
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: browser-failures
+          path: test-results/

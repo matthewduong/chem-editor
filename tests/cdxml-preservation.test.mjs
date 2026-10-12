@@ -270,41 +270,7 @@ test('save preparation keeps preserved page children attached to the merged docu
     ],
   };
 
-  const prepared = prepareChemDrawDocumentForSave({
-    canvasState: {
-      atoms: [{ id: 'n1', x: 5, y: 5, kind: 'element', element: 'C' }],
-      bonds: [],
-      arrows: [],
-      groups: [],
-      textBoxes: [],
-    },
-    document,
-    documentStyleSettings: {
-      bondLength: 45,
-      bondLineWidth: 2,
-      textFormat: {
-        fontFamily: 'Arial',
-        fontSize: 14,
-        color: '#000000',
-        textAlign: 'center',
-      },
-      colors: {
-        bondColor: '#000000',
-        monochrome: false,
-        atomColors: {},
-      },
-    },
-    pageSetup: {
-      mode: 'infinite',
-      unit: 'in',
-      presetId: 'letter',
-      orientation: 'portrait',
-      pageWidth: 8.5,
-      pageHeight: 11,
-      rows: 1,
-      columns: 1,
-    },
-  });
+  const prepared = prepareChemDrawDocumentForSave({ document });
 
   assert.ok(prepared.document);
   assert.equal(prepared.document.pages[0].preservedPageChildren.length, 1);

@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { createProjectionEditCommand } from '../editor/commands/projectionEdit';
 import type {
   Atom,
   Bond,
@@ -30,7 +31,6 @@ import {
   canvasStateToChemDrawDocument,
   chemDrawDocumentToCanvasState,
   createGroupFromSelection,
-  mergeCanvasStateIntoChemDrawDocument,
   removeGroupsFromSelection,
 } from '../lib/chemdrawModel';
 import {
@@ -87,31 +87,8 @@ export interface ViewerStructureStatus {
   message: string | null;
 }
 
-export type SelectionPreviewTransform =
-  | {
-      kind: 'move';
-      selectedObjectIds: Set<string>;
-      movedAtomIds: Set<string>;
-      affectedBondIds: Set<string>;
-      dx: number;
-      dy: number;
-    }
-  | {
-      kind: 'rotate';
-      selectedObjectIds: Set<string>;
-      movedAtomIds: Set<string>;
-      affectedBondIds: Set<string>;
-      center: { x: number; y: number };
-      radians: number;
-    }
-  | {
-      kind: 'scale';
-      selectedObjectIds: Set<string>;
-      movedAtomIds: Set<string>;
-      affectedBondIds: Set<string>;
-      anchor: { x: number; y: number };
-      factor: number;
-    };
+export type { SelectionPreviewTransform } from '../editor/types';
+import type { SelectionPreviewTransform } from '../editor/types';
 
 function persistPreferences(appPreferences: AppPreferences) {
   void saveAppPreferences(appPreferences).catch(() => {
@@ -149,48 +126,74 @@ function markDocumentFileDirty(documentFile: DocumentFileState): DocumentFileSta
   return documentFile.dirty ? documentFile : { ...documentFile, dirty: true };
 }
 
-/** The store fields that change when `nextDocument`/`nextState` becomes a new undo step. */
-function historyCommitPatch(
-  s: AppState,
-  nextDocument: ChemDrawDocument,
-  nextState: CanvasState,
-): Partial<AppState> {
-  const hist = s.history.slice(0, s.historyIndex + 1);
-  const docHist = s.documentHistory.slice(0, s.historyIndex + 1);
-  hist.push(nextState);
-  docHist.push(nextDocument);
-  if (hist.length > 50) hist.shift();
-  if (docHist.length > 50) docHist.shift();
+/** The arrays are a cached read-only view; history stores documents only. */
+const frozenSnapshots = new WeakSet<object>();
+function freezeSnapshot(value: unknown): void {
+  if (!value || typeof value !== 'object' || frozenSnapshots.has(value)) return;
+  frozenSnapshots.add(value);
+  for (const child of Object.values(value)) freezeSnapshot(child);
+  Object.freeze(value);
+}
+const projectionCache = new WeakMap<ChemDrawDocument, CanvasState>();
+export function projectDocument(document: ChemDrawDocument): CanvasState {
+  let state = projectionCache.get(document);
+  if (!state) {
+    freezeSnapshot(document);
+    state = normalizeCanvasState(chemDrawDocumentToCanvasState(document).state);
+    freezeSnapshot(state);
+    projectionCache.set(document, state);
+  }
+  return state;
+}
+
+function documentPatch(s: AppState, document: ChemDrawDocument): Partial<AppState> {
+  const projected = projectDocument(document);
+  const ids = new Set(document.pages[0]?.objects.map((object) => object.id) ?? []);
+  const keep = (selection: Set<string>) => new Set([...selection].filter((id) => ids.has(id)));
   return {
-    history: hist,
-    documentHistory: docHist,
-    historyIndex: hist.length - 1,
-    atoms: nextState.atoms,
-    bonds: nextState.bonds,
-    arrows: nextState.arrows,
-    groups: nextState.groups ?? [],
-    textBoxes: nextState.textBoxes ?? [],
-    chemDrawDocument: nextDocument,
+    ...projected,
+    groups: projected.groups ?? [],
+    textBoxes: projected.textBoxes ?? [],
+    chemDrawDocument: document,
     previewChemDrawDocument: null,
     selectionPreviewTransform: null,
-    pageSetup: resolveDocumentPageSetup(nextDocument, s.appPreferences),
-    documentFile: markDocumentFileDirty(s.documentFile),
+    pageSetup: resolveDocumentPageSetup(document, s.appPreferences),
+    documentStyleSettings: resolveDocumentStyleSettings(document, s.appPreferences),
+    textFormat: {
+      ...s.textFormat,
+      ...resolveDocumentStyleSettings(document, s.appPreferences).textFormat,
+    },
+    documentViewSettings: resolveDocumentViewSettings(document, s.appPreferences),
+    documentFile: { ...s.documentFile, dirty: document !== s.savedDocument },
     documentRevision: s.documentRevision + 1,
     projectionRevision: s.projectionRevision + 1,
-    ...describeDocumentState(nextDocument),
-    selectedObjectIds: new Set(
-      [
-        ...nextState.atoms.map((a) => a.id),
-        ...nextState.bonds.map((b) => b.id),
-        ...nextState.arrows.map((a) => a.id),
-        ...(nextState.textBoxes ?? []).map((t) => t.id),
-      ].filter((id) => s.selectedObjectIds.has(id)),
-    ),
-    selectedBondIds: new Set(
-      nextState.bonds.map((b) => b.id).filter((id) => s.selectedBondIds.has(id)),
-    ),
+    ...describeDocumentState(document),
+    selectedObjectIds: keep(s.selectedObjectIds),
+    selectedAtomIds: keep(s.selectedAtomIds),
+    selectedBondIds: keep(s.selectedBondIds),
+    selectedArrowIds: keep(s.selectedArrowIds),
+    selectedTextBoxIds: keep(s.selectedTextBoxIds),
   };
 }
+
+function historyCommitPatch(s: AppState, document: ChemDrawDocument): Partial<AppState> {
+  if (document === s.chemDrawDocument)
+    return { previewChemDrawDocument: null, selectionPreviewTransform: null };
+  const history = s.history.slice(0, s.historyIndex + 1);
+  if (!history.length && s.chemDrawDocument) history.push(s.chemDrawDocument);
+  history.push(document);
+  if (history.length > 50) history.shift();
+  return { ...documentPatch(s, document), history, historyIndex: history.length - 1 };
+}
+
+function emptyDocument(preferences = DEFAULT_APP_PREFERENCES): ChemDrawDocument {
+  return canvasStateToChemDrawDocument(
+    { atoms: [], bonds: [], arrows: [], groups: [], textBoxes: [] },
+    { documentStyleSettings: preferences.drawing, pageSetup: preferences.pageSetup },
+  ).document;
+}
+const initialDocument = emptyDocument();
+const initialProjection = projectDocument(initialDocument);
 
 function normalizeCanvasState<T extends CanvasState>(state: T): T {
   return sanitizeRingTemplateState({
@@ -215,20 +218,6 @@ function describeDocumentState(document: ChemDrawDocument | null | undefined) {
   };
 }
 
-function materializeChemDrawDocument(options: {
-  document: ChemDrawDocument | null;
-  canvasState: CanvasState;
-  documentStyleSettings: DocumentStyleSettings;
-  pageSetup: PageSetup;
-}): ChemDrawDocument {
-  return options.document
-    ? mergeCanvasStateIntoChemDrawDocument(options.document, options.canvasState).document
-    : canvasStateToChemDrawDocument(options.canvasState, {
-        documentStyleSettings: options.documentStyleSettings,
-        pageSetup: options.pageSetup,
-      }).document;
-}
-
 export interface AppState {
   // ── Editor ──────────────────────────────────────────────────────────────────
   tool: Tool;
@@ -251,8 +240,7 @@ export interface AppState {
   arrows: Arrow[];
   groups: Group[];
   textBoxes: TextBox[];
-  history: CanvasState[];
-  documentHistory: ChemDrawDocument[];
+  history: ChemDrawDocument[];
   historyIndex: number;
   selectedObjectIds: Set<string>;
   selectedAtomIds: Set<string>;
@@ -394,18 +382,17 @@ export interface AppState {
   setRingRotationSteps: (steps: number) => void;
 
   // ── Canvas actions ───────────────────────────────────────────────────────────
-  pushToHistory: (state: CanvasState) => void;
   /**
    * Commit an already-built document as one undo step. The flat arrays are derived from it by
    * projection; the document itself is stored as given, never re-materialized from the arrays.
    */
   commitDocument: (document: ChemDrawDocument) => void;
-  setCurrentCanvasState: (state: CanvasState) => void;
   undo: () => void;
   redo: () => void;
   selectAll: () => void;
   deselectAll: () => void;
   clearCanvas: () => void;
+
   setSelectedObjectIds: (ids: Set<string>) => void;
   setSelectedAtomIds: (ids: Set<string>) => void;
   setSelectedBondIds: (ids: Set<string>) => void;
@@ -549,14 +536,13 @@ export const useStore = create<AppState>((set, get) => ({
   ringRotationSteps: 0,
 
   // ── Canvas defaults ──────────────────────────────────────────────────────────
-  atoms: [],
-  bonds: [],
-  arrows: [],
-  groups: [],
-  textBoxes: [],
-  history: [],
-  documentHistory: [],
-  historyIndex: -1,
+  atoms: initialProjection.atoms,
+  bonds: initialProjection.bonds,
+  arrows: initialProjection.arrows,
+  groups: initialProjection.groups ?? [],
+  textBoxes: initialProjection.textBoxes ?? [],
+  history: [initialDocument],
+  historyIndex: 0,
   selectedObjectIds: new Set(),
   selectedAtomIds: new Set(),
   selectedBondIds: new Set(),
@@ -565,11 +551,11 @@ export const useStore = create<AppState>((set, get) => ({
   lastInteractedAtomId: null,
   canvasSize: { width: 800, height: 600 },
   pageSetup: DEFAULT_PAGE_SETUP,
-  chemDrawDocument: null,
+  chemDrawDocument: initialDocument,
   previewChemDrawDocument: null,
   documentFile: createUntitledDocumentFile(),
   documentSessionId: crypto.randomUUID(),
-  savedDocument: null,
+  savedDocument: initialDocument,
   selectionPreviewTransform: null,
   chemDrawWarnings: [],
   objectCount: 0,
@@ -707,154 +693,19 @@ export const useStore = create<AppState>((set, get) => ({
     }),
 
   // ── Canvas actions ───────────────────────────────────────────────────────────
-  pushToHistory: (newState) =>
-    set((s) => {
-      let nextState = normalizeCanvasState(newState);
-      const nextDocument = materializeChemDrawDocument({
-        document: s.chemDrawDocument,
-        canvasState: nextState,
-        documentStyleSettings: s.documentStyleSettings,
-        pageSetup: s.pageSetup,
-      });
-      if (s.chemDrawDocument) {
-        const projected = chemDrawDocumentToCanvasState(nextDocument).state;
-        nextState = normalizeCanvasState({
-          ...projected,
-          groups: nextState.groups,
-          textBoxes: projected.textBoxes ?? [],
-        });
-      }
-      return historyCommitPatch(s, nextDocument, nextState);
-    }),
-
-  commitDocument: (document) =>
-    set((s) =>
-      historyCommitPatch(
-        s,
-        document,
-        normalizeCanvasState(chemDrawDocumentToCanvasState(document).state),
-      ),
-    ),
-
-  setCurrentCanvasState: (newState) =>
-    set((s) => {
-      let nextState = normalizeCanvasState(newState);
-      const nextDocument = materializeChemDrawDocument({
-        document: s.chemDrawDocument,
-        canvasState: nextState,
-        documentStyleSettings: s.documentStyleSettings,
-        pageSetup: s.pageSetup,
-      });
-      if (s.chemDrawDocument) {
-        const projected = chemDrawDocumentToCanvasState(nextDocument).state;
-        nextState = normalizeCanvasState({
-          ...projected,
-          groups: nextState.groups,
-          textBoxes: projected.textBoxes ?? [],
-        });
-      }
-      const nextDocumentMeta = describeDocumentState(nextDocument);
-      return {
-        atoms: nextState.atoms,
-        bonds: nextState.bonds,
-        arrows: nextState.arrows,
-        groups: nextState.groups ?? [],
-        textBoxes: nextState.textBoxes ?? [],
-        chemDrawDocument: nextDocument,
-        previewChemDrawDocument: null,
-        selectionPreviewTransform: null,
-        pageSetup: resolveDocumentPageSetup(nextDocument, s.appPreferences),
-        documentFile: markDocumentFileDirty(s.documentFile),
-        documentRevision: s.documentRevision + 1,
-        projectionRevision: s.projectionRevision + 1,
-        ...nextDocumentMeta,
-      };
-    }),
-
+  commitDocument: (document) => set((s) => historyCommitPatch(s, document)),
   undo: () =>
-    set((s) => {
-      if (s.historyIndex > 0) {
-        const prev = s.history[s.historyIndex - 1];
-        const normalizedPrev = normalizeCanvasState(prev);
-        const nextDocument =
-          s.documentHistory[s.historyIndex - 1] ??
-          materializeChemDrawDocument({
-            document: s.chemDrawDocument,
-            canvasState: normalizedPrev,
-            documentStyleSettings: s.documentStyleSettings,
-            pageSetup: s.pageSetup,
-          });
-        const nextDocumentMeta = describeDocumentState(nextDocument);
-        return {
-          historyIndex: s.historyIndex - 1,
-          atoms: normalizedPrev.atoms,
-          bonds: normalizedPrev.bonds,
-          arrows: normalizedPrev.arrows,
-          groups: normalizedPrev.groups ?? [],
-          textBoxes: normalizedPrev.textBoxes ?? [],
-          chemDrawDocument: nextDocument,
-          previewChemDrawDocument: null,
-          selectionPreviewTransform: null,
-          pageSetup: resolveDocumentPageSetup(nextDocument, s.appPreferences),
-          documentFile: { ...s.documentFile, dirty: nextDocument !== s.savedDocument },
-          documentRevision: s.documentRevision + 1,
-          projectionRevision: s.projectionRevision + 1,
-          ...nextDocumentMeta,
-        };
-      }
-      if (s.historyIndex === 0)
-        return {
-          historyIndex: -1,
-          atoms: [],
-          bonds: [],
-          arrows: [],
-          groups: [],
-          textBoxes: [],
-          chemDrawDocument: null,
-          previewChemDrawDocument: null,
-          selectionPreviewTransform: null,
-          objectCount: 0,
-          largeDocumentMode: false,
-          documentFile: { ...s.documentFile, dirty: s.savedDocument !== null },
-          documentRevision: s.documentRevision + 1,
-          projectionRevision: s.projectionRevision + 1,
-        };
-      return {};
-    }),
-
+    set((s) =>
+      s.historyIndex > 0
+        ? { ...documentPatch(s, s.history[s.historyIndex - 1]), historyIndex: s.historyIndex - 1 }
+        : { previewChemDrawDocument: null, selectionPreviewTransform: null },
+    ),
   redo: () =>
-    set((s) => {
-      if (s.historyIndex < s.history.length - 1) {
-        const next = s.history[s.historyIndex + 1];
-        const normalizedNext = normalizeCanvasState(next);
-        const nextDocument =
-          s.documentHistory[s.historyIndex + 1] ??
-          materializeChemDrawDocument({
-            document: s.chemDrawDocument,
-            canvasState: normalizedNext,
-            documentStyleSettings: s.documentStyleSettings,
-            pageSetup: s.pageSetup,
-          });
-        const nextDocumentMeta = describeDocumentState(nextDocument);
-        return {
-          historyIndex: s.historyIndex + 1,
-          atoms: normalizedNext.atoms,
-          bonds: normalizedNext.bonds,
-          arrows: normalizedNext.arrows,
-          groups: normalizedNext.groups ?? [],
-          textBoxes: normalizedNext.textBoxes ?? [],
-          chemDrawDocument: nextDocument,
-          previewChemDrawDocument: null,
-          selectionPreviewTransform: null,
-          pageSetup: resolveDocumentPageSetup(nextDocument, s.appPreferences),
-          documentFile: { ...s.documentFile, dirty: nextDocument !== s.savedDocument },
-          documentRevision: s.documentRevision + 1,
-          projectionRevision: s.projectionRevision + 1,
-          ...nextDocumentMeta,
-        };
-      }
-      return {};
-    }),
+    set((s) =>
+      s.historyIndex < s.history.length - 1
+        ? { ...documentPatch(s, s.history[s.historyIndex + 1]), historyIndex: s.historyIndex + 1 }
+        : { previewChemDrawDocument: null, selectionPreviewTransform: null },
+    ),
 
   selectAll: () =>
     set((s) => {
@@ -893,40 +744,7 @@ export const useStore = create<AppState>((set, get) => ({
       selectedTextBoxIds: new Set(),
     }),
 
-  clearCanvas: () => {
-    const emptyState = { atoms: [], bonds: [], arrows: [], groups: [], textBoxes: [] };
-    const emptyDocument = canvasStateToChemDrawDocument(emptyState, {
-      documentStyleSettings: get().appPreferences.drawing,
-      pageSetup: get().appPreferences.pageSetup,
-    }).document;
-    const emptyDocumentMeta = describeDocumentState(emptyDocument);
-    set({
-      history: [emptyState],
-      documentHistory: [emptyDocument],
-      historyIndex: 0,
-      atoms: [],
-      bonds: [],
-      arrows: [],
-      groups: [],
-      textBoxes: [],
-      selectedAtomIds: new Set(),
-      selectedBondIds: new Set(),
-      selectedArrowIds: new Set(),
-      selectedTextBoxIds: new Set(),
-      selectedObjectIds: new Set(),
-      chemDrawDocument: emptyDocument,
-      previewChemDrawDocument: null,
-      selectionPreviewTransform: null,
-      documentStyleSettings: get().appPreferences.drawing,
-      textFormat: buildTextFormatFromDocumentSettings(get().appPreferences.drawing),
-      pageSetup: get().appPreferences.pageSetup,
-      chemDrawWarnings: [],
-      documentFile: markDocumentFileDirty(get().documentFile),
-      documentRevision: get().documentRevision + 1,
-      projectionRevision: get().projectionRevision + 1,
-      ...emptyDocumentMeta,
-    });
-  },
+  clearCanvas: () => get().commitDocument(emptyDocument(get().appPreferences)),
 
   setSelectedObjectIds: (selectedObjectIds) => set({ selectedObjectIds }),
   setSelectedAtomIds: (selectedAtomIds) =>
@@ -971,50 +789,12 @@ export const useStore = create<AppState>((set, get) => ({
     })),
   setLastInteractedAtomId: (lastInteractedAtomId) => set({ lastInteractedAtomId }),
   setCanvasSize: (canvasSize) => set({ canvasSize }),
-  setPageSetup: (pageSetup) =>
-    set((s) => {
-      const nextDocument = s.chemDrawDocument
-        ? applyDocumentPageSetup(s.chemDrawDocument, pageSetup)
-        : s.chemDrawDocument;
-      return {
-        pageSetup,
-        chemDrawDocument: nextDocument,
-        previewChemDrawDocument: null,
-        selectionPreviewTransform: null,
-        documentFile: markDocumentFileDirty(s.documentFile),
-        documentRevision: s.documentRevision + 1,
-        ...describeDocumentState(nextDocument),
-      };
-    }),
-  setChemDrawDocument: (chemDrawDocument) =>
-    set((s) => {
-      const nextDocument = chemDrawDocument
-        ? applyDocumentPageSetup(
-            applyDocumentViewSettings(
-              applyDocumentStyleSettings(
-                chemDrawDocument,
-                resolveDocumentStyleSettings(chemDrawDocument, get().appPreferences),
-              ),
-              resolveDocumentViewSettings(chemDrawDocument, get().appPreferences),
-            ),
-            resolveDocumentPageSetup(chemDrawDocument, get().appPreferences),
-          )
-        : chemDrawDocument;
-      return {
-        chemDrawDocument: nextDocument,
-        documentStyleSettings: resolveDocumentStyleSettings(chemDrawDocument, get().appPreferences),
-        documentViewSettings: resolveDocumentViewSettings(chemDrawDocument, get().appPreferences),
-        pageSetup: resolveDocumentPageSetup(chemDrawDocument, get().appPreferences),
-        textFormat: buildTextFormatFromDocumentSettings(
-          resolveDocumentStyleSettings(chemDrawDocument, get().appPreferences),
-        ),
-        previewChemDrawDocument: null,
-        selectionPreviewTransform: null,
-        documentRevision: s.documentRevision + 1,
-        ...describeDocumentState(nextDocument),
-        ...(chemDrawDocument ? {} : { documentHistory: [] }),
-      };
-    }),
+  setPageSetup: (pageSetup) => {
+    const s = get();
+    get().commitDocument(applyDocumentPageSetup(s.chemDrawDocument ?? emptyDocument(), pageSetup));
+  },
+  setChemDrawDocument: (document) =>
+    get().commitDocument(document ?? emptyDocument(get().appPreferences)),
   setPreviewChemDrawDocument: (previewChemDrawDocument) =>
     set({
       previewChemDrawDocument,
@@ -1033,6 +813,8 @@ export const useStore = create<AppState>((set, get) => ({
       documentFile: createUntitledDocumentFile(),
       documentSessionId: crypto.randomUUID(),
       savedDocument: s.chemDrawDocument,
+      history: s.chemDrawDocument ? [s.chemDrawDocument] : [],
+      historyIndex: 0,
     })),
   markDocumentDirty: () =>
     set((s) => ({
@@ -1052,15 +834,14 @@ export const useStore = create<AppState>((set, get) => ({
     }),
   replaceDocument: (document, warnings = [], path = null) =>
     set((s) => {
-      const projected = normalizeCanvasState(chemDrawDocumentToCanvasState(document).state);
+      const projected = projectDocument(document);
       const documentStyleSettings = resolveDocumentStyleSettings(document, s.appPreferences);
       return {
         ...projected,
         chemDrawDocument: document,
         previewChemDrawDocument: null,
         selectionPreviewTransform: null,
-        history: [projected],
-        documentHistory: [document],
+        history: [document],
         historyIndex: 0,
         documentStyleSettings,
         documentViewSettings: resolveDocumentViewSettings(document, s.appPreferences),
@@ -1436,48 +1217,62 @@ export const useStore = create<AppState>((set, get) => ({
 
   // ── UI actions ───────────────────────────────────────────────────────────────
   hydrateAppPreferences: (appPreferences) =>
-    set((s) => ({
-      appPreferences,
-      preferencesHydrated: true,
-      isDarkMode: appPreferences.isDarkMode,
-      showGrid: appPreferences.showGrid,
-      showHydrogens: appPreferences.showHydrogens,
-      pageSetup: resolveDocumentPageSetup(s.chemDrawDocument, appPreferences),
-      viewerMode: appPreferences.viewer.mode,
-      viewerRepresentation: appPreferences.viewer.representation,
-      viewerSpin: appPreferences.viewer.spin,
-      viewerSpinSpeed: appPreferences.viewer.spinSpeed,
-      viewerForceField: appPreferences.viewer.forceField,
-      viewerMultiConformer: appPreferences.viewer.multiConformer,
-      viewerMaxConformers: appPreferences.viewer.maxConformers,
-      viewerShowAtomNumbers: appPreferences.viewer.showAtomNumbers,
-      viewerShowAtomLabels: appPreferences.viewer.showAtomLabels,
-      viewerShowMeasureToolbar: appPreferences.viewer.showMeasureToolbar,
-      viewerAtomScale: appPreferences.viewer.atomScale,
-      viewerBondScale: appPreferences.viewer.bondScale,
-      viewerPerspectiveFov: appPreferences.viewer.perspectiveFov,
-      viewerBackgroundColor: appPreferences.viewer.backgroundColor,
-      viewerBondColor: appPreferences.viewer.bondColor,
-      viewerAmbientLightIntensity: appPreferences.viewer.ambientLightIntensity,
-      viewerHemiLightIntensity: appPreferences.viewer.hemiLightIntensity,
-      viewerKeyLightIntensity: appPreferences.viewer.keyLightIntensity,
-      viewerFillLightIntensity: appPreferences.viewer.fillLightIntensity,
-      viewerRimLightIntensity: appPreferences.viewer.rimLightIntensity,
-      viewerOrbitalBasis: appPreferences.viewer.orbitals.basis,
-      viewerOrbitalOpacity: appPreferences.viewer.orbitals.opacity,
-      viewerOrbitalPositiveColor: appPreferences.viewer.orbitals.positiveColor,
-      viewerOrbitalNegativeColor: appPreferences.viewer.orbitals.negativeColor,
-      viewerOrbitalMaterial: appPreferences.viewer.orbitals.material,
-      viewerOrbitalOutline: appPreferences.viewer.orbitals.outline,
-      viewerOrbitalIsovalue: appPreferences.viewer.orbitals.isovalue,
-      viewerOrbitalShowPositivePhase: appPreferences.viewer.orbitals.showPositivePhase,
-      viewerOrbitalShowNegativePhase: appPreferences.viewer.orbitals.showNegativePhase,
-      documentStyleSettings: resolveDocumentStyleSettings(s.chemDrawDocument, appPreferences),
-      documentViewSettings: resolveDocumentViewSettings(s.chemDrawDocument, appPreferences),
-      textFormat: buildTextFormatFromDocumentSettings(
-        resolveDocumentStyleSettings(s.chemDrawDocument, appPreferences),
-      ),
-    })),
+    set((s) => {
+      const initializeDocument =
+        !s.preferencesHydrated && s.chemDrawDocument === initialDocument && s.history.length === 1;
+      const document = initializeDocument ? emptyDocument(appPreferences) : s.chemDrawDocument;
+      return {
+        ...(initializeDocument && document
+          ? {
+              ...projectDocument(document),
+              chemDrawDocument: document,
+              history: [document],
+              historyIndex: 0,
+              savedDocument: document,
+            }
+          : {}),
+        appPreferences,
+        preferencesHydrated: true,
+        isDarkMode: appPreferences.isDarkMode,
+        showGrid: appPreferences.showGrid,
+        showHydrogens: appPreferences.showHydrogens,
+        pageSetup: resolveDocumentPageSetup(document, appPreferences),
+        viewerMode: appPreferences.viewer.mode,
+        viewerRepresentation: appPreferences.viewer.representation,
+        viewerSpin: appPreferences.viewer.spin,
+        viewerSpinSpeed: appPreferences.viewer.spinSpeed,
+        viewerForceField: appPreferences.viewer.forceField,
+        viewerMultiConformer: appPreferences.viewer.multiConformer,
+        viewerMaxConformers: appPreferences.viewer.maxConformers,
+        viewerShowAtomNumbers: appPreferences.viewer.showAtomNumbers,
+        viewerShowAtomLabels: appPreferences.viewer.showAtomLabels,
+        viewerShowMeasureToolbar: appPreferences.viewer.showMeasureToolbar,
+        viewerAtomScale: appPreferences.viewer.atomScale,
+        viewerBondScale: appPreferences.viewer.bondScale,
+        viewerPerspectiveFov: appPreferences.viewer.perspectiveFov,
+        viewerBackgroundColor: appPreferences.viewer.backgroundColor,
+        viewerBondColor: appPreferences.viewer.bondColor,
+        viewerAmbientLightIntensity: appPreferences.viewer.ambientLightIntensity,
+        viewerHemiLightIntensity: appPreferences.viewer.hemiLightIntensity,
+        viewerKeyLightIntensity: appPreferences.viewer.keyLightIntensity,
+        viewerFillLightIntensity: appPreferences.viewer.fillLightIntensity,
+        viewerRimLightIntensity: appPreferences.viewer.rimLightIntensity,
+        viewerOrbitalBasis: appPreferences.viewer.orbitals.basis,
+        viewerOrbitalOpacity: appPreferences.viewer.orbitals.opacity,
+        viewerOrbitalPositiveColor: appPreferences.viewer.orbitals.positiveColor,
+        viewerOrbitalNegativeColor: appPreferences.viewer.orbitals.negativeColor,
+        viewerOrbitalMaterial: appPreferences.viewer.orbitals.material,
+        viewerOrbitalOutline: appPreferences.viewer.orbitals.outline,
+        viewerOrbitalIsovalue: appPreferences.viewer.orbitals.isovalue,
+        viewerOrbitalShowPositivePhase: appPreferences.viewer.orbitals.showPositivePhase,
+        viewerOrbitalShowNegativePhase: appPreferences.viewer.orbitals.showNegativePhase,
+        documentStyleSettings: resolveDocumentStyleSettings(document, appPreferences),
+        documentViewSettings: resolveDocumentViewSettings(document, appPreferences),
+        textFormat: buildTextFormatFromDocumentSettings(
+          resolveDocumentStyleSettings(document, appPreferences),
+        ),
+      };
+    }),
   setAppPreferences: (appPreferences) => {
     persistPreferences(appPreferences);
     get().hydrateAppPreferences(appPreferences);
@@ -1500,10 +1295,13 @@ export const useStore = create<AppState>((set, get) => ({
           textAlign: resolvedTextFormat.textAlign,
         },
         appPreferences,
-        chemDrawDocument: s.chemDrawDocument
-          ? applyDocumentStyleSettings(s.chemDrawDocument, normalizedDocumentStyleSettings)
-          : s.chemDrawDocument,
-        ...(s.chemDrawDocument ? { documentFile: markDocumentFileDirty(s.documentFile) } : {}),
+        ...historyCommitPatch(
+          s,
+          applyDocumentStyleSettings(
+            s.chemDrawDocument ?? emptyDocument(),
+            normalizedDocumentStyleSettings,
+          ),
+        ),
       };
     }),
   setDocumentViewSettings: (documentViewSettings) =>
@@ -1511,33 +1309,33 @@ export const useStore = create<AppState>((set, get) => ({
       const normalizedDocumentViewSettings = normalizeDocumentViewSettings(documentViewSettings);
       return {
         documentViewSettings: normalizedDocumentViewSettings,
-        chemDrawDocument: s.chemDrawDocument
-          ? applyDocumentViewSettings(s.chemDrawDocument, normalizedDocumentViewSettings)
-          : s.chemDrawDocument,
-        ...(s.chemDrawDocument ? { documentFile: markDocumentFileDirty(s.documentFile) } : {}),
+        ...historyCommitPatch(
+          s,
+          applyDocumentViewSettings(
+            s.chemDrawDocument ?? emptyDocument(),
+            normalizedDocumentViewSettings,
+          ),
+        ),
       };
     }),
   applyDefaultsToCurrentDocument: () => {
-    const {
-      atoms,
-      bonds,
-      arrows,
-      groups,
-      textBoxes,
-      appPreferences,
-      documentStyleSettings,
-      setPageSetup,
-      setDocumentStyleSettings,
-      pushToHistory,
-    } = get();
-    const nextSettings = appPreferences.drawing;
-    setDocumentStyleSettings(nextSettings);
-    setPageSetup(appPreferences.pageSetup);
-    pushToHistory(
-      applyDocumentStyleSettingsToCanvas(
-        { atoms, bonds, arrows, groups, textBoxes },
-        documentStyleSettings,
-        nextSettings,
+    const s = get();
+    const source = s.chemDrawDocument ?? emptyDocument(s.appPreferences);
+    const nextState = applyDocumentStyleSettingsToCanvas(
+      projectDocument(source),
+      s.documentStyleSettings,
+      s.appPreferences.drawing,
+    );
+    const context = createEditorCommandContext({
+      activePageId: source.pages[0]?.id ?? null,
+      documentStyleSettings: s.documentStyleSettings,
+      pageSetup: s.pageSetup,
+    });
+    const edited = createProjectionEditCommand(source, nextState).apply(source, context).document;
+    s.commitDocument(
+      applyDocumentPageSetup(
+        applyDocumentStyleSettings(edited, s.appPreferences.drawing),
+        s.appPreferences.pageSetup,
       ),
     );
   },
@@ -1614,7 +1412,10 @@ export const useStore = create<AppState>((set, get) => ({
           color: resolvedTextFormat.color,
           textAlign: resolvedTextFormat.textAlign,
         },
-        documentStyleSettings,
+        ...historyCommitPatch(
+          s,
+          applyDocumentStyleSettings(s.chemDrawDocument ?? emptyDocument(), documentStyleSettings),
+        ),
         appPreferences,
       };
     }),
@@ -1635,7 +1436,6 @@ export const useStore = create<AppState>((set, get) => ({
       selectedAtomIds,
       selectedArrowIds,
       selectedTextBoxIds,
-      pushToHistory,
     } = get();
     const hasAtoms = selectedAtomIds.size > 0;
     const hasArrows = selectedArrowIds.size > 0;
@@ -1658,7 +1458,7 @@ export const useStore = create<AppState>((set, get) => ({
       arrowIds: hasArrows ? [...selectedArrowIds] : undefined,
       textBoxIds: hasTextBoxes ? [...selectedTextBoxIds] : undefined,
     };
-    pushToHistory({ atoms, bonds, arrows, groups: [...keptGroups, newGroup], textBoxes });
+    commitCanvasEdit({ atoms, bonds, arrows, groups: [...keptGroups, newGroup], textBoxes });
   },
 
   ungroupSelected: () => {
@@ -1668,7 +1468,7 @@ export const useStore = create<AppState>((set, get) => ({
       get().commitDocument(nextDocument);
       return;
     }
-    const { atoms, bonds, arrows, groups, textBoxes, selectedAtomIds, pushToHistory } = get();
+    const { atoms, bonds, arrows, groups, textBoxes, selectedAtomIds } = get();
     const overlapping = groups
       .filter((g) => g.atomIds.some((id) => selectedAtomIds.has(id)))
       .sort((a, b) => b.atomIds.length - a.atomIds.length);
@@ -1677,7 +1477,7 @@ export const useStore = create<AppState>((set, get) => ({
     const newGroups = groups
       .filter((g) => g.id !== removed.id)
       .map((g) => ({ ...g, childGroupIds: g.childGroupIds?.filter((id) => id !== removed.id) }));
-    pushToHistory({ atoms, bonds, arrows, groups: newGroups, textBoxes });
+    commitCanvasEdit({ atoms, bonds, arrows, groups: newGroups, textBoxes });
   },
 
   alignSelection: (op: AlignOp) => {
@@ -1696,7 +1496,6 @@ export const useStore = create<AppState>((set, get) => ({
       selectedAtomIds,
       selectedArrowIds,
       selectedTextBoxIds,
-      pushToHistory,
     } = get();
     const units = buildAlignmentUnits(
       atoms,
@@ -1714,7 +1513,13 @@ export const useStore = create<AppState>((set, get) => ({
       arrows: newArrows,
       textBoxes: newTextBoxes,
     } = applyAlignment(atoms, arrows, units, op, textBoxes);
-    pushToHistory({ atoms: newAtoms, bonds, arrows: newArrows, groups, textBoxes: newTextBoxes });
+    commitCanvasEdit({
+      atoms: newAtoms,
+      bonds,
+      arrows: newArrows,
+      groups,
+      textBoxes: newTextBoxes,
+    });
   },
 
   dispatchEditorCommand: (command) => {
@@ -1862,4 +1667,49 @@ export function selectEditorSessionState(
     pageSetup: state.pageSetup,
     revision: state.documentRevision,
   });
+}
+
+/** UI boundary for tools that calculate geometry using the flat projection. */
+export function commitCanvasEdit(next: CanvasState): void {
+  const s = useStore.getState();
+  const document = s.chemDrawDocument ?? emptyDocument(s.appPreferences);
+  const context = createEditorCommandContext({
+    activePageId: document.pages[0]?.id ?? null,
+    documentStyleSettings: s.documentStyleSettings,
+    pageSetup: s.pageSetup,
+  });
+  try {
+    s.commitDocument(createProjectionEditCommand(document, next).apply(document, context).document);
+  } catch (error) {
+    s.clearPreviewChemDrawDocument();
+    s.showToast(error instanceof Error ? error.message : 'This edit cannot preserve the document.');
+  }
+}
+
+export function previewCanvasEdit(next: CanvasState): void {
+  const s = useStore.getState();
+  const source = s.previewChemDrawDocument ?? s.chemDrawDocument ?? emptyDocument(s.appPreferences);
+  const context = createEditorCommandContext({
+    activePageId: source.pages[0]?.id ?? null,
+    documentStyleSettings: s.documentStyleSettings,
+    pageSetup: s.pageSetup,
+  });
+  try {
+    s.setPreviewChemDrawDocument(
+      createProjectionEditCommand(source, next).apply(source, context).document,
+    );
+  } catch {
+    s.clearPreviewChemDrawDocument();
+  }
+}
+
+/** Preview projections are available to tools, without overwriting committed store arrays. */
+export function getCanvasEditorState() {
+  const s = useStore.getState();
+  return {
+    ...s,
+    ...(s.previewChemDrawDocument ? projectDocument(s.previewChemDrawDocument) : {}),
+    commitCanvasEdit,
+    previewCanvasEdit,
+  };
 }

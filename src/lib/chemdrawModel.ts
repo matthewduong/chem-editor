@@ -906,6 +906,11 @@ export function mergeCanvasStateIntoChemDrawDocument(
     for (const nodeId of object.nodeIds) baseFragmentByNode.set(nodeId, object.id);
   }
   const claimedFragments = new Set<string>();
+  const reservedIds = new Set(
+    document.pages.flatMap((page) => page.objects.map((object) => object.id)),
+  );
+  for (const object of canvasPage.objects)
+    if (object.type !== 'fragment') reservedIds.add(object.id);
   const canvasObjects = canvasPage.objects.map((object) => {
     if (object.type !== 'fragment') return object;
     const votes = new Map<string, number>();
@@ -918,7 +923,12 @@ export function mergeCanvasStateIntoChemDrawDocument(
       if (claimedFragments.has(candidate)) continue;
       if (best === null || count > (votes.get(best) ?? 0)) best = candidate;
     }
-    if (best === null) return object;
+    if (best === null) {
+      let id = object.id;
+      while (reservedIds.has(id)) id = crypto.randomUUID();
+      reservedIds.add(id);
+      return { ...object, id };
+    }
     claimedFragments.add(best);
     return { ...object, id: best };
   });

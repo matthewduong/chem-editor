@@ -34,7 +34,7 @@ import { DeferredNumberInput } from './components/DeferredNumberInput';
 import { ArrowType } from './types/chemistry';
 import { useRDKit } from './hooks/useRDKit';
 import { useToolPaletteManager } from './hooks/useToolPaletteManager';
-import { useStore } from './store';
+import { useStore, commitCanvasEdit } from './store';
 import './App.css';
 import { stateToCDXML, cdxmlToState, chemDrawDocumentToCDXML } from './utils/cdxml';
 import type { ChemDrawDocument } from './types/chemdraw';
@@ -1263,7 +1263,7 @@ function App() {
     (semanticMode: 'plain' | 'auto' | 'chemical') => {
       if (selectedTextBoxIds.size === 0) return;
       const { atoms: a, bonds: b, arrows: arr, groups: g, textBoxes: tb } = useStore.getState();
-      useStore.getState().pushToHistory({
+      commitCanvasEdit({
         atoms: a,
         bonds: b,
         arrows: arr,
@@ -1327,7 +1327,6 @@ function App() {
       selectedBondIds,
       selectedArrowIds,
       selectedTextBoxIds,
-      pushToHistory,
     } = useStore.getState();
     const movedAtomIds = new Set(selectedAtomIds);
     bonds.forEach((bond) => {
@@ -1360,7 +1359,7 @@ function App() {
         }),
       );
     } else {
-      pushToHistory({
+      commitCanvasEdit({
         atoms: atoms.map((a) => {
           if (!movedAtomIds.has(a.id)) return a;
           const r = rot(a.x, a.y);
@@ -1399,7 +1398,6 @@ function App() {
       selectedBondIds,
       selectedArrowIds,
       selectedTextBoxIds,
-      pushToHistory,
     } = useStore.getState();
     const movedAtomIds = new Set(selectedAtomIds);
     bonds.forEach((bond) => {
@@ -1432,7 +1430,7 @@ function App() {
         }),
       );
     } else {
-      pushToHistory({
+      commitCanvasEdit({
         atoms: atoms.map((a) => {
           if (!movedAtomIds.has(a.id)) return a;
           const r = sc(a.x, a.y);
@@ -1902,7 +1900,6 @@ function App() {
       selectedTextBoxIds,
       selectedObjectIds,
       chemDrawDocument,
-      pushToHistory: kPush,
     } = useStore.getState();
     if (
       selectedAtomIds.size > 0 ||
@@ -1918,7 +1915,7 @@ function App() {
           }),
         );
       } else {
-        kPush({
+        commitCanvasEdit({
           atoms: atoms.filter((a) => !selectedAtomIds.has(a.id)),
           bonds: bonds.filter(
             (b) =>
@@ -1935,7 +1932,7 @@ function App() {
       useStore.getState().setSelectedArrowIds(new Set());
       useStore.getState().setSelectedTextBoxIds(new Set());
     } else {
-      kPush({ atoms: [], bonds: [], arrows: [], textBoxes: [] });
+      commitCanvasEdit({ atoms: [], bonds: [], arrows: [], textBoxes: [] });
     }
   }, [handleCopy]);
 
@@ -4216,7 +4213,7 @@ function App() {
                         groups: g,
                         textBoxes: tb,
                       } = useStore.getState();
-                      useStore.getState().pushToHistory({
+                      commitCanvasEdit({
                         atoms: a,
                         bonds: b,
                         arrows: arr,
@@ -4253,7 +4250,7 @@ function App() {
                           groups: g,
                           textBoxes: tb,
                         } = useStore.getState();
-                        useStore.getState().pushToHistory({
+                        commitCanvasEdit({
                           atoms: a,
                           bonds: b,
                           arrows: arr,
@@ -4395,7 +4392,7 @@ function App() {
                           groups: g,
                           textBoxes: tb,
                         } = useStore.getState();
-                        useStore.getState().pushToHistory({
+                        commitCanvasEdit({
                           atoms: a,
                           bonds: b,
                           arrows: arr,

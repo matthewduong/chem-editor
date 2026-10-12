@@ -1,7 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
-import { useStore } from '../store';
-import type { Atom, Bond, Arrow, TextBox } from '../types/chemistry';
-import type { ChemDrawDocument } from '../types/chemdraw';
+import { useCallback, useRef, useState } from 'react';
 import {
   createMoveSelectionCommand,
   createRotateSelectionCommand,
@@ -9,6 +6,9 @@ import {
 } from '../editor/commands';
 import { SNAP_ANGLE } from '../lib/graph';
 import { getArrowSelectionPoints } from '../lib/renderGeometry';
+import { commitCanvasEdit, getCanvasEditorState, previewCanvasEdit } from '../store';
+import type { ChemDrawDocument } from '../types/chemdraw';
+import type { Arrow, Atom, Bond, TextBox } from '../types/chemistry';
 
 export interface SelectToolOverlay {
   isDragging: boolean;
@@ -143,7 +143,7 @@ export function useSelectTool(): SelectToolOverlay & SelectToolActions {
         arrows,
         groups,
         textBoxes,
-        pushToHistory,
+
         selectedObjectIds,
         selectedAtomIds,
         selectedBondIds,
@@ -157,7 +157,7 @@ export function useSelectTool(): SelectToolOverlay & SelectToolActions {
         setSelectedTextBoxIds,
         clearPreviewChemDrawDocument,
         clearSelectionPreviewTransform,
-      } = useStore.getState();
+      } = getCanvasEditorState();
 
       clearPreviewChemDrawDocument();
       clearSelectionPreviewTransform();
@@ -231,16 +231,16 @@ export function useSelectTool(): SelectToolOverlay & SelectToolActions {
           sourceDocument: chemDrawDocument,
           totalDx: 0,
           totalDy: 0,
-          selectedObjectIds: new Set(useStore.getState().selectedObjectIds),
+          selectedObjectIds: new Set(getCanvasEditorState().selectedObjectIds),
           movedAtomIds: collectMovedAtomIds(
-            useStore.getState().selectedAtomIds,
-            useStore.getState().selectedBondIds,
+            getCanvasEditorState().selectedAtomIds,
+            getCanvasEditorState().selectedBondIds,
             bonds,
           ),
           affectedBondIds: collectAffectedBondIds(
             collectMovedAtomIds(
-              useStore.getState().selectedAtomIds,
-              useStore.getState().selectedBondIds,
+              getCanvasEditorState().selectedAtomIds,
+              getCanvasEditorState().selectedBondIds,
               bonds,
             ),
             bonds,
@@ -266,16 +266,16 @@ export function useSelectTool(): SelectToolOverlay & SelectToolActions {
           sourceDocument: chemDrawDocument,
           totalDx: 0,
           totalDy: 0,
-          selectedObjectIds: new Set(useStore.getState().selectedObjectIds),
+          selectedObjectIds: new Set(getCanvasEditorState().selectedObjectIds),
           movedAtomIds: collectMovedAtomIds(
-            useStore.getState().selectedAtomIds,
-            useStore.getState().selectedBondIds,
+            getCanvasEditorState().selectedAtomIds,
+            getCanvasEditorState().selectedBondIds,
             bonds,
           ),
           affectedBondIds: collectAffectedBondIds(
             collectMovedAtomIds(
-              useStore.getState().selectedAtomIds,
-              useStore.getState().selectedBondIds,
+              getCanvasEditorState().selectedAtomIds,
+              getCanvasEditorState().selectedBondIds,
               bonds,
             ),
             bonds,
@@ -289,7 +289,7 @@ export function useSelectTool(): SelectToolOverlay & SelectToolActions {
           setSelectedBondIds(s);
         } else {
           if (selectedBondIds.has(hitBond.id)) {
-            pushToHistory({
+            commitCanvasEdit({
               atoms,
               bonds: bonds.map((b) =>
                 b.id === hitBond.id ? { ...b, order: (b.order % 3) + 1, stereo: 0 } : b,
@@ -309,16 +309,16 @@ export function useSelectTool(): SelectToolOverlay & SelectToolActions {
               sourceDocument: chemDrawDocument,
               totalDx: 0,
               totalDy: 0,
-              selectedObjectIds: new Set(useStore.getState().selectedObjectIds),
+              selectedObjectIds: new Set(getCanvasEditorState().selectedObjectIds),
               movedAtomIds: collectMovedAtomIds(
-                useStore.getState().selectedAtomIds,
-                useStore.getState().selectedBondIds,
+                getCanvasEditorState().selectedAtomIds,
+                getCanvasEditorState().selectedBondIds,
                 bonds,
               ),
               affectedBondIds: collectAffectedBondIds(
                 collectMovedAtomIds(
-                  useStore.getState().selectedAtomIds,
-                  useStore.getState().selectedBondIds,
+                  getCanvasEditorState().selectedAtomIds,
+                  getCanvasEditorState().selectedBondIds,
                   bonds,
                 ),
                 bonds,
@@ -346,16 +346,16 @@ export function useSelectTool(): SelectToolOverlay & SelectToolActions {
           sourceDocument: chemDrawDocument,
           totalDx: 0,
           totalDy: 0,
-          selectedObjectIds: new Set(useStore.getState().selectedObjectIds),
+          selectedObjectIds: new Set(getCanvasEditorState().selectedObjectIds),
           movedAtomIds: collectMovedAtomIds(
-            useStore.getState().selectedAtomIds,
-            useStore.getState().selectedBondIds,
+            getCanvasEditorState().selectedAtomIds,
+            getCanvasEditorState().selectedBondIds,
             bonds,
           ),
           affectedBondIds: collectAffectedBondIds(
             collectMovedAtomIds(
-              useStore.getState().selectedAtomIds,
-              useStore.getState().selectedBondIds,
+              getCanvasEditorState().selectedAtomIds,
+              getCanvasEditorState().selectedBondIds,
               bonds,
             ),
             bonds,
@@ -382,16 +382,16 @@ export function useSelectTool(): SelectToolOverlay & SelectToolActions {
           sourceDocument: chemDrawDocument,
           totalDx: 0,
           totalDy: 0,
-          selectedObjectIds: new Set(useStore.getState().selectedObjectIds),
+          selectedObjectIds: new Set(getCanvasEditorState().selectedObjectIds),
           movedAtomIds: collectMovedAtomIds(
-            useStore.getState().selectedAtomIds,
-            useStore.getState().selectedBondIds,
+            getCanvasEditorState().selectedAtomIds,
+            getCanvasEditorState().selectedBondIds,
             bonds,
           ),
           affectedBondIds: collectAffectedBondIds(
             collectMovedAtomIds(
-              useStore.getState().selectedAtomIds,
-              useStore.getState().selectedBondIds,
+              getCanvasEditorState().selectedAtomIds,
+              getCanvasEditorState().selectedBondIds,
               bonds,
             ),
             bonds,
@@ -423,8 +423,7 @@ export function useSelectTool(): SelectToolOverlay & SelectToolActions {
           textBoxes,
           selectedObjectIds,
           setSelectionPreviewTransform,
-          setCurrentCanvasState,
-        } = useStore.getState();
+        } = getCanvasEditorState();
         const { anchorX, anchorY, startX, startY, origAtoms, origArrows, origTBs } =
           scaleDataRef.current;
         const dStartX = startX - anchorX,
@@ -469,7 +468,7 @@ export function useSelectTool(): SelectToolOverlay & SelectToolActions {
         const aMap = new Map(origAtoms.map((a) => [a.id, a]));
         const arMap = new Map(origArrows.map((a) => [a.id, a]));
         const tMap = new Map(origTBs.map((t) => [t.id, t]));
-        setCurrentCanvasState({
+        previewCanvasEdit({
           atoms: atoms.map((a) => {
             const o = aMap.get(a.id);
             if (!o) return a;
@@ -505,12 +504,12 @@ export function useSelectTool(): SelectToolOverlay & SelectToolActions {
           selectedArrowIds,
           selectedTextBoxIds,
           setSelectionPreviewTransform,
-          setCurrentCanvasState,
+
           bonds,
           arrows,
           groups,
           textBoxes,
-        } = useStore.getState();
+        } = getCanvasEditorState();
         const movedAtomIds = new Set(selectedAtomIds);
         selectedBondIds.forEach((bondId) => {
           const bond = bonds.find((entry) => entry.id === bondId);
@@ -563,7 +562,7 @@ export function useSelectTool(): SelectToolOverlay & SelectToolActions {
           x: center.x + (x - center.x) * Math.cos(da) - (y - center.y) * Math.sin(da),
           y: center.y + (x - center.x) * Math.sin(da) + (y - center.y) * Math.cos(da),
         });
-        setCurrentCanvasState({
+        previewCanvasEdit({
           atoms: atoms.map((a) => {
             if (!selectedAtomIds.has(a.id)) return a;
             const r = rot(a.x, a.y);
@@ -612,7 +611,7 @@ export function useSelectTool(): SelectToolOverlay & SelectToolActions {
           setSelectedArrowIds,
           setSelectedTextBoxIds,
           chemDrawDocument,
-        } = useStore.getState();
+        } = getCanvasEditorState();
 
         const inBoxAtoms = atoms
           .filter((a) => a.x >= x1 && a.x <= x2 && a.y >= y1 && a.y <= y2)
@@ -716,8 +715,7 @@ export function useSelectTool(): SelectToolOverlay & SelectToolActions {
           arrows,
           groups,
           textBoxes,
-          setCurrentCanvasState,
-        } = useStore.getState();
+        } = getCanvasEditorState();
         const hasSelection =
           selectedAtomIds.size > 0 ||
           selectedBondIds.size > 0 ||
@@ -733,7 +731,7 @@ export function useSelectTool(): SelectToolOverlay & SelectToolActions {
           const selectionIds =
             moveDataRef.current.selectedObjectIds.size > 0
               ? moveDataRef.current.selectedObjectIds
-              : useStore.getState().selectedObjectIds;
+              : getCanvasEditorState().selectedObjectIds;
           if (moveDataRef.current.sourceDocument && selectionIds.size > 0) {
             setSelectionPreviewTransform({
               kind: 'move',
@@ -753,7 +751,7 @@ export function useSelectTool(): SelectToolOverlay & SelectToolActions {
           movedAtomIds.add(bond.from);
           movedAtomIds.add(bond.to);
         });
-        setCurrentCanvasState({
+        previewCanvasEdit({
           atoms: atoms.map((a) =>
             movedAtomIds.has(a.id) ? { ...a, x: a.x + dx, y: a.y + dy } : a,
           ),
@@ -790,10 +788,10 @@ export function useSelectTool(): SelectToolOverlay & SelectToolActions {
         arrows,
         groups,
         textBoxes,
-        pushToHistory,
+
         dispatchEditorCommand,
         clearSelectionPreviewTransform,
-      } = useStore.getState();
+      } = getCanvasEditorState();
       const scaleData = scaleDataRef.current;
       scaleDataRef.current = null;
       if (scaleData?.sourceDocument && scaleData.selectedObjectIds.size > 0) {
@@ -809,7 +807,7 @@ export function useSelectTool(): SelectToolOverlay & SelectToolActions {
         }
         return;
       }
-      pushToHistory({ atoms, bonds, arrows, groups: groups ?? [], textBoxes: textBoxes ?? [] });
+      commitCanvasEdit({ atoms, bonds, arrows, groups: groups ?? [], textBoxes: textBoxes ?? [] });
       return;
     }
     if (isRotatingRef.current) {
@@ -821,10 +819,10 @@ export function useSelectTool(): SelectToolOverlay & SelectToolActions {
         arrows,
         groups,
         textBoxes,
-        pushToHistory,
+
         dispatchEditorCommand,
         clearSelectionPreviewTransform,
-      } = useStore.getState();
+      } = getCanvasEditorState();
       const rotateData = rotateDataRef.current;
       rotateDataRef.current = null;
       if (rotateData?.sourceDocument && rotateData.selectedObjectIds.size > 0) {
@@ -839,7 +837,7 @@ export function useSelectTool(): SelectToolOverlay & SelectToolActions {
         }
         return;
       }
-      pushToHistory({ atoms, bonds, arrows, groups: groups ?? [], textBoxes: textBoxes ?? [] });
+      commitCanvasEdit({ atoms, bonds, arrows, groups: groups ?? [], textBoxes: textBoxes ?? [] });
       return;
     }
     if (isSelectionBoxRef.current) {
@@ -858,10 +856,10 @@ export function useSelectTool(): SelectToolOverlay & SelectToolActions {
         arrows,
         groups,
         textBoxes,
-        pushToHistory,
+
         dispatchEditorCommand,
         clearSelectionPreviewTransform,
-      } = useStore.getState();
+      } = getCanvasEditorState();
       const moveData = moveDataRef.current;
       moveDataRef.current = null;
       if (moveData?.sourceDocument && moveData.selectedObjectIds.size > 0) {
@@ -879,7 +877,7 @@ export function useSelectTool(): SelectToolOverlay & SelectToolActions {
         }
         return;
       }
-      pushToHistory({ atoms, bonds, arrows, groups: groups ?? [], textBoxes: textBoxes ?? [] });
+      commitCanvasEdit({ atoms, bonds, arrows, groups: groups ?? [], textBoxes: textBoxes ?? [] });
     }
   }, []);
 
@@ -894,8 +892,8 @@ export function useSelectTool(): SelectToolOverlay & SelectToolActions {
     moveDataRef.current = null;
     rotateDataRef.current = null;
     scaleDataRef.current = null;
-    useStore.getState().clearPreviewChemDrawDocument();
-    useStore.getState().clearSelectionPreviewTransform();
+    getCanvasEditorState().clearPreviewChemDrawDocument();
+    getCanvasEditorState().clearSelectionPreviewTransform();
   }, []);
 
   return {

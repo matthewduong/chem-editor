@@ -1,15 +1,11 @@
-import type { CanvasState } from '../types/chemistry';
 import type {
   ChemDrawDocument,
   ChemDrawEditingCapability,
   ChemDrawObject,
 } from '../types/chemdraw';
-import type { DocumentStyleSettings, PageSetup } from '../types/settings';
-import {
-  chemDrawDocumentToCanvasState,
-  mergeCanvasStateIntoChemDrawDocument,
-} from './chemdrawModel';
-import { cdxmlToChemDrawDocument, chemDrawDocumentToCDXML, stateToCDXML } from '../utils/cdxml';
+import type { CanvasState } from '../types/chemistry';
+import { cdxmlToChemDrawDocument, chemDrawDocumentToCDXML } from '../utils/cdxml';
+import { chemDrawDocumentToCanvasState } from './chemdrawModel';
 
 export interface ChemDrawCompatibilitySummary {
   warningCount: number;
@@ -95,22 +91,9 @@ export function loadChemDrawDocumentForCanvas(xmlString: string): {
   };
 }
 
-export function prepareChemDrawDocumentForSave(params: {
-  canvasState: CanvasState;
-  document: ChemDrawDocument | null;
-  documentStyleSettings: DocumentStyleSettings;
-  pageSetup: PageSetup;
-}): { document: ChemDrawDocument | null; xml: string } {
-  const merged = params.document
-    ? mergeCanvasStateIntoChemDrawDocument(params.document, params.canvasState).document
-    : null;
-  return {
-    document: merged,
-    xml: merged
-      ? chemDrawDocumentToCDXML(merged)
-      : stateToCDXML(params.canvasState, {
-          documentStyleSettings: params.documentStyleSettings,
-          pageSetup: params.pageSetup,
-        }),
-  };
+export function prepareChemDrawDocumentForSave(params: { document: ChemDrawDocument }): {
+  document: ChemDrawDocument;
+  xml: string;
+} {
+  return { document: params.document, xml: chemDrawDocumentToCDXML(params.document) };
 }

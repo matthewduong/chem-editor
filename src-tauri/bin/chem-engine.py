@@ -466,6 +466,9 @@ def _find_xtb():
     if os.path.isfile(candidate) and os.access(candidate, os.X_OK):
         return candidate, _share(script_dir)
 
+    if getattr(sys, "frozen", False):
+        return None, None
+
     # System PATH (conda / system install — XTBPATH already set by activation)
     system = shutil.which("xtb")
     return system, None
@@ -1730,6 +1733,50 @@ def run_server() -> int:
 PROTOCOL_VERSION = 1
 
 
+def packaged_self_check():
+    """Load bundled dependencies and data without running a quantum calculation."""
+    import sqlite3
+
+    import numpy as np
+
+    pyscf_available = importlib.util.find_spec("pyscf") is not None
+    if sys.platform != "win32" or pyscf_available:
+        from pyscf import gto, scf
+        from pyscf.gto import moleintor
+        from pyscf.prop.nmr import rks
+
+        if not moleintor.libcgto or not gto.Mole or not scf.RHF or not rks.NMR:
+            raise RuntimeError("Incomplete bundled PySCF dependencies")
+
+    base = getattr(sys, "_MEIPASS", os.path.dirname(os.path.abspath(__file__)))
+    with open(os.path.join(base, "nmr_refs.json")) as stream:
+        refs = json.load(stream)
+    database = os.path.join(base, "nmr_hose_db.sqlite")
+    with sqlite3.connect(f"file:{database}?mode=ro", uri=True) as connection:
+        connection.execute("SELECT COUNT(*) FROM hose_stats").fetchone()
+    xtb, share = _find_xtb()
+    if (
+        not xtb
+        or not share
+        or not os.path.commonpath([os.path.realpath(base), os.path.realpath(xtb)]) == os.path.realpath(base)
+    ):
+        raise RuntimeError("Bundled xTB binary or parameter files are missing")
+    version = _run_tracked_subprocess([xtb, "--version"], capture_output=True, text=True, timeout=30)
+    if version.returncode:
+        raise RuntimeError(f"Bundled xTB cannot load: {version.stderr}")
+    # Importing moleintor loads libcint/libcgto; this does not run SCF or integrals.
+    if not refs:
+        raise RuntimeError("Incomplete bundled dependencies")
+    if not np.isfinite(np.linalg.det(np.eye(2))):
+        raise RuntimeError("NumPy native libraries cannot load")
+    return {
+        "ok": True,
+        "frozen": bool(getattr(sys, "frozen", False)),
+        "resources": os.path.realpath(base),
+        "pyscf": pyscf_available,
+    }
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--server", action="store_true")
@@ -1737,6 +1784,7 @@ if __name__ == "__main__":
 
     # Protocol handshake
     subparsers.add_parser("protocol")
+    subparsers.add_parser("self-check")
 
     # Conformer command
     conf_parser = subparsers.add_parser("conformer")
@@ -1802,6 +1850,8 @@ if __name__ == "__main__":
     elif args.command == "xyz-conformer":
         content = sys.stdin.read()
         print(json.dumps(xyz_to_conformer(content)))
+    elif args.command == "self-check":
+        print(json.dumps(packaged_self_check()))
     elif args.command == "protocol":
         print(json.dumps({"protocol": PROTOCOL_VERSION}))
     elif args.command == "properties":

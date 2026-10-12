@@ -1,3 +1,9 @@
+import {
+  parentElement,
+  allElements,
+  type XmlElement as Element,
+  type XmlDocument as Document,
+} from './xml';
 /**
  * Whether `element` is an `<objecttag>` belonging to a `<graphic GraphicType="Bracket">`.
  *
@@ -9,7 +15,7 @@
  */
 function isBracketObjectTag(element: Element): boolean {
   if (element.tagName !== 'objecttag') return false;
-  const parent = element.parentElement;
+  const parent = parentElement(element);
   return parent?.tagName === 'graphic' && parent.getAttribute('GraphicType') === 'Bracket';
 }
 
@@ -36,11 +42,11 @@ function hasNonFiniteNumber(value: string): boolean {
 
 /** CDXML has separate font/color tables; drawing IDs are document-wide. */
 export function validateCdxmlInput(xml: Document): void {
-  if (xml.querySelector('parsererror') || xml.documentElement?.tagName !== 'CDXML') {
+  if (xml.getElementsByTagName('parsererror').length || xml.documentElement?.tagName !== 'CDXML') {
     throw new Error('Invalid CDXML: expected a well-formed CDXML document.');
   }
   const objects = new Map<string, Element>();
-  for (const element of Array.from(xml.querySelectorAll('[id]'))) {
+  for (const element of Array.from(allElements(xml).filter((el) => el.hasAttribute('id')))) {
     if (element.tagName === 'font' || element.tagName === 'color') continue;
     if (isBracketObjectTag(element)) continue;
     const id = element.getAttribute('id')!;
@@ -60,7 +66,7 @@ export function validateCdxmlInput(xml: Document): void {
     ['MajorAxisEnd3D', [3]],
     ['MinorAxisEnd3D', [3]],
   ]);
-  for (const element of Array.from(xml.querySelectorAll('*'))) {
+  for (const element of Array.from(allElements(xml))) {
     for (const attribute of Array.from(element.attributes)) {
       const arity = geometry.get(attribute.name);
       if (!arity) {

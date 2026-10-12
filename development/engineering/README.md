@@ -11,6 +11,13 @@ pieces fit together. For current setup commands and operational workflows, start
 - [`../README.md`](../README.md)
 - [`../getting-started.md`](../getting-started.md)
 
+## Current architecture update
+
+The guide predates the October 2026 single-document/history and shared-renderer refactor.
+Examples using `pushToHistory` or `setCurrentCanvasState` describe the former architecture.
+Use [the current validation and architecture notes](../../docs/engineering-validation.md)
+for the command boundary, previews, XML workers and packaged acceptance.
+
 ## Build The PDF
 
 From the repo root:

@@ -10,6 +10,7 @@
     "@tauri-apps/plugin-clipboard-manager": "^2.3.2",
     "@tauri-apps/plugin-dialog": "^2.7.1",
     "@tauri-apps/plugin-fs": "^2.5.1",
+    "@xmldom/xmldom": "0.9.12",
     "konva": "^10.3.0",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
@@ -19,6 +20,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.64.0",
     "@tauri-apps/cli": "^2.11.2",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/react": "^16.3.2",
@@ -38,7 +40,8 @@
     "typescript-eslint": "^8.60.0",
     "vite": "^8.0.16",
     "vite-plugin-eslint2": "^5.1.0",
-    "vitest": "^4.1.8"
+    "vitest": "^4.1.8",
+    "webdriverio": "^10.0.2"
   },
   "scripts": {
     "postinstall": "node scripts/copy-rdkit.mjs",
@@ -81,7 +84,10 @@
     "install-hooks": "node scripts/install-hooks.mjs",
     "clean": "node scripts/clean.mjs",
     "clean:deep": "node scripts/clean.mjs --deep",
-    "test:py:qm": "node scripts/run-python-tests.mjs --qm"
+    "test:py:qm": "node scripts/run-python-tests.mjs --qm",
+    "test:browser": "playwright test",
+    "test:packaged": "node scripts/check-packaged-app.mjs",
+    "test:packaged:ui": "node scripts/test-packaged-ui.mjs"
   },
   "license": "Apache-2.0"
 }

@@ -68,3 +68,12 @@ GEMINI.md
 .agents/
 .codex/
 .eslintcache
+
+# Browser acceptance output
+/test-results/
+/playwright-report/
+/package-check.json
+/ui-check.json
+/native-ui-evidence/
+/package-hashes.json
+/ChemEditor-macos-arm64.app.tar.gz

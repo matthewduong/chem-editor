@@ -1,3 +1,12 @@
+import {
+  elementChildren,
+  parentElement,
+  firstByTag,
+  allElements,
+  parseXml,
+  serializeXml,
+  type XmlElement as Element,
+} from '../lib/xml';
 import { assertFiniteNumbers, validateCdxmlInput } from '../lib/cdxmlValidation';
 /**
  * cdxml.ts — ChemDraw CDXML import/export
@@ -203,10 +212,9 @@ function collectUnhandledChildren(
   el: Element,
   preserveChild: (child: Element) => boolean,
 ): string[] | undefined {
-  const serializer = new XMLSerializer();
-  const rawChildren = Array.from(el.children)
+  const rawChildren = Array.from(elementChildren(el))
     .filter(preserveChild)
-    .map((child) => serializer.serializeToString(child));
+    .map((child) => serializeXml(child));
   return rawChildren.length > 0 ? rawChildren : undefined;
 }
 
@@ -317,14 +325,14 @@ function parseNodeLabelAlignment(
 }
 
 function getDirectChildrenByTagName(el: Element, tagName: string): Element[] {
-  return Array.from(el.children).filter((child) => child.tagName === tagName);
+  return Array.from(elementChildren(el)).filter((child) => child.tagName === tagName);
 }
 
 function hasAncestorTag(el: Element, tagName: string): boolean {
-  let parent = el.parentElement;
+  let parent = parentElement(el);
   while (parent) {
     if (parent.tagName.toLowerCase() === tagName.toLowerCase()) return true;
-    parent = parent.parentElement;
+    parent = parentElement(parent);
   }
   return false;
 }
@@ -333,7 +341,7 @@ function getClosestPage(el: Element): Element | null {
   let current: Element | null = el;
   while (current) {
     if (current.tagName === 'page') return current;
-    current = current.parentElement;
+    current = parentElement(current);
   }
   return null;
 }
@@ -2023,7 +2031,8 @@ function chemDrawDocumentToCDXMLInternal(document: ChemDrawDocument): string {
   const emittedIds = new Set(Array.from(xml.matchAll(/\sid="([^"]+)"/g), (match) => match[1]));
   for (const extraPage of document.metadata?.preservedExtraPages ?? []) {
     const extraIds = Array.from(extraPage.xml.matchAll(/\sid="([^"]+)"/g), (match) => match[1]);
-    if (extraIds.some((id) => emittedIds.has(id))) continue;
+    if (extraIds.some((id) => emittedIds.has(id)))
+      throw new Error('Cannot save CDXML: a preserved page has conflicting object IDs.');
     extraIds.forEach((id) => emittedIds.add(id));
     xml += `  ${extraPage.xml.endsWith('\n') ? extraPage.xml : `${extraPage.xml}\n`}`;
   }
@@ -2034,27 +2043,30 @@ function chemDrawDocumentToCDXMLInternal(document: ChemDrawDocument): string {
 // ─── Import ──────────────────────────────────────────────────────────────────
 
 export function cdxmlToChemDrawDocument(xmlString: string): ChemDrawConversionResult {
-  const parser = new DOMParser();
-  const doc = parser.parseFromString(xmlString, 'application/xml');
+  const doc = parseXml(xmlString);
   validateCdxmlInput(doc);
   // One generator for the whole import, seeded with every id the source already uses, so two
   // id-less elements can never synthesize the same id or take one that another element owns.
   const fallbackId = makeIdGen(
     new Set(
-      Array.from(doc.querySelectorAll('[id]'), (el) => el.getAttribute('id') ?? '').filter(Boolean),
+      Array.from(
+        allElements(doc).filter((el) => el.hasAttribute('id')),
+        (el) => el.getAttribute('id') ?? '',
+      ).filter(Boolean),
     ),
   );
   const warnings: string[] = [];
   const objects: ChemDrawObject[] = [];
-  const pageEl = doc.querySelector('page');
+  const pageEl = firstByTag(doc, 'page');
   const root = doc.documentElement;
+  if (!root) throw new Error('Invalid CDXML: missing root element.');
   const preservedExtraPages: Array<{ id: string; xml: string }> = [];
-  Array.from(root.children)
+  Array.from(elementChildren(root))
     .filter((child) => child.tagName === 'page' && child !== pageEl)
     .forEach((extraPage, index) => {
       preservedExtraPages.push({
         id: extraPage.getAttribute('id') ?? `page-${index + 2}`,
-        xml: new XMLSerializer().serializeToString(extraPage),
+        xml: serializeXml(extraPage),
       });
     });
   if (preservedExtraPages.length) {
@@ -2120,9 +2132,9 @@ export function cdxmlToChemDrawDocument(xmlString: string): ChemDrawConversionRe
   const importScaleFactor = docBondLength / CANVAS_BOND_PX;
 
   const colorTable: string[] = [];
-  const colortableEl = doc.querySelector('colortable');
+  const colortableEl = firstByTag(doc, 'colortable');
   if (colortableEl) {
-    const colorEls = colortableEl.children;
+    const colorEls = elementChildren(colortableEl);
     for (let i = 0; i < colorEls.length; i++) {
       const el = colorEls[i];
       const r = Math.round(parseFloat(el.getAttribute('r') ?? '0') * 255);
@@ -2142,7 +2154,7 @@ export function cdxmlToChemDrawDocument(xmlString: string): ChemDrawConversionRe
     idx === 0 ? '#000000' : idx === 1 ? '#ffffff' : colorTable[idx - 2];
 
   const fontNameById = new Map<number, string>();
-  const fonttableEl = doc.querySelector('fonttable');
+  const fonttableEl = firstByTag(doc, 'fonttable');
   if (fonttableEl) {
     const fontEls = fonttableEl.getElementsByTagName('font');
     for (let i = 0; i < fontEls.length; i++) {
@@ -2208,7 +2220,7 @@ export function cdxmlToChemDrawDocument(xmlString: string): ChemDrawConversionRe
     const tags = getDirectChildrenByTagName(containerEl, 'objecttag')
       .map((tagEl) => {
         const textEl = getFirstDirectChildByTagName(tagEl, 't');
-        const firstS = textEl?.querySelector('s') ?? null;
+        const firstS = firstByTag(textEl, 's') ?? null;
         const fontId = firstS ? parseInt(firstS.getAttribute('font') ?? '', 10) : undefined;
         const fontFamily =
           fontId != null && !Number.isNaN(fontId) ? fontNameById.get(fontId) : undefined;
@@ -2301,10 +2313,10 @@ export function cdxmlToChemDrawDocument(xmlString: string): ChemDrawConversionRe
   // node they belong to. getElementsByTagName returns those too; including them
   // would add duplicate atoms with wrong coordinates → crazy cross-canvas bonds.
   const isNestedInAtom = (el: Element): boolean => {
-    let p = el.parentElement;
+    let p = parentElement(el);
     while (p) {
       if (p.tagName === 'n') return true;
-      p = p.parentElement;
+      p = parentElement(p);
     }
     return false;
   };
@@ -2318,8 +2330,8 @@ export function cdxmlToChemDrawDocument(xmlString: string): ChemDrawConversionRe
     const nodeIds: string[] = [];
     const bondIds: string[] = [];
 
-    for (let j = 0; j < fragmentEl.children.length; j++) {
-      const child = fragmentEl.children[j];
+    for (let j = 0; j < elementChildren(fragmentEl).length; j++) {
+      const child = elementChildren(fragmentEl)[j];
       if (child.tagName === 'n') {
         const cdxId = child.getAttribute('id');
         const p = child.getAttribute('p') ?? child.getAttribute('p3');
@@ -2446,7 +2458,7 @@ export function cdxmlToChemDrawDocument(xmlString: string): ChemDrawConversionRe
           }
         }
 
-        const tChildren = Array.from(child.children).filter((el) => el.tagName === 't');
+        const tChildren = Array.from(elementChildren(child)).filter((el) => el.tagName === 't');
         const objectTags = parseObjectTags(child);
         let alias: string | undefined;
         let text: ChemDrawNode['text'];
@@ -2476,7 +2488,7 @@ export function cdxmlToChemDrawDocument(xmlString: string): ChemDrawConversionRe
               : justification === 'right'
                 ? 'hydrogen-first'
                 : undefined;
-          const firstS = tChildren[0].querySelector('s');
+          const firstS = firstByTag(tChildren[0], 's');
           const fontSize = firstS ? parseFloat(firstS.getAttribute('size') ?? '12') : undefined;
           const fontId = firstS ? parseInt(firstS.getAttribute('font') ?? '1', 10) : undefined;
           const colorId = firstS ? parseInt(firstS.getAttribute('color') ?? '', 10) : undefined;
@@ -2949,12 +2961,12 @@ export function cdxmlToChemDrawDocument(xmlString: string): ChemDrawConversionRe
     let labelFontSize: number | undefined;
     let labelColor: string | undefined;
 
-    for (let j = 0; j < a.children.length; j++) {
-      const child = a.children[j];
+    for (let j = 0; j < elementChildren(a).length; j++) {
+      const child = elementChildren(a)[j];
       if (child.tagName !== 't') continue;
       const runs = parseSRuns(child);
       if (runs.length === 0) continue;
-      const firstS = child.querySelector('s');
+      const firstS = firstByTag(child, 's');
       const sizeAttr = firstS?.getAttribute('size');
       const colorAttr = firstS?.getAttribute('color');
       labelFontSize ??= sizeAttr ? parseFloat(sizeAttr) : undefined;
@@ -3075,7 +3087,7 @@ export function cdxmlToChemDrawDocument(xmlString: string): ChemDrawConversionRe
     if (!isElementOnPage(child, pageEl) || hasAncestorTag(child, 'table')) continue;
     // Only process standalone page-level text boxes. Skip <t> elements that are
     // children of structural containers (atom labels, arrow labels, bracket labels, etc.)
-    const parentTag = child.parentElement?.tagName ?? '';
+    const parentTag = parentElement(child)?.tagName ?? '';
     if (parentTag !== 'page' && parentTag !== 'group') continue;
 
     const pAttr = child.getAttribute('p');
@@ -3137,7 +3149,7 @@ export function cdxmlToChemDrawDocument(xmlString: string): ChemDrawConversionRe
       }
     }
 
-    const firstS = child.querySelector('s');
+    const firstS = firstByTag(child, 's');
     const fontSizeRaw = firstS ? parseFloat(firstS.getAttribute('size') ?? '14') : 14;
     const fontSize = isNaN(fontSizeRaw) ? 14 : fontSizeRaw;
     const fontId = firstS ? parseInt(firstS.getAttribute('font') ?? '1') : 1;
@@ -3667,8 +3679,8 @@ export function cdxmlToChemDrawDocument(xmlString: string): ChemDrawConversionRe
   // document model), so BoundingBox is read and dropped rather than preserved as unmodeled data.
   function importGroupElement(groupEl: Element): ChemDrawGroup {
     const childIds: string[] = [];
-    for (let i = 0; i < groupEl.children.length; i++) {
-      const child = groupEl.children[i];
+    for (let i = 0; i < elementChildren(groupEl).length; i++) {
+      const child = elementChildren(groupEl)[i];
       const childTag = child.tagName.toLowerCase();
       if (childTag === 'group') {
         const nested = importGroupElement(child);
@@ -3721,8 +3733,8 @@ export function cdxmlToChemDrawDocument(xmlString: string): ChemDrawConversionRe
     };
   }
   if (pageEl) {
-    for (let i = 0; i < pageEl.children.length; i++) {
-      const child = pageEl.children[i];
+    for (let i = 0; i < elementChildren(pageEl).length; i++) {
+      const child = elementChildren(pageEl)[i];
       const tag = child.tagName.toLowerCase();
       if (handledTopLevelTags.has(tag)) continue;
       if (tag === 'n' || tag === 'b') continue;
@@ -3746,14 +3758,30 @@ export function cdxmlToChemDrawDocument(xmlString: string): ChemDrawConversionRe
       }
       if (tag === 'scheme' || tag === 'step') {
         const hasModeledDescendants = Boolean(
-          child.querySelector(
-            'fragment,arrow,t,bracketedgroup,embeddedobject,table,graphic,curve,line,rect,rectangle,oval,ellipse,polygon,arc',
+          allElements(child).find((el) =>
+            [
+              'fragment',
+              'arrow',
+              't',
+              'bracketedgroup',
+              'embeddedobject',
+              'table',
+              'graphic',
+              'curve',
+              'line',
+              'rect',
+              'rectangle',
+              'oval',
+              'ellipse',
+              'polygon',
+              'arc',
+            ].includes(el.tagName),
           ),
         );
         if (!hasModeledDescendants) {
           preservedPageChildren.push({
             tagName: tag,
-            xml: new XMLSerializer().serializeToString(child),
+            xml: serializeXml(child),
             capability: 'render-only',
             reason: `Unsupported page-level <${tag}> content is preserved for export only.`,
           });
@@ -3766,7 +3794,7 @@ export function cdxmlToChemDrawDocument(xmlString: string): ChemDrawConversionRe
       }
       preservedPageChildren.push({
         tagName: tag,
-        xml: new XMLSerializer().serializeToString(child),
+        xml: serializeXml(child),
         capability: 'render-only',
         reason: `Unsupported top-level CDXML object <${tag}> is preserved for export only.`,
       });

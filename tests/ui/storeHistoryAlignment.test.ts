@@ -1,3 +1,4 @@
+import { commitCanvasEdit } from '../../src/store';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { useStore } from '../../src/store';
 import { resetStore } from './helpers';
@@ -10,35 +11,36 @@ const XML =
 
 const atom = (id: string, x: number): Atom => ({ id, x, y: 0, kind: 'element', element: 'C' });
 
-/** The flat and document undo stacks are parallel; index N of one is index N of the other. */
+/** The live document is always the current snapshot in the single undo stack. */
 function expectAligned(label: string) {
   const s = useStore.getState();
-  expect(s.history.length, `${label}: stack lengths`).toBe(s.documentHistory.length);
+  expect('documentHistory' in s).toBe(false);
+  expect(s.historyIndex).toBeGreaterThanOrEqual(0);
   expect(s.historyIndex, `${label}: index in range`).toBeLessThan(s.history.length);
   if (s.historyIndex >= 0) {
-    expect(s.documentHistory[s.historyIndex], `${label}: head is live`).toBe(s.chemDrawDocument);
+    expect(s.history[s.historyIndex], `${label}: head is live`).toBe(s.chemDrawDocument);
   }
 }
 
-describe('undo stack alignment', () => {
+describe('single document history', () => {
   beforeEach(() => {
     resetStore();
   });
 
-  it('keeps history and documentHistory index-aligned through every transition', () => {
+  it('keeps the live document at the history head through every transition', () => {
     const { document } = cdxmlToChemDrawDocument(XML);
     useStore.getState().replaceDocument(document, [], '/tmp/a.cdxml');
     expectAligned('replaceDocument');
 
     const s = () => useStore.getState();
-    s().pushToHistory({
+    commitCanvasEdit({
       atoms: [...s().atoms, atom('n1', 50)],
       bonds: s().bonds,
       arrows: s().arrows,
       groups: [],
       textBoxes: s().textBoxes,
     });
-    expectAligned('pushToHistory');
+    expectAligned('projection edit');
 
     s().commitDocument({ ...s().chemDrawDocument!, metadata: { bondLength: 20 } });
     expectAligned('commitDocument');
@@ -50,7 +52,7 @@ describe('undo stack alignment', () => {
     s().redo();
     expectAligned('redo');
 
-    // A new edit after undo truncates the redo tail in both stacks.
+    // A new edit after undo truncates the redo tail in the document stack.
     s().commitDocument({ ...s().chemDrawDocument!, metadata: { bondLength: 25 } });
     expectAligned('edit after undo');
     expect(s().history).toHaveLength(s().historyIndex + 1);

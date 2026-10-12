@@ -75,3 +75,29 @@ export interface EditorTransaction {
 }
 
 export type EditorViewportBounds = ChemDrawBounds;
+
+export type SelectionPreviewTransform =
+  | {
+      kind: 'move';
+      selectedObjectIds: Set<string>;
+      movedAtomIds: Set<string>;
+      affectedBondIds: Set<string>;
+      dx: number;
+      dy: number;
+    }
+  | {
+      kind: 'rotate';
+      selectedObjectIds: Set<string>;
+      movedAtomIds: Set<string>;
+      affectedBondIds: Set<string>;
+      center: { x: number; y: number };
+      radians: number;
+    }
+  | {
+      kind: 'scale';
+      selectedObjectIds: Set<string>;
+      movedAtomIds: Set<string>;
+      affectedBondIds: Set<string>;
+      anchor: { x: number; y: number };
+      factor: number;
+    };

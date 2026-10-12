@@ -8,6 +8,7 @@ export interface DocumentRenderSurfaceRef {
 
 interface Props extends RenderSceneOptions {
   scene: DocumentSceneState;
+  exportScene?: DocumentSceneState;
 }
 
 function paintScene(
@@ -32,7 +33,7 @@ function paintScene(
 }
 
 export const DocumentRenderSurface = forwardRef<DocumentRenderSurfaceRef, Props>(
-  ({ scene, width, height, stageScale, stagePos }, ref) => {
+  ({ scene, exportScene, width, height, stageScale, stagePos }, ref) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
 
     useEffect(() => {
@@ -47,19 +48,20 @@ export const DocumentRenderSurface = forwardRef<DocumentRenderSurfaceRef, Props>
           const canvas = document.createElement('canvas');
           paintScene(
             canvas,
-            scene,
+            exportScene ?? scene,
             {
               width: options?.width ?? width,
               height: options?.height ?? height,
               stageScale: options?.stageScale ?? stageScale,
               stagePos: options?.stagePos ?? stagePos,
+              drawPageChrome: false,
             },
             options?.pixelRatio ?? 1,
           );
           return canvas.toDataURL('image/png');
         },
       }),
-      [height, scene, stagePos, stageScale, width],
+      [height, scene, exportScene, stagePos, stageScale, width],
     );
 
     return (

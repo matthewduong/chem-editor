@@ -155,13 +155,19 @@ export function buildDocumentSceneState(input: BuildSceneInput): DocumentSceneSt
     interaction,
   } = input;
 
+  // Accept editing affordances only: a scene spread must never replace the new
+  // document index or geometry projection (preview callers carry the old scene).
+  const resolvedInteraction = defaultInteractionState();
+  for (const key of Object.keys(resolvedInteraction) as Array<keyof SceneInteractionState>) {
+    if (interaction && key in interaction)
+      Object.assign(resolvedInteraction, { [key]: interaction[key] });
+  }
   return {
     index: buildDocumentIndex(document, { documentStyleSettings }),
     legacy: buildLegacySceneState(canvasState, document, documentStyleSettings),
     documentStyleSettings,
     documentViewSettings,
     pageSetup,
-    ...defaultInteractionState(),
-    ...interaction,
+    ...resolvedInteraction,
   };
 }

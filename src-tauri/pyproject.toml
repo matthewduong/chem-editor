@@ -13,8 +13,8 @@ build = [
     "pyinstaller>=6.19.0",
 ]
 nmr-dft = [
-    "pyscf==2.12.1",
-    "pyscf-properties>=0.1.0",
+    "pyscf==2.12.1; sys_platform != 'win32'",
+    "pyscf-properties>=0.1.0; sys_platform != 'win32'",
 ]
 
 [tool.ruff]

@@ -1,6 +1,5 @@
 import type { ChemDrawDocument } from '../types/chemdraw';
 import type { CanvasState } from '../types/chemistry';
-import type { DocumentStyleSettings, PageSetup } from '../types/settings';
 
 export interface LoadChemDrawDocumentResult {
   document: ChemDrawDocument;
@@ -11,14 +10,11 @@ export interface LoadChemDrawDocumentResult {
 }
 
 export interface PrepareChemDrawDocumentForSaveParams {
-  canvasState: CanvasState;
-  document: ChemDrawDocument | null;
-  documentStyleSettings: DocumentStyleSettings;
-  pageSetup: PageSetup;
+  document: ChemDrawDocument;
 }
 
 export interface PrepareChemDrawDocumentForSaveResult {
-  document: ChemDrawDocument | null;
+  document: ChemDrawDocument;
   xml: string;
 }
 
@@ -27,6 +23,7 @@ export type CdxmlWorkerRequest =
   | { id: number; type: 'prepare-save'; params: PrepareChemDrawDocumentForSaveParams };
 
 export type CdxmlWorkerResponse =
+  | { type: 'ready' }
   | { id: number; success: true; type: 'load'; result: LoadChemDrawDocumentResult }
   | {
       id: number;

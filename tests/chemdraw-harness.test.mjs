@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 
 import {
   buildCdxmlElementSummary,
+  assertImportFidelity,
   buildCompatibilitySummary,
   classifyFailure,
   diffCdxmlElementSummaries,
@@ -493,4 +494,35 @@ test('an atom label loss cannot hide behind the nickname category', () => {
   );
   const bad = diffCdxmlElementSummaries(source, lossy);
   assert.equal(bad.elements.unexplained.t.unexplained, 1);
+});
+
+test('import fidelity fails on unexplained elements and attributes with its own classification', () => {
+  const source = buildCdxmlElementSummary(
+    '<CDXML><page><n id="1" p="0 0" Isotope="13"/><unknown Custom="keep"/></page></CDXML>',
+  );
+  const output = buildCdxmlElementSummary('<CDXML><page><n id="1" p="0 0"/></page></CDXML>');
+  const delta = diffCdxmlElementSummaries(source, output);
+  assert.throws(
+    () => assertImportFidelity(delta),
+    (error) => classifyFailure(error) === 'import-fidelity',
+  );
+  assert.equal(delta.attributes.unexplained.Isotope.unexplained, 1);
+});
+
+test('a derived group box is allowed but a lost box on another object still fails', () => {
+  const summarize = (xml) => buildCdxmlElementSummary(xml);
+  const source = summarize(
+    '<CDXML><page><group id="g" BoundingBox="0 0 10 10"/><t id="t" BoundingBox="0 0 10 10"/></page></CDXML>',
+  );
+  const allowed = summarize(
+    '<CDXML><page><group id="g"/><t id="t" BoundingBox="0 0 10 10"/></page></CDXML>',
+  );
+  const disallowed = summarize(
+    '<CDXML><page><group id="g" BoundingBox="0 0 10 10"/><t id="t"/></page></CDXML>',
+  );
+  assert.doesNotThrow(() => assertImportFidelity(diffCdxmlElementSummaries(source, allowed)));
+  assert.throws(
+    () => assertImportFidelity(diffCdxmlElementSummaries(source, disallowed)),
+    /Import fidelity loss/,
+  );
 });

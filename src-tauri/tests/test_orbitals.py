@@ -17,6 +17,17 @@ assert spec.loader is not None
 spec.loader.exec_module(chem_engine)
 
 
+class PackagedRuntimeTests(unittest.TestCase):
+    def test_frozen_engine_never_substitutes_system_xtb(self):
+        with (
+            mock.patch.object(chem_engine.sys, "frozen", True, create=True),
+            mock.patch.object(chem_engine.os.path, "isfile", return_value=False),
+            mock.patch.object(chem_engine.shutil, "which") as system_xtb,
+        ):
+            self.assertEqual(chem_engine._find_xtb(), (None, None))
+            system_xtb.assert_not_called()
+
+
 class FrontierIndexTests(unittest.TestCase):
     def test_frontier_orbital_indices_cover_homo_lumo_window(self):
         class FakeMeanField:

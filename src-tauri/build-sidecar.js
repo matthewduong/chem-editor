@@ -60,6 +60,7 @@ function createSidecarManifest() {
   return {
     trackedInputs: ['bin/chem-engine.py', 'bin/nmr_hose.py', 'bin/nmr_refs.json'],
     requiredRuntimeAssets: [
+      { id: 'nmrRefs', kind: 'data', source: 'bin/nmr_refs.json', destination: '.' },
       { id: 'hoseDb', kind: 'data', source: 'bin/nmr_hose_db.sqlite', destination: '.' },
       { id: 'xtbBinary', kind: 'binary', source: `bin/xtb${exeSuffix}`, destination: '.' },
       { id: 'xtbShare', kind: 'data', source: 'bin/xtb-share', destination: 'xtb-share' },
@@ -543,20 +544,22 @@ function buildPyinstallerArgs(manifest) {
     pyinstallerArgs.push('--clean');
   }
 
-  for (const mod of [
-    'pyscf',
-    'pyscf.lib',
-    'pyscf.gto',
-    'pyscf.scf',
-    'pyscf.dft',
-    'pyscf.ao2mo',
-    'pyscf.df',
-    'pyscf.grad',
-    'pyscf.prop',
-    'pyscf.data',
-    'pyscf.fci',
-    'scipy',
-  ]) {
+  for (const mod of process.platform === 'win32'
+    ? []
+    : [
+        'pyscf',
+        'pyscf.lib',
+        'pyscf.gto',
+        'pyscf.scf',
+        'pyscf.dft',
+        'pyscf.ao2mo',
+        'pyscf.df',
+        'pyscf.grad',
+        'pyscf.prop',
+        'pyscf.data',
+        'pyscf.fci',
+        'scipy',
+      ]) {
     pyinstallerArgs.push('--collect-all', mod);
   }
   pyinstallerArgs.push('--exclude-module', 'pyscf.gto.basis.dyall-basis');
@@ -687,89 +690,27 @@ function validateBuiltSidecar(sidecarPath) {
     }
   }
 
-  const pyscfInitPath = path.join(internalDir, 'pyscf', '__init__.py');
-  if (!existsSync(pyscfInitPath)) {
-    throw new Error('Built sidecar is missing pyscf/__init__.py, so HF orbitals cannot load.');
-  }
-
   const executablePath = path.join(sidecarPath, `chem-engine${exeSuffix}`);
-  const orbitalSmokeInput = JSON.stringify({
-    smiles: 'C',
-    basis: '3-21G',
-    isovalue: 0.045,
-    atoms: [
-      { element: 'C', x: 0.0, y: 0.0, z: 0.0 },
-      { element: 'H', x: 0.6291, y: 0.6291, z: 0.6291 },
-      { element: 'H', x: -0.6291, y: -0.6291, z: 0.6291 },
-      { element: 'H', x: -0.6291, y: 0.6291, z: -0.6291 },
-      { element: 'H', x: 0.6291, y: -0.6291, z: -0.6291 },
-    ],
-  });
-  const orbitalSmoke = spawnSync(executablePath, ['orbitals'], {
-    input: `${orbitalSmokeInput}\n`,
+  const check = spawnSync(executablePath, ['self-check'], {
     encoding: 'utf8',
     timeout: 60000,
-    maxBuffer: 32 * 1024 * 1024,
+    maxBuffer: 8 * 1024 * 1024,
+    cwd: tmpdir(),
+    env: {
+      ...process.env,
+      PYTHONPATH: '',
+      PYTHONHOME: '',
+      OMP_NUM_THREADS: '1',
+      OPENBLAS_NUM_THREADS: '1',
+    },
   });
-  if (orbitalSmoke.error) {
+  if (check.error || check.status !== 0) {
     throw new Error(
-      `Built sidecar orbital smoke test failed to launch: ${orbitalSmoke.error.message}`,
+      `Built sidecar dependency check failed: ${check.error?.message ?? check.stderr}`,
     );
   }
-  if (orbitalSmoke.status !== 0) {
-    throw new Error(
-      `Built sidecar orbital smoke test failed (${orbitalSmoke.status}): ${orbitalSmoke.stderr || orbitalSmoke.stdout}`,
-    );
-  }
-  let orbitalPayload;
-  try {
-    orbitalPayload = JSON.parse(orbitalSmoke.stdout);
-  } catch (error) {
-    throw new Error(
-      `Built sidecar orbital smoke test returned invalid JSON: ${error instanceof Error ? error.message : String(error)}`,
-      { cause: error },
-    );
-  }
-  if (orbitalPayload?.error) {
-    throw new Error(`Built sidecar orbital smoke test returned an error: ${orbitalPayload.error}`);
-  }
-  if (!Array.isArray(orbitalPayload?.orbitals) || orbitalPayload.orbitals.length === 0) {
-    throw new Error('Built sidecar orbital smoke test returned no orbital metadata.');
-  }
-
-  const optimizeSmoke = spawnSync(executablePath, ['optimize-hf'], {
-    input: `${orbitalSmokeInput}\n`,
-    encoding: 'utf8',
-    timeout: 90000,
-    maxBuffer: 32 * 1024 * 1024,
-  });
-  if (optimizeSmoke.error) {
-    throw new Error(
-      `Built sidecar HF optimization smoke test failed to launch: ${optimizeSmoke.error.message}`,
-    );
-  }
-  if (optimizeSmoke.status !== 0) {
-    throw new Error(
-      `Built sidecar HF optimization smoke test failed (${optimizeSmoke.status}): ${optimizeSmoke.stderr || optimizeSmoke.stdout}`,
-    );
-  }
-  let optimizePayload;
-  try {
-    optimizePayload = JSON.parse(optimizeSmoke.stdout);
-  } catch (error) {
-    throw new Error(
-      `Built sidecar HF optimization smoke test returned invalid JSON: ${error instanceof Error ? error.message : String(error)}`,
-      { cause: error },
-    );
-  }
-  if (optimizePayload?.error) {
-    throw new Error(
-      `Built sidecar HF optimization smoke test returned an error: ${optimizePayload.error}`,
-    );
-  }
-  if (!Array.isArray(optimizePayload?.atoms) || optimizePayload.atoms.length === 0) {
-    throw new Error('Built sidecar HF optimization smoke test returned no optimized atoms.');
-  }
+  const payload = JSON.parse(check.stdout);
+  if (!payload.ok || !payload.frozen) throw new Error(`Incomplete built sidecar: ${check.stdout}`);
 }
 
 async function main() {

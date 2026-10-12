@@ -1,3 +1,4 @@
+import { commitCanvasEdit } from '../../src/store';
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { beforeEach, describe, expect, it } from 'vitest';
@@ -40,7 +41,6 @@ describe('commitDocument', () => {
     const after = useStore.getState();
     expect(after.chemDrawDocument).toBe(next);
     expect(after.history).toHaveLength(before.history.length + 1);
-    expect(after.documentHistory).toHaveLength(before.documentHistory.length + 1);
     expect(after.documentFile.dirty).toBe(true);
     expectFlatArraysProjectDocument();
 
@@ -88,7 +88,7 @@ describe('flat-state commits', () => {
       const baseline = chemDrawDocumentToCDXML(useStore.getState().chemDrawDocument!);
       const { atoms, bonds, arrows, groups, textBoxes } = useStore.getState();
 
-      useStore.getState().pushToHistory({ atoms, bonds, arrows, groups, textBoxes });
+      commitCanvasEdit({ atoms, bonds, arrows, groups, textBoxes });
 
       expectFlatArraysProjectDocument();
       expect(chemDrawDocumentToCDXML(useStore.getState().chemDrawDocument!)).toBe(baseline);
@@ -107,7 +107,7 @@ describe('flat-state commits', () => {
 
     const { atoms, bonds, arrows, groups, textBoxes } = useStore.getState();
     // A flat-tool edit: nudge one atom, as a drag would.
-    useStore.getState().pushToHistory({
+    commitCanvasEdit({
       atoms: atoms.map((a, i) => (i === 0 ? { ...a, x: a.x + 5 } : a)),
       bonds,
       arrows,
@@ -139,7 +139,7 @@ describe('flat-state commits', () => {
       if (atoms.length === 0) return;
       const baseline = chemDrawDocumentToCDXML(useStore.getState().chemDrawDocument!).split('\n');
 
-      useStore.getState().pushToHistory({
+      commitCanvasEdit({
         atoms: atoms.map((a, i) => (i === 0 ? { ...a, x: a.x + 5 } : a)),
         bonds,
         arrows,

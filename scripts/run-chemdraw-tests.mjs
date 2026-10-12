@@ -19,6 +19,7 @@ import { JSDOM } from 'jsdom';
 import { buildUnitTestDist } from './lib/unit-test-build.mjs';
 import {
   buildCdxmlElementSummary,
+  assertImportFidelity,
   buildCompatibilitySummary,
   classifyFailure,
   diffCdxmlElementSummaries,
@@ -858,6 +859,10 @@ async function main() {
               }),
             );
 
+            await recordTimedStep(stepTimings, 'enforce-import-fidelity', 'import-fidelity', () =>
+              assertImportFidelity(importFidelity),
+            );
+
             await recordTimedStep(stepTimings, 'validate-chem-editor-input', 'xml-parse', () =>
               validateXml(generatedInputPath, 'chem-editor-input'),
             );
@@ -1039,8 +1044,7 @@ async function main() {
             }
 
             const durationMs = Date.now() - startedAt;
-            // Passing cases are written out too: import fidelity is report-only, so a run where
-            // every case passes is exactly the run whose triage data matters most.
+            // Passing cases retain fidelity evidence, including reasons for expected normalizations.
             await writeAttemptArtifacts({
               caseInfo,
               caseId,

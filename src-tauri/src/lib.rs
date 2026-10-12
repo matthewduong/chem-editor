@@ -620,7 +620,7 @@ fn run_orbital_engine(
 ) -> Result<Value, String> {
     let bundled = run_bundled_engine(&app, &args, stdin_content.clone(), None);
     match bundled {
-        Ok(value) if orbital_engine_needs_workspace_fallback(&value) => {
+        Ok(value) if cfg!(debug_assertions) && orbital_engine_needs_workspace_fallback(&value) => {
             eprintln!(
                 "chem-editor: bundled orbital engine lacks PySCF, retrying with workspace Python"
             );
@@ -636,7 +636,9 @@ fn run_orbital_engine(
             })
         }
         Ok(value) => Ok(value),
-        Err(error) if orbital_engine_error_needs_workspace_fallback(&error) => {
+        Err(error)
+            if cfg!(debug_assertions) && orbital_engine_error_needs_workspace_fallback(&error) =>
+        {
             eprintln!(
                 "chem-editor: bundled orbital engine failed with PySCF import error, retrying with workspace Python"
             );

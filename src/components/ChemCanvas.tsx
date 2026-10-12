@@ -1,67 +1,36 @@
+import type { KonvaEventObject } from 'konva/lib/Node';
+import type { Stage as KonvaStage } from 'konva/lib/Stage';
 import {
-  useState,
-  useEffect,
-  useImperativeHandle,
   forwardRef,
   useCallback,
-  useRef,
+  useEffect,
+  useImperativeHandle,
   useMemo,
+  useRef,
+  useState,
   type ClipboardEvent as ReactClipboardEvent,
 } from 'react';
-import { Stage, Layer, Circle, Line, Text, Group, Rect, Shape, Star } from 'react-konva';
-import type { KonvaEventObject } from 'konva/lib/Node';
-import type { Context as KonvaContext } from 'konva/lib/Context';
-import type { Stage as KonvaStage } from 'konva/lib/Stage';
+import { Circle, Group, Layer, Line, Rect, Stage, Star } from 'react-konva';
+import {
+  createDeleteSelectionCommand,
+  createMoveSelectionCommand,
+  createReplaceDocumentCommand,
+  createUpsertObjectsCommand,
+} from '../editor/commands';
+import { buildDocumentIndex } from '../editor/document';
+import {
+  DocumentRenderSurface,
+  type DocumentRenderSurfaceRef,
+} from '../editor/scene/DocumentRenderSurface';
+import { buildDocumentSceneState, buildLegacySceneState } from '../editor/scene/buildScene';
+import { hitTestDocumentScene } from '../editor/scene/hitTest';
+import { buildPreviewScene } from '../editor/scene/preview';
+import type { DocumentSceneState } from '../editor/scene/renderDocumentScene';
+import { createEditorSessionState } from '../editor/session';
+import { useCanvasDocumentController } from '../hooks/useCanvasDocumentController';
+import { useCanvasKeyboard } from '../hooks/useCanvasKeyboard';
 import { useRDKit } from '../hooks/useRDKit';
-import {
-  loadChemDrawDocumentForCanvasAsync,
-  prepareChemDrawDocumentForSaveAsync,
-} from '../lib/chemdrawDocumentCommandsAsync';
-import type {
-  Atom,
-  AtomLabelOrientation,
-  Bond,
-  BondDisplayStyle,
-  Arrow,
-  ArrowType,
-  CanvasState as ChemistryCanvasState,
-  TextBox,
-} from '../types/chemistry';
-import type {
-  ChemDrawArrow,
-  ChemDrawBracket,
-  ChemDrawEmbeddedObject,
-  ChemDrawGraphic,
-  ChemDrawTable,
-} from '../types/chemdraw';
-import type { RdkitModule, RdkitMol } from '../types/rdkit';
-import { useStore } from '../store';
-import type { SelectionPreviewTransform } from '../store';
-import type { ViewerStructureStatus } from '../store';
-import {
-  graphToMolblock,
-  getConnectedComponents,
-  getFullySelectedComponentAtomIds,
-  hashCanvasState,
-  molblockToState,
-  normalizeMolblockBondLength,
-  parseMolblockGeometry,
-  SNAP_ANGLE,
-} from '../lib/graph';
-import {
-  buildAliasResolutionSnapshot,
-  expandAliasSmiles,
-  resolveAliasChemistry,
-} from '../lib/aliasChemistry';
-import { evaluateTextBoxChemicalState, resolveChemicalTextStructure } from '../lib/chemicalText';
-import { expandSupportedAliasGraph } from '../lib/aliasGraphExpansion';
-import { getAtomDisplayText, getAtomHydrogenCount } from '../lib/atomLabels';
-import {
-  applyElectronToolToAtom,
-  getAtomElectronMarkerGeometry,
-  updateAtomElectronMarkerAngle,
-} from '../lib/electronAnnotations';
-import { VALENCIES, isElementSymbol } from '../lib/elements';
+import { buildAliasResolutionSnapshot, resolveAliasChemistry } from '../lib/aliasChemistry';
 import {
   getAtomAlias,
   getAtomLeadElement,
@@ -70,68 +39,58 @@ import {
   setAtomValue,
 } from '../lib/atomIdentity';
 import {
-  buildAtomLabelRuns,
-  getLeadElementAnchorOffset,
-  getOrientationPreviewLabel,
-} from '../lib/atomLabelPresentation';
-import { SHORTHAND_DATA, type ShorthandEntry } from '../lib/shorthand';
-import {
-  extractRunsFromDOM,
-  getTextRunFontStyle,
-  getTextBoxDimensions,
-  getTextBoxRenderLines,
-  insertPlainTextIntoEditable,
-  measureRunWidth,
-  runsToHTML,
-} from '../lib/textRunPresentation';
-import { getFaceMetrics } from '../lib/textMetrics';
-import { generateCanvasSVG } from '../lib/svgExportFromStore';
-import {
-  applyArrowStyleEdit,
-  applyBondEdit,
-  applyBondStyleEdit,
-  applyNodeLabelStyleEdit,
-  applyNodeValueEdit,
-  canvasStateToChemDrawDocument,
-  chemDrawDocumentToCanvasState,
-  reorderBondObjects,
-  reverseBondDirection,
-} from '../lib/chemdrawModel';
+  aliasResolutionMessage,
+  buildAliasValidator,
+  buildChemistryMolblockInputs,
+  getCanvasContentBounds,
+  hasCustomChemistryLabel,
+  resolveChemicalInput,
+  tryGetSmilesFromMolblock,
+} from '../lib/canvasChemistry';
+import { getCornerPanelX } from '../lib/canvasPanels';
 import {
   convertNativeToCanvas,
   DEFAULT_CANVAS_BOND_LENGTH,
-  getAtomLabelBaselineOffset,
   getDocumentCaptionFontSize,
-  getNodeLabelVerticalOffset,
-  resolveArrowHeadType,
   resolveDocumentCaptionTextStyle,
   resolveDocumentLabelTextStyle,
 } from '../lib/chemdrawMetrics';
 import {
+  applyArrowStyleEdit,
+  applyBondStyleEdit,
+  applyNodeLabelStyleEdit,
+  canvasStateToChemDrawDocument,
+  chemDrawDocumentToCanvasState,
+  reorderBondObjects,
+} from '../lib/chemdrawModel';
+import { evaluateTextBoxChemicalState } from '../lib/chemicalText';
+import {
+  applyElectronToolToAtom,
+  getAtomElectronMarkerGeometry,
+  updateAtomElectronMarkerAngle,
+} from '../lib/electronAnnotations';
+import { buildPdfHexForRasterImage, fitImageWithinViewport } from '../lib/embeddedObjects';
+import {
+  getConnectedComponents,
+  getFullySelectedComponentAtomIds,
+  graphToMolblock,
+  hashCanvasState,
+  molblockToState,
+  normalizeMolblockBondLength,
+  parseMolblockGeometry,
+  SNAP_ANGLE,
+} from '../lib/graph';
+import { readModifierKeyState } from '../lib/keyboard';
+import {
   arrowUsesControlPoint,
-  collectBondNeighborVectors,
+  DEFAULT_ATOM_LABEL_FONT_SIZE,
   DEFAULT_DOUBLE_BOND_MODE,
-  getArrowGeometryMetrics,
-  getArrowLabelAnchors,
-  getArrowOffsetCurve,
-  getArrowPointAt,
   getArrowSelectionPoints,
-  getArrowTangentAt,
-  getAtomBondClipOffset,
-  getAtomLabelBoxWidth,
+  getAtomLabelLayoutMetrics,
   getDefaultArrowControlPoint,
   getDefaultArrowLineWidth,
-  getDoubleBondLineGeometry,
-  getAtomLabelLayoutMetrics,
-  getBondVisualMetrics,
-  getNextDoubleBondToolMode,
-  getOffsetBondLineGeometry,
   resolveDoubleBondMode,
-  getTripleBondLineGeometry,
-  isAtomLabelVisible,
-  DEFAULT_ATOM_LABEL_FONT_SIZE,
 } from '../lib/renderGeometry';
-import { readModifierKeyState, shouldIgnoreKeyboardShortcuts } from '../lib/keyboard';
 import {
   getPreferredAttachmentAngle,
   getRegularRingGeometry,
@@ -139,81 +98,41 @@ import {
   materializeResolvedRingTemplatePlacement,
   materializeRingGeometry,
   resolveRingTemplatePlacement,
-  type RingGeometry,
   type ResolvedRingTemplatePlacement,
+  type RingGeometry,
 } from '../lib/ringTemplates';
+import { getPageSetupDimensionsPx, resolveAtomLabelColor, resolveBondColor } from '../lib/settings';
+import {
+  extractRunsFromDOM,
+  getTextBoxDimensions,
+  insertPlainTextIntoEditable,
+  runsToHTML,
+} from '../lib/textRunPresentation';
+import type { SelectionPreviewTransform, ViewerStructureStatus } from '../store';
+import { commitCanvasEdit, getCanvasEditorState, previewCanvasEdit, useStore } from '../store';
+import { useAtomTool } from '../tools/useAtomTool';
 import { useBondTool } from '../tools/useBondTool';
 import { useSelectTool } from '../tools/useSelectTool';
-import { useAtomTool } from '../tools/useAtomTool';
-import { DeferredNumberInput } from './DeferredNumberInput';
-import { FloatingPanel } from './FloatingPanel';
-import { SelectMenu } from './SelectMenu';
-import { getPageSetupDimensionsPx, resolveAtomLabelColor, resolveBondColor } from '../lib/settings';
-import { buildDocumentIndex } from '../editor/document';
-import {
-  createDeleteSelectionCommand,
-  createMoveSelectionCommand,
-  createReplaceDocumentCommand,
-  createUpsertObjectsCommand,
-} from '../editor/commands';
-import { createEditorSessionState } from '../editor/session';
-import {
-  DocumentRenderSurface,
-  type DocumentRenderSurfaceRef,
-} from '../editor/scene/DocumentRenderSurface';
-import { buildLegacySceneState } from '../editor/scene/buildScene';
-import { hitTestDocumentScene } from '../editor/scene/hitTest';
-import type { DocumentSceneState } from '../editor/scene/renderDocumentScene';
-import { saveBinaryWithDialog, saveTextToPath, saveTextWithDialog } from '../lib/fileDialogs';
-import { buildPdfHexForRasterImage, fitImageWithinViewport } from '../lib/embeddedObjects';
-import {
-  ATOM_FRAGMENT_HOTKEY_VALUES,
-  ATOM_FRAGMENT_OPTIONS,
-  ATOM_HOTKEY_VALUES,
-  BOND_HOTKEY_VALUES,
-  eventMatchesShortcut,
-  FRAGMENT_MIN_FV,
-  getCanvasToolShortcut,
-  getShortcutBinding,
-} from '../lib/keybindings';
+import type { ChemCanvasRef, EditPanelLayout } from '../types/canvas';
+import type { ChemDrawBracket, ChemDrawEmbeddedObject, ChemDrawGraphic } from '../types/chemdraw';
+import type {
+  Arrow,
+  ArrowType,
+  Atom,
+  AtomLabelOrientation,
+  Bond,
+  BondDisplayStyle,
+  CanvasState as ChemistryCanvasState,
+  TextBox,
+} from '../types/chemistry';
+import { CanvasTextEditors } from './CanvasTextEditors';
 
 interface Props {
   width: number;
   height: number;
 }
 
-export interface ChemCanvasRef {
-  saveNative: (options?: { path?: string | null; prompt?: boolean }) => Promise<{
-    path: string | null;
-    saved: boolean;
-    snapshot?: {
-      document: import('../types/chemdraw').ChemDrawDocument | null;
-      revision: number;
-      sessionId: string;
-    };
-  }>;
-  loadNative: (
-    content: string,
-    beforeReplace?: () => Promise<boolean>,
-    path?: string | null,
-  ) => Promise<boolean>;
-  exportPNG: () => Promise<void>;
-  exportSVG: () => Promise<void>;
-  insertImage: (options: {
-    bytes: Uint8Array;
-    mimeType: 'image/png' | 'image/jpeg';
-    sourceFileName?: string;
-  }) => Promise<void>;
-  getMolblock: () => string;
-  loadFromSmiles: (smiles: string) => void;
-  cleanUp: () => void;
-  addFromState: (buf: import('../lib/clipboard').ClipboardBuffer) => void;
-  addFromSmiles: (input: string) => void;
-  applyTextFormat: (cmd: string, value?: string) => void;
-  fitToScreen: () => void;
-  moveContentIntoPage: () => void;
-  centerPageInView: () => void;
-}
+export type { ChemCanvasRef } from '../types/canvas';
 
 function collectPreviewMovedAtomIds(
   selectedAtomIds: Set<string>,
@@ -259,44 +178,6 @@ function transformPreviewPoint(
   };
 }
 
-function getPreviewGroupProps(preview: SelectionPreviewTransform | null) {
-  if (!preview) return null;
-  if (preview.kind === 'move') {
-    return { x: preview.dx, y: preview.dy };
-  }
-  if (preview.kind === 'rotate') {
-    return {
-      x: preview.center.x,
-      y: preview.center.y,
-      offsetX: preview.center.x,
-      offsetY: preview.center.y,
-      rotation: (preview.radians * 180) / Math.PI,
-    };
-  }
-  return {
-    x: preview.anchor.x,
-    y: preview.anchor.y,
-    offsetX: preview.anchor.x,
-    offsetY: preview.anchor.y,
-    scaleX: preview.factor,
-    scaleY: preview.factor,
-  };
-}
-
-type EditPanelLayout = {
-  pos: { x: number; y: number };
-  size: { width: number; height: number };
-  align: 'left' | 'right';
-};
-
-function getCornerPanelX(
-  containerWidth: number,
-  panelWidth: number,
-  align: EditPanelLayout['align'],
-) {
-  return align === 'left' ? 12 : Math.max(12, containerWidth - panelWidth - 12);
-}
-
 function createDefaultEditPanelLayout(
   containerWidth: number,
   size: EditPanelLayout['size'],
@@ -312,463 +193,6 @@ function createDefaultEditPanelLayout(
 // Returns free valence of an atom (max valence minus sum of existing bond orders).
 // For atoms with unknown/variable valency (metals, etc.), returns a large number
 // so the bond tool never refuses connections to them.
-function getAtomFreeValence(atom: Atom, bonds: Bond[]): number {
-  const knownVal = VALENCIES[getAtomLeadElement(atom)] ?? null;
-  if (knownVal === null) return 100; // variable valency — always allow bonding
-  const usedVal = bonds
-    .filter((b) => b.from === atom.id || b.to === atom.id)
-    .reduce((s, b) => s + (b.order || 1), 0);
-  return Math.max(0, knownVal - usedVal);
-}
-
-function getCanvasContentBounds(
-  atoms: Atom[],
-  arrows: Arrow[],
-  textBoxes: TextBox[],
-): { minX: number; minY: number; maxX: number; maxY: number } | null {
-  const pts: { x: number; y: number }[] = [
-    ...atoms.map((a) => ({ x: a.x, y: a.y })),
-    ...arrows.flatMap((a) => [
-      { x: a.x1, y: a.y1 },
-      { x: a.x2, y: a.y2 },
-      { x: a.cpx, y: a.cpy },
-    ]),
-    ...textBoxes.map((t) => ({ x: t.x, y: t.y })),
-  ];
-  if (!pts.length) return null;
-  return {
-    minX: Math.min(...pts.map((p) => p.x)),
-    minY: Math.min(...pts.map((p) => p.y)),
-    maxX: Math.max(...pts.map((p) => p.x)),
-    maxY: Math.max(...pts.map((p) => p.y)),
-  };
-}
-
-function describeRdkitError(error: unknown): string {
-  if (error instanceof Error && error.message.trim()) return error.message;
-  if (typeof error === 'string' && error.trim()) return error;
-  return 'Chemistry engine rejected this structure';
-}
-
-function buildAliasValidator(rdkit: RdkitModule | null) {
-  if (!rdkit) return undefined;
-  return (fragmentSmiles: string) => {
-    const fragment = getMolWithFallback(rdkit, fragmentSmiles);
-    if (!fragment) return { error: 'Chemistry engine rejected alias fragment' };
-    let canonicalSmiles: string;
-    try {
-      canonicalSmiles = fragment.get_smiles();
-    } catch {
-      canonicalSmiles = fragmentSmiles;
-    }
-    fragment.delete();
-    return { canonicalSmiles };
-  };
-}
-
-function getMolWithFallback(
-  rdkit: RdkitModule | null,
-  input: string,
-  options?: { sanitizeOnly?: boolean },
-): RdkitMol | null {
-  if (!rdkit || !input.trim()) return null;
-
-  const attempts: Array<() => RdkitMol | null> = options?.sanitizeOnly
-    ? [() => rdkit.get_mol(input)]
-    : [
-        () => rdkit.get_mol(input),
-        () => rdkit.get_mol(input, JSON.stringify({ sanitize: false, removeHs: false })),
-      ];
-
-  for (const attempt of attempts) {
-    try {
-      const mol = attempt();
-      if (mol) return mol;
-    } catch {
-      /* intentional */
-    }
-  }
-  return null;
-}
-
-interface ResolvedChemicalInput {
-  smiles: string;
-  molblock: string;
-  source: 'smiles' | 'formula';
-}
-
-function resolveChemicalInput(
-  rdkit: RdkitModule | null,
-  input: string,
-  validateSmiles?: ReturnType<typeof buildAliasValidator>,
-): ResolvedChemicalInput | null {
-  const trimmed = input.trim();
-  if (!rdkit || !trimmed) return null;
-
-  let mol = getMolWithFallback(rdkit, trimmed);
-  let smiles = trimmed;
-  let source: ResolvedChemicalInput['source'] = 'smiles';
-
-  if (!mol) {
-    const resolution = resolveChemicalTextStructure(trimmed, { validateSmiles });
-    if (!resolution.ok || !resolution.smiles) return null;
-    mol = getMolWithFallback(rdkit, resolution.smiles);
-    if (!mol) return null;
-    smiles = resolution.smiles;
-    source = 'formula';
-  }
-
-  try {
-    mol.set_new_coords?.();
-  } catch {
-    /* intentional */
-  }
-
-  let canonicalSmiles = smiles;
-  try {
-    canonicalSmiles = mol.get_smiles();
-  } catch {
-    /* intentional */
-  }
-
-  const molblock = mol.get_molblock?.() ?? '';
-  mol.delete();
-  return {
-    smiles: canonicalSmiles || smiles,
-    molblock,
-    source,
-  };
-}
-
-function aliasResolutionMessage(resolution: ReturnType<typeof resolveAliasChemistry>): string {
-  if (resolution.reason === 'ambiguous')
-    return 'Choose one interpretation for this label before enabling chemistry-backed features.';
-  if (resolution.reason === 'chemically_invalid')
-    return 'Chemistry engine rejected all parsed interpretations for this label.';
-  if (resolution.selected?.semanticKind === 'coordination')
-    return 'Coordination-style ligands are preserved, but chemistry-backed features need a curated covalent fallback.';
-  return 'Chemistry-backed features are unavailable for this labeled alias.';
-}
-
-function extractImplicitHydrogensByMapNumber(molJson: string): Map<number, number> {
-  const implicitHydrogensByMapNumber = new Map<number, number>();
-  try {
-    const parsed = JSON.parse(molJson) as {
-      defaults?: { atom?: { impHs?: number } };
-      molecules?: Array<{ atoms?: Array<{ impHs?: number }> }>;
-    };
-    const fallbackImplicitHydrogens = parsed.defaults?.atom?.impHs ?? 0;
-    const atoms = parsed.molecules?.[0]?.atoms ?? [];
-    atoms.forEach((atom, index) => {
-      const implicitHydrogens =
-        typeof atom?.impHs === 'number' ? atom.impHs : fallbackImplicitHydrogens;
-      if (implicitHydrogens > 0) implicitHydrogensByMapNumber.set(index + 1, implicitHydrogens);
-    });
-  } catch {
-    /* intentional */
-  }
-  return implicitHydrogensByMapNumber;
-}
-
-function tryGetSmilesFromMolblock(
-  rdkit: RdkitModule | null,
-  molblock: string,
-  shorthandMap: Map<number, string>,
-  options?: { preserveAtomMaps?: boolean },
-): { smiles: string | null; error: string | null } {
-  if (!rdkit || !molblock) return { smiles: null, error: null };
-  let mol: RdkitMol | null = null;
-  try {
-    try {
-      mol = rdkit.get_mol(molblock);
-    } catch {
-      /* sanitized parse may throw */
-    }
-    if (!mol) {
-      try {
-        mol = rdkit.get_mol(molblock, JSON.stringify({ sanitize: false, removeHs: false }));
-      } catch {
-        mol = null;
-      }
-    }
-    if (!mol) return { smiles: null, error: 'Chemistry engine rejected this structure' };
-    const implicitHydrogensByMapNumber =
-      options?.preserveAtomMaps && typeof mol.get_json === 'function'
-        ? extractImplicitHydrogensByMapNumber(mol.get_json())
-        : undefined;
-    const smiles = expandAliasSmiles(mol.get_smiles(), shorthandMap, {
-      validateSmiles: buildAliasValidator(rdkit),
-      preserveAtomMaps: options?.preserveAtomMaps,
-      implicitHydrogensByMapNumber,
-    });
-    return { smiles, error: null };
-  } catch (error) {
-    return { smiles: null, error: describeRdkitError(error) };
-  } finally {
-    mol?.delete();
-  }
-}
-
-function buildChemistryMolblockInputs(
-  rdkit: RdkitModule | null,
-  atoms: Atom[],
-  bonds: Bond[],
-  width: number,
-  height: number,
-  resolveAliasEntry: (atom: Atom, label: string | undefined) => ShorthandEntry | undefined,
-) {
-  const direct = graphToMolblock(atoms, bonds, width, height, resolveAliasEntry);
-  const mapped = graphToMolblock(atoms, bonds, width, height, resolveAliasEntry, true);
-  const expanded = expandSupportedAliasGraph(rdkit, atoms, bonds, resolveAliasEntry);
-  if (!expanded) {
-    return {
-      molblock: direct.molblock,
-      shorthandMap: direct.shorthandMap,
-      mappedMolblock: mapped.molblock,
-      mappedShorthandMap: mapped.shorthandMap,
-      usesExpandedAliases: false,
-    };
-  }
-
-  const expandedDirect = graphToMolblock(expanded.atoms, expanded.bonds, width, height);
-  const expandedMapped = graphToMolblock(
-    expanded.atoms,
-    expanded.bonds,
-    width,
-    height,
-    undefined,
-    true,
-  );
-  return {
-    molblock: expandedDirect.molblock,
-    shorthandMap: new Map<number, string>(),
-    mappedMolblock: expandedMapped.molblock,
-    mappedShorthandMap: new Map<number, string>(),
-    usesExpandedAliases: true,
-  };
-}
-
-function hasCustomChemistryLabel(
-  atom: Atom,
-  resolveAlias: (atom: Atom, label: string | undefined) => ReturnType<typeof resolveAliasChemistry>,
-): boolean {
-  if (!isAliasAtom(atom)) {
-    return !isElementSymbol(atom.element) && atom.element !== 'D';
-  }
-  const alias = getAtomAlias(atom);
-  if (!alias) return false;
-  const resolution = resolveAlias(atom, alias);
-  if (resolution.selected?.semanticKind === 'coordination') return true;
-  if (!resolution.selected?.subsSmiles) return true;
-  return Boolean(!resolution.selected && !isElementSymbol(alias) && alias !== 'D');
-}
-
-function drawArrowShape(
-  ctx: CanvasRenderingContext2D,
-  arrow: Pick<
-    Arrow,
-    'type' | 'x1' | 'y1' | 'x2' | 'y2' | 'cpx' | 'cpy' | 'lineWidth' | 'lineStyle' | 'curveEnabled'
-  >,
-  color: string,
-  options?: {
-    documentStyleSettings?: ReturnType<typeof useStore.getState>['documentStyleSettings'];
-    nativeArrow?: ChemDrawArrow | null;
-  },
-) {
-  const { type } = arrow;
-  ctx.strokeStyle = color;
-  ctx.fillStyle = color;
-  const geometry = getArrowGeometryMetrics(
-    arrow,
-    options?.documentStyleSettings,
-    options?.nativeArrow,
-  );
-  const headType = resolveArrowHeadType({ type }, options?.nativeArrow);
-  const strokeWidth = geometry.lineWidth;
-  ctx.lineWidth = strokeWidth;
-  ctx.lineCap = 'round';
-  ctx.lineJoin = 'round';
-  const dashPattern =
-    type === 'dashed-reaction' ? [6, 4] : arrow.lineStyle === 'dashed' ? [6, 4] : null;
-  const dx = arrow.x2 - arrow.x1,
-    dy = arrow.y2 - arrow.y1;
-  const len = Math.hypot(dx, dy);
-  if (len < 2) return;
-  const usesControlPoint = arrowUsesControlPoint(arrow);
-  const headLength = geometry.headSize;
-  const headHalfWidth = geometry.headWidth;
-  const halfHeadLength = geometry.headCenterSize;
-  const parallelOffset = geometry.shaftSpacing;
-  const endTangent = getArrowTangentAt(arrow, 1);
-  const startTangent = getArrowTangentAt(arrow, 0);
-  const endAngle = Math.atan2(endTangent.dy, endTangent.dx);
-  const startAngle = Math.atan2(startTangent.dy, startTangent.dx);
-
-  const strokePath = (
-    points: { x1: number; y1: number; x2: number; y2: number; cpx: number; cpy: number } = arrow,
-    width = strokeWidth,
-    dash = dashPattern,
-    reverse = false,
-  ) => {
-    if (dash) ctx.setLineDash(dash);
-    else ctx.setLineDash([]);
-    ctx.lineWidth = width;
-    ctx.beginPath();
-    if (reverse) {
-      ctx.moveTo(points.x2, points.y2);
-      if (usesControlPoint) ctx.quadraticCurveTo(points.cpx, points.cpy, points.x1, points.y1);
-      else ctx.lineTo(points.x1, points.y1);
-    } else {
-      ctx.moveTo(points.x1, points.y1);
-      if (usesControlPoint) ctx.quadraticCurveTo(points.cpx, points.cpy, points.x2, points.y2);
-      else ctx.lineTo(points.x2, points.y2);
-    }
-    ctx.stroke();
-    ctx.setLineDash([]);
-  };
-
-  const fillHead = (x: number, y: number, angle: number) => {
-    ctx.beginPath();
-    ctx.moveTo(x, y);
-    ctx.lineTo(
-      x - headLength * Math.cos(angle) + headHalfWidth * Math.sin(angle),
-      y - headLength * Math.sin(angle) - headHalfWidth * Math.cos(angle),
-    );
-    ctx.lineTo(
-      x - headLength * Math.cos(angle) - headHalfWidth * Math.sin(angle),
-      y - headLength * Math.sin(angle) + headHalfWidth * Math.cos(angle),
-    );
-    ctx.closePath();
-    ctx.fill();
-  };
-
-  const strokeHead = (x: number, y: number, angle: number) => {
-    ctx.lineWidth = strokeWidth;
-    ctx.beginPath();
-    ctx.moveTo(
-      x - headLength * Math.cos(angle) + headHalfWidth * Math.sin(angle),
-      y - headLength * Math.sin(angle) - headHalfWidth * Math.cos(angle),
-    );
-    ctx.lineTo(x, y);
-    ctx.lineTo(
-      x - headLength * Math.cos(angle) - headHalfWidth * Math.sin(angle),
-      y - headLength * Math.sin(angle) + headHalfWidth * Math.cos(angle),
-    );
-    ctx.stroke();
-  };
-
-  const strokeAngleHead = (x: number, y: number, angle: number) => {
-    ctx.lineWidth = strokeWidth;
-    ctx.beginPath();
-    ctx.moveTo(x, y);
-    ctx.lineTo(
-      x - headLength * Math.cos(angle) + headHalfWidth * Math.sin(angle),
-      y - headLength * Math.sin(angle) - headHalfWidth * Math.cos(angle),
-    );
-    ctx.moveTo(x, y);
-    ctx.lineTo(
-      x - headLength * Math.cos(angle) - headHalfWidth * Math.sin(angle),
-      y - headLength * Math.sin(angle) + headHalfWidth * Math.cos(angle),
-    );
-    ctx.stroke();
-  };
-
-  const strokeHalfHead = (x: number, y: number, angle: number, side: 1 | -1) => {
-    ctx.lineWidth = strokeWidth;
-    ctx.beginPath();
-    ctx.moveTo(
-      x - halfHeadLength * Math.cos(angle) + side * headHalfWidth * Math.sin(angle),
-      y - halfHeadLength * Math.sin(angle) - side * headHalfWidth * Math.cos(angle),
-    );
-    ctx.lineTo(x, y);
-    ctx.stroke();
-  };
-
-  const drawResolvedHead = (x: number, y: number, angle: number) => {
-    if (headType === 'filled') fillHead(x, y, angle);
-    else if (headType === 'angle') strokeAngleHead(x, y, angle);
-    else strokeHead(x, y, angle);
-  };
-
-  if (type === 'fat') {
-    strokePath(arrow, Math.max(6, strokeWidth * 1.8), null);
-    fillHead(arrow.x2, arrow.y2, endAngle);
-    return;
-  }
-
-  if (type === 'equilibrium') {
-    const top = getArrowOffsetCurve(arrow, -parallelOffset);
-    const bottomBase = getArrowOffsetCurve(arrow, parallelOffset);
-    const bottom =
-      geometry.equilibriumRatio < 0.999
-        ? {
-            ...bottomBase,
-            x1: bottomBase.x2 + (bottomBase.x1 - bottomBase.x2) * geometry.equilibriumRatio,
-            y1: bottomBase.y2 + (bottomBase.y1 - bottomBase.y2) * geometry.equilibriumRatio,
-            cpx: bottomBase.x2 + (bottomBase.cpx - bottomBase.x2) * geometry.equilibriumRatio,
-            cpy: bottomBase.y2 + (bottomBase.cpy - bottomBase.y2) * geometry.equilibriumRatio,
-          }
-        : bottomBase;
-    strokePath(top, strokeWidth, null);
-    strokeHalfHead(top.x2, top.y2, endAngle, -1);
-    strokePath(bottom, strokeWidth, null, true);
-    strokeHalfHead(bottom.x1, bottom.y1, startAngle + Math.PI, 1);
-    return;
-  }
-
-  if (type === 'retrosynthetic') {
-    strokePath(getArrowOffsetCurve(arrow, -parallelOffset));
-    strokePath(getArrowOffsetCurve(arrow, parallelOffset));
-    drawResolvedHead(arrow.x2, arrow.y2, endAngle);
-    return;
-  }
-
-  strokePath();
-  if (type === 'reaction' || type === 'dashed-reaction' || type === 'curved') {
-    drawResolvedHead(arrow.x2, arrow.y2, endAngle);
-    return;
-  }
-  if (type === 'no-reaction') {
-    drawResolvedHead(arrow.x2, arrow.y2, endAngle);
-    const mid = getArrowPointAt(arrow, 0.5);
-    const tangent = getArrowTangentAt(arrow, 0.5);
-    const angle = Math.atan2(tangent.dy, tangent.dx);
-    const crossLen = Math.max(9, geometry.headSize * 0.9);
-    const perpX = -Math.sin(angle);
-    const perpY = Math.cos(angle);
-    ctx.lineWidth = Math.max(strokeWidth, 2.5);
-    ctx.beginPath();
-    ctx.moveTo(
-      mid.x - Math.cos(angle) * crossLen - perpX * crossLen,
-      mid.y - Math.sin(angle) * crossLen - perpY * crossLen,
-    );
-    ctx.lineTo(
-      mid.x + Math.cos(angle) * crossLen + perpX * crossLen,
-      mid.y + Math.sin(angle) * crossLen + perpY * crossLen,
-    );
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(
-      mid.x + Math.cos(angle) * crossLen - perpX * crossLen,
-      mid.y + Math.sin(angle) * crossLen - perpY * crossLen,
-    );
-    ctx.lineTo(
-      mid.x - Math.cos(angle) * crossLen + perpX * crossLen,
-      mid.y - Math.sin(angle) * crossLen + perpY * crossLen,
-    );
-    ctx.stroke();
-    return;
-  }
-  if (type === 'resonance') {
-    drawResolvedHead(arrow.x2, arrow.y2, endAngle);
-    drawResolvedHead(arrow.x1, arrow.y1, startAngle + Math.PI);
-    return;
-  }
-  if (type === 'half-curved') {
-    strokeHalfHead(arrow.x2, arrow.y2, endAngle, -1);
-  }
-}
-
 function reorderBondStack(bonds: Bond[], bondId: string, direction: 'front' | 'back'): Bond[] {
   const currentIndex = bonds.findIndex((bond) => bond.id === bondId);
   if (currentIndex < 0 || bonds.length < 2) return bonds;
@@ -828,8 +252,6 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
   const bondLineWidth = documentStyleSettings.bondLineWidth;
 
   const {
-    pushToHistory,
-    setCurrentCanvasState,
     setSelectedAtomIds,
     setSelectedBondIds,
     setSelectedArrowIds,
@@ -848,7 +270,7 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
     setEditableSmiles,
     setTextFormat,
     setSelectionPreviewTransform,
-  } = useStore.getState();
+  } = getCanvasEditorState();
 
   const [stageScale, setStageScale] = useState(DEFAULT_STAGE_SCALE);
   const [stagePos, setStagePos] = useState({ x: 0, y: 0 });
@@ -942,14 +364,7 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
     () => sceneCanvasState.textBoxes ?? [],
     [sceneCanvasState.textBoxes],
   );
-  const previewHiddenObjectIds = useMemo(() => {
-    if (!selectionPreviewTransform) return new Set<string>();
-    return new Set([
-      ...selectionPreviewTransform.selectedObjectIds,
-      ...selectionPreviewTransform.movedAtomIds,
-      ...selectionPreviewTransform.affectedBondIds,
-    ]);
-  }, [selectionPreviewTransform]);
+  const previewHiddenObjectIds = useMemo(() => new Set<string>(), []);
 
   // Single source for every derived scene lookup. Built through the shared headless assembler
   // so the app, `node --test`, and the golden harness all render from an identically-derived
@@ -977,18 +392,8 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
       sceneTextBoxes,
     ],
   );
-  const {
-    atomById,
-    bondById,
-    arrowById,
-    textBoxById,
-    bondsByAtomId,
-    ringCentroids,
-    bondVisibleIntervals,
-    nativeNodes,
-    nativeBonds,
-    nativeArrows,
-  } = legacySceneState;
+  const { atomById, bondById, arrowById, textBoxById, nativeNodes, nativeBonds, nativeArrows } =
+    legacySceneState;
   const activePage = activeChemDrawDocument?.pages[0];
   const finitePageMetrics = useMemo(
     () => (pageSetup.mode === 'finite' ? getPageSetupDimensionsPx(pageSetup) : null),
@@ -1005,20 +410,6 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
     () =>
       (activePage?.objects ?? []).filter(
         (object): object is ChemDrawGraphic => object.type === 'graphic',
-      ),
-    [activePage],
-  );
-  const nativeEmbeddedObjects = useMemo(
-    () =>
-      (activePage?.objects ?? []).filter(
-        (object): object is ChemDrawEmbeddedObject => object.type === 'embedded-object',
-      ),
-    [activePage],
-  );
-  const nativeTables = useMemo(
-    () =>
-      (activePage?.objects ?? []).filter(
-        (object): object is ChemDrawTable => object.type === 'table',
       ),
     [activePage],
   );
@@ -1100,7 +491,7 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
 
   useEffect(() => {
     if (rdkitFailed)
-      useStore.getState().showToast('Chemistry engine failed to load — drawing tools disabled');
+      getCanvasEditorState().showToast('Chemistry engine failed to load — drawing tools disabled');
   }, [rdkitFailed]);
 
   const [editingTextBoxId, setEditingTextBoxId] = useState<string | null>(null);
@@ -1116,7 +507,7 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
     if (!editingTextBoxId || !editOverlayRef.current) return;
     const el = editOverlayRef.current;
     // Set content imperatively — keeps React from resetting innerHTML on re-renders
-    const tb = useStore.getState().textBoxes?.find((t) => t.id === editingTextBoxId);
+    const tb = getCanvasEditorState().textBoxes?.find((t) => t.id === editingTextBoxId);
     el.innerHTML = tb ? runsToHTML(tb.runs) : '';
     const t = setTimeout(() => {
       el.focus();
@@ -1155,9 +546,9 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
         },
         activeTool: tool,
         editMenusHidden,
-        previewMode: useStore.getState().previewMode,
-        showViewer: useStore.getState().showViewer,
-        viewerMode: useStore.getState().viewerMode,
+        previewMode: getCanvasEditorState().previewMode,
+        showViewer: getCanvasEditorState().showViewer,
+        viewerMode: getCanvasEditorState().viewerMode,
         documentStyleSettings,
         pageSetup,
       }),
@@ -1315,7 +706,7 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
       mimeType: 'image/png' | 'image/jpeg';
       sourceFileName?: string;
     }) => {
-      const store = useStore.getState();
+      const store = getCanvasEditorState();
       const baseDocument =
         activeChemDrawDocument ??
         canvasStateToChemDrawDocument(
@@ -1406,7 +797,6 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
       width,
     ],
   );
-  const useNativeSceneSurface = true;
 
   const selectionDragRef = useRef<{
     isDragging: boolean;
@@ -1433,16 +823,17 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
   const atomTool = useAtomTool();
 
   const prevToolRef = useRef(tool);
+  const prevDocumentRef = useRef(chemDrawDocument);
   useEffect(() => {
-    if (prevToolRef.current !== tool) {
+    if (prevToolRef.current !== tool || prevDocumentRef.current !== chemDrawDocument) {
       bondTool.cleanup();
       selectTool.cleanup();
       atomTool.cleanup();
       textToolDragRef.current = null;
       setArrowPreview(null);
       setRingPreview(null);
-      useStore.getState().clearPreviewChemDrawDocument();
-      useStore.getState().clearSelectionPreviewTransform();
+      getCanvasEditorState().clearPreviewChemDrawDocument();
+      getCanvasEditorState().clearSelectionPreviewTransform();
       selectionDragRef.current = {
         isDragging: false,
         startPos: null,
@@ -1454,9 +845,10 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
         affectedBondIds: new Set(),
       };
       prevToolRef.current = tool;
+      prevDocumentRef.current = chemDrawDocument;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tool]);
+  }, [tool, chemDrawDocument]);
 
   const lastHashRef = useRef('');
   const aliasResolutionCacheRef = useRef(
@@ -1626,7 +1018,7 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
           });
           cachedCompsRef.current = { comps, fullSmiles, invalidAtomIds, componentEntries };
           setRdkitInvalidAtomIds(invalidAtomIds);
-          const { isInputFocused } = useStore.getState();
+          const { isInputFocused } = getCanvasEditorState();
           if (!isInputFocused) setEditableSmiles(fullSmiles);
         }
 
@@ -1637,7 +1029,7 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
           selectedAtomIds: selIds,
           lastInteractedAtomId,
           isInputFocused,
-        } = useStore.getState();
+        } = getCanvasEditorState();
         let ovSmiles = cached.fullSmiles;
         let ovGeometrySmiles = '';
         let ovGeometryMolblock = '';
@@ -1978,8 +1370,14 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
   const commitArrowLabels = useCallback(() => {
     if (!editingArrowLabels) return;
     const { id, above, below, fontSize, color } = editingArrowLabels;
-    const { atoms: ka, bonds: kb, arrows: karr, groups: kg, textBoxes: ktb } = useStore.getState();
-    pushToHistory({
+    const {
+      atoms: ka,
+      bonds: kb,
+      arrows: karr,
+      groups: kg,
+      textBoxes: ktb,
+    } = getCanvasEditorState();
+    commitCanvasEdit({
       atoms: ka,
       bonds: kb,
       arrows: karr.map((a) =>
@@ -2001,7 +1399,7 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
       textBoxes: ktb ?? [],
     });
     setEditingArrowLabels(null);
-  }, [documentStyleSettings, editingArrowLabels, pushToHistory]);
+  }, [documentStyleSettings, editingArrowLabels]);
 
   useEffect(() => {
     if (
@@ -2141,7 +1539,7 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
       groups: kg,
       textBoxes: ktb,
       chemDrawDocument: nativeDocument,
-    } = useStore.getState();
+    } = getCanvasEditorState();
 
     if (nativeDocument) {
       const nextDocument = applyArrowStyleEdit(nativeDocument, editingArrowStyle.id, {
@@ -2155,7 +1553,7 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
       return;
     }
 
-    pushToHistory({
+    commitCanvasEdit({
       atoms: ka,
       bonds: kb,
       arrows: karr.map((entry) => {
@@ -2189,7 +1587,7 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
       textBoxes: ktb ?? [],
     });
     setEditingArrowStyle(null);
-  }, [commitNativeDocument, editingArrowStyle, isDarkMode, pushToHistory]);
+  }, [commitNativeDocument, editingArrowStyle, isDarkMode]);
 
   const commitBondStyleEdit = useCallback(() => {
     if (!editingBondStyle) return;
@@ -2204,7 +1602,7 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
       groups: kg,
       textBoxes: ktb,
       chemDrawDocument: nativeDocument,
-    } = useStore.getState();
+    } = getCanvasEditorState();
     if (nativeDocument) {
       const nextDocument = applyBondStyleEdit(nativeDocument, editingBondStyle.id, {
         color: nextColor,
@@ -2216,7 +1614,7 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
       setEditingBondStyle(null);
       return;
     }
-    pushToHistory({
+    commitCanvasEdit({
       atoms: ka,
       bonds: kb.map((bond) =>
         bond.id === editingBondStyle.id
@@ -2236,7 +1634,7 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
       textBoxes: ktb ?? [],
     });
     setEditingBondStyle(null);
-  }, [commitNativeDocument, documentStyleSettings, editingBondStyle, isDarkMode, pushToHistory]);
+  }, [commitNativeDocument, documentStyleSettings, editingBondStyle, isDarkMode]);
 
   const reorderEditingBond = useCallback(
     (direction: 'front' | 'back') => {
@@ -2248,7 +1646,7 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
         groups: kg,
         textBoxes: ktb,
         chemDrawDocument: nativeDocument,
-      } = useStore.getState();
+      } = getCanvasEditorState();
       const nextBonds = reorderBondStack(kb, editingBondStyle.id, direction);
       if (nextBonds === kb) return;
       if (nativeDocument) {
@@ -2256,7 +1654,7 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
         commitNativeDocument(nextDocument, 'reorder-bond-objects');
         return;
       }
-      pushToHistory({
+      commitCanvasEdit({
         atoms: ka,
         bonds: nextBonds,
         arrows: karr,
@@ -2264,7 +1662,7 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
         textBoxes: ktb ?? [],
       });
     },
-    [commitNativeDocument, editingBondStyle, pushToHistory],
+    [commitNativeDocument, editingBondStyle],
   );
 
   useEffect(() => {
@@ -2444,7 +1842,7 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
       groups: kg,
       textBoxes: ktb,
       chemDrawDocument: nativeDocument,
-    } = useStore.getState();
+    } = getCanvasEditorState();
     const currentAtom = ka.find((atom) => atom.id === editingAtomLabel.id);
     const leadElement = currentAtom ? getAtomLeadElement(currentAtom) : 'C';
     const nextDefaultColor = resolveAtomLabelColor(
@@ -2465,7 +1863,9 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
         editingAtomLabel.selectedCandidateId ?? currentAtom?.aliasResolution?.selectedCandidateId,
     });
     if (nextResolution.reason === 'ambiguous' && !nextResolution.selected) {
-      useStore.getState().showToast('Choose one alias interpretation before applying this label.');
+      getCanvasEditorState().showToast(
+        'Choose one alias interpretation before applying this label.',
+      );
       setEditingAtomLabel((prev) => (prev ? { ...prev, resolution: nextResolution } : null));
       return;
     }
@@ -2485,7 +1885,7 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
       return;
     }
 
-    pushToHistory({
+    commitCanvasEdit({
       atoms: ka.map((atom) => {
         if (atom.id !== editingAtomLabel.id) return atom;
         return {
@@ -2510,7 +1910,6 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
     documentViewSettings,
     editingAtomLabel,
     isDarkMode,
-    pushToHistory,
   ]);
 
   const handleTextEditBlur = useCallback(() => {
@@ -2519,7 +1918,13 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
       return;
     }
     if (!editingTextBoxId || !editOverlayRef.current) return;
-    const { atoms: ka, bonds: kb, arrows: karr, groups: kg, textBoxes: ktb } = useStore.getState();
+    const {
+      atoms: ka,
+      bonds: kb,
+      arrows: karr,
+      groups: kg,
+      textBoxes: ktb,
+    } = getCanvasEditorState();
     const existingTextBox = (ktb ?? []).find((textBox) => textBox.id === editingTextBoxId);
     const semanticMode = existingTextBox?.semanticMode ?? 'auto';
     const chemistry = evaluateTextBoxChemicalState(
@@ -2529,7 +1934,7 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
     );
     const runs = chemistry.normalizedRuns;
     if (runs.length === 0 || runs.every((r) => !r.text.trim())) {
-      pushToHistory({
+      commitCanvasEdit({
         atoms: ka,
         bonds: kb,
         arrows: karr,
@@ -2537,7 +1942,7 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
         textBoxes: (ktb ?? []).filter((t) => t.id !== editingTextBoxId),
       });
     } else {
-      pushToHistory({
+      commitCanvasEdit({
         atoms: ka,
         bonds: kb,
         arrows: karr,
@@ -2558,7 +1963,7 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
       });
     }
     setEditingTextBoxId(null);
-  }, [aliasValidator, editingTextBoxId, pushToHistory]);
+  }, [aliasValidator, editingTextBoxId]);
 
   const handleTextEditPaste = useCallback((event: ReactClipboardEvent<HTMLDivElement>) => {
     event.preventDefault();
@@ -2598,7 +2003,7 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
         arrows: stArrows,
         groups: stGroups,
         textBoxes: stTextBoxes,
-      } = useStore.getState();
+      } = getCanvasEditorState();
       let rotationAngle = 0,
         translation = { x: pos.x, y: pos.y },
         mapAtom0 = -1,
@@ -2730,7 +2135,7 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
           stereo,
         });
       }
-      pushToHistory({
+      commitCanvasEdit({
         atoms: [...stAtoms, ...newAtoms],
         bonds: [...stBonds, ...newBonds],
         arrows: stArrows,
@@ -2738,7 +2143,7 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
         textBoxes: stTextBoxes ?? [],
       });
     },
-    [documentStyleSettings.bondLength, pushToHistory, rdkit],
+    [documentStyleSettings.bondLength, rdkit],
   );
 
   const resolveRingGeometryAtPointer = useCallback(
@@ -2747,7 +2152,7 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
       hitAtom: Atom | null,
       hitBond: Bond | null,
     ): RingPlacementPreview => {
-      const { atoms: currentAtoms, bonds: currentBonds } = useStore.getState();
+      const { atoms: currentAtoms, bonds: currentBonds } = getCanvasEditorState();
       if (!isRingTemplatePreset(ringPreset)) {
         return {
           kind: 'polygon',
@@ -2772,391 +2177,43 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
     [bondLength, ringPreset, ringRotationSteps, ringSize],
   );
 
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      const modifiers = syncModifierKeys(e);
-      const shortcutsBlocked = shouldIgnoreKeyboardShortcuts(e.target, document.activeElement);
-      if (useStore.getState().isInputFocused !== shortcutsBlocked) {
-        useStore.getState().setIsInputFocused(shortcutsBlocked);
-      }
-      if (shortcutsBlocked) return;
-
-      const isEditingAtom = atomTool.editingAtomId !== null;
-      const isEditingTextBox = editingTextBoxId !== null;
-      const isEditingArrow = editingArrowLabels !== null;
-      const isEditingAtomLabel = editingAtomLabel !== null;
-      const isEditingBondStyle = editingBondStyle !== null;
-      const isEditingArrowStyle = editingArrowStyle !== null;
-      if (
-        isEditingAtom ||
-        isEditingTextBox ||
-        isEditingArrow ||
-        isEditingAtomLabel ||
-        isEditingBondStyle ||
-        isEditingArrowStyle
-      )
-        return;
-
-      const {
-        atoms: kAtoms,
-        bonds: kBonds,
-        arrows: kArrows,
-        groups: kGroups,
-        textBoxes: kTextBoxes,
-        selectedAtomIds: kSel,
-        selectedBondIds: kSelBond,
-        selectedArrowIds: kSelArr,
-        selectedTextBoxIds: kSelTB,
-        pushToHistory: kPush,
-        appPreferences: currentPreferences,
-      } = useStore.getState();
-      const matches = (shortcutId: string) =>
-        eventMatchesShortcut(e, getShortcutBinding(currentPreferences.keybindings, shortcutId));
-
-      // Space → select connected component (hover), or deselect + select mode (empty)
-      if (matches('canvas.selection.component')) {
-        e.preventDefault();
-        if (hoveredAtomId || hoveredBondId) {
-          if (hoveredBondId && !hoveredAtomId) {
-            if (modifiers.shift) {
-              const n = new Set(kSelBond);
-              if (n.has(hoveredBondId)) n.delete(hoveredBondId);
-              else n.add(hoveredBondId);
-              setSelectedBondIds(n);
-            } else {
-              setSelectedBondIds(new Set([hoveredBondId]));
-              setSelectedAtomIds(new Set());
-              setSelectedArrowIds(new Set());
-              setSelectedTextBoxIds(new Set());
-            }
-          } else {
-            const startId =
-              hoveredAtomId ??
-              (hoveredBondId ? kBonds.find((b) => b.id === hoveredBondId)?.from : null);
-            if (startId) {
-              const comps = getConnectedComponents(kAtoms, kBonds),
-                target = comps.find((c) => c.has(startId));
-              if (target) {
-                if (modifiers.shift) {
-                  const s = new Set(kSel);
-                  target.forEach((id) => s.add(id));
-                  setSelectedAtomIds(s);
-                } else {
-                  setSelectedAtomIds(new Set(target));
-                  setSelectedBondIds(new Set());
-                  setSelectedArrowIds(new Set());
-                  setSelectedTextBoxIds(new Set());
-                }
-              }
-            }
-          }
-        } else if (hoveredArrowId) {
-          if (modifiers.shift) {
-            const n = new Set(kSelArr);
-            if (n.has(hoveredArrowId)) n.delete(hoveredArrowId);
-            else n.add(hoveredArrowId);
-            setSelectedArrowIds(n);
-          } else {
-            setSelectedArrowIds(new Set([hoveredArrowId]));
-            setSelectedAtomIds(new Set());
-            setSelectedBondIds(new Set());
-            setSelectedTextBoxIds(new Set());
-          }
-        } else if (hoveredTextBoxId) {
-          if (modifiers.shift) {
-            const n = new Set(kSelTB);
-            if (n.has(hoveredTextBoxId)) n.delete(hoveredTextBoxId);
-            else n.add(hoveredTextBoxId);
-            setSelectedTextBoxIds(n);
-          } else {
-            setSelectedTextBoxIds(new Set([hoveredTextBoxId]));
-            setSelectedAtomIds(new Set());
-            setSelectedBondIds(new Set());
-            setSelectedArrowIds(new Set());
-          }
-        } else {
-          useStore.getState().deselectAll();
-          useStore.getState().setTool('select');
-        }
-        return;
-      }
-
-      // Enter → edit hovered atom
-      if (matches('canvas.atom.edit') && hoveredAtomId) {
-        const atom = kAtoms.find((a) => a.id === hoveredAtomId);
-        if (atom) {
-          atomTool.openEditor(atom.id, getAtomNodeText(atom));
-        }
-        return;
-      }
-
-      // Escape → close arrow label editor
-      if (e.key === 'Escape') {
-        setEditingArrowLabels(null);
-        setEditingTextBoxId(null);
-        setEditingAtomLabel(null);
-        setEditingBondStyle(null);
-        setEditingArrowStyle(null);
-        return;
-      }
-
-      const atomShortcutEntry = Object.entries(ATOM_HOTKEY_VALUES).find(([key]) =>
-        matches(`canvas.atom.${key}`),
-      );
-      const bondShortcutEntry = Object.entries(BOND_HOTKEY_VALUES).find(([key]) =>
-        matches(`canvas.bond.${key}`),
-      );
-      const fragmentShortcutEntry = Object.entries(ATOM_FRAGMENT_HOTKEY_VALUES).find(([key]) =>
-        matches(`canvas.fragment.${key}`),
-      );
-      const hE = atomShortcutEntry?.[1];
-      const hB = bondShortcutEntry?.[1];
-      const hAF = fragmentShortcutEntry?.[1];
-
-      if (hoveredAtomId) {
-        const atom = kAtoms.find((a) => a.id === hoveredAtomId);
-        if (atom) {
-          const atomFV = getAtomFreeValence(atom, kBonds);
-
-          // Stereo bond shortcuts — only if atom has room for one more bond
-          if (matches('canvas.stereo.wedge') || matches('canvas.stereo.hash')) {
-            if (atomFV >= 1) {
-              const angle = getPreferredAttachmentAngle(atom, kAtoms, kBonds, false);
-              const nid = crypto.randomUUID();
-              kPush({
-                atoms: [
-                  ...kAtoms,
-                  {
-                    id: nid,
-                    x: atom.x + Math.cos(angle) * bondLength,
-                    y: atom.y + Math.sin(angle) * bondLength,
-                    kind: 'element',
-                    element: 'C',
-                  },
-                ],
-                bonds: [
-                  ...kBonds,
-                  {
-                    id: crypto.randomUUID(),
-                    from: atom.id,
-                    to: nid,
-                    order: 1,
-                    stereo: matches('canvas.stereo.wedge') ? 1 : 6,
-                  },
-                ],
-                arrows: kArrows,
-                groups: kGroups ?? [],
-                textBoxes: kTextBoxes ?? [],
-              });
-            }
-            return;
-          }
-
-          // Fragment shortcuts — use ChemDraw-style smart SMILES based on free valence
-          if (hAF) {
-            const fragmentShortcutKey = fragmentShortcutEntry?.[0];
-            const options = fragmentShortcutKey
-              ? ATOM_FRAGMENT_OPTIONS[fragmentShortcutKey]
-              : undefined;
-            let smiles: string | null;
-            if (options) {
-              const match = options.find((o) => atomFV >= o.minFV);
-              smiles = match ? match.smiles : null;
-            } else {
-              const minFV = fragmentShortcutKey ? (FRAGMENT_MIN_FV[fragmentShortcutKey] ?? 1) : 1;
-              smiles = atomFV >= minFV ? hAF : null;
-            }
-            if (smiles) placeFragmentAt(smiles, { x: 0, y: 0 }, atom);
-            return;
-          }
-
-          if (hE) {
-            setLastInteractedAtomId(hoveredAtomId);
-            if (useStore.getState().chemDrawDocument) {
-              const nextDocument = applyNodeValueEdit(
-                useStore.getState().chemDrawDocument!,
-                hoveredAtomId,
-                hE,
-              );
-              commitNativeDocument(nextDocument, 'edit-node-value');
-            } else {
-              kPush({
-                atoms: kAtoms.map((a) => (a.id === hoveredAtomId ? { ...a, element: hE } : a)),
-                bonds: kBonds,
-                arrows: kArrows,
-                groups: kGroups ?? [],
-                textBoxes: kTextBoxes ?? [],
-              });
-            }
-            return;
-          }
-        }
-      }
-
-      if (hB && hoveredBondId) {
-        if (hB.ring) {
-          const b = kBonds.find((x) => x.id === hoveredBondId);
-          if (b) placeFragmentAt(hB.ring, { x: 0, y: 0 }, undefined, b);
-        } else if (hB.order !== undefined) {
-          const b = kBonds.find((x) => x.id === hoveredBondId);
-          const nativeDocument = useStore.getState().chemDrawDocument;
-          if (nativeDocument) {
-            const nextDocument =
-              b && b.stereo === hB.stereo && hB.stereo !== 0
-                ? reverseBondDirection(nativeDocument, hoveredBondId)
-                : applyBondEdit(nativeDocument, hoveredBondId, {
-                    order: hB.order,
-                    stereo: hB.stereo || 0,
-                    ...(hB.order === 2 && (hB.stereo || 0) === 0
-                      ? { doubleBondMode: getNextDoubleBondToolMode(b) }
-                      : {}),
-                  });
-            commitNativeDocument(nextDocument, 'edit-bond');
-          } else if (b && b.stereo === hB.stereo && hB.stereo !== 0) {
-            kPush({
-              atoms: kAtoms,
-              bonds: kBonds.map((x) =>
-                x.id === hoveredBondId ? { ...x, from: x.to, to: x.from } : x,
-              ),
-              arrows: kArrows,
-              groups: kGroups ?? [],
-              textBoxes: kTextBoxes ?? [],
-            });
-          } else {
-            kPush({
-              atoms: kAtoms,
-              bonds: kBonds.map((x) =>
-                x.id === hoveredBondId
-                  ? {
-                      ...x,
-                      order: hB.order!,
-                      stereo: hB.stereo || 0,
-                      ...(hB.order === 2 && (hB.stereo || 0) === 0
-                        ? { doubleBondMode: getNextDoubleBondToolMode(x) }
-                        : { doubleBondMode: undefined }),
-                    }
-                  : x,
-              ),
-              arrows: kArrows,
-              groups: kGroups ?? [],
-              textBoxes: kTextBoxes ?? [],
-            });
-          }
-        }
-        return;
-      }
-
-      const hasHoveredObject = Boolean(
-        hoveredAtomId ||
-        hoveredBondId ||
-        hoveredArrowId ||
-        hoveredTextBoxId ||
-        hoveredNativeObjectId,
-      );
-      const toolShortcut = getCanvasToolShortcut(currentPreferences.keybindings, e, {
-        hasHoveredObject,
-      });
-      if (toolShortcut) {
-        e.preventDefault();
-        useStore.getState().setTool(toolShortcut.tool);
-        if (toolShortcut.selectedFragment) {
-          useStore.getState().setSelectedFragment(toolShortcut.selectedFragment);
-        }
-        return;
-      }
-
-      // Delete / Backspace
-      if (matches('canvas.delete') || matches('canvas.delete.backspace')) {
-        if (kSel.size > 0 || kSelBond.size > 0 || kSelArr.size > 0 || kSelTB.size > 0) {
-          const nativeDocument = useStore.getState().chemDrawDocument;
-          if (nativeDocument) {
-            useStore.getState().dispatchEditorCommand(
-              createDeleteSelectionCommand({
-                objectIds: useStore.getState().selectedObjectIds,
-                description: 'delete-selected-objects',
-              }),
-            );
-          } else {
-            kPush({
-              atoms: kAtoms.filter((a) => !kSel.has(a.id)),
-              bonds: kBonds.filter(
-                (b) => !kSelBond.has(b.id) && !kSel.has(b.from) && !kSel.has(b.to),
-              ),
-              arrows: kArrows.filter((a) => !kSelArr.has(a.id)),
-              groups: kGroups ?? [],
-              textBoxes: (kTextBoxes ?? []).filter((t) => !kSelTB.has(t.id)),
-            });
-          }
-          setSelectedAtomIds(new Set());
-          setSelectedBondIds(new Set());
-          setSelectedArrowIds(new Set());
-          setSelectedTextBoxIds(new Set());
-        } else if (hoveredAtomId) {
-          kPush({
-            atoms: kAtoms.filter((a) => a.id !== hoveredAtomId),
-            bonds: kBonds.filter((b) => b.from !== hoveredAtomId && b.to !== hoveredAtomId),
-            arrows: kArrows,
-            groups: kGroups ?? [],
-            textBoxes: kTextBoxes ?? [],
-          });
-        } else if (hoveredBondId) {
-          kPush({
-            atoms: kAtoms,
-            bonds: kBonds.filter((b) => b.id !== hoveredBondId),
-            arrows: kArrows,
-            groups: kGroups ?? [],
-            textBoxes: kTextBoxes ?? [],
-          });
-        } else if (hoveredArrowId) {
-          kPush({
-            atoms: kAtoms,
-            bonds: kBonds,
-            arrows: kArrows.filter((a) => a.id !== hoveredArrowId),
-            groups: kGroups ?? [],
-            textBoxes: kTextBoxes ?? [],
-          });
-        }
-      }
-    };
-    const handleKeyUp = (e: KeyboardEvent) => {
-      syncModifierKeys(e);
-    };
-    const clearModifierKeys = () => {
-      setIsCtrlDown(false);
-    };
-    const handleVisibilityChange = () => {
-      if (document.visibilityState !== 'visible') clearModifierKeys();
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('keyup', handleKeyUp);
-    window.addEventListener('blur', clearModifierKeys);
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('keyup', handleKeyUp);
-      window.removeEventListener('blur', clearModifierKeys);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    hoveredAtomId,
-    hoveredBondId,
-    hoveredArrowId,
-    hoveredTextBoxId,
-    hoveredNativeObjectId,
-    placeFragmentAt,
-    atomTool.editingAtomId,
+  useCanvasKeyboard({
+    cancelSelectionDrag: () => {
+      selectionDragRef.current.isDragging = false;
+      selectionDragRef.current.sourceDocument = null;
+    },
+    syncModifierKeys,
+    atomTool,
     editingTextBoxId,
     editingArrowLabels,
     editingAtomLabel,
-    editingArrowStyle,
     editingBondStyle,
-    setLastInteractedAtomId,
+    editingArrowStyle,
+    hoveredAtomId,
+    hoveredBondId,
+    setSelectedBondIds,
     setSelectedAtomIds,
     setSelectedArrowIds,
     setSelectedTextBoxIds,
-    syncModifierKeys,
-  ]);
+    hoveredArrowId,
+    hoveredTextBoxId,
+    bondTool,
+    selectTool,
+    textToolDragRef,
+    setArrowPreview,
+    setRingPreview,
+    setEditingArrowLabels,
+    setEditingTextBoxId,
+    setEditingAtomLabel,
+    setEditingBondStyle,
+    setEditingArrowStyle,
+    bondLength,
+    placeFragmentAt,
+    setLastInteractedAtomId,
+    commitNativeDocument,
+    hoveredNativeObjectId,
+    setIsCtrlDown,
+  });
 
   const handleMouseDown = (e: KonvaEventObject<MouseEvent>) => {
     const modifiers = syncModifierKeys(e.evt);
@@ -3203,7 +2260,7 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
       selectedBondIds: selBondIds,
       selectedObjectIds: selObjectIds,
       bonds: selectedBonds,
-    } = useStore.getState();
+    } = getCanvasEditorState();
     if (hitA && selIds.has(hitA.id) && !modifiers.shift && tool !== 'eraser') {
       const movedAtomIds = collectPreviewMovedAtomIds(selIds, selBondIds, selectedBonds);
       selectionDragRef.current = {
@@ -3247,8 +2304,8 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
           arrows: karr,
           groups: kg,
           textBoxes: ktb,
-        } = useStore.getState();
-        pushToHistory({
+        } = getCanvasEditorState();
+        commitCanvasEdit({
           atoms: ka,
           bonds: kb,
           arrows: karr.map((a) =>
@@ -3299,7 +2356,7 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
           arrows: karr,
           groups: kg,
           textBoxes: ktb,
-        } = useStore.getState();
+        } = getCanvasEditorState();
         const newTB: TextBox = {
           id: crypto.randomUUID(),
           x: pos.x,
@@ -3312,7 +2369,7 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
           semanticMode: 'auto',
           conversionStatus: 'plain',
         };
-        pushToHistory({
+        commitCanvasEdit({
           atoms: ka,
           bonds: kb,
           arrows: karr,
@@ -3360,18 +2417,18 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
     if (tool === 'charge' && hitA) {
       const result = applyElectronToolToAtom(hitA, bonds, electronToolMode);
       if (!result.changed) {
-        if (result.message) useStore.getState().showToast(result.message, 'info');
+        if (result.message) getCanvasEditorState().showToast(result.message, 'info');
         return;
       }
       const nA = atoms.map((a) => (a.id === hitA.id ? result.atom : a));
-      const { groups: kg, textBoxes: ktb } = useStore.getState();
-      pushToHistory({ atoms: nA, bonds, arrows, groups: kg ?? [], textBoxes: ktb ?? [] });
+      const { groups: kg, textBoxes: ktb } = getCanvasEditorState();
+      commitCanvasEdit({ atoms: nA, bonds, arrows, groups: kg ?? [], textBoxes: ktb ?? [] });
       return;
     }
     if (tool === 'eraser') {
-      const { groups: kg, textBoxes: ktb } = useStore.getState();
+      const { groups: kg, textBoxes: ktb } = getCanvasEditorState();
       if (hitA)
-        pushToHistory({
+        commitCanvasEdit({
           atoms: atoms.filter((a) => a.id !== hitA.id),
           bonds: bonds.filter((b) => b.from !== hitA.id && b.to !== hitA.id),
           arrows,
@@ -3379,7 +2436,7 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
           textBoxes: ktb ?? [],
         });
       else if (hitB)
-        pushToHistory({
+        commitCanvasEdit({
           atoms,
           bonds: bonds.filter((b) => b.id !== hitB.id),
           arrows,
@@ -3387,7 +2444,7 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
           textBoxes: ktb ?? [],
         });
       else if (hitArr)
-        pushToHistory({
+        commitCanvasEdit({
           atoms,
           bonds,
           arrows: arrows.filter((a) => a.id !== hitArr.id),
@@ -3396,15 +2453,15 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
         });
       else {
         if (hitTB)
-          pushToHistory({
+          commitCanvasEdit({
             atoms,
             bonds,
             arrows,
             groups: kg ?? [],
             textBoxes: (ktb ?? []).filter((t) => t.id !== hitTB.id),
           });
-        else if (hitNative && useStore.getState().chemDrawDocument) {
-          useStore.getState().dispatchEditorCommand(
+        else if (hitNative && getCanvasEditorState().chemDrawDocument) {
+          getCanvasEditorState().dispatchEditorCommand(
             createDeleteSelectionCommand({
               objectIds: new Set([hitNative]),
               description: 'delete-selected-objects',
@@ -3415,7 +2472,7 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
       return;
     }
     if (tool === 'ring') {
-      const { atoms: ka, bonds: kb, groups: kg, textBoxes: ktb } = useStore.getState();
+      const { atoms: ka, bonds: kb, groups: kg, textBoxes: ktb } = getCanvasEditorState();
       const previewPlacement = resolveRingGeometryAtPointer(pos, hitA, hitB);
       const { atoms: nextAtoms, bonds: nextBonds } =
         previewPlacement.kind === 'template'
@@ -3429,7 +2486,7 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
                 bonds: [...kb, ...rBonds],
               };
             })();
-      pushToHistory({
+      commitCanvasEdit({
         atoms: nextAtoms,
         bonds: nextBonds,
         arrows,
@@ -3507,7 +2564,7 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
         selectedAtomIds: ksel,
         selectedBondIds: kselBond,
         selectedObjectIds: kselObjects,
-      } = useStore.getState();
+      } = getCanvasEditorState();
       if (selectionDragRef.current.sourceDocument && kselObjects.size > 0) {
         selectionDragRef.current.totalDx += dx;
         selectionDragRef.current.totalDy += dy;
@@ -3531,7 +2588,7 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
         movedAtomIds.add(bond.from);
         movedAtomIds.add(bond.to);
       });
-      setCurrentCanvasState({
+      previewCanvasEdit({
         atoms: ka.map((a) => (movedAtomIds.has(a.id) ? { ...a, x: a.x + dx, y: a.y + dy } : a)),
         bonds: kb,
         arrows: karr,
@@ -3585,8 +2642,8 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
           arrows: karr,
           groups: kg,
           textBoxes: ktb,
-        } = useStore.getState();
-        setCurrentCanvasState({
+        } = getCanvasEditorState();
+        previewCanvasEdit({
           atoms: ka,
           bonds: kb,
           arrows: karr,
@@ -3605,8 +2662,8 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
     if (arrowPreview) {
       const { x1, y1, x2, y2, cpx, cpy, type } = arrowPreview;
       if (Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2) > 10) {
-        const { groups: kg, textBoxes: ktb } = useStore.getState();
-        pushToHistory({
+        const { groups: kg, textBoxes: ktb } = getCanvasEditorState();
+        commitCanvasEdit({
           atoms,
           bonds,
           arrows: [...arrows, { id: crypto.randomUUID(), type, x1, y1, x2, y2, cpx, cpy }],
@@ -3626,7 +2683,7 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
         dispatchEditorCommand,
         groups: kgrp,
         textBoxes: ktb,
-      } = useStore.getState();
+      } = getCanvasEditorState();
       const moveSelection = selectionDragRef.current;
       selectionDragRef.current = {
         isDragging: false,
@@ -3653,7 +2710,7 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
         }
         return;
       }
-      pushToHistory({
+      commitCanvasEdit({
         atoms: ka,
         bonds: kb,
         arrows: karr,
@@ -3698,8 +2755,8 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
           arrows: karr,
           groups: kg,
           textBoxes: ktb,
-        } = useStore.getState();
-        pushToHistory({
+        } = getCanvasEditorState();
+        commitCanvasEdit({
           atoms: ka,
           bonds: kb,
           arrows: karr,
@@ -3760,126 +2817,26 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
     markInteractionIdle();
   };
 
+  const fileController = useCanvasDocumentController(resetStageView, () =>
+    sceneSurfaceRef.current?.toDataURL({
+      pixelRatio: 3,
+      width: finitePageMetrics?.totalWidthPx ?? width,
+      height: finitePageMetrics?.totalHeightPx ?? height,
+      stageScale,
+      stagePos,
+      drawPageChrome: false,
+    }),
+  );
+
   useImperativeHandle(
     ref,
     () => ({
-      saveNative: async (options = {}) => {
-        try {
-          const store = useStore.getState();
-          const {
-            atoms: a,
-            bonds: b,
-            arrows: arr,
-            textBoxes: tb,
-            groups: g,
-            chemDrawDocument,
-          } = store;
-          const snapshot = {
-            document: chemDrawDocument,
-            revision: store.documentRevision,
-            sessionId: store.documentSessionId,
-          };
-          const canvasState = {
-            atoms: a,
-            bonds: b,
-            arrows: arr,
-            groups: g ?? [],
-            textBoxes: tb ?? [],
-          };
-          const prepared = await prepareChemDrawDocumentForSaveAsync({
-            canvasState,
-            document: chemDrawDocument,
-            documentStyleSettings,
-            pageSetup,
-          });
-          if (options.path && !options.prompt) {
-            const path = await saveTextToPath(options.path, prepared.xml);
-            return { path, saved: true, snapshot };
-          }
-          const path = await saveTextWithDialog({
-            title: options.prompt ? 'Save Sketch As' : 'Save Sketch',
-            defaultPath: options.path ?? 'sketch.cdxml',
-            name: 'ChemDraw XML',
-            extensions: ['cdxml'],
-            content: prepared.xml,
-          });
-          return { path, saved: Boolean(path), snapshot };
-        } catch (e) {
-          useStore.getState().showToast('Failed to save file');
-          console.error(e);
-          return { path: null, saved: false };
-        }
-      },
-      loadNative: async (c, beforeReplace, path) => {
-        const loaded = await loadChemDrawDocumentForCanvasAsync(c);
-        if (beforeReplace && !(await beforeReplace())) return false;
-        const store = useStore.getState();
-        store.replaceDocument(loaded.document, loaded.warnings, path);
-        for (const warning of loaded.warnings.slice(0, 3)) store.showToast(warning, 'info');
-        resetStageView();
-        return true;
-      },
-      exportPNG: async () => {
-        try {
-          const d =
-            useNativeSceneSurface && sceneSurfaceRef.current
-              ? sceneSurfaceRef.current.toDataURL({
-                  pixelRatio: 3,
-                  width: finitePageMetrics?.totalWidthPx ?? width,
-                  height: finitePageMetrics?.totalHeightPx ?? height,
-                  stageScale,
-                  stagePos,
-                })
-              : finitePageMetrics && stageRef.current
-                ? stageRef.current.toDataURL({
-                    pixelRatio: 3,
-                    x: 0,
-                    y: 0,
-                    width: finitePageMetrics.totalWidthPx,
-                    height: finitePageMetrics.totalHeightPx,
-                  })
-                : stageRef.current?.toDataURL({ pixelRatio: 3 });
-          if (!d) return;
-          await saveBinaryWithDialog({
-            title: 'Export PNG',
-            defaultPath: 'molecule.png',
-            name: 'PNG Image',
-            extensions: ['png'],
-            content: Uint8Array.from(atob(d.split(',')[1]), (c) => c.charCodeAt(0)),
-          });
-        } catch (e) {
-          useStore.getState().showToast('PNG export failed');
-          console.error(e);
-        }
-      },
-      exportSVG: async () => {
-        try {
-          const {
-            atoms: a,
-            bonds: b,
-            arrows: arr,
-            isDarkMode: dm,
-            textBoxes: tb,
-            pageSetup: currentPageSetup,
-          } = useStore.getState();
-          const svg = generateCanvasSVG(a, b, arr, dm, false, tb ?? [], currentPageSetup);
-          await saveTextWithDialog({
-            title: 'Export SVG',
-            defaultPath: 'molecule.svg',
-            name: 'SVG Vector Image',
-            extensions: ['svg'],
-            content: svg,
-          });
-        } catch (e) {
-          useStore.getState().showToast('SVG export failed');
-          console.error(e);
-        }
-      },
+      ...fileController,
       insertImage: async (options) => {
         try {
           await insertEmbeddedImage(options);
         } catch (error) {
-          useStore.getState().showToast('Image insertion failed');
+          getCanvasEditorState().showToast('Image insertion failed');
           console.error(error);
         }
       },
@@ -3890,7 +2847,7 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
           viewerMolblock,
           selectedTextBoxIds,
           textBoxes: tb,
-        } = useStore.getState();
+        } = getCanvasEditorState();
         if (
           selectedTextBoxIds.size > 0 &&
           viewerMolblock &&
@@ -3911,12 +2868,11 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
       loadFromSmiles: (input: string) => {
         if (!rdkit) return;
         if (!input?.trim()) {
-          useStore.getState().setChemDrawDocument(null);
-          useStore.getState().setChemDrawWarnings([]);
-          pushToHistory({
+          getCanvasEditorState().setChemDrawWarnings([]);
+          commitCanvasEdit({
             atoms: [],
             bonds: [],
-            arrows: useStore.getState().arrows,
+            arrows: getCanvasEditorState().arrows,
             groups: [],
             textBoxes: [],
           });
@@ -3925,20 +2881,19 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
         try {
           const resolved = resolveChemicalInput(rdkit, input, aliasValidator);
           if (!resolved?.molblock) {
-            useStore.getState().showToast('Invalid SMILES or formula');
+            getCanvasEditorState().showToast('Invalid SMILES or formula');
             return;
           }
           const newState = molblockToState(
             resolved.molblock,
             width,
             height,
-            useStore.getState().arrows,
+            getCanvasEditorState().arrows,
           );
-          useStore.getState().setChemDrawDocument(null);
-          useStore.getState().setChemDrawWarnings([]);
-          pushToHistory({ ...newState, textBoxes: [] });
+          getCanvasEditorState().setChemDrawWarnings([]);
+          commitCanvasEdit({ ...newState, textBoxes: [] });
         } catch (e) {
-          useStore.getState().showToast('Failed to load structure');
+          getCanvasEditorState().showToast('Failed to load structure');
           console.error(e);
         }
       },
@@ -3949,8 +2904,8 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
           arrows: karr,
           groups: kg,
           textBoxes: ktb,
-        } = useStore.getState();
-        pushToHistory({
+        } = getCanvasEditorState();
+        commitCanvasEdit({
           atoms: [...ka, ...buf.atoms],
           bonds: [...kb, ...buf.bonds],
           arrows: [...karr, ...buf.arrows],
@@ -3966,7 +2921,7 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
         try {
           const resolved = resolveChemicalInput(rdkit, input, aliasValidator);
           if (!resolved?.molblock) {
-            useStore.getState().showToast('Invalid SMILES or formula');
+            getCanvasEditorState().showToast('Invalid SMILES or formula');
             return;
           }
           const parsed = molblockToState(resolved.molblock, width, height, []);
@@ -3976,10 +2931,9 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
             arrows: karr,
             groups: kg,
             textBoxes: ktb,
-          } = useStore.getState();
-          useStore.getState().setChemDrawDocument(null);
-          useStore.getState().setChemDrawWarnings([]);
-          pushToHistory({
+          } = getCanvasEditorState();
+          getCanvasEditorState().setChemDrawWarnings([]);
+          commitCanvasEdit({
             atoms: [...ka, ...parsed.atoms],
             bonds: [...kb, ...parsed.bonds],
             arrows: karr,
@@ -3989,7 +2943,7 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
           setSelectedAtomIds(new Set(parsed.atoms.map((a) => a.id)));
           setSelectedArrowIds(new Set());
         } catch (e) {
-          useStore.getState().showToast('Failed to add structure');
+          getCanvasEditorState().showToast('Failed to add structure');
           console.error(e);
         }
       },
@@ -4002,7 +2956,7 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
           groups: grp,
           textBoxes: tb,
           selectedAtomIds: selIds,
-        } = useStore.getState();
+        } = getCanvasEditorState();
         if (selIds.size > 0) {
           const sA = a.filter((x) => selIds.has(x.id)),
             sB = b.filter((x) => selIds.has(x.from) && selIds.has(x.to));
@@ -4031,9 +2985,8 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
             const dx = oCx - nCx,
               dy = oCy - nCy;
             const map = new Map(rC.map((c) => [c.id, { x: c.x + dx, y: c.y + dy }]));
-            useStore.getState().setChemDrawDocument(null);
-            useStore.getState().setChemDrawWarnings([]);
-            pushToHistory({
+            getCanvasEditorState().setChemDrawWarnings([]);
+            commitCanvasEdit({
               atoms: a.map((x) => {
                 const nc = map.get(x.id);
                 return nc ? { ...x, ...nc } : x;
@@ -4044,7 +2997,7 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
               textBoxes: tb ?? [],
             });
           } catch (e) {
-            useStore.getState().showToast('Structure cleanup failed');
+            getCanvasEditorState().showToast('Structure cleanup failed');
             console.error(e);
           }
           return;
@@ -4081,12 +3034,16 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
               stereo: bond.stereo,
             }));
             resetStageView();
-            useStore.getState().setChemDrawDocument(null);
-            useStore.getState().setChemDrawWarnings([]);
-            pushToHistory({ atoms: newAtoms, bonds: newBonds, arrows: arr, textBoxes: tb ?? [] });
+            getCanvasEditorState().setChemDrawWarnings([]);
+            commitCanvasEdit({
+              atoms: newAtoms,
+              bonds: newBonds,
+              arrows: arr,
+              textBoxes: tb ?? [],
+            });
           }
         } catch (e) {
-          useStore.getState().showToast('Structure cleanup failed');
+          getCanvasEditorState().showToast('Structure cleanup failed');
           console.error(e);
         }
       },
@@ -4096,7 +3053,12 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
         }
       },
       fitToScreen: () => {
-        const { atoms, arrows, textBoxes: tb, pageSetup: currentPageSetup } = useStore.getState();
+        const {
+          atoms,
+          arrows,
+          textBoxes: tb,
+          pageSetup: currentPageSetup,
+        } = getCanvasEditorState();
         if (currentPageSetup.mode === 'finite') {
           const metrics = getPageSetupDimensionsPx(currentPageSetup);
           const pad = 30;
@@ -4143,7 +3105,7 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
           groups,
           textBoxes: tb,
           pageSetup: currentPageSetup,
-        } = useStore.getState();
+        } = getCanvasEditorState();
         if (currentPageSetup.mode !== 'finite') return;
         const bounds = getCanvasContentBounds(atoms, arrows, tb ?? []);
         if (!bounds) return;
@@ -4162,10 +3124,13 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
               ? metrics.totalHeightPx - margin - bounds.maxY
               : 0;
         if (dx === 0 && dy === 0) {
-          useStore.getState().showToast('Content is already inside the finite page area.', 'info');
+          getCanvasEditorState().showToast(
+            'Content is already inside the finite page area.',
+            'info',
+          );
           return;
         }
-        pushToHistory({
+        commitCanvasEdit({
           atoms: atoms.map((atom) => ({ ...atom, x: atom.x + dx, y: atom.y + dy })),
           bonds,
           arrows: arrows.map((arrow) => ({
@@ -4184,10 +3149,10 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
             y: textBox.y + dy,
           })),
         });
-        useStore.getState().showToast('Moved content into the finite page area.', 'info');
+        getCanvasEditorState().showToast('Moved content into the finite page area.', 'info');
       },
       centerPageInView: () => {
-        const { pageSetup: currentPageSetup } = useStore.getState();
+        const { pageSetup: currentPageSetup } = getCanvasEditorState();
         if (currentPageSetup.mode !== 'finite') return;
         const metrics = getPageSetupDimensionsPx(currentPageSetup);
         const pad = 30;
@@ -4202,82 +3167,21 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
       },
     }),
     [
+      fileController,
       aliasValidator,
       documentStyleSettings,
-      finitePageMetrics,
       insertEmbeddedImage,
-      pageSetup,
       rdkit,
       resetStageView,
-      stagePos,
-      stageScale,
-      useNativeSceneSurface,
       width,
       height,
-      pushToHistory,
+
       setSelectedAtomIds,
       setSelectedArrowIds,
       setSelectedTextBoxIds,
       resolveAliasEntry,
     ],
   );
-
-  const renderArrow = (a: Arrow, preview = false) => {
-    const nativeArrow = nativeArrows.get(a.id);
-    const isS = selectedArrowIds.has(a.id),
-      isH = hoveredArrowId === a.id;
-    const defaultColor = resolveBondColor(undefined, documentStyleSettings, isDarkMode);
-    const color = isS || isH ? '#2196F3' : a.strokeColor ? adaptColor(a.strokeColor) : defaultColor;
-    const labelAbove = a.labelAbove || a.label;
-    const labelBelow = a.labelBelow;
-    const { fontFamily: labelFontFamily, fontSize: labelFontSize } =
-      resolveDocumentCaptionTextStyle(documentStyleSettings, {
-        authored: { fontSize: a.labelFontSize },
-        nativeStyle: nativeArrow?.style,
-      });
-    const labelColor = a.labelColor ? (isS || isH ? '#2196F3' : a.labelColor) : color;
-    const anchors = getArrowLabelAnchors(a);
-    return (
-      <Group key={a.id + (preview ? '-p' : '')} opacity={preview ? 0.55 : isH && !isS ? 0.65 : 1}>
-        <Shape
-          listening={false}
-          sceneFunc={(ctx: KonvaContext) => {
-            const c = (ctx as KonvaContext & { _context: CanvasRenderingContext2D })._context;
-            c.save();
-            drawArrowShape(c, a, color, {
-              documentStyleSettings,
-              nativeArrow,
-            });
-            c.restore();
-          }}
-        />
-        {labelAbove && (
-          <Text
-            x={anchors.above.x - 60}
-            y={anchors.above.y - labelFontSize - 2}
-            text={labelAbove}
-            fontSize={labelFontSize}
-            fill={labelColor}
-            width={120}
-            align="center"
-            fontFamily={labelFontFamily}
-          />
-        )}
-        {labelBelow && (
-          <Text
-            x={anchors.below.x - 60}
-            y={anchors.below.y + 2}
-            text={labelBelow}
-            fontSize={labelFontSize}
-            fill={labelColor}
-            width={120}
-            align="center"
-            fontFamily={labelFontFamily}
-          />
-        )}
-      </Group>
-    );
-  };
 
   const renderArrowControlHandle = (a: Arrow) => (
     <Star
@@ -4303,8 +3207,8 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
           arrows: karr,
           groups: kg,
           textBoxes: ktb,
-        } = useStore.getState();
-        setCurrentCanvasState({
+        } = getCanvasEditorState();
+        previewCanvasEdit({
           atoms: ka,
           bonds: kb,
           arrows: karr.map((entry) =>
@@ -4322,8 +3226,8 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
           arrows: karr,
           groups: kg,
           textBoxes: ktb,
-        } = useStore.getState();
-        pushToHistory({
+        } = getCanvasEditorState();
+        commitCanvasEdit({
           atoms: ka,
           bonds: kb,
           arrows: karr.map((entry) =>
@@ -4344,7 +3248,7 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
         arrows: karr,
         groups: kg,
         textBoxes: ktb,
-      } = useStore.getState();
+      } = getCanvasEditorState();
       const nextAtoms = ka.map((entry) =>
         entry.id === atomId ? updateAtomElectronMarkerAngle(entry, markerIndex, angle) : entry,
       );
@@ -4355,10 +3259,10 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
         groups: kg ?? [],
         textBoxes: ktb ?? [],
       };
-      if (commit) pushToHistory(nextState);
-      else setCurrentCanvasState(nextState);
+      if (commit) commitCanvasEdit(nextState);
+      else previewCanvasEdit(nextState);
     },
-    [pushToHistory, setCurrentCanvasState],
+    [],
   );
 
   const renderElectronControlHandles = (entry: (typeof selectedElectronControlAtoms)[number]) => (
@@ -4425,1168 +3329,67 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
     </Group>
   );
 
-  const adaptColor = (c: string) => {
-    if (!isDarkMode) return c;
-    const n = c.toLowerCase().trim();
-    return n === '#000000' || n === '#000' || n === 'black' ? '#ffffff' : c;
-  };
-
-  const renderAtom = (a: Atom, options?: { keyPrefix?: string }) => {
-    if (tool === 'bond' && bondTool.activeAtomIsNew && a.id === bondTool.activeAtomId) return null;
-    const keyPrefix = options?.keyPrefix ? `${options.keyPrefix}-` : '';
-    const nativeNode = nativeNodes.get(a.id);
-    const conn = bondsByAtomId.get(a.id) ?? [];
-    const sL = isAtomLabelVisible(a, conn.length),
-      bC = conn.reduce((s, b) => s + b.order, 0);
-    const leadElem = getAtomLeadElement(a);
-    const knownVal: number | null = VALENCIES[leadElem] ?? null;
-    const chg = a.charge || 0;
-    let eVal = knownVal ?? 0;
-    if (knownVal !== null) {
-      if (leadElem === 'C') eVal = knownVal - Math.abs(chg);
-      else if (leadElem === 'N' || leadElem === 'O') eVal = knownVal + chg;
-      else if (leadElem === 'B') eVal = knownVal + Math.abs(chg);
-    }
-    const err = (knownVal !== null && bC > eVal) || rdkitInvalidAtomIds.has(a.id);
-    const alias = getAtomAlias(a);
-    const canShowImplicitHydrogens = !alias || Boolean(SHORTHAND_DATA[alias]);
-    const hV =
-      showHydrogens && canShowImplicitHydrogens && knownVal !== null
-        ? getAtomHydrogenCount(a, sceneBonds, knownVal)
-        : 0;
-    const labelText = getAtomDisplayText(a, sceneAtoms, sceneBonds, hV).text;
-    const isS = selectedAtomIds.has(a.id),
-      isH = hoveredAtomId === a.id;
-    const suppressSelectionAdornment = isS && fullySelectedComponentAtomIds.has(a.id);
-    const showSelectionAdornment = isS && !suppressSelectionAdornment;
-    const showAtomAdornment = err || isH || showSelectionAdornment;
-    const labelTextStyle = resolveDocumentLabelTextStyle(documentStyleSettings, {
-      authored: {
-        fontFamily: a.labelFontFamily,
-        fontSize: a.labelFontSize,
-      },
-      nativeStyle: nativeNode?.style,
-    });
-    const { fontFamily: labelFontFamily, fontSize: labelFontSize } = labelTextStyle;
-    const labelColor = a.labelColor ?? nativeNode?.style?.color;
-    const color = err
-      ? '#FF0000'
-      : isS
-        ? '#2196F3'
-        : resolveAtomLabelColor(
-            labelColor,
-            leadElem,
-            documentStyleSettings,
-            isDarkMode,
-            documentViewSettings,
-          );
-    const displayRuns = buildAtomLabelRuns(
-      a,
-      labelText,
-      color,
-      documentStyleSettings,
-      documentViewSettings,
-      isDarkMode,
-    );
-    const cT =
-      chg === 1
-        ? '+'
-        : chg === -1
-          ? '−'
-          : chg > 1
-            ? `${chg}+`
-            : chg < -1
-              ? `${Math.abs(chg)}−`
-              : '';
-    const {
-      offset: labelAnchorOffset,
-      width: anchoredLabelWidth,
-      padding: labelPadding,
-    } = sL
-      ? getLeadElementAnchorOffset(
-          displayRuns,
-          labelText,
-          leadElem,
-          labelFontSize,
-          getAtomLabelBoxWidth,
-          (run) => measureRunWidth(run, labelFontSize, labelFontFamily),
-        )
-      : { offset: 0, width: 0, padding: 0 };
-    const lW = sL ? anchoredLabelWidth : 0;
-    const labelLayout = getAtomLabelLayoutMetrics(labelFontSize, lW, documentStyleSettings);
-    const verticalLabelOffset = getNodeLabelVerticalOffset(
-      nativeNode?.labelAlignment,
-      labelFontSize,
-    );
-    const labelBoxStartX = a.x - labelAnchorOffset;
-    const labelTextStartX = labelBoxStartX + labelPadding;
-    const cX = sL ? labelBoxStartX + lW - labelLayout.chargeOffsetX : a.x + 5,
-      cY = a.y - labelLayout.chargeOffsetY + verticalLabelOffset;
-    const electronMarkers = getAtomElectronMarkerGeometry(a, {
-      centerX: a.x,
-      centerY: a.y,
-      distance: labelLayout.electronDistance,
-      pairSpacing: labelLayout.electronPairSpacing,
-    });
-    const es = electronMarkers.flatMap((marker, markerIndex) =>
-      marker.dots.map((dot, dotIndex) => (
-        <Circle
-          key={`${keyPrefix}electron-${a.id}-${markerIndex}-${dotIndex}`}
-          x={dot.x}
-          y={dot.y}
-          radius={labelLayout.electronDotRadius}
-          fill={color}
-        />
-      )),
-    );
-    return (
-      <Group key={`${keyPrefix}${a.id}`}>
-        {nativeNode?.query && (
-          <Rect
-            x={sL ? labelBoxStartX - labelLayout.queryPadX : a.x - Math.max(18, lW / 2 + 4)}
-            y={a.y - labelLayout.boxHeight / 2 - labelLayout.queryPadY + verticalLabelOffset}
-            width={Math.max(36, lW + labelLayout.queryPadX * 2)}
-            height={labelLayout.boxHeight + labelLayout.queryPadY * 2}
-            stroke={isS ? '#2196F3' : color}
-            strokeWidth={labelLayout.hoverStrokeWidth}
-            dash={[4, 3]}
-            cornerRadius={labelLayout.queryCornerRadius}
-            opacity={0.7}
-            listening={false}
-          />
-        )}
-        {showAtomAdornment && (
-          <Circle
-            x={a.x}
-            y={a.y}
-            radius={labelLayout.hoverRadius}
-            fill={err ? '#FF0000' : isH ? '#2196F3' : 'transparent'}
-            opacity={err ? 0.2 : isH ? 0.08 : 1}
-            stroke={showSelectionAdornment ? '#2196F3' : err ? '#FF0000' : 'none'}
-            strokeWidth={labelLayout.hoverStrokeWidth}
-            dash={[2, 2]}
-          />
-        )}
-        {sL &&
-          (() => {
-            let cursorX = labelTextStartX;
-            return displayRuns.map((run, index) => {
-              const runWidth = measureRunWidth(run, labelFontSize, labelFontFamily);
-              const runFontSize = run.sub || run.sup ? labelFontSize * 0.65 : labelFontSize;
-              // Konva anchors Text at its top, as the scene renderer does, so this mirrors
-              // nodeModule: baseline where ChemDraw puts it, less the ascent.
-              const runY =
-                a.y +
-                getAtomLabelBaselineOffset(labelFontSize, labelFontFamily) -
-                getFaceMetrics({ family: labelFontFamily, sizePx: labelFontSize }).ascent +
-                verticalLabelOffset +
-                (run.sub ? labelFontSize * 0.22 : run.sup ? -labelFontSize * 0.18 : 0);
-              const node = (
-                <Text
-                  key={`${keyPrefix}${a.id}-label-${index}`}
-                  x={cursorX}
-                  y={runY}
-                  text={run.text}
-                  fontSize={runFontSize}
-                  fontStyle={getTextRunFontStyle(run)}
-                  fontFamily={labelFontFamily}
-                  fill={err || isS ? color : (run.color ?? color)}
-                  wrap="none"
-                />
-              );
-              cursorX += runWidth;
-              return node;
-            });
-          })()}
-        {!sL && showAtomAdornment && (
-          <Circle
-            x={a.x}
-            y={a.y}
-            radius={4}
-            fill={err ? '#FF0000' : '#2196F3'}
-            opacity={showSelectionAdornment || err ? 1 : 0.3}
-          />
-        )}
-        {cT && (
-          <Text
-            x={cX}
-            y={cY}
-            text={cT}
-            fontSize={labelLayout.chargeFontSize}
-            fontStyle="bold"
-            fill={color}
-            fontFamily={labelFontFamily}
-          />
-        )}
-        {es}
-      </Group>
-    );
-  };
-
-  const renderNativeGraphic = (graphic: ChemDrawGraphic) => {
-    const isSelected = selectedObjectIds.has(graphic.id);
-    const isHovered = hoveredNativeObjectId === graphic.id;
-    const color =
-      isSelected || isHovered
-        ? '#2196F3'
-        : adaptColor(graphic.style?.color ?? (isDarkMode ? '#ffffff' : '#333333'));
-    const strokeWidth =
-      graphic.style?.lineWidth != null
-        ? convertNativeToCanvas(graphic.style.lineWidth, documentStyleSettings)
-        : 1.5;
-    const dash = graphic.style?.lineType === 'dashed' ? [6, 4] : undefined;
-    const orbitalFill = graphic.style?.fillColor ? adaptColor(graphic.style.fillColor) : color;
-    if (graphic.graphicType === 'line' && graphic.points && graphic.points.length >= 2) {
-      return (
-        <Line
-          key={`graphic-${graphic.id}`}
-          points={graphic.points.flatMap((point) => [point.x, point.y])}
-          stroke={color}
-          strokeWidth={strokeWidth}
-          dash={dash}
-          listening={false}
-        />
-      );
-    }
-    if (graphic.graphicType === 'polygon' && graphic.points && graphic.points.length >= 3) {
-      return (
-        <Line
-          key={`graphic-${graphic.id}`}
-          points={graphic.points.flatMap((point) => [point.x, point.y])}
-          stroke={color}
-          strokeWidth={strokeWidth}
-          dash={dash}
-          closed
-          listening={false}
-        />
-      );
-    }
-    if (graphic.graphicType === 'rounded-rectangle' && graphic.bounds) {
-      return (
-        <Rect
-          key={`graphic-${graphic.id}`}
-          x={graphic.bounds.left}
-          y={graphic.bounds.top}
-          width={graphic.bounds.right - graphic.bounds.left}
-          height={graphic.bounds.bottom - graphic.bounds.top}
-          stroke={color}
-          strokeWidth={strokeWidth}
-          dash={dash}
-          cornerRadius={graphic.cornerRadius ?? 10}
-          shadowColor="rgba(0,0,0,0.35)"
-          shadowBlur={8}
-          shadowOffsetX={3}
-          shadowOffsetY={3}
-          listening={false}
-        />
-      );
-    }
-    if (graphic.graphicType === 'rectangle' && graphic.bounds) {
-      return (
-        <Rect
-          key={`graphic-${graphic.id}`}
-          x={graphic.bounds.left}
-          y={graphic.bounds.top}
-          width={graphic.bounds.right - graphic.bounds.left}
-          height={graphic.bounds.bottom - graphic.bounds.top}
-          stroke={color}
-          strokeWidth={strokeWidth}
-          dash={dash}
-          listening={false}
-        />
-      );
-    }
-    if (graphic.graphicType === 'ellipse' && graphic.bounds) {
-      const cx = (graphic.bounds.left + graphic.bounds.right) / 2;
-      const cy = (graphic.bounds.top + graphic.bounds.bottom) / 2;
-      return (
-        <Circle
-          key={`graphic-${graphic.id}`}
-          x={cx}
-          y={cy}
-          radius={Math.max(
-            (graphic.bounds.right - graphic.bounds.left) / 2,
-            (graphic.bounds.bottom - graphic.bounds.top) / 2,
-          )}
-          stroke={color}
-          strokeWidth={strokeWidth}
-          dash={dash}
-          listening={false}
-          scaleY={
-            (graphic.bounds.bottom - graphic.bounds.top) /
-            Math.max(graphic.bounds.right - graphic.bounds.left, 1)
-          }
-        />
-      );
-    }
-    if (graphic.graphicType === 'symbol' && graphic.bounds) {
-      const width = Math.abs(graphic.bounds.right - graphic.bounds.left);
-      const height = Math.abs(graphic.bounds.bottom - graphic.bounds.top);
-      const cx = (graphic.bounds.left + graphic.bounds.right) / 2;
-      const cy = (graphic.bounds.top + graphic.bounds.bottom) / 2;
-      const radius = Math.max(width, height, 8) / 2;
-      const arm = radius * 0.48;
-      if (graphic.symbolType === 'CirclePlus' || graphic.symbolType === 'CircleMinus') {
-        return (
-          <Group key={`graphic-${graphic.id}`} listening={false}>
-            <Circle x={cx} y={cy} radius={radius} stroke={color} strokeWidth={strokeWidth} />
-            <Line points={[cx - arm, cy, cx + arm, cy]} stroke={color} strokeWidth={strokeWidth} />
-            {graphic.symbolType === 'CirclePlus' && (
-              <Line
-                points={[cx, cy - arm, cx, cy + arm]}
-                stroke={color}
-                strokeWidth={strokeWidth}
-              />
-            )}
-          </Group>
-        );
-      }
-      if (graphic.symbolType === 'LonePair') {
-        return (
-          <Group key={`graphic-${graphic.id}`} listening={false}>
-            <Circle x={cx - radius * 0.28} y={cy} radius={strokeWidth * 0.95} fill={color} />
-            <Circle x={cx + radius * 0.28} y={cy} radius={strokeWidth * 0.95} fill={color} />
-          </Group>
-        );
-      }
-      if (graphic.symbolType === 'Electron') {
-        return (
-          <Circle
-            key={`graphic-${graphic.id}`}
-            x={cx}
-            y={cy}
-            radius={strokeWidth}
-            fill={color}
-            listening={false}
-          />
-        );
-      }
-    }
-    if (graphic.graphicType === 'bracket' && graphic.points && graphic.points.length >= 2) {
-      const [start, end] = graphic.points;
-      const dx = end.x - start.x;
-      const dy = end.y - start.y;
-      const length = Math.hypot(dx, dy);
-      if (length < 1) return null;
-      const px = -dy / length;
-      const py = dx / length;
-      const lip = graphic.lipSize ?? Math.max(8, length * 0.35);
-      const midX = (start.x + end.x) / 2;
-      const midY = (start.y + end.y) / 2;
-      return (
-        <Group key={`graphic-${graphic.id}`} listening={false}>
-          <Shape
-            sceneFunc={(ctx: KonvaContext) => {
-              const c = (ctx as KonvaContext & { _context: CanvasRenderingContext2D })._context;
-              c.save();
-              c.strokeStyle = color;
-              c.lineWidth = strokeWidth;
-              c.lineCap = 'round';
-              c.lineJoin = 'round';
-              c.beginPath();
-              if ((graphic.bracketType ?? '').toLowerCase() === 'square') {
-                c.moveTo(start.x + px * lip, start.y + py * lip);
-                c.lineTo(start.x, start.y);
-                c.lineTo(end.x, end.y);
-                c.lineTo(end.x + px * lip, end.y + py * lip);
-              } else {
-                c.moveTo(start.x + px * lip, start.y + py * lip);
-                c.quadraticCurveTo(start.x, start.y, midX, midY);
-                c.quadraticCurveTo(end.x, end.y, end.x + px * lip, end.y + py * lip);
-              }
-              c.stroke();
-              c.restore();
-            }}
-          />
-          {graphic.label && (
-            <Text
-              x={midX - px * (lip + 10) - 10}
-              y={midY - py * (lip + 10) - 8}
-              width={20}
-              align="center"
-              text={graphic.label}
-              fontSize={11}
-              fill={color}
-              fontFamily="Arial"
-            />
-          )}
-        </Group>
-      );
-    }
-    if (graphic.graphicType === 'orbital') {
-      const orbitalType = (graphic.orbitalType ?? '').toLowerCase();
-      if (
-        orbitalType.startsWith('s') &&
-        graphic.center &&
-        graphic.majorAxisEnd &&
-        graphic.minorAxisEnd
-      ) {
-        const rx = Math.hypot(
-          graphic.majorAxisEnd.x - graphic.center.x,
-          graphic.majorAxisEnd.y - graphic.center.y,
-        );
-        const ry = Math.hypot(
-          graphic.minorAxisEnd.x - graphic.center.x,
-          graphic.minorAxisEnd.y - graphic.center.y,
-        );
-        const rotation = Math.atan2(
-          graphic.majorAxisEnd.y - graphic.center.y,
-          graphic.majorAxisEnd.x - graphic.center.x,
-        );
-        return (
-          <Shape
-            key={`graphic-${graphic.id}`}
-            listening={false}
-            sceneFunc={(ctx: KonvaContext) => {
-              const c = (ctx as KonvaContext & { _context: CanvasRenderingContext2D })._context;
-              c.save();
-              c.translate(graphic.center!.x, graphic.center!.y);
-              c.rotate(rotation);
-              c.beginPath();
-              c.ellipse(0, 0, Math.max(rx, 1), Math.max(ry, 1), 0, 0, Math.PI * 2);
-              c.globalAlpha = (graphic.ovalType ?? '').toLowerCase().includes('shaded') ? 0.22 : 0;
-              c.fillStyle = orbitalFill;
-              c.fill();
-              c.globalAlpha = 1;
-              c.strokeStyle = color;
-              c.lineWidth = strokeWidth;
-              c.stroke();
-              c.restore();
-            }}
-          />
-        );
-      }
-      if (orbitalType === 'p' && graphic.points && graphic.points.length >= 2) {
-        const [start, end] = graphic.points;
-        const dx = end.x - start.x;
-        const dy = end.y - start.y;
-        const length = Math.hypot(dx, dy);
-        if (length < 1) return null;
-        const angle = Math.atan2(dy, dx);
-        const midX = (start.x + end.x) / 2;
-        const midY = (start.y + end.y) / 2;
-        const lobeRx = Math.max(length * 0.2, 4);
-        const lobeRy = Math.max(length * 0.11, 3);
-        const lobeOffset = length * 0.26;
-        return (
-          <Shape
-            key={`graphic-${graphic.id}`}
-            listening={false}
-            sceneFunc={(ctx: KonvaContext) => {
-              const c = (ctx as KonvaContext & { _context: CanvasRenderingContext2D })._context;
-              c.save();
-              c.translate(midX, midY);
-              c.rotate(angle);
-              c.fillStyle = orbitalFill;
-              c.strokeStyle = color;
-              c.lineWidth = strokeWidth;
-              for (const offset of [-lobeOffset, lobeOffset]) {
-                c.beginPath();
-                c.ellipse(offset, 0, lobeRx, lobeRy, 0, 0, Math.PI * 2);
-                c.globalAlpha = 0.18;
-                c.fill();
-                c.globalAlpha = 1;
-                c.stroke();
-              }
-              c.restore();
-            }}
-          />
-        );
-      }
-    }
-    return null;
-  };
-
-  const renderNativeEmbeddedObject = (embeddedObject: ChemDrawEmbeddedObject) => {
-    const isSelected = selectedObjectIds.has(embeddedObject.id);
-    const isHovered = hoveredNativeObjectId === embeddedObject.id;
-    const stroke = isSelected || isHovered ? '#2196F3' : adaptColor('#6f7c8f');
-    const fill = adaptColor('#f7fafc');
-    const width = embeddedObject.bounds.right - embeddedObject.bounds.left;
-    const height = embeddedObject.bounds.bottom - embeddedObject.bounds.top;
-    return (
-      <Group key={`embedded-${embeddedObject.id}`} listening={false}>
-        <Rect
-          x={embeddedObject.bounds.left}
-          y={embeddedObject.bounds.top}
-          width={width}
-          height={height}
-          fill={fill}
-          stroke={stroke}
-          strokeWidth={isSelected ? 2 : 1.2}
-          dash={[6, 4]}
-          cornerRadius={6}
-        />
-        <Text
-          x={embeddedObject.bounds.left + 6}
-          y={embeddedObject.bounds.top + 6}
-          width={Math.max(24, width - 12)}
-          text={embeddedObject.sourceFileName ?? embeddedObject.payloadKind.toUpperCase()}
-          fontSize={11}
-          fill={stroke}
-          fontFamily={documentStyleSettings.nativeMetrics.captionFontFamily}
-          ellipsis
-        />
-      </Group>
-    );
-  };
-
-  const renderNativeTable = (table: ChemDrawTable) => {
-    const isSelected = selectedObjectIds.has(table.id);
-    const isHovered = hoveredNativeObjectId === table.id;
-    const stroke =
-      isSelected || isHovered ? '#2196F3' : adaptColor(table.style?.color ?? '#666666');
-    const fill = adaptColor(table.style?.fillColor ?? '#ffffff');
-    return (
-      <Group key={`table-${table.id}`} listening={false}>
-        <Rect
-          x={table.bounds.left}
-          y={table.bounds.top}
-          width={table.bounds.right - table.bounds.left}
-          height={table.bounds.bottom - table.bounds.top}
-          fill={fill}
-          stroke={stroke}
-          strokeWidth={isSelected ? 2 : 1.2}
-        />
-        {table.cells.map((cell) => (
-          <Group key={`table-${table.id}-${cell.id}`}>
-            <Rect
-              x={cell.boundsInParent.left}
-              y={cell.boundsInParent.top}
-              width={cell.boundsInParent.right - cell.boundsInParent.left}
-              height={cell.boundsInParent.bottom - cell.boundsInParent.top}
-              stroke={stroke}
-              strokeWidth={1}
-            />
-            {cell.text && (
-              <Text
-                x={cell.boundsInParent.left + 4}
-                y={cell.boundsInParent.top + 4}
-                width={Math.max(16, cell.boundsInParent.right - cell.boundsInParent.left - 8)}
-                text={cell.text.runs.map((run) => run.text).join('')}
-                fontSize={11}
-                fill={stroke}
-                fontFamily={documentStyleSettings.nativeMetrics.captionFontFamily}
-                align={cell.text.justification ?? 'center'}
-              />
-            )}
-          </Group>
-        ))}
-      </Group>
-    );
-  };
-
-  const renderNativeBracket = (bracket: ChemDrawBracket) => {
-    const isSelected = selectedObjectIds.has(bracket.id);
-    const isHovered = hoveredNativeObjectId === bracket.id;
-    const color =
-      isSelected || isHovered ? '#2196F3' : adaptColor(bracket.style?.color ?? '#888888');
-    const width = bracket.bounds.right - bracket.bounds.left;
-    const lip = Math.max(6, Math.min(12, Math.abs(width) * 0.16));
-    return (
-      <Group key={`bracket-${bracket.id}`} listening={false}>
-        <Shape
-          sceneFunc={(ctx: KonvaContext) => {
-            const c = (ctx as KonvaContext & { _context: CanvasRenderingContext2D })._context;
-            c.save();
-            c.strokeStyle = color;
-            c.lineWidth = isSelected ? 2 : 1.5;
-            c.lineCap = 'round';
-            c.lineJoin = 'round';
-            c.beginPath();
-            c.moveTo(bracket.bounds.left + lip, bracket.bounds.top);
-            c.lineTo(bracket.bounds.left, bracket.bounds.top);
-            c.lineTo(bracket.bounds.left, bracket.bounds.bottom);
-            c.lineTo(bracket.bounds.left + lip, bracket.bounds.bottom);
-            c.moveTo(bracket.bounds.right - lip, bracket.bounds.top);
-            c.lineTo(bracket.bounds.right, bracket.bounds.top);
-            c.lineTo(bracket.bounds.right, bracket.bounds.bottom);
-            c.lineTo(bracket.bounds.right - lip, bracket.bounds.bottom);
-            c.stroke();
-            c.restore();
-          }}
-        />
-        {bracket.label && (
-          <Text
-            x={bracket.bounds.left}
-            y={bracket.bounds.top - 16}
-            width={Math.abs(width)}
-            align="center"
-            text={bracket.label}
-            fontSize={12}
-            fill={color}
-            fontFamily="Arial"
-          />
-        )}
-      </Group>
-    );
-  };
-
-  const renderTextBox = (tb: TextBox) => {
-    const isS = selectedTextBoxIds.has(tb.id);
-    const isEditing = editingTextBoxId === tb.id;
-    const baseColor = adaptColor(tb.color);
-    const align = tb.textAlign ?? 'center';
-    const lines = getTextBoxRenderLines(tb);
-    const { textW, textH, cx, cy } = getTextBoxDimensions(tb);
-
-    const runNodes: React.ReactNode[] = [];
-    if (!isEditing) {
-      lines.forEach((lineRuns, lineIdx) => {
-        const lineW = lineRuns.reduce(
-          (s, r) => s + measureRunWidth(r, tb.fontSize, tb.fontFamily),
-          0,
-        );
-        const lineStartX =
-          align === 'center' ? -lineW / 2 : align === 'right' ? textW / 2 - lineW : -textW / 2;
-        let xCursor = lineStartX;
-        const lineY = -textH / 2 + lineIdx * tb.fontSize;
-        lineRuns.forEach((run, i) => {
-          const fs = run.sub || run.sup ? tb.fontSize * 0.65 : tb.fontSize;
-          const dy = run.sup ? -tb.fontSize * 0.38 : run.sub ? tb.fontSize * 0.2 : 0;
-          const fontStyle =
-            run.italic && run.bold
-              ? 'bold italic'
-              : run.bold
-                ? 'bold'
-                : run.italic
-                  ? 'italic'
-                  : 'normal';
-          const w = measureRunWidth(run, tb.fontSize, tb.fontFamily);
-          runNodes.push(
-            <Text
-              key={`${lineIdx}-${i}`}
-              x={xCursor}
-              y={lineY + dy}
-              text={run.text}
-              fontSize={fs}
-              fontFamily={tb.fontFamily}
-              fontStyle={fontStyle}
-              fill={isS ? '#2196F3' : adaptColor(run.color || baseColor)}
-              listening={false}
-            />,
-          );
-          xCursor += w;
-        });
-      });
-    }
-    const pad = tb.fontSize * 0.25;
-    return (
-      <Group key={tb.id} x={cx} y={cy} rotation={tb.rotation ?? 0}>
-        {isS && (
-          <Rect
-            x={-textW / 2 - pad}
-            y={-textH / 2 - pad}
-            width={textW + pad * 2}
-            height={textH + pad * 2}
-            stroke="#2196F3"
-            strokeWidth={0.5}
-            dash={[3, 2]}
-            fill="transparent"
-            listening={false}
-          />
-        )}
-        {runNodes}
-      </Group>
-    );
-  };
-
-  const renderBond = (
-    b: Bond,
-    options?: {
-      atomLookup?: Map<string, Atom>;
-      atoms?: Atom[];
-      bonds?: Bond[];
-      visibleIntervals?: Map<string, Array<[number, number]>>;
-      ringCentroids?: Map<string, { cx: number; cy: number; n: number }>;
-    },
-  ) => {
-    const atomLookup = options?.atomLookup ?? atomById;
-    const allAtoms = options?.atoms ?? sceneAtoms;
-    const allBonds = options?.bonds ?? sceneBonds;
-    const visibleIntervalsMap = options?.visibleIntervals ?? bondVisibleIntervals;
-    const ringCentroidsMap = options?.ringCentroids ?? ringCentroids;
-    const fA = atomLookup.get(b.from),
-      tA = atomLookup.get(b.to);
-    if (!fA || !tA) return null;
-    const nativeBond = nativeBonds.get(b.id);
-    const dx = tA.x - fA.x,
-      dy = tA.y - fA.y,
-      dist = Math.sqrt(dx * dx + dy * dy);
-    if (dist === 0) return null;
-    const uX = dx / dist,
-      uY = dy / dist;
-    const startClip = getAtomBondClipOffset(fA, allAtoms, allBonds, uX, uY, documentStyleSettings);
-    const endClip = getAtomBondClipOffset(tA, allAtoms, allBonds, -uX, -uY, documentStyleSettings);
-    const sX = fA.x + uX * startClip,
-      sY = fA.y + uY * startClip,
-      eX = tA.x - uX * endClip,
-      eY = tA.y - uY * endClip;
-    const isS =
-      selectedBondIds.has(b.id) || (selectedAtomIds.has(fA.id) && selectedAtomIds.has(tA.id));
-    const isH = hoveredBondId === b.id;
-    const baseColor = resolveBondColor(
-      b.color ?? nativeBond?.style?.color,
-      documentStyleSettings,
-      isDarkMode,
-    );
-    const color = isS || isH ? '#2196F3' : baseColor,
-      op = isH && !isS ? 0.5 : 1;
-    const displayStyle =
-      b.displayStyle ??
-      (nativeBond?.display &&
-      ['wavy', 'dash', 'bold', 'crossed', 'dative'].includes(nativeBond.display)
-        ? nativeBond.display
-        : undefined);
-    const lineWidth =
-      b.lineWidth ??
-      (nativeBond?.style?.lineWidth != null
-        ? convertNativeToCanvas(nativeBond.style.lineWidth, documentStyleSettings)
-        : bondLineWidth);
-    const visual = getBondVisualMetrics(lineWidth, dist, {
-      documentStyleSettings,
-      nativeBond,
-    });
-    const boldWidth = visual.boldWidth;
-    const oX = -uY * visual.parallelOffset,
-      oY = uX * visual.parallelOffset,
-      lP = {
-        stroke: color,
-        strokeWidth: lineWidth,
-        lineCap: 'round' as const,
-        lineJoin: 'round' as const,
-      };
-    const visibleIntervals = visibleIntervalsMap.get(b.id) ?? [[0, 1]];
-    const drawSegmentedLine = (
-      keyPrefix: string,
-      x1: number,
-      y1: number,
-      x2: number,
-      y2: number,
-      strokeWidth = lineWidth,
-      dash?: number[],
-    ) =>
-      visibleIntervals.map(([startT, endT], index) => (
-        <Line
-          key={`${keyPrefix}-${index}`}
-          points={[
-            x1 + (x2 - x1) * startT,
-            y1 + (y2 - y1) * startT,
-            x1 + (x2 - x1) * endT,
-            y1 + (y2 - y1) * endT,
-          ]}
-          stroke={color}
-          strokeWidth={strokeWidth}
-          lineCap="round"
-          lineJoin="round"
-          dash={dash}
-          listening={false}
-        />
-      ));
-    const bondNeighborVectors =
-      b.order === 2 || b.order === 3
-        ? collectBondNeighborVectors({
-            bond: b,
-            fromAtom: fA,
-            toAtom: tA,
-            atomLookup,
-            bonds: allBonds,
-          })
-        : null;
-    if (displayStyle === 'wavy') {
-      const points: number[] = [];
-      const segments = 12;
-      for (let i = 0; i <= segments; i++) {
-        const t = i / segments;
-        const px = sX + (eX - sX) * t;
-        const py = sY + (eY - sY) * t;
-        const wave = Math.sin((t * Math.PI * segments) / 2);
-        points.push(px + -uY * visual.waveAmplitude * wave, py + uX * visual.waveAmplitude * wave);
-      }
-      return (
-        <Line
-          key={b.id}
-          points={points}
-          stroke={color}
-          strokeWidth={lineWidth}
-          tension={0.5}
-          opacity={op}
-          listening={false}
-        />
-      );
-    }
-    if (displayStyle === 'dash')
-      return (
-        <Group key={b.id} opacity={op}>
-          {drawSegmentedLine(`${b.id}-dash`, sX, sY, eX, eY, lineWidth, [6, 4])}
-        </Group>
-      );
-    if (displayStyle === 'bold')
-      return (
-        <Group key={b.id} opacity={op}>
-          {drawSegmentedLine(`${b.id}-bold`, sX, sY, eX, eY, boldWidth)}
-        </Group>
-      );
-    if (displayStyle === 'crossed') {
-      const mx = (sX + eX) / 2;
-      const my = (sY + eY) / 2;
-      return (
-        <Group key={b.id} opacity={op}>
-          {drawSegmentedLine(`${b.id}-crossed-base`, sX, sY, eX, eY)}
-          <Line
-            points={[
-              mx + -uY * visual.crossHalfLength,
-              my + uX * visual.crossHalfLength,
-              mx - -uY * visual.crossHalfLength,
-              my - uX * visual.crossHalfLength,
-            ]}
-            {...lP}
-          />
-        </Group>
-      );
-    }
-    if (displayStyle === 'dative') {
-      const angle = Math.atan2(eY - sY, eX - sX);
-      const hs = visual.dativeHeadSize;
-      return (
-        <Group key={b.id} opacity={op}>
-          {drawSegmentedLine(
-            `${b.id}-dative-shaft`,
-            sX,
-            sY,
-            eX - Math.cos(angle) * hs,
-            eY - Math.sin(angle) * hs,
-          )}
-          <Line
-            points={[
-              eX,
-              eY,
-              eX - hs * Math.cos(angle - Math.PI / 7),
-              eY - hs * Math.sin(angle - Math.PI / 7),
-            ]}
-            {...lP}
-          />
-          <Line
-            points={[
-              eX,
-              eY,
-              eX - hs * Math.cos(angle + Math.PI / 7),
-              eY - hs * Math.sin(angle + Math.PI / 7),
-            ]}
-            {...lP}
-          />
-        </Group>
-      );
-    }
-    if (b.stereo === 1)
-      return (
-        <Line
-          key={b.id}
-          points={[
-            sX,
-            sY,
-            eX + -uY * visual.stereoHalfWidth,
-            eY + uX * visual.stereoHalfWidth,
-            eX - -uY * visual.stereoHalfWidth,
-            eY - uX * visual.stereoHalfWidth,
-          ]}
-          fill={color}
-          closed
-          opacity={op}
-          lineJoin="round"
-        />
-      );
-    if (b.stereo === 6) {
-      const ds = [];
-      const hN = visual.hashStepCount;
-      for (let i = 0; i <= hN; i++) {
-        const r = i / hN,
-          px = sX + (eX - sX) * r,
-          py = sY + (eY - sY) * r,
-          w = visual.hashStartWidth + i * visual.hashStepWidth,
-          dX = -uY * w,
-          dY = uX * w;
-        ds.push(
-          <Line
-            key={`${b.id}-${i}`}
-            points={[px - dX, py - dY, px + dX, py + dY]}
-            {...lP}
-            opacity={op}
-          />,
-        );
-      }
-      return <Group key={b.id}>{ds}</Group>;
-    }
-    if (b.order === 1)
-      return (
-        <Group key={b.id} opacity={op}>
-          {drawSegmentedLine(`${b.id}-single`, sX, sY, eX, eY)}
-        </Group>
-      );
-    if (b.order === 1.5) {
-      const centroid = ringCentroidsMap.get(b.id);
-      let sign = 1;
-      if (centroid) {
-        const mx = (fA.x + tA.x) / 2,
-          my = (fA.y + tA.y) / 2;
-        if ((centroid.cx - mx) * oX + (centroid.cy - my) * oY < 0) sign = -1;
-      }
-      return (
-        <Group key={b.id} opacity={op}>
-          {drawSegmentedLine(`${b.id}-aromatic-base`, sX, sY, eX, eY)}
-          {drawSegmentedLine(
-            `${b.id}-aromatic-dash`,
-            sX + sign * oX,
-            sY + sign * oY,
-            eX + sign * oX,
-            eY + sign * oY,
-            lineWidth,
-            [...visual.aromaticDashPattern],
-          )}
-        </Group>
-      );
-    }
-    if (b.order === 2) {
-      const nativeSecondaryLineGeometry =
-        nativeBond?.secondaryDisplay != null
-          ? getOffsetBondLineGeometry({
-              startX: sX,
-              startY: sY,
-              endX: eX,
-              endY: eY,
-              unitX: uX,
-              unitY: uY,
-              offsetX: oX,
-              offsetY: oY,
-              fromAtom: fA,
-              toAtom: tA,
-              startNeighborVectors: bondNeighborVectors?.from,
-              endNeighborVectors: bondNeighborVectors?.to,
-            })
-          : null;
-      if (nativeBond?.secondaryDisplay === 'dash') {
-        return (
-          <Group key={b.id} opacity={op}>
-            {drawSegmentedLine(`${b.id}-double-primary`, sX, sY, eX, eY)}
-            {drawSegmentedLine(
-              `${b.id}-double-secondary`,
-              nativeSecondaryLineGeometry!.startX,
-              nativeSecondaryLineGeometry!.startY,
-              nativeSecondaryLineGeometry!.endX,
-              nativeSecondaryLineGeometry!.endY,
-              lineWidth,
-              [6, 4],
-            )}
-          </Group>
-        );
-      }
-      if (nativeBond?.secondaryDisplay === 'bold')
-        return (
-          <Group key={b.id} opacity={op}>
-            {drawSegmentedLine(`${b.id}-double-primary`, sX, sY, eX, eY)}
-            {drawSegmentedLine(
-              `${b.id}-double-secondary`,
-              nativeSecondaryLineGeometry!.startX,
-              nativeSecondaryLineGeometry!.startY,
-              nativeSecondaryLineGeometry!.endX,
-              nativeSecondaryLineGeometry!.endY,
-            )}
-          </Group>
-        );
-      const doubleBondMode = resolveDoubleBondMode(b.doubleBondMode ?? nativeBond?.doubleBondMode);
-      const [primaryLine, secondaryLineGeometry] = getDoubleBondLineGeometry({
-        startX: sX,
-        startY: sY,
-        endX: eX,
-        endY: eY,
-        unitX: uX,
-        unitY: uY,
-        normalX: oX,
-        normalY: oY,
-        mode: doubleBondMode,
-        visual,
-        fromAtom: fA,
-        toAtom: tA,
-        ringCentroid: ringCentroidsMap.get(b.id),
-        startNeighborVectors: bondNeighborVectors?.from,
-        endNeighborVectors: bondNeighborVectors?.to,
-      });
-      return (
-        <Group key={b.id} opacity={op}>
-          {drawSegmentedLine(
-            `${b.id}-double-primary`,
-            primaryLine.startX,
-            primaryLine.startY,
-            primaryLine.endX,
-            primaryLine.endY,
-          )}
-          {drawSegmentedLine(
-            `${b.id}-double-secondary`,
-            secondaryLineGeometry.startX,
-            secondaryLineGeometry.startY,
-            secondaryLineGeometry.endX,
-            secondaryLineGeometry.endY,
-          )}
-        </Group>
-      );
-    }
-    if (b.order === 3) {
-      const [topLine, bottomLine] = getTripleBondLineGeometry({
-        startX: sX,
-        startY: sY,
-        endX: eX,
-        endY: eY,
-        unitX: uX,
-        unitY: uY,
-        normalX: oX,
-        normalY: oY,
-        visual,
-        fromAtom: fA,
-        toAtom: tA,
-        startNeighborVectors: bondNeighborVectors?.from,
-        endNeighborVectors: bondNeighborVectors?.to,
-      });
-      return (
-        <Group key={b.id} opacity={op}>
-          {drawSegmentedLine(`${b.id}-triple-center`, sX, sY, eX, eY)}
-          {drawSegmentedLine(
-            `${b.id}-triple-top`,
-            topLine.startX,
-            topLine.startY,
-            topLine.endX,
-            topLine.endY,
-          )}
-          {drawSegmentedLine(
-            `${b.id}-triple-bottom`,
-            bottomLine.startX,
-            bottomLine.startY,
-            bottomLine.endX,
-            bottomLine.endY,
-          )}
-        </Group>
-      );
-    }
-    if (nativeBond?.query?.allowedOrders?.length) {
-      const queryLabel = nativeBond.query.allowedOrders.join('/');
-      const topology = nativeBond.query.ringState ? ` ${nativeBond.query.ringState}` : '';
-      return (
-        <Group key={b.id} opacity={op}>
-          {drawSegmentedLine(`${b.id}-query`, sX, sY, eX, eY, lineWidth, [5, 5])}
-          <Text
-            x={(sX + eX) / 2 - 24}
-            y={(sY + eY) / 2 - 18}
-            text={`${queryLabel}${topology}`}
-            fontSize={10}
-            fill={color}
-            width={48}
-            align="center"
-            fontFamily="Arial"
-          />
-        </Group>
-      );
-    }
-    return (
-      <Group key={b.id} opacity={op}>
-        {drawSegmentedLine(`${b.id}-fallback`, sX, sY, eX, eY)}
-      </Group>
-    );
-  };
-
-  const previewGroupProps = useMemo(
-    () => getPreviewGroupProps(selectionPreviewTransform),
-    [selectionPreviewTransform],
-  );
-  const previewAtoms = useMemo(() => {
-    if (!selectionPreviewTransform || selectionPreviewTransform.movedAtomIds.size === 0) {
-      return sceneAtoms;
-    }
-    return sceneAtoms.map((atom) =>
-      selectionPreviewTransform.movedAtomIds.has(atom.id)
-        ? {
-            ...atom,
-            ...transformPreviewPoint({ x: atom.x, y: atom.y }, selectionPreviewTransform),
-          }
-        : atom,
-    );
-  }, [sceneAtoms, selectionPreviewTransform]);
-  const previewAtomById = useMemo(
-    () => new Map(previewAtoms.map((atom) => [atom.id, atom])),
-    [previewAtoms],
-  );
-  const previewMovedAtoms = useMemo(
-    () =>
-      !selectionPreviewTransform
-        ? []
-        : previewAtoms.filter((atom) => selectionPreviewTransform.movedAtomIds.has(atom.id)),
-    [previewAtoms, selectionPreviewTransform],
-  );
-  const previewAffectedBonds = useMemo(
-    () =>
-      !selectionPreviewTransform
-        ? []
-        : sceneBonds.filter((bond) => selectionPreviewTransform.affectedBondIds.has(bond.id)),
-    [sceneBonds, selectionPreviewTransform],
-  );
-  const previewRigidArrows = useMemo(
-    () =>
-      !selectionPreviewTransform
-        ? []
-        : sceneArrows.filter((arrow) => selectionPreviewTransform.selectedObjectIds.has(arrow.id)),
-    [sceneArrows, selectionPreviewTransform],
-  );
-  const previewRigidTextBoxes = useMemo(
-    () =>
-      !selectionPreviewTransform
-        ? []
-        : sceneTextBoxes.filter((textBox) =>
-            selectionPreviewTransform.selectedObjectIds.has(textBox.id),
-          ),
-    [sceneTextBoxes, selectionPreviewTransform],
-  );
-  const previewRigidGraphics = useMemo(
-    () =>
-      !selectionPreviewTransform
-        ? []
-        : nativeGraphics.filter((graphic) =>
-            selectionPreviewTransform.selectedObjectIds.has(graphic.id),
-          ),
-    [nativeGraphics, selectionPreviewTransform],
-  );
-  const previewRigidBrackets = useMemo(
-    () =>
-      !selectionPreviewTransform
-        ? []
-        : nativeBrackets.filter((bracket) =>
-            selectionPreviewTransform.selectedObjectIds.has(bracket.id),
-          ),
-    [nativeBrackets, selectionPreviewTransform],
-  );
-  const previewRigidEmbeddedObjects = useMemo(
-    () =>
-      !selectionPreviewTransform
-        ? []
-        : nativeEmbeddedObjects.filter((embeddedObject) =>
-            selectionPreviewTransform.selectedObjectIds.has(embeddedObject.id),
-          ),
-    [nativeEmbeddedObjects, selectionPreviewTransform],
-  );
-  const previewRigidTables = useMemo(
-    () =>
-      !selectionPreviewTransform
-        ? []
-        : nativeTables.filter((table) => selectionPreviewTransform.selectedObjectIds.has(table.id)),
-    [nativeTables, selectionPreviewTransform],
-  );
-
-  // Bond overlay (shared between bond and atom tools)
   const activeDragPreview =
     tool === 'bond' ? bondTool.dragPreviewLine : tool === 'atom' ? atomTool.dragPreviewLine : null;
   const activeAtomId =
     tool === 'bond' ? bondTool.activeAtomId : tool === 'atom' ? atomTool.activeAtomId : null;
   const editingAtomId = atomTool.editingAtomId;
-
   const selCenter = getSelectionCenter();
   const selBBox = getSelectionBBox();
+
+  const visibleScene = useMemo(
+    () =>
+      buildPreviewScene(contentDocumentScene, activeChemDrawDocument, {
+        transform: selectionPreviewTransform,
+        arrow: arrowPreview,
+        ring: tool === 'ring' ? ringPreview : null,
+        line:
+          (tool === 'atom' || tool === 'bond') && activeDragPreview && activeAtomId
+            ? {
+                ...activeDragPreview,
+                fromId: activeAtomId,
+                element: tool === 'atom' ? useStore.getState().element : 'C',
+                alias: tool === 'atom' && useStore.getState().atomToolMode === 'alias',
+                order: tool === 'bond' ? useStore.getState().bondOrder : 1,
+                stereo: tool === 'bond' ? useStore.getState().stereo : 0,
+              }
+            : null,
+      }),
+    [
+      contentDocumentScene,
+      activeChemDrawDocument,
+      selectionPreviewTransform,
+      arrowPreview,
+      tool,
+      ringPreview,
+      activeDragPreview,
+      activeAtomId,
+    ],
+  );
+  const exportScene = useMemo(
+    () =>
+      buildDocumentSceneState({
+        document: chemDrawDocument,
+        canvasState: { atoms, bonds, arrows, groups, textBoxes },
+        documentStyleSettings,
+        documentViewSettings,
+        pageSetup,
+        interaction: { isDarkMode, showHydrogens },
+      }),
+    [
+      chemDrawDocument,
+      atoms,
+      bonds,
+      arrows,
+      groups,
+      textBoxes,
+      documentStyleSettings,
+      documentViewSettings,
+      pageSetup,
+      isDarkMode,
+      showHydrogens,
+    ],
+  );
 
   return (
     <div
@@ -5631,23 +3434,24 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
                 sourceFileName: file.name,
               });
             } catch (error) {
-              useStore.getState().showToast(`Failed to import ${file.name}`);
+              getCanvasEditorState().showToast(`Failed to import ${file.name}`);
               console.error(error);
             }
           }
         })();
       }}
     >
-      {useNativeSceneSurface && (
+      {
         <DocumentRenderSurface
           ref={sceneSurfaceRef}
-          scene={contentDocumentScene}
+          scene={visibleScene}
+          exportScene={exportScene}
           width={width}
           height={height}
           stageScale={stageScale}
           stagePos={stagePos}
         />
-      )}
+      }
       <Stage
         ref={stageRef}
         width={width}
@@ -5694,91 +3498,7 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
                           : 'crosshair',
         }}
       >
-        {!useNativeSceneSurface && (
-          <Layer listening={false}>
-            {finitePageMetrics &&
-              Array.from({ length: pageSetup.rows * pageSetup.columns }, (_, index) => {
-                const row = Math.floor(index / pageSetup.columns);
-                const column = index % pageSetup.columns;
-                return (
-                  <Rect
-                    key={`page-tile-${row}-${column}`}
-                    x={column * finitePageMetrics.pageWidthPx}
-                    y={row * finitePageMetrics.pageHeightPx}
-                    width={finitePageMetrics.pageWidthPx}
-                    height={finitePageMetrics.pageHeightPx}
-                    fill={isDarkMode ? '#242424' : '#ffffff'}
-                    stroke={isDarkMode ? '#7a7a7a' : '#8a8a8a'}
-                    strokeWidth={1}
-                  />
-                );
-              })}
-            {arrows.map((a) => renderArrow(a))}
-            {bonds.map((bond) => renderBond(bond))}
-            {nativeGraphics.map(renderNativeGraphic)}
-            {nativeBrackets.map(renderNativeBracket)}
-            {nativeEmbeddedObjects.map(renderNativeEmbeddedObject)}
-            {nativeTables.map(renderNativeTable)}
-            {textBoxes.map((tb) => renderTextBox(tb))}
-
-            {sceneAtoms.map((a) => renderAtom(a))}
-          </Layer>
-        )}
-
         <Layer>
-          {arrowPreview && arrowPreview.x1 !== arrowPreview.x2 && renderArrow(arrowPreview, true)}
-          {selectionPreviewTransform &&
-            previewAffectedBonds.map((bond) =>
-              renderBond(bond, {
-                atomLookup: previewAtomById,
-                atoms: previewAtoms,
-                bonds: sceneBonds,
-              }),
-            )}
-          {selectionPreviewTransform &&
-            previewMovedAtoms.map((atom) => renderAtom(atom, { keyPrefix: 'preview' }))}
-          {selectionPreviewTransform && previewGroupProps && (
-            <Group {...previewGroupProps}>
-              {previewRigidArrows.map((arrow) => renderArrow(arrow))}
-              {previewRigidGraphics.map(renderNativeGraphic)}
-              {previewRigidBrackets.map(renderNativeBracket)}
-              {previewRigidEmbeddedObjects.map(renderNativeEmbeddedObject)}
-              {previewRigidTables.map(renderNativeTable)}
-              {previewRigidTextBoxes.map((textBox) => renderTextBox(textBox))}
-            </Group>
-          )}
-          {tool === 'ring' &&
-            ringPreview &&
-            (ringPreview.kind === 'template'
-              ? ringPreview.placement.bonds
-              : ringPreview.geometry.bonds
-            )
-              .filter((_, index) =>
-                ringPreview.kind === 'template'
-                  ? !ringPreview.placement.skippedBondIndices.has(index)
-                  : true,
-              )
-              .map((bond, index) => {
-                const atomsForPreview =
-                  ringPreview.kind === 'template'
-                    ? ringPreview.placement.atoms
-                    : ringPreview.geometry.atoms;
-                const from = atomsForPreview[bond.from];
-                const to = atomsForPreview[bond.to];
-                if (!from || !to) return null;
-                return (
-                  <Line
-                    key={`ring-preview-${index}`}
-                    points={[from.x, from.y, to.x, to.y]}
-                    stroke={isDarkMode ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.25)'}
-                    strokeWidth={1.5}
-                    dash={[4, 3]}
-                    lineCap="round"
-                    listening={false}
-                  />
-                );
-              })}
-
           {tool === 'bond' &&
             activeDragPreview &&
             activeAtomId &&
@@ -5803,22 +3523,6 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
                   />
                 );
               });
-            })()}
-
-          {activeDragPreview &&
-            activeAtomId &&
-            (() => {
-              const s = atomById.get(activeAtomId);
-              if (!s) return null;
-              return (
-                <Line
-                  points={[s.x, s.y, activeDragPreview.x2, activeDragPreview.y2]}
-                  stroke="#aaa"
-                  strokeWidth={bondLineWidth}
-                  dash={[5, 3]}
-                  listening={false}
-                />
-              );
             })()}
 
           {!selectionPreviewTransform &&
@@ -5978,1197 +3682,52 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
         </Layer>
       </Stage>
 
-      {editingAtomId &&
-        (() => {
-          const a = atoms.find((x) => x.id === editingAtomId);
-          if (!a) return null;
-          const nativeNode = nativeNodes.get(a.id);
-          const { fontSize } = resolveDocumentLabelTextStyle(documentStyleSettings, {
-            authored: { fontSize: a.labelFontSize },
-            nativeStyle: nativeNode?.style,
-          });
-          const labelLayout = getAtomLabelLayoutMetrics(
-            fontSize,
-            getAtomLabelBoxWidth(fontSize, fontSize),
-            documentStyleSettings,
-          );
-          const sX = a.x * stageScale + stagePos.x,
-            sY = a.y * stageScale + stagePos.y;
-          return (
-            <input
-              autoFocus
-              value={atomTool.editingValue}
-              onChange={(ev) => atomTool.setEditingValue(ev.target.value)}
-              onFocus={(ev) => ev.target.select()}
-              onKeyDown={(ev) => {
-                ev.stopPropagation();
-                ev.nativeEvent.stopImmediatePropagation();
-                if (ev.key === 'Enter') {
-                  ev.preventDefault();
-                  atomTool.handleFinishEditing();
-                }
-                if (ev.key === 'Escape') {
-                  ev.preventDefault();
-                  atomTool.closeEditor();
-                }
-              }}
-              onBlur={atomTool.handleFinishEditing}
-              style={{
-                position: 'absolute',
-                top: sY - (labelLayout.boxHeight * stageScale) / 2,
-                left: sX - (labelLayout.boxWidth * stageScale) / 2,
-                width: `${Math.max(56, labelLayout.boxWidth * stageScale + 12)}px`,
-                textAlign: 'center',
-                border: '1px solid #2196F3',
-                borderRadius: '3px',
-                fontSize: `${Math.max(14, fontSize * stageScale * 0.8)}px`,
-                outline: 'none',
-                background: isDarkMode ? '#2d2d2d' : '#fff',
-                color: isDarkMode ? '#fff' : '#000',
-                zIndex: 2000,
-              }}
-            />
-          );
-        })()}
-
-      {editingTextBoxId &&
-        (() => {
-          const tb = textBoxes.find((t) => t.id === editingTextBoxId);
-          if (!tb) return null;
-          const screenX = tb.x * stageScale + stagePos.x;
-          const screenY = tb.y * stageScale + stagePos.y;
-          const scaledFontSize = tb.fontSize * stageScale;
-          const align = tb.textAlign ?? 'center';
-          const transformX = align === 'center' ? '-50%' : align === 'right' ? '-100%' : '0%';
-          const rotation = tb.rotation ?? 0;
-          const overlayWidth = tb.width ? tb.width * stageScale : undefined;
-          return (
-            <div
-              ref={editOverlayRef}
-              contentEditable
-              suppressContentEditableWarning
-              role="textbox"
-              aria-multiline="true"
-              spellCheck={false}
-              onFocus={() => {
-                if (!editOverlayRef.current) return;
-                const range = document.createRange();
-                range.selectNodeContents(editOverlayRef.current);
-                range.collapse(false);
-                window.getSelection()?.removeAllRanges();
-                window.getSelection()?.addRange(range);
-              }}
-              onBlur={handleTextEditBlur}
-              onPaste={handleTextEditPaste}
-              onKeyDown={(ev) => {
-                ev.stopPropagation();
-                ev.nativeEvent.stopImmediatePropagation();
-                if (ev.key === 'Escape') {
-                  ev.preventDefault();
-                  ignoreNextBlurRef.current = false;
-                  handleTextEditBlur();
-                  ignoreNextBlurRef.current = true;
-                  setSelectedTextBoxIds(new Set());
-                }
-              }}
-              style={{
-                position: 'absolute',
-                left: screenX,
-                top: screenY - 2,
-                transform: `translateX(${transformX}) rotate(${rotation}deg)`,
-                transformOrigin:
-                  align === 'left' ? 'top left' : align === 'right' ? 'top right' : 'top center',
-                minWidth: overlayWidth ?? 80,
-                width: overlayWidth,
-                minHeight: scaledFontSize + 4,
-                fontSize: scaledFontSize,
-                lineHeight: `${scaledFontSize}px`,
-                fontFamily: tb.fontFamily,
-                color: tb.color,
-                textAlign: align,
-                background: 'transparent',
-                border: '1px dashed #2196F3',
-                outline: 'none',
-                zIndex: 2000,
-                padding: '2px 4px',
-                whiteSpace: tb.width ? 'pre-wrap' : 'nowrap',
-                overflowWrap: tb.width ? 'anywhere' : 'normal',
-                boxSizing: 'border-box' as const,
-              }}
-            />
-          );
-        })()}
-
-      {!editMenusHidden && editingAtomLabel && atomLabelPanelLayout && (
-        <FloatingPanel
-          pos={atomLabelPanelLayout.pos}
-          size={atomLabelPanelLayout.size}
-          minWidth={220}
-          minHeight={280}
-          title="Atom Label"
-          theme={{
-            bg: '',
-            sidebar: '',
-            header: isDarkMode ? '#2d2d2d' : '#f6f6f6',
-            text: isDarkMode ? '#fff' : '#000',
-            canvas: '',
-            border: '#2196F3',
-          }}
-          isDarkMode={isDarkMode}
-          zIndex={2000}
-          background={isDarkMode ? '#2d2d2d' : '#fff'}
-          boxShadow="2px 4px 12px rgba(0,0,0,0.2)"
-          onClose={() => setEditMenusHidden(true)}
-          onPosChange={(pos) => setAtomLabelPanelLayout((prev) => (prev ? { ...prev, pos } : prev))}
-          onSizeChange={(size) =>
-            setAtomLabelPanelLayout((prev) => (prev ? { ...prev, size } : prev))
-          }
-          headerExtra={
-            <button
-              type="button"
-              onMouseDown={(event) => event.stopPropagation()}
-              onClick={() => {
-                const nextAlign = atomLabelPanelLayout.align === 'right' ? 'left' : 'right';
-                setAtomLabelPanelLayout((prev) =>
-                  prev
-                    ? {
-                        ...prev,
-                        align: nextAlign,
-                        pos: { x: getCornerPanelX(width, prev.size.width, nextAlign), y: 12 },
-                      }
-                    : prev,
-                );
-              }}
-              style={{
-                marginLeft: 'auto',
-                border: 'none',
-                background: 'transparent',
-                color: isDarkMode ? '#fff' : '#000',
-                cursor: 'pointer',
-                fontSize: 13,
-                lineHeight: 1,
-                padding: '0 2px',
-                opacity: 0.8,
-              }}
-              title={
-                atomLabelPanelLayout.align === 'right'
-                  ? 'Attach to top left'
-                  : 'Attach to top right'
-              }
-            >
-              {atomLabelPanelLayout.align === 'right' ? '⇤' : '⇥'}
-            </button>
-          }
-        >
-          <div
-            onMouseDown={(ev) => {
-              ev.stopPropagation();
-            }}
-            onClick={(ev) => {
-              ev.stopPropagation();
-            }}
-            style={{
-              padding: 8,
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 6,
-              minHeight: 0,
-              overflowY: 'auto',
-            }}
-          >
-            <input
-              autoFocus
-              value={editingAtomLabel.value}
-              onChange={(ev) =>
-                setEditingAtomLabel((prev) =>
-                  prev ? { ...prev, value: ev.target.value, selectedCandidateId: undefined } : null,
-                )
-              }
-              onKeyDown={(ev) => {
-                ev.stopPropagation();
-                ev.nativeEvent.stopImmediatePropagation();
-                if (ev.key === 'Enter') {
-                  ev.preventDefault();
-                  commitAtomLabelEdit();
-                }
-                if (ev.key === 'Escape') {
-                  ev.preventDefault();
-                  setEditingAtomLabel(null);
-                }
-              }}
-              style={{
-                width: '100%',
-                border: `1px solid ${isDarkMode ? '#555' : '#ccc'}`,
-                borderRadius: 3,
-                padding: '3px 6px',
-                background: isDarkMode ? '#333' : '#fff',
-                color: isDarkMode ? '#fff' : '#000',
-                fontSize: 13,
-                outline: 'none',
-                boxSizing: 'border-box',
-              }}
-            />
-            {editingAtomLabel.resolution && editingAtomLabel.value.trim() && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                <div
-                  style={{
-                    fontSize: 11,
-                    color:
-                      editingAtomLabel.resolution.selected?.semanticKind === 'coordination' ||
-                      editingAtomLabel.resolution.reason
-                        ? '#ff8a65'
-                        : '#888',
-                  }}
-                >
-                  {editingAtomLabel.resolution.selected?.semanticKind === 'coordination'
-                    ? 'Coordination-style ligand detected'
-                    : editingAtomLabel.resolution.reason
-                      ? aliasResolutionMessage(editingAtomLabel.resolution)
-                      : editingAtomLabel.resolution.selected
-                        ? `Resolved to ${editingAtomLabel.resolution.selected.subsSmiles ?? editingAtomLabel.resolution.selected.displayLabel}`
-                        : 'Alias resolution pending'}
-                </div>
-                {editingAtomLabel.resolution.candidates.length > 1 && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                    <div style={{ fontSize: 11, color: '#888' }}>Interpretation</div>
-                    {editingAtomLabel.resolution.candidates.slice(0, 4).map((candidate) => (
-                      <button
-                        key={candidate.id}
-                        type="button"
-                        onMouseDown={(ev) => {
-                          ev.stopPropagation();
-                        }}
-                        onClick={() =>
-                          setEditingAtomLabel((prev) =>
-                            prev
-                              ? {
-                                  ...prev,
-                                  selectedCandidateId: candidate.id,
-                                  resolution: resolveAliasChemistry(prev.value.trim() || 'C', {
-                                    validateSmiles: aliasValidator,
-                                    preferredCandidateId: candidate.id,
-                                  }),
-                                }
-                              : null,
-                          )
-                        }
-                        style={{
-                          textAlign: 'left',
-                          padding: '4px 6px',
-                          background:
-                            editingAtomLabel.selectedCandidateId === candidate.id
-                              ? '#2196F3'
-                              : isDarkMode
-                                ? '#333'
-                                : '#f5f5f5',
-                          color:
-                            editingAtomLabel.selectedCandidateId === candidate.id
-                              ? '#fff'
-                              : isDarkMode
-                                ? '#fff'
-                                : '#000',
-                          border: `1px solid ${editingAtomLabel.selectedCandidateId === candidate.id ? '#2196F3' : isDarkMode ? '#555' : '#ccc'}`,
-                          borderRadius: 3,
-                          cursor: 'pointer',
-                          fontSize: 11,
-                        }}
-                      >
-                        {candidate.displayLabel}
-                        {candidate.subsSmiles
-                          ? ` -> ${candidate.subsSmiles}`
-                          : ` (${candidate.semanticKind})`}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-            <div style={{ display: 'flex', gap: 6 }}>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 11, color: '#888', marginBottom: 2 }}>Font</div>
-                <input
-                  value={editingAtomLabel.fontFamily}
-                  onChange={(ev) =>
-                    setEditingAtomLabel((prev) =>
-                      prev ? { ...prev, fontFamily: ev.target.value } : null,
-                    )
-                  }
-                  onKeyDown={(ev) => {
-                    ev.stopPropagation();
-                    ev.nativeEvent.stopImmediatePropagation();
-                  }}
-                  style={{
-                    width: '100%',
-                    border: `1px solid ${isDarkMode ? '#555' : '#ccc'}`,
-                    borderRadius: 3,
-                    padding: '3px 6px',
-                    background: isDarkMode ? '#333' : '#fff',
-                    color: isDarkMode ? '#fff' : '#000',
-                    fontSize: 12,
-                    outline: 'none',
-                    boxSizing: 'border-box',
-                  }}
-                />
-              </div>
-              <div style={{ width: 54 }}>
-                <div style={{ fontSize: 11, color: '#888', marginBottom: 2 }}>Size</div>
-                <DeferredNumberInput
-                  value={editingAtomLabel.fontSize}
-                  min={6}
-                  max={72}
-                  step={1}
-                  integer
-                  onCommit={(fontSize) =>
-                    setEditingAtomLabel((prev) =>
-                      prev
-                        ? {
-                            ...prev,
-                            fontSize,
-                          }
-                        : null,
-                    )
-                  }
-                  onKeyDown={(ev) => {
-                    ev.stopPropagation();
-                    ev.nativeEvent.stopImmediatePropagation();
-                  }}
-                  style={{
-                    width: '100%',
-                    border: `1px solid ${isDarkMode ? '#555' : '#ccc'}`,
-                    borderRadius: 3,
-                    padding: '3px 6px',
-                    background: isDarkMode ? '#333' : '#fff',
-                    color: isDarkMode ? '#fff' : '#000',
-                    fontSize: 12,
-                    outline: 'none',
-                    boxSizing: 'border-box',
-                  }}
-                />
-              </div>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <div style={{ fontSize: 11, color: '#888' }}>Color</div>
-              <input
-                type="color"
-                value={editingAtomLabel.color}
-                onChange={(ev) =>
-                  setEditingAtomLabel((prev) =>
-                    prev
-                      ? {
-                          ...prev,
-                          color: ev.target.value,
-                          colorExplicit: true,
-                        }
-                      : null,
-                  )
-                }
-                onKeyDown={(ev) => {
-                  ev.stopPropagation();
-                  ev.nativeEvent.stopImmediatePropagation();
-                }}
-                style={{
-                  width: 30,
-                  height: 24,
-                  border: `1px solid ${isDarkMode ? '#555' : '#ccc'}`,
-                  borderRadius: 3,
-                  padding: 1,
-                  background: 'transparent',
-                  cursor: 'pointer',
-                }}
-              />
-              <div style={{ fontSize: 11, color: '#888' }}>Order</div>
-              <div style={{ flex: 1 }}>
-                {(() => {
-                  const currentAtom = atoms.find((atom) => atom.id === editingAtomLabel.id);
-                  const labelFirstPreview = currentAtom
-                    ? getOrientationPreviewLabel(
-                        currentAtom,
-                        editingAtomLabel.value,
-                        'label-first',
-                        atoms,
-                        bonds,
-                        showHydrogens,
-                      )
-                    : 'Label first';
-                  const hydrogenFirstPreview = currentAtom
-                    ? getOrientationPreviewLabel(
-                        currentAtom,
-                        editingAtomLabel.value,
-                        'hydrogen-first',
-                        atoms,
-                        bonds,
-                        showHydrogens,
-                      )
-                    : 'Hydrogen first';
-                  return (
-                    <SelectMenu
-                      value={editingAtomLabel.orientation}
-                      options={[
-                        { value: 'auto', label: 'Auto' },
-                        { value: 'label-first', label: `Label first: ${labelFirstPreview}` },
-                        {
-                          value: 'hydrogen-first',
-                          label: `Hydrogen first: ${hydrogenFirstPreview}`,
-                        },
-                      ]}
-                      onChange={(orientation) =>
-                        setEditingAtomLabel((prev) =>
-                          prev
-                            ? { ...prev, orientation: orientation as AtomLabelOrientation }
-                            : null,
-                        )
-                      }
-                      isDarkMode={isDarkMode}
-                      textColor={isDarkMode ? '#fff' : '#000'}
-                      borderColor={isDarkMode ? '#555' : '#ccc'}
-                      backgroundColor={isDarkMode ? '#333' : '#fff'}
-                      fontSize={12}
-                      padding="3px 4px"
-                    />
-                  );
-                })()}
-              </div>
-            </div>
-            <div style={{ display: 'flex', gap: 6, marginTop: 2 }}>
-              <button
-                type="button"
-                onClick={() => setEditMenusHidden(true)}
-                style={{
-                  flex: 1,
-                  padding: '4px 0',
-                  background: 'transparent',
-                  color: isDarkMode ? '#fff' : '#000',
-                  border: `1px solid ${isDarkMode ? '#555' : '#ccc'}`,
-                  borderRadius: 3,
-                  cursor: 'pointer',
-                  fontSize: 12,
-                }}
-              >
-                Close
-              </button>
-              <button
-                type="button"
-                onClick={commitAtomLabelEdit}
-                style={{
-                  flex: 1,
-                  padding: '4px 0',
-                  background: '#2196F3',
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: 3,
-                  cursor: 'pointer',
-                  fontSize: 12,
-                }}
-              >
-                Apply
-              </button>
-            </div>
-          </div>
-        </FloatingPanel>
-      )}
-
-      {!editMenusHidden && editingArrowStyle && arrowStylePanelLayout && (
-        <FloatingPanel
-          pos={arrowStylePanelLayout.pos}
-          size={arrowStylePanelLayout.size}
-          minWidth={210}
-          minHeight={230}
-          title={`Arrow · ${editingArrowStyle.type.replace(/-/g, ' ')}`}
-          theme={{
-            bg: '',
-            sidebar: '',
-            header: isDarkMode ? '#2d2d2d' : '#f6f6f6',
-            text: isDarkMode ? '#fff' : '#000',
-            canvas: '',
-            border: '#2196F3',
-          }}
-          isDarkMode={isDarkMode}
-          zIndex={2000}
-          background={isDarkMode ? '#2d2d2d' : '#fff'}
-          boxShadow="2px 4px 12px rgba(0,0,0,0.2)"
-          onClose={() => setEditMenusHidden(true)}
-          onPosChange={(pos) =>
-            setArrowStylePanelLayout((prev) => (prev ? { ...prev, pos } : prev))
-          }
-          onSizeChange={(size) =>
-            setArrowStylePanelLayout((prev) => (prev ? { ...prev, size } : prev))
-          }
-          headerExtra={
-            <button
-              type="button"
-              onMouseDown={(event) => event.stopPropagation()}
-              onClick={() => {
-                const nextAlign = arrowStylePanelLayout.align === 'right' ? 'left' : 'right';
-                setArrowStylePanelLayout((prev) =>
-                  prev
-                    ? {
-                        ...prev,
-                        align: nextAlign,
-                        pos: { x: getCornerPanelX(width, prev.size.width, nextAlign), y: 12 },
-                      }
-                    : prev,
-                );
-              }}
-              style={{
-                marginLeft: 'auto',
-                border: 'none',
-                background: 'transparent',
-                color: isDarkMode ? '#fff' : '#000',
-                cursor: 'pointer',
-                fontSize: 13,
-                lineHeight: 1,
-                padding: '0 2px',
-                opacity: 0.8,
-              }}
-              title={
-                arrowStylePanelLayout.align === 'right'
-                  ? 'Attach to top left'
-                  : 'Attach to top right'
-              }
-            >
-              {arrowStylePanelLayout.align === 'right' ? '⇤' : '⇥'}
-            </button>
-          }
-        >
-          <div
-            onMouseDown={(ev) => {
-              ev.stopPropagation();
-            }}
-            onClick={(ev) => {
-              ev.stopPropagation();
-            }}
-            style={{
-              padding: 8,
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 6,
-              minHeight: 0,
-              overflowY: 'auto',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <div style={{ fontSize: 11, color: '#888' }}>Color</div>
-              <input
-                type="color"
-                value={editingArrowStyle.color}
-                onChange={(ev) =>
-                  setEditingArrowStyle((prev) =>
-                    prev ? { ...prev, color: ev.target.value } : null,
-                  )
-                }
-                onKeyDown={(ev) => {
-                  ev.stopPropagation();
-                  ev.nativeEvent.stopImmediatePropagation();
-                }}
-                style={{
-                  width: 30,
-                  height: 24,
-                  border: `1px solid ${isDarkMode ? '#555' : '#ccc'}`,
-                  borderRadius: 3,
-                  padding: 1,
-                  background: 'transparent',
-                  cursor: 'pointer',
-                }}
-              />
-              <div style={{ fontSize: 11, color: '#888' }}>Width</div>
-              <DeferredNumberInput
-                value={editingArrowStyle.lineWidth}
-                min={1}
-                max={20}
-                step={0.1}
-                onCommit={(lineWidth) =>
-                  setEditingArrowStyle((prev) =>
-                    prev
-                      ? {
-                          ...prev,
-                          lineWidth,
-                        }
-                      : null,
-                  )
-                }
-                onKeyDown={(ev) => {
-                  ev.stopPropagation();
-                  ev.nativeEvent.stopImmediatePropagation();
-                }}
-                style={{
-                  width: 52,
-                  border: `1px solid ${isDarkMode ? '#555' : '#ccc'}`,
-                  borderRadius: 3,
-                  padding: '3px 6px',
-                  background: isDarkMode ? '#333' : '#fff',
-                  color: isDarkMode ? '#fff' : '#000',
-                  fontSize: 12,
-                  outline: 'none',
-                  boxSizing: 'border-box',
-                }}
-              />
-            </div>
-            <div>
-              <div style={{ fontSize: 11, color: '#888', marginBottom: 2 }}>Stroke</div>
-              <SelectMenu
-                value={editingArrowStyle.lineStyle}
-                options={[
-                  { value: 'solid', label: 'Solid' },
-                  { value: 'dashed', label: 'Dashed' },
-                  { value: 'bold', label: 'Bold' },
-                ]}
-                onChange={(lineStyle) =>
-                  setEditingArrowStyle((prev) =>
-                    prev ? { ...prev, lineStyle: lineStyle as 'solid' | 'dashed' | 'bold' } : null,
-                  )
-                }
-                isDarkMode={isDarkMode}
-                textColor={isDarkMode ? '#fff' : '#000'}
-                borderColor={isDarkMode ? '#555' : '#ccc'}
-                backgroundColor={isDarkMode ? '#333' : '#fff'}
-                fontSize={12}
-                padding="3px 4px"
-                width="100%"
-              />
-            </div>
-            <label
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-                fontSize: 12,
-                color: isDarkMode ? '#fff' : '#000',
-                cursor:
-                  editingArrowStyle.type === 'curved' || editingArrowStyle.type === 'half-curved'
-                    ? 'default'
-                    : 'pointer',
-              }}
-            >
-              <input
-                type="checkbox"
-                checked={editingArrowStyle.curveEnabled}
-                disabled={
-                  editingArrowStyle.type === 'curved' || editingArrowStyle.type === 'half-curved'
-                }
-                onChange={(ev) =>
-                  setEditingArrowStyle((prev) =>
-                    prev ? { ...prev, curveEnabled: ev.target.checked } : null,
-                  )
-                }
-              />
-              Bend handle
-            </label>
-            <div style={{ fontSize: 11, color: '#888', lineHeight: 1.35 }}>
-              {editingArrowStyle.type === 'curved' || editingArrowStyle.type === 'half-curved'
-                ? 'This arrow always uses the star handle.'
-                : editingArrowStyle.curveEnabled
-                  ? 'Drag the star handle on-canvas to bend the arrow.'
-                  : 'Turn this on to bend the arrow with the star handle.'}
-            </div>
-            <div style={{ fontSize: 11, color: '#888', lineHeight: 1.35 }}>
-              Double-click the arrow to edit labels above and below it.
-            </div>
-            <div style={{ display: 'flex', gap: 6, marginTop: 2 }}>
-              <button
-                type="button"
-                onClick={() => setEditMenusHidden(true)}
-                style={{
-                  flex: 1,
-                  padding: '4px 0',
-                  background: 'transparent',
-                  color: isDarkMode ? '#fff' : '#000',
-                  border: `1px solid ${isDarkMode ? '#555' : '#ccc'}`,
-                  borderRadius: 3,
-                  cursor: 'pointer',
-                  fontSize: 12,
-                }}
-              >
-                Close
-              </button>
-              <button
-                type="button"
-                onClick={commitArrowStyleEdit}
-                style={{
-                  flex: 1,
-                  padding: '4px 0',
-                  background: '#2196F3',
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: 3,
-                  cursor: 'pointer',
-                  fontSize: 12,
-                }}
-              >
-                Apply
-              </button>
-            </div>
-          </div>
-        </FloatingPanel>
-      )}
-
-      {!editMenusHidden && editingBondStyle && bondStylePanelLayout && (
-        <FloatingPanel
-          pos={bondStylePanelLayout.pos}
-          size={bondStylePanelLayout.size}
-          minWidth={220}
-          minHeight={280}
-          title="Bond Style"
-          theme={{
-            bg: '',
-            sidebar: '',
-            header: isDarkMode ? '#2d2d2d' : '#f6f6f6',
-            text: isDarkMode ? '#fff' : '#000',
-            canvas: '',
-            border: '#2196F3',
-          }}
-          isDarkMode={isDarkMode}
-          zIndex={2000}
-          background={isDarkMode ? '#2d2d2d' : '#fff'}
-          boxShadow="2px 4px 12px rgba(0,0,0,0.2)"
-          onClose={() => setEditMenusHidden(true)}
-          onPosChange={(pos) => setBondStylePanelLayout((prev) => (prev ? { ...prev, pos } : prev))}
-          onSizeChange={(size) =>
-            setBondStylePanelLayout((prev) => (prev ? { ...prev, size } : prev))
-          }
-          headerExtra={
-            <button
-              type="button"
-              onMouseDown={(event) => event.stopPropagation()}
-              onClick={() => {
-                const nextAlign = bondStylePanelLayout.align === 'right' ? 'left' : 'right';
-                setBondStylePanelLayout((prev) =>
-                  prev
-                    ? {
-                        ...prev,
-                        align: nextAlign,
-                        pos: { x: getCornerPanelX(width, prev.size.width, nextAlign), y: 12 },
-                      }
-                    : prev,
-                );
-              }}
-              style={{
-                marginLeft: 'auto',
-                border: 'none',
-                background: 'transparent',
-                color: isDarkMode ? '#fff' : '#000',
-                cursor: 'pointer',
-                fontSize: 13,
-                lineHeight: 1,
-                padding: '0 2px',
-                opacity: 0.8,
-              }}
-              title={
-                bondStylePanelLayout.align === 'right'
-                  ? 'Attach to top left'
-                  : 'Attach to top right'
-              }
-            >
-              {bondStylePanelLayout.align === 'right' ? '⇤' : '⇥'}
-            </button>
-          }
-        >
-          <div
-            style={{
-              padding: 8,
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 6,
-              minHeight: 0,
-              overflowY: 'auto',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <div style={{ fontSize: 11, color: '#888' }}>Color</div>
-              <input
-                type="color"
-                value={editingBondStyle.color}
-                onChange={(ev) =>
-                  setEditingBondStyle((prev) => (prev ? { ...prev, color: ev.target.value } : null))
-                }
-                onKeyDown={(ev) => {
-                  ev.stopPropagation();
-                  ev.nativeEvent.stopImmediatePropagation();
-                }}
-                style={{
-                  width: 30,
-                  height: 24,
-                  border: `1px solid ${isDarkMode ? '#555' : '#ccc'}`,
-                  borderRadius: 3,
-                  padding: 1,
-                  background: 'transparent',
-                  cursor: 'pointer',
-                }}
-              />
-              <div style={{ fontSize: 11, color: '#888' }}>Width</div>
-              <DeferredNumberInput
-                value={editingBondStyle.lineWidth}
-                min={1}
-                max={12}
-                step={0.1}
-                onCommit={(lineWidth) =>
-                  setEditingBondStyle((prev) =>
-                    prev
-                      ? {
-                          ...prev,
-                          lineWidth,
-                        }
-                      : null,
-                  )
-                }
-                onKeyDown={(ev) => {
-                  ev.stopPropagation();
-                  ev.nativeEvent.stopImmediatePropagation();
-                }}
-                style={{
-                  width: 52,
-                  border: `1px solid ${isDarkMode ? '#555' : '#ccc'}`,
-                  borderRadius: 3,
-                  padding: '3px 6px',
-                  background: isDarkMode ? '#333' : '#fff',
-                  color: isDarkMode ? '#fff' : '#000',
-                  fontSize: 12,
-                  outline: 'none',
-                  boxSizing: 'border-box',
-                }}
-              />
-            </div>
-            <div>
-              <div style={{ fontSize: 11, color: '#888', marginBottom: 2 }}>Display</div>
-              <SelectMenu
-                value={editingBondStyle.display}
-                options={[
-                  { value: 'solid', label: 'Solid' },
-                  { value: 'dash', label: 'Dashed' },
-                  { value: 'bold', label: 'Bold' },
-                  { value: 'wavy', label: 'Wavy' },
-                  { value: 'crossed', label: 'Crossed' },
-                  { value: 'dative', label: 'Dative' },
-                ]}
-                onChange={(display) =>
-                  setEditingBondStyle((prev) =>
-                    prev ? { ...prev, display: display as BondDisplayStyle } : null,
-                  )
-                }
-                isDarkMode={isDarkMode}
-                textColor={isDarkMode ? '#fff' : '#000'}
-                borderColor={isDarkMode ? '#555' : '#ccc'}
-                backgroundColor={isDarkMode ? '#333' : '#fff'}
-                fontSize={12}
-                padding="3px 4px"
-                width="100%"
-              />
-            </div>
-            {editingBondStyle.order === 2 && (
-              <div>
-                <div style={{ fontSize: 11, color: '#888', marginBottom: 2 }}>Double Bond</div>
-                <SelectMenu
-                  value={editingBondStyle.doubleBondMode}
-                  options={[
-                    { value: 'auto', label: 'Auto' },
-                    { value: 'flipped', label: 'Short Line Opposite Side' },
-                    { value: 'symmetric', label: 'Equal Length' },
-                  ]}
-                  onChange={(doubleBondMode) =>
-                    setEditingBondStyle((prev) =>
-                      prev
-                        ? {
-                            ...prev,
-                            doubleBondMode: doubleBondMode as 'auto' | 'flipped' | 'symmetric',
-                          }
-                        : null,
-                    )
-                  }
-                  isDarkMode={isDarkMode}
-                  textColor={isDarkMode ? '#fff' : '#000'}
-                  borderColor={isDarkMode ? '#555' : '#ccc'}
-                  backgroundColor={isDarkMode ? '#333' : '#fff'}
-                  fontSize={12}
-                  padding="3px 4px"
-                  width="100%"
-                />
-              </div>
-            )}
-            <div>
-              <div style={{ fontSize: 11, color: '#888', marginBottom: 4 }}>Order</div>
-              <div style={{ display: 'flex', gap: 6 }}>
-                <button
-                  type="button"
-                  onClick={() => reorderEditingBond('front')}
-                  disabled={!canBringBondToFront}
-                  style={{
-                    flex: 1,
-                    padding: '4px 0',
-                    background: 'transparent',
-                    color: !canBringBondToFront ? '#888' : isDarkMode ? '#fff' : '#000',
-                    border: `1px solid ${isDarkMode ? '#555' : '#ccc'}`,
-                    borderRadius: 3,
-                    cursor: canBringBondToFront ? 'pointer' : 'default',
-                    fontSize: 12,
-                    opacity: canBringBondToFront ? 1 : 0.6,
-                  }}
-                >
-                  Bring to Front
-                </button>
-                <button
-                  type="button"
-                  onClick={() => reorderEditingBond('back')}
-                  disabled={!canBringBondToBack}
-                  style={{
-                    flex: 1,
-                    padding: '4px 0',
-                    background: 'transparent',
-                    color: !canBringBondToBack ? '#888' : isDarkMode ? '#fff' : '#000',
-                    border: `1px solid ${isDarkMode ? '#555' : '#ccc'}`,
-                    borderRadius: 3,
-                    cursor: canBringBondToBack ? 'pointer' : 'default',
-                    fontSize: 12,
-                    opacity: canBringBondToBack ? 1 : 0.6,
-                  }}
-                >
-                  Bring to Back
-                </button>
-              </div>
-            </div>
-            <div style={{ display: 'flex', gap: 6, marginTop: 2 }}>
-              <button
-                type="button"
-                onClick={() => setEditMenusHidden(true)}
-                style={{
-                  flex: 1,
-                  padding: '4px 0',
-                  background: 'transparent',
-                  color: isDarkMode ? '#fff' : '#000',
-                  border: `1px solid ${isDarkMode ? '#555' : '#ccc'}`,
-                  borderRadius: 3,
-                  cursor: 'pointer',
-                  fontSize: 12,
-                }}
-              >
-                Close
-              </button>
-              <button
-                type="button"
-                onClick={commitBondStyleEdit}
-                style={{
-                  flex: 1,
-                  padding: '4px 0',
-                  background: '#2196F3',
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: 3,
-                  cursor: 'pointer',
-                  fontSize: 12,
-                }}
-              >
-                Apply
-              </button>
-            </div>
-          </div>
-        </FloatingPanel>
-      )}
-
-      {!editMenusHidden && editingArrowLabels && arrowLabelsPanelLayout && (
-        <FloatingPanel
-          pos={arrowLabelsPanelLayout.pos}
-          size={arrowLabelsPanelLayout.size}
-          minWidth={176}
-          minHeight={190}
-          title="Arrow Labels"
-          theme={{
-            bg: '',
-            sidebar: '',
-            header: isDarkMode ? '#2d2d2d' : '#f6f6f6',
-            text: isDarkMode ? '#fff' : '#000',
-            canvas: '',
-            border: '#2196F3',
-          }}
-          isDarkMode={isDarkMode}
-          zIndex={2000}
-          background={isDarkMode ? '#2d2d2d' : '#fff'}
-          boxShadow="2px 4px 12px rgba(0,0,0,0.2)"
-          onClose={() => setEditMenusHidden(true)}
-          onPosChange={(pos) =>
-            setArrowLabelsPanelLayout((prev) => (prev ? { ...prev, pos } : prev))
-          }
-          onSizeChange={(size) =>
-            setArrowLabelsPanelLayout((prev) => (prev ? { ...prev, size } : prev))
-          }
-          headerExtra={
-            <button
-              type="button"
-              onMouseDown={(event) => event.stopPropagation()}
-              onClick={() => {
-                const nextAlign = arrowLabelsPanelLayout.align === 'right' ? 'left' : 'right';
-                setArrowLabelsPanelLayout((prev) =>
-                  prev
-                    ? {
-                        ...prev,
-                        align: nextAlign,
-                        pos: { x: getCornerPanelX(width, prev.size.width, nextAlign), y: 12 },
-                      }
-                    : prev,
-                );
-              }}
-              style={{
-                marginLeft: 'auto',
-                border: 'none',
-                background: 'transparent',
-                color: isDarkMode ? '#fff' : '#000',
-                cursor: 'pointer',
-                fontSize: 13,
-                lineHeight: 1,
-                padding: '0 2px',
-                opacity: 0.8,
-              }}
-              title={
-                arrowLabelsPanelLayout.align === 'right'
-                  ? 'Attach to top left'
-                  : 'Attach to top right'
-              }
-            >
-              {arrowLabelsPanelLayout.align === 'right' ? '⇤' : '⇥'}
-            </button>
-          }
-        >
-          <div
-            style={{
-              padding: 8,
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 4,
-              minHeight: 0,
-              overflowY: 'auto',
-            }}
-          >
-            <div style={{ fontSize: 11, color: '#888' }}>Above</div>
-            <input
-              autoFocus
-              value={editingArrowLabels.above}
-              onChange={(ev) =>
-                setEditingArrowLabels((prev) => (prev ? { ...prev, above: ev.target.value } : null))
-              }
-              onKeyDown={(ev) => {
-                ev.stopPropagation();
-                ev.nativeEvent.stopImmediatePropagation();
-                if (ev.key === 'Enter') {
-                  ev.preventDefault();
-                  commitArrowLabels();
-                }
-                if (ev.key === 'Escape') {
-                  ev.preventDefault();
-                  setEditingArrowLabels(null);
-                }
-              }}
-              style={{
-                width: 130,
-                border: `1px solid ${isDarkMode ? '#555' : '#ccc'}`,
-                borderRadius: 3,
-                padding: '2px 4px',
-                background: isDarkMode ? '#333' : '#fff',
-                color: isDarkMode ? '#fff' : '#000',
-                fontSize: 13,
-                outline: 'none',
-              }}
-            />
-            <div style={{ fontSize: 11, color: '#888' }}>Below</div>
-            <input
-              value={editingArrowLabels.below}
-              onChange={(ev) =>
-                setEditingArrowLabels((prev) => (prev ? { ...prev, below: ev.target.value } : null))
-              }
-              onKeyDown={(ev) => {
-                ev.stopPropagation();
-                ev.nativeEvent.stopImmediatePropagation();
-                if (ev.key === 'Enter') {
-                  ev.preventDefault();
-                  commitArrowLabels();
-                }
-                if (ev.key === 'Escape') {
-                  ev.preventDefault();
-                  setEditingArrowLabels(null);
-                }
-              }}
-              style={{
-                width: 130,
-                border: `1px solid ${isDarkMode ? '#555' : '#ccc'}`,
-                borderRadius: 3,
-                padding: '2px 4px',
-                background: isDarkMode ? '#333' : '#fff',
-                color: isDarkMode ? '#fff' : '#000',
-                fontSize: 13,
-                outline: 'none',
-              }}
-            />
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
-              <div style={{ fontSize: 11, color: '#888' }}>Size</div>
-              <DeferredNumberInput
-                value={editingArrowLabels.fontSize}
-                min={6}
-                max={72}
-                step={1}
-                integer
-                onCommit={(fontSize) =>
-                  setEditingArrowLabels((prev) =>
-                    prev
-                      ? {
-                          ...prev,
-                          fontSize,
-                        }
-                      : null,
-                  )
-                }
-                onKeyDown={(ev) => {
-                  ev.stopPropagation();
-                  ev.nativeEvent.stopImmediatePropagation();
-                }}
-                style={{
-                  width: 44,
-                  border: `1px solid ${isDarkMode ? '#555' : '#ccc'}`,
-                  borderRadius: 3,
-                  padding: '2px 4px',
-                  background: isDarkMode ? '#333' : '#fff',
-                  color: isDarkMode ? '#fff' : '#000',
-                  fontSize: 12,
-                  outline: 'none',
-                }}
-              />
-              <div style={{ fontSize: 11, color: '#888' }}>Color</div>
-              <input
-                type="color"
-                value={editingArrowLabels.color || (isDarkMode ? '#ffffff' : '#000000')}
-                onChange={(ev) =>
-                  setEditingArrowLabels((prev) =>
-                    prev ? { ...prev, color: ev.target.value } : null,
-                  )
-                }
-                onKeyDown={(ev) => {
-                  ev.stopPropagation();
-                  ev.nativeEvent.stopImmediatePropagation();
-                }}
-                style={{
-                  width: 28,
-                  height: 22,
-                  border: `1px solid ${isDarkMode ? '#555' : '#ccc'}`,
-                  borderRadius: 3,
-                  padding: 1,
-                  background: 'transparent',
-                  cursor: 'pointer',
-                }}
-              />
-            </div>
-            <button
-              onClick={commitArrowLabels}
-              style={{
-                marginTop: 4,
-                padding: '3px 0',
-                background: '#2196F3',
-                color: '#fff',
-                border: 'none',
-                borderRadius: 3,
-                cursor: 'pointer',
-                fontSize: 12,
-              }}
-            >
-              OK
-            </button>
-          </div>
-        </FloatingPanel>
-      )}
+      <CanvasTextEditors
+        editingAtomId={editingAtomId}
+        atoms={atoms}
+        nativeNodes={nativeNodes}
+        documentStyleSettings={documentStyleSettings}
+        stageScale={stageScale}
+        stagePos={stagePos}
+        atomTool={atomTool}
+        isDarkMode={isDarkMode}
+        editingTextBoxId={editingTextBoxId}
+        textBoxes={textBoxes}
+        editOverlayRef={editOverlayRef}
+        handleTextEditBlur={handleTextEditBlur}
+        handleTextEditPaste={handleTextEditPaste}
+        ignoreNextBlurRef={ignoreNextBlurRef}
+        setSelectedTextBoxIds={setSelectedTextBoxIds}
+        editMenusHidden={editMenusHidden}
+        editingAtomLabel={editingAtomLabel}
+        atomLabelPanelLayout={atomLabelPanelLayout}
+        setEditMenusHidden={setEditMenusHidden}
+        setAtomLabelPanelLayout={setAtomLabelPanelLayout}
+        width={width}
+        setEditingAtomLabel={setEditingAtomLabel}
+        commitAtomLabelEdit={commitAtomLabelEdit}
+        aliasValidator={aliasValidator}
+        bonds={bonds}
+        showHydrogens={showHydrogens}
+        editingArrowStyle={editingArrowStyle}
+        arrowStylePanelLayout={arrowStylePanelLayout}
+        setArrowStylePanelLayout={setArrowStylePanelLayout}
+        setEditingArrowStyle={setEditingArrowStyle}
+        commitArrowStyleEdit={commitArrowStyleEdit}
+        editingBondStyle={editingBondStyle}
+        bondStylePanelLayout={bondStylePanelLayout}
+        setBondStylePanelLayout={setBondStylePanelLayout}
+        setEditingBondStyle={setEditingBondStyle}
+        reorderEditingBond={reorderEditingBond}
+        canBringBondToFront={canBringBondToFront}
+        canBringBondToBack={canBringBondToBack}
+        commitBondStyleEdit={commitBondStyleEdit}
+        editingArrowLabels={editingArrowLabels}
+        arrowLabelsPanelLayout={arrowLabelsPanelLayout}
+        setArrowLabelsPanelLayout={setArrowLabelsPanelLayout}
+        setEditingArrowLabels={setEditingArrowLabels}
+        commitArrowLabels={commitArrowLabels}
+      />
 
       <div
         style={{

@@ -1,11 +1,11 @@
-import { useState, useRef, useCallback } from 'react';
-import { useStore } from '../store';
-import type { Atom } from '../types/chemistry';
+import { useCallback, useRef, useState } from 'react';
 import { createReplaceDocumentCommand } from '../editor/commands';
-import { SNAP_ANGLE } from '../lib/graph';
-import { applyNodeValueEdit } from '../lib/chemdrawModel';
 import { setAliasAtomValue, setAtomValue } from '../lib/atomIdentity';
+import { applyNodeValueEdit } from '../lib/chemdrawModel';
+import { SNAP_ANGLE } from '../lib/graph';
 import { resolveChairAttachmentSnapping } from '../lib/ringTemplates';
+import { commitCanvasEdit, getCanvasEditorState, previewCanvasEdit, useStore } from '../store';
+import type { Atom } from '../types/chemistry';
 
 export interface AtomToolOverlay {
   activeAtomId: string | null;
@@ -65,11 +65,11 @@ export function useAtomTool(): AtomToolOverlay & AtomToolActions {
       arrows,
       groups,
       textBoxes,
-      setCurrentCanvasState,
+
       element,
       atomToolMode,
       setLastInteractedAtomId,
-    } = useStore.getState();
+    } = getCanvasEditorState();
 
     if (hitAtom) {
       activeAtomWasExisting.current = true;
@@ -81,7 +81,7 @@ export function useAtomTool(): AtomToolOverlay & AtomToolActions {
       const nid = crypto.randomUUID();
       setLastInteractedAtomId(nid);
       const baseAtom: Atom = { id: nid, x: pos.x, y: pos.y, kind: 'element', element };
-      setCurrentCanvasState({
+      previewCanvasEdit({
         atoms: [
           ...atoms,
           atomToolMode === 'alias' ? setAliasAtomValue(baseAtom, element) : baseAtom,
@@ -99,7 +99,7 @@ export function useAtomTool(): AtomToolOverlay & AtomToolActions {
 
   const onMouseMove = useCallback((pos: { x: number; y: number }, hitAtom: Atom | null) => {
     if (!isDraggingRef.current || !activeAtomIdRef.current) return;
-    const { atoms, bonds, documentStyleSettings } = useStore.getState();
+    const { atoms, bonds, documentStyleSettings } = getCanvasEditorState();
     const bondLength = documentStyleSettings.bondLength;
     const start = atoms.find((a) => a.id === activeAtomIdRef.current);
     if (!start) return;
@@ -152,13 +152,10 @@ export function useAtomTool(): AtomToolOverlay & AtomToolActions {
       arrows,
       groups,
       textBoxes,
-      pushToHistory,
-      setCurrentCanvasState,
+
       element,
       atomToolMode,
-      history,
-      historyIndex,
-    } = useStore.getState();
+    } = getCanvasEditorState();
     const preview = dragPreviewLineRef.current;
     const aid = activeAtomIdRef.current;
 
@@ -189,7 +186,7 @@ export function useAtomTool(): AtomToolOverlay & AtomToolActions {
             nextAtom.labelRuns !== start.labelRuns;
 
           if (atomChanged) {
-            pushToHistory({
+            commitCanvasEdit({
               atoms: atoms.map((atom) => (atom.id === start.id ? nextAtom : atom)),
               bonds,
               arrows,
@@ -207,7 +204,7 @@ export function useAtomTool(): AtomToolOverlay & AtomToolActions {
             nextAtom.labelRuns !== start.labelRuns;
 
           if (atomChanged) {
-            pushToHistory({
+            commitCanvasEdit({
               atoms: atoms.map((atom) => (atom.id === start.id ? nextAtom : atom)),
               bonds,
               arrows,
@@ -217,7 +214,13 @@ export function useAtomTool(): AtomToolOverlay & AtomToolActions {
           }
         }
       } else {
-        pushToHistory({ atoms, bonds, arrows, groups: groups ?? [], textBoxes: textBoxes ?? [] });
+        commitCanvasEdit({
+          atoms,
+          bonds,
+          arrows,
+          groups: groups ?? [],
+          textBoxes: textBoxes ?? [],
+        });
       }
       setPreview(null);
       setActive(null);
@@ -244,7 +247,7 @@ export function useAtomTool(): AtomToolOverlay & AtomToolActions {
             b.id === existing.id ? { ...b, order: (b.order % 3) + 1, stereo: 0 } : b,
           )
         : [...bonds, { id: crypto.randomUUID(), from: aid, to: targetId, order: 1, stereo: 0 }];
-      pushToHistory({
+      commitCanvasEdit({
         atoms: newAtoms,
         bonds: newBonds,
         arrows,
@@ -252,8 +255,7 @@ export function useAtomTool(): AtomToolOverlay & AtomToolActions {
         textBoxes: textBoxes ?? [],
       });
     } else {
-      if (historyIndex >= 0) setCurrentCanvasState(history[historyIndex]);
-      else setCurrentCanvasState({ atoms: [], bonds: [], arrows: [], groups: [], textBoxes: [] });
+      useStore.getState().clearPreviewChemDrawDocument();
     }
     setPreview(null);
     setActive(null);
@@ -266,8 +268,8 @@ export function useAtomTool(): AtomToolOverlay & AtomToolActions {
     setEditingValue('');
     if (!id) return;
     const val = editingValue.trim() || 'C';
-    const { atoms, bonds, arrows, groups, textBoxes, pushToHistory, chemDrawDocument } =
-      useStore.getState();
+    const { atoms, bonds, arrows, groups, textBoxes, commitCanvasEdit, chemDrawDocument } =
+      getCanvasEditorState();
     if (chemDrawDocument) {
       const nextDocument = applyNodeValueEdit(chemDrawDocument, id, val);
       useStore
@@ -275,7 +277,7 @@ export function useAtomTool(): AtomToolOverlay & AtomToolActions {
         .dispatchEditorCommand(createReplaceDocumentCommand(nextDocument, 'edit-node-value'));
       return;
     }
-    pushToHistory({
+    commitCanvasEdit({
       atoms: atoms.map((atom) => {
         if (atom.id !== id) return atom;
         return setAtomValue(atom, val);
@@ -289,9 +291,7 @@ export function useAtomTool(): AtomToolOverlay & AtomToolActions {
 
   const cleanup = useCallback(() => {
     if (isDraggingRef.current && !activeAtomWasExisting.current) {
-      const { history, historyIndex, setCurrentCanvasState } = useStore.getState();
-      if (historyIndex >= 0) setCurrentCanvasState(history[historyIndex]);
-      else setCurrentCanvasState({ atoms: [], bonds: [], arrows: [] });
+      useStore.getState().clearPreviewChemDrawDocument();
     }
     setDragging(false);
     setPreview(null);
