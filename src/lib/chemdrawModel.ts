@@ -897,7 +897,33 @@ export function mergeCanvasStateIntoChemDrawDocument(
   const baseById = new Map(basePage.objects.map((object) => [object.id, object]));
   const mergedObjects: ChemDrawObject[] = [];
 
-  for (const object of canvasPage.objects) {
+  // The flat state has no fragment ids, so projecting it invents new ones. Re-attach each
+  // projected fragment to the base fragment that owns most of its nodes, so ids (which groups
+  // and other objects reference) survive an edit that never touched the fragment.
+  const baseFragmentByNode = new Map<string, string>();
+  for (const object of basePage.objects) {
+    if (object.type !== 'fragment') continue;
+    for (const nodeId of object.nodeIds) baseFragmentByNode.set(nodeId, object.id);
+  }
+  const claimedFragments = new Set<string>();
+  const canvasObjects = canvasPage.objects.map((object) => {
+    if (object.type !== 'fragment') return object;
+    const votes = new Map<string, number>();
+    for (const nodeId of object.nodeIds) {
+      const owner = baseFragmentByNode.get(nodeId);
+      if (owner) votes.set(owner, (votes.get(owner) ?? 0) + 1);
+    }
+    let best: string | null = null;
+    for (const [candidate, count] of votes) {
+      if (claimedFragments.has(candidate)) continue;
+      if (best === null || count > (votes.get(best) ?? 0)) best = candidate;
+    }
+    if (best === null) return object;
+    claimedFragments.add(best);
+    return { ...object, id: best };
+  });
+
+  for (const object of canvasObjects) {
     const base = baseById.get(object.id);
     if (object.type === 'node' && base?.type === 'node') {
       mergedObjects.push({
@@ -913,11 +939,30 @@ export function mergeCanvasStateIntoChemDrawDocument(
         style: { ...base.style, ...object.style },
       });
     } else if (object.type === 'bond' && base?.type === 'bond') {
+      // The projection always writes an order; an absent order in the source means single, so
+      // don't turn "unspecified" into an explicit Order="1" on an untouched bond.
+      const keepUnspecifiedOrder = base.order === undefined && object.order === 1;
+      // The flat model stores a wedge/hash only as "begin" by swapping the endpoints, so an
+      // untouched "...-end" bond comes back reversed. That draws identically but rewrites the
+      // source; keep the original orientation when it is exactly that normalization.
+      const normalizedEndWedge =
+        (base.display === 'wedge-end' || base.display === 'hash-end') &&
+        object.beginNodeId === base.endNodeId &&
+        object.endNodeId === base.beginNodeId &&
+        object.display === base.display.replace('-end', '-begin');
       mergedObjects.push({
         ...base,
         ...object,
+        ...(normalizedEndWedge
+          ? {
+              beginNodeId: base.beginNodeId,
+              endNodeId: base.endNodeId,
+              display: base.display,
+            }
+          : {}),
+        order: keepUnspecifiedOrder ? undefined : object.order,
         query: base.query ?? object.query,
-        display: object.display ?? base.display,
+        display: normalizedEndWedge ? base.display : (object.display ?? base.display),
         secondaryDisplay: object.secondaryDisplay ?? base.secondaryDisplay,
         doubleBondMode: object.order === 2 ? object.doubleBondMode : undefined,
         ringTemplateMemberships: object.ringTemplateMemberships,
@@ -941,9 +986,19 @@ export function mergeCanvasStateIntoChemDrawDocument(
         conversionStatus: object.conversionStatus ?? base.conversionStatus,
       });
     } else if (object.type === 'fragment' && base?.type === 'fragment') {
+      // Component order is arbitrary; keep the source's member order (it is the order nodes
+      // and bonds are written in) and append anything new.
+      const keepOrder = (original: string[], next: string[]): string[] => {
+        const nextSet = new Set(next);
+        const kept = original.filter((id) => nextSet.has(id));
+        const keptSet = new Set(kept);
+        return [...kept, ...next.filter((id) => !keptSet.has(id))];
+      };
       mergedObjects.push({
         ...base,
         ...object,
+        nodeIds: keepOrder(base.nodeIds, object.nodeIds),
+        bondIds: keepOrder(base.bondIds, object.bondIds),
         role: base.role ?? object.role,
         style: { ...base.style, ...object.style },
       });

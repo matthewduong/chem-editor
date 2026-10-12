@@ -75,3 +75,59 @@ describe('commitDocument', () => {
     });
   }
 });
+
+describe('flat-state commits', () => {
+  beforeEach(() => {
+    resetStore();
+  });
+
+  for (const { name, xml } of fixtures) {
+    it(`${name}: a no-op pushToHistory of the current arrays leaves the export unchanged`, () => {
+      const { document } = cdxmlToChemDrawDocument(xml);
+      useStore.getState().replaceDocument(document, [], '/tmp/n.cdxml');
+      const baseline = chemDrawDocumentToCDXML(useStore.getState().chemDrawDocument!);
+      const { atoms, bonds, arrows, groups, textBoxes } = useStore.getState();
+
+      useStore.getState().pushToHistory({ atoms, bonds, arrows, groups, textBoxes });
+
+      expectFlatArraysProjectDocument();
+      expect(chemDrawDocumentToCDXML(useStore.getState().chemDrawDocument!)).toBe(baseline);
+    });
+  }
+
+  it('keeps a group pointing at its fragments after an unrelated flat edit', () => {
+    const xml =
+      '<?xml version="1.0"?><CDXML><page id="1">' +
+      '<fragment id="2"><n id="3" p="0 0"/><n id="4" p="14.4 0"/><b id="5" B="3" E="4"/></fragment>' +
+      '<fragment id="6"><n id="7" p="60 0"/><n id="8" p="74.4 0"/><b id="9" B="7" E="8"/></fragment>' +
+      '</page></CDXML>';
+    useStore.getState().replaceDocument(cdxmlToChemDrawDocument(xml).document, [], '/tmp/g.cdxml');
+    useStore.setState({ selectedObjectIds: new Set(['2', '6']) });
+    useStore.getState().groupSelected();
+
+    const { atoms, bonds, arrows, groups, textBoxes } = useStore.getState();
+    // A flat-tool edit: nudge one atom, as a drag would.
+    useStore.getState().pushToHistory({
+      atoms: atoms.map((a, i) => (i === 0 ? { ...a, x: a.x + 5 } : a)),
+      bonds,
+      arrows,
+      groups,
+      textBoxes,
+    });
+
+    const objects = useStore.getState().chemDrawDocument!.pages[0].objects;
+    const ids = new Set(objects.map((o) => o.id));
+    const group = objects.find((o) => o.type === 'group');
+    expect(group).toBeDefined();
+    expect(group!.type === 'group' && group!.childIds.length).toBe(2);
+    for (const child of group!.type === 'group' ? group!.childIds : []) {
+      expect(ids.has(child), `group child ${child} vanished`).toBe(true);
+    }
+    expect(
+      objects
+        .filter((o) => o.type === 'fragment')
+        .map((o) => o.id)
+        .sort(),
+    ).toEqual(['2', '6']);
+  });
+});
