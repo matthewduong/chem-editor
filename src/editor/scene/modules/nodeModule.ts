@@ -3,10 +3,10 @@ import {
   buildChargeRuns,
   getLeadElementAnchorOffset,
 } from '../../../lib/atomLabelPresentation';
+import { resolveElementLabelAnchor } from '../../../lib/labelPlacement';
 import { getFaceMetrics } from '../../../lib/textMetrics';
 import {
   getAtomLabelBaselineOffset,
-  getNodeLabelVerticalOffset,
   getStackedLabelBaselines,
   getSuperscriptBaselineShift,
   resolveDocumentLabelTextStyle,
@@ -146,27 +146,55 @@ export const NODE_MODULE: ObjectModule = {
       !stackSide &&
       Boolean(atom.alias) &&
       firstRun !== undefined;
-    const offset = isolatedLabel
-      ? anchor.padding +
-        measureRunWidth(
-          { ...firstRun, text: firstRun.text.slice(0, 1) },
-          labelFontSize,
-          labelFontFamily,
-        ) /
-          2
-      : anchor.offset;
+    // A bare multi-letter element (Cl, Br, Si) is anchored by one of its letters, not centred.
+    const loneElement =
+      labelVisible &&
+      !stackSide &&
+      !isolatedLabel &&
+      connectedBonds.length > 0 &&
+      !atom.alias &&
+      chargeRuns.length === 0 &&
+      displayRuns.length === 1 &&
+      [...labelText].length > 1 &&
+      labelText === getAtomLeadElement(atom);
+    let loneElementOffset: number | null = null;
+    if (loneElement) {
+      const letters = [...labelText];
+      const letterWidth = (text: string) =>
+        measureRunWidth({ ...displayRuns[0]!, text }, labelFontSize, labelFontFamily);
+      const mode = resolveElementLabelAnchor(
+        atom,
+        scene.legacy.atoms,
+        scene.legacy.bonds,
+        object.labelAlignment,
+      );
+      const total = letterWidth(labelText);
+      const centre =
+        mode === 'first'
+          ? letterWidth(letters[0]!) / 2
+          : mode === 'last'
+            ? total - letterWidth(letters[letters.length - 1]!) / 2
+            : total / 2;
+      loneElementOffset = anchor.padding + centre;
+    }
+    const offset =
+      loneElementOffset !== null
+        ? loneElementOffset
+        : isolatedLabel
+          ? anchor.padding +
+            measureRunWidth(
+              { ...firstRun, text: firstRun.text.slice(0, 1) },
+              labelFontSize,
+              labelFontFamily,
+            ) /
+              2
+          : anchor.offset;
     const { width, padding } = anchor;
     const labelLayout = getAtomLabelLayoutMetrics(
       labelFontSize,
       labelVisible ? width : 0,
       scene.documentStyleSettings,
     );
-    // A stacked label is laid out line by line below; the single-line shift is for labels that
-    // carry an explicit above/below alignment but have no hydrogen run to stack.
-    const verticalOffset = stackSide
-      ? 0
-      : getNodeLabelVerticalOffset(object.labelAlignment, labelFontSize);
-
     if (object.query && labelVisible) {
       ctx.save();
       setStroke(ctx, isSelected ? '#2196F3' : resolvedColor, labelLayout.hoverStrokeWidth, [4, 3]);
@@ -174,7 +202,7 @@ export const NODE_MODULE: ObjectModule = {
       const boxStartX = atom.x - offset;
       ctx.beginPath();
       const x = boxStartX - labelLayout.queryPadX;
-      const y = atom.y - labelLayout.boxHeight / 2 - labelLayout.queryPadY + verticalOffset;
+      const y = atom.y - labelLayout.boxHeight / 2 - labelLayout.queryPadY;
       const widthPx = Math.max(36, width + labelLayout.queryPadX * 2);
       const heightPx = labelLayout.boxHeight + labelLayout.queryPadY * 2;
       const radius = labelLayout.queryCornerRadius;
@@ -259,8 +287,7 @@ export const NODE_MODULE: ObjectModule = {
         atom.y +
         getAtomLabelBaselineOffset(labelFontSize, labelFontFamily) -
         getFaceMetrics({ family: labelFontFamily, sizePx: labelFontSize }).ascent +
-        getSuperscriptBaselineShift(displayRuns) * labelFontSize +
-        verticalOffset;
+        getSuperscriptBaselineShift(displayRuns) * labelFontSize;
       displayRuns.forEach((run) => {
         drawRunText(
           ctx,
@@ -285,7 +312,7 @@ export const NODE_MODULE: ObjectModule = {
     }
 
     drawObjectTags(ctx, scene, object.objectTags, {
-      fallbackAnchor: { x: atom.x, y: atom.y + verticalOffset },
+      fallbackAnchor: { x: atom.x, y: atom.y },
       fallbackColor: resolvedColor,
     });
   },

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  LabelAlignment Above/Below on a single-line label. ChemDraw 26.1.0.6801 (2026-10-13) drew O, Cl,
+  OMe and CO2Et at the same place whatever the alignment, so the label must not move.
+-->
+<CDXML BondLength="14.4" LineWidth="0.6" BoldWidth="2" LabelSize="10">
+  <page id="page-1">
+    <fragment id="f1">
+      <n id="1" p="40 40" Element="8">
+        <t p="36.4 43.7" LabelJustification="Left" LabelAlignment="Below"><s font="3" size="10" face="96">O</s></t>
+      </n>
+      <n id="2" p="28 47"/>
+      <n id="3" p="52 47"/>
+      <b id="4" B="1" E="2"/>
+      <b id="5" B="1" E="3"/>
+    </fragment>
+    <fragment id="f2">
+      <n id="6" p="90 40" Element="8">
+        <t p="86.4 43.7" LabelJustification="Left"><s font="3" size="10" face="96">O</s></t>
+      </n>
+      <n id="7" p="78 47"/>
+      <n id="8" p="102 47"/>
+      <b id="9" B="6" E="7"/>
+      <b id="10" B="6" E="8"/>
+    </fragment>
+  </page>
+</CDXML>

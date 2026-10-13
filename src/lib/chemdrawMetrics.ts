@@ -27,7 +27,6 @@ const DEFAULT_CANVAS_SCALE = DEFAULT_CANVAS_BOND_LENGTH / DEFAULT_CHEMDRAW_STYLE
 
 type TextFormatLike = Pick<TextFormat, 'fontFamily' | 'fontSize'>;
 type StyleSettingsLike = Pick<DocumentStyleSettings, 'bondLength' | 'nativeMetrics'>;
-type LabelAlignment = 'left' | 'center' | 'right' | 'above' | 'below' | undefined;
 type TextRunFaceStyle = Pick<TextRun, 'bold' | 'italic' | 'sub' | 'sup' | 'formula'>;
 
 function clampNumber(value: unknown, fallback: number, min: number, max: number): number {
@@ -268,15 +267,6 @@ export function resolveDocumentCaptionTextStyle(
       settings,
     ),
   };
-}
-
-export function getNodeLabelVerticalOffset(
-  labelAlignment: LabelAlignment,
-  fontSize: number,
-): number {
-  if (labelAlignment === 'above') return -fontSize * 0.7;
-  if (labelAlignment === 'below') return fontSize * 0.55;
-  return 0;
 }
 
 /**
