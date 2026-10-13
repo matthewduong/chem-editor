@@ -119,23 +119,40 @@ export const BOND_MODULE: ObjectModule = {
     ctx.globalAlpha = isHovered && !isSelected ? 0.5 : 1;
 
     if (bond.displayStyle === 'wavy') {
-      const points: Array<{ x: number; y: number }> = [];
-      const segments = 12;
-      for (let index = 0; index <= segments; index += 1) {
-        const t = index / segments;
-        const px = startX + (endX - startX) * t;
-        const py = startY + (endY - startY) * t;
-        const wave = Math.sin((t * Math.PI * segments) / 2);
-        points.push({
-          x: px + -unitY * visual.waveAmplitude * wave,
-          y: py + unitX * visual.waveAmplitude * wave,
-        });
-      }
+      // ChemDraw draws it as quarter waves: ceil(length in pt) of them, each a cubic from the axis
+      // to a crest (or back), every one the same width, crests 1pt off the axis. Measured from the
+      // vector paths of 30 bonds on 26.1.0.6801 (2026-10-13); the control points are its own.
+      const length = Math.hypot(endX - startX, endY - startY);
+      const points = length / convertNativeToCanvas(1, scene.documentStyleSettings);
+      let quarters = Math.max(2, Math.ceil(points - 1e-6));
+      // A whole number of points that would leave an odd count gets one more (3pt and 5pt bonds
+      // came back with 4 and 6 quarters); 14.4pt got 15.
+      if (Math.abs(points - Math.round(points)) < 1e-3 && quarters % 2 === 1) quarters += 1;
+      const width = length / quarters;
+      const amplitude = visual.waveAmplitude;
+      const at = (along: number, across: number) => ({
+        x: startX + unitX * along + -unitY * across,
+        y: startY + unitY * along + unitX * across,
+      });
       setStroke(ctx, color, lineWidth);
+      ctx.lineCap = 'butt';
+      ctx.lineJoin = 'miter';
       ctx.beginPath();
-      ctx.moveTo(points[0].x, points[0].y);
-      for (let index = 1; index < points.length; index += 1) {
-        ctx.lineTo(points[index].x, points[index].y);
+      const first = at(0, 0);
+      ctx.moveTo(first.x, first.y);
+      let side = 1;
+      for (let quarter = 0; quarter < quarters; quarter += 1) {
+        const x = quarter * width;
+        const rising = quarter % 2 === 0;
+        const c1 = rising
+          ? at(x, side * 0.5508 * amplitude)
+          : at(x + 0.554 * width, side * amplitude);
+        const c2 = rising
+          ? at(x + 0.448 * width, side * amplitude)
+          : at(x + width, side * 0.5508 * amplitude);
+        const end = rising ? at(x + width, side * amplitude) : at(x + width, 0);
+        ctx.bezierCurveTo(c1.x, c1.y, c2.x, c2.y, end.x, end.y);
+        if (!rising) side = -side;
       }
       ctx.stroke();
       ctx.restore();

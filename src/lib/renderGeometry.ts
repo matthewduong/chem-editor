@@ -16,6 +16,7 @@ import {
   resolveArrowGeometryMetrics,
   resolveBondSpacing,
   resolveDocumentRenderMetrics,
+  convertNativeToCanvas,
 } from './chemdrawMetrics';
 import { VALENCIES } from './elements';
 import { SHORTHAND_DATA } from './shorthand';
@@ -563,7 +564,9 @@ export function getBondVisualMetrics(
     hashStartWidth,
     hashStepWidth: (stereoHalfWidth - hashStartWidth) / hashStepCount,
     hashStepCount,
-    waveAmplitude: Math.max(2.5, Math.max(lineWidth * 1.2, boldWidth * 0.5)),
+    // A wavy bond is 1pt either side of its axis in a 4pt wavelength at every bond length, line
+    // width and spacing (ChemDraw 26.1.0.6801, 2026-10-13; 25 bonds, lengths 3 to 50pt).
+    waveAmplitude: convertNativeToCanvas(1, options?.documentStyleSettings),
     ringInsetBase: multiBondInsetBase,
     tripleOffsetScale: 1,
     tripleInlineInset: multiBondInsetBase,
