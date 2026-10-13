@@ -4,12 +4,16 @@
 // (src/lib/builtinTemplates.ts) scales it to the document's bond length, so no absolute pixel
 // size is baked in.
 //
-//   node scripts/import-ketcher-templates.mjs <library.sdf> [out.json]
+//   node scripts/import-ketcher-templates.mjs [--out file.ts] <library.sdf> [salts-and-solvents.sdf ...]
 import { readFileSync, writeFileSync } from 'node:fs';
 
-const [source, out = 'src/lib/builtinTemplates.data.ts'] = process.argv.slice(2);
-if (!source) {
-  console.error('usage: import-ketcher-templates.mjs <library.sdf> [out.json]');
+const args = process.argv.slice(2);
+let out = 'src/lib/builtinTemplates.data.ts';
+const outAt = args.indexOf('--out');
+if (outAt >= 0) [out] = args.splice(outAt, 2).slice(1);
+const sources = args;
+if (!sources.length) {
+  console.error('usage: import-ketcher-templates.mjs [--out file.ts] <library.sdf> [more.sdf ...]');
   process.exit(2);
 }
 // Sugars, amino acids and 3D templates carry stereo and need their own review.
@@ -21,6 +25,7 @@ const GROUPS = new Set([
   'Bridged Polycyclics',
   'Crown Ethers',
   'Nucleobases',
+  'Salts and Solvents',
 ]);
 // Ketcher draws some rings and bridged systems with uneven bond lengths (indole 0.93-1.62 of
 // the mean, C60 0.27). ChemDraw fidelity wins: only geometry whose longest bond is within
@@ -36,7 +41,14 @@ const slug = (s) =>
 const skipped = [];
 const templates = [];
 const seen = new Map();
-for (const block of readFileSync(source, 'utf8').split('$$$$\n')) {
+const names = new Set();
+const blocks = sources.flatMap((file) =>
+  readFileSync(file, 'utf8')
+    .split(/^\$\$\$\$\s*$/m)
+    .map((block) => block.replace(/^\s+/, ''))
+    .filter((block) => block.trim()),
+);
+for (const block of blocks) {
   const lines = block.split('\n');
   const name = lines[0]?.trim();
   if (!name) continue;
@@ -92,6 +104,12 @@ for (const block of readFileSync(source, 'utf8').split('$$$$\n')) {
   const cy = atoms.reduce((s, a) => s + a.y, 0) / atoms.length;
   const attachAtom = fields.atomid === undefined ? undefined : Number(fields.atomid);
   const attachBond = fields.bondid === undefined ? undefined : Number(fields.bondid);
+  // A solvent that is also a ring (benzene, pyridine) is already listed under its ring group.
+  if (names.has(name.toLowerCase())) {
+    skipped.push([name, 'duplicate of an earlier template']);
+    continue;
+  }
+  names.add(name.toLowerCase());
   const base = `${slug(group)}:${slug(name)}`;
   const n = (seen.get(base) ?? 0) + 1;
   seen.set(base, n);

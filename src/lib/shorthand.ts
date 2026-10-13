@@ -66,6 +66,8 @@ export const SHORTHAND_DATA: Record<string, ShorthandEntry> = {
 
   // ── Aryl groups ───────────────────────────────────────────────────────────
   Ph: { lead: 'C', valency: 1, subsSmiles: 'c1ccccc1' },
+  Cy: { lead: 'C', valency: 1, subsSmiles: 'C1CCCCC1' },
+  C2H5: { lead: 'C', valency: 1, subsSmiles: 'C(C)' },
   Phenyl: { lead: 'C', valency: 1, subsSmiles: 'c1ccccc1' },
   Bn: { lead: 'C', valency: 1, subsSmiles: 'C(c1ccccc1)' },
   Benzyl: { lead: 'C', valency: 1, subsSmiles: 'C(c1ccccc1)' },
@@ -109,6 +111,10 @@ export const SHORTHAND_DATA: Record<string, ShorthandEntry> = {
   CONH2: { lead: 'C', valency: 1, subsSmiles: 'C(=O)(N)' },
   CHO: { lead: 'C', valency: 1, subsSmiles: 'C(=O)', reverse: 'OHC' },
   CN: { lead: 'C', valency: 1, subsSmiles: 'C#N', reverse: 'NC' },
+  // Heterocumulenes. The formula parser read NCO as an amide, N(C(=O)); these are Ketcher's
+  // fg.sdf structures.
+  NCO: { lead: 'N', valency: 1, subsSmiles: 'N=C=O' },
+  NCS: { lead: 'N', valency: 1, subsSmiles: 'N=C=S' },
   Tfa: { lead: 'C', valency: 1, subsSmiles: 'C(=O)(C(F)(F)F)' },
   TFA: { lead: 'C', valency: 1, subsSmiles: 'C(=O)(C(F)(F)F)' },
   Pht: { lead: 'C', valency: 1, subsSmiles: 'C(=O)c1ccccc1C(=O)N' },
@@ -225,6 +231,18 @@ export const SHORTHAND_DATA: Record<string, ShorthandEntry> = {
   Tos: { lead: 'S', valency: 1, subsSmiles: 'S(=O)(=O)c1ccc(C)cc1' },
   Tf: { lead: 'S', valency: 1, subsSmiles: 'S(=O)(=O)C(F)(F)F' },
   SO3H: { lead: 'S', valency: 1, subsSmiles: 'S(=O)(=O)O' },
+  // Explicit definitions for oxo-acid labels that the formula parser read with too many
+  // double bonds (SO4 as S(=O)(=O)(=O)(=O)). Structures follow Ketcher's fg.sdf; the anionic
+  // forms are drawn ionised, as there. Attachment is through S/P, or O for the esters.
+  SO2H: { lead: 'S', valency: 1, subsSmiles: 'S(=O)O' },
+  SO3: { lead: 'S', valency: 1, subsSmiles: 'S(=O)(=O)[O-]' },
+  SO4H: { lead: 'O', valency: 1, subsSmiles: 'OS(=O)(=O)O' },
+  SO4: { lead: 'O', valency: 1, subsSmiles: 'OS(=O)(=O)[O-]' },
+  PO2: { lead: 'P', valency: 1, subsSmiles: 'P(=O)[O-]' },
+  PO3: { lead: 'P', valency: 1, subsSmiles: 'P(=O)([O-])[O-]' },
+  PO3H2: { lead: 'P', valency: 1, subsSmiles: 'P(=O)(O)O' },
+  PO4H2: { lead: 'O', valency: 1, subsSmiles: 'OP(=O)(O)O' },
+  PO4: { lead: 'O', valency: 1, subsSmiles: 'OP(=O)([O-])[O-]' },
   Bs: { lead: 'S', valency: 1, subsSmiles: 'S(=O)(=O)c1ccc(Br)cc1' },
   Ds: { lead: 'S', valency: 1, subsSmiles: 'S(=O)(=O)c1ccc2cc(ccc2c1)N(C)C' },
 

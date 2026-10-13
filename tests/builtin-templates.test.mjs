@@ -21,10 +21,16 @@ const bondLengths = (t) => {
 };
 
 test('bundled library is non-empty with unique, namespaced ids', () => {
-  assert.ok(templates.length >= 50);
+  assert.ok(templates.length >= 150);
   assert.equal(new Set(templates.map((t) => t.id)).size, templates.length);
   assert.ok(templates.every(isBuiltinTemplate));
   assert.ok(templates.some((t) => t.name === 'Benzene'));
+  const solvents = templates.filter((t) => t.tags.includes('Salts and Solvents'));
+  assert.ok(solvents.length >= 100, `solvents: ${solvents.length}`);
+  assert.ok(solvents.some((t) => t.name === 'dimethyl formamide'));
+  // a ring that is also a solvent is listed once, under its ring group
+  assert.equal(templates.filter((t) => t.name.toLowerCase() === 'benzene').length, 1);
+  assert.equal(new Set(templates.map((t) => t.name.toLowerCase())).size, templates.length);
 });
 
 test('every built-in passes the same validation as a saved user template', () => {

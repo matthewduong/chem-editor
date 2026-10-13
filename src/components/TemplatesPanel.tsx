@@ -5,6 +5,8 @@ import { buildBuiltinTemplates, isBuiltinTemplate } from '../lib/builtinTemplate
 import { saveSelectionTemplate, type UserTemplate } from '../lib/templates';
 import { generateDocumentSVG } from '../lib/svgExport';
 
+const PAGE_SIZE = 24;
+
 const TemplateThumbnail = memo(function TemplateThumbnail({
   template,
 }: {
@@ -31,7 +33,8 @@ export function TemplatesPanel({ insert }: { insert: (template: UserTemplate) =>
     [query, setQuery] = useState(''),
     [name, setName] = useState(''),
     [tags, setTags] = useState(''),
-    [attachment, setAttachment] = useState('');
+    [attachment, setAttachment] = useState(''),
+    [showAll, setShowAll] = useState(false);
   const { library, error, busy, update, persistent } = useTemplateLibrary();
   const document = useStore((s) => s.chemDrawDocument);
   const bondLength = useStore((s) => s.documentStyleSettings.bondLength);
@@ -74,6 +77,15 @@ export function TemplatesPanel({ insert }: { insert: (template: UserTemplate) =>
     }
   };
   const current = library?.templates.find((t) => t.id === selected);
+  // Thumbnails are generated on render, so only the first page is drawn until asked for more.
+  const matches = useMemo(
+    () =>
+      [...(library?.templates ?? []), ...builtins].filter((t) =>
+        `${t.name} ${t.tags.join(' ')}`.toLowerCase().includes(query.toLowerCase()),
+      ),
+    [library, builtins, query],
+  );
+  const shown = showAll || query.trim() ? matches : matches.slice(0, PAGE_SIZE);
   return (
     <>
       <button title="Templates" onClick={() => setOpen(!open)}>
@@ -174,43 +186,44 @@ export function TemplatesPanel({ insert }: { insert: (template: UserTemplate) =>
             Save selection
           </button>
           <div>
-            {[...(library?.templates ?? []), ...builtins]
-              .filter((t) =>
-                `${t.name} ${t.tags.join(' ')}`.toLowerCase().includes(query.toLowerCase()),
-              )
-              .map((t) => (
-                <div
-                  key={t.id}
-                  style={{
-                    border: selected === t.id ? '2px solid #1565c0' : '1px solid #ccc',
-                    marginTop: 8,
-                    padding: 6,
+            {shown.map((t) => (
+              <div
+                key={t.id}
+                style={{
+                  border: selected === t.id ? '2px solid #1565c0' : '1px solid #ccc',
+                  marginTop: 8,
+                  padding: 6,
+                }}
+              >
+                <button
+                  onClick={() => {
+                    setSelected(t.id);
+                    setName(t.name);
+                    setTags(t.tags.join(', '));
                   }}
                 >
-                  <button
-                    onClick={() => {
-                      setSelected(t.id);
-                      setName(t.name);
-                      setTags(t.tags.join(', '));
-                    }}
-                  >
-                    {t.name}
-                  </button>
-                  <TemplateThumbnail template={t} />
-                  <small>
-                    {isBuiltinTemplate(t) ? 'Built-in · ' : ''}
-                    {t.tags.join(', ')}
-                  </small>
-                  <button
-                    onClick={() => {
-                      insert(t);
-                      setOpen(false);
-                    }}
-                  >
-                    Insert
-                  </button>
-                </div>
-              ))}
+                  {t.name}
+                </button>
+                <TemplateThumbnail template={t} />
+                <small>
+                  {isBuiltinTemplate(t) ? 'Built-in · ' : ''}
+                  {t.tags.join(', ')}
+                </small>
+                <button
+                  onClick={() => {
+                    insert(t);
+                    setOpen(false);
+                  }}
+                >
+                  Insert
+                </button>
+              </div>
+            ))}
+            {matches.length > shown.length && (
+              <button style={{ marginTop: 8 }} onClick={() => setShowAll(true)}>
+                Show all {matches.length} templates
+              </button>
+            )}
           </div>
           {current && library && (
             <>
