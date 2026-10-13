@@ -56,24 +56,18 @@ export function resolveArcArrow(source: ArcArrowSource): ArcArrowGeometry | null
   if (Math.hypot(a.x, a.y) < 1e-6 || Math.hypot(b.x, b.y) < 1e-6) return null;
   const start = parameterOf(source.tail, center, a, b);
   const end = parameterOf(source.head, center, a, b);
-  // The parameter sweep is the end minus the start, taken round to whichever of the three
-  // equivalent turns is nearest the stated angular size. The sign of AngularSize and the handedness
-  // of the axes are both folded in by that choice.
-  const wanted = (angularSize * Math.PI) / 180;
-  const base = end - start;
-  let best = base;
-  let bestDelta = Number.POSITIVE_INFINITY;
-  for (const turn of [-2, -1, 0, 1, 2]) {
-    const candidate = base + turn * 2 * Math.PI;
-    const delta = Math.min(
-      Math.abs(Math.abs(candidate) - Math.abs(wanted)),
-      Number.POSITIVE_INFINITY,
-    );
-    if (delta < bestDelta) {
-      bestDelta = delta;
-      best = candidate;
-    }
-  }
+  // The direction comes from the sign of AngularSize and the handedness of the axes: a positive
+  // angle runs counterclockwise on the page (y down), and the parameter runs clockwise when the
+  // major axis turns into the minor one by a positive cross product. The size comes from the
+  // endpoints, taken round in that direction. Read the other way a half circle is drawn through the
+  // molecule instead of round the outside of it.
+  const handedness = Math.sign(a.x * b.y - a.y * b.x) || 1;
+  const direction = -Math.sign(angularSize) * handedness;
+  const TWO_PI = Math.PI * 2;
+  let delta = (end - start) % TWO_PI;
+  if (direction > 0 && delta <= 0) delta += TWO_PI;
+  if (direction < 0 && delta >= 0) delta -= TWO_PI;
+  const best = delta;
   return { center, a, b, start, sweep: best };
 }
 
