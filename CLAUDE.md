@@ -28,8 +28,8 @@ Rendering is the part most likely to surprise you.
   in `modules/`. `DocumentRenderSurface.tsx` is the canvas it paints onto, sitting _under_ the
   Konva `<Stage>`.
 - `src/components/ChemCanvas.tsx` still contains a second, Konva-based set of `renderX` functions.
-  They are dead for committed content (`useNativeSceneSurface` is hardcoded `true`) and survive
-  only as drag/selection preview overlays.
+  Committed content and geometric previews use the shared scene renderer; Konva handles
+  pointer events and interaction overlays.
 - `src/lib/svgExport.ts` no longer draws anything. Both entry points assemble a scene and call
   `renderDocumentScene` with `SvgCanvasContext` (`src/lib/svgCanvasContext.ts`), a
   CanvasRenderingContext2D-shaped object that emits markup. Screen, PNG and SVG come from one set
@@ -48,13 +48,12 @@ Document model:
 
 - `ChemDrawDocument` (`src/types/chemdraw.ts`) mirrors the CDXML object tree and carries
   round-trip preservation metadata.
-- `CanvasState` (flat `atoms`/`bonds`/`arrows`/`groups`/`textBoxes`) is the legacy editing model.
-- **Both are currently authoritative** in `src/store/index.ts`, with two parallel undo stacks kept
-  index-aligned. Unifying onto the document is planned work. `<group>` serializes via
-  `ChemDrawGroup` in the document model; the legacy flat `groups` array is a separate,
-  unconverted representation that `canvasStateToChemDrawDocument`/`chemDrawDocumentToCanvasState`
-  still drop rather than bridge — in practice harmless today, since live grouping goes through
-  `selectedObjectIds` and the document model, not the flat array.
+- `CanvasState` (flat atoms/bonds/arrows/text boxes) is a cached editing projection.
+- `src/store/index.ts` owns one immutable document snapshot history, capped at 50 entries.
+  Tools commit through document commands; previews never enter the history. Group membership
+  and preservation metadata live in the document, not the flat projection.
+- `src/lib/chemistry/` defines the headless chemistry boundary and RDKit adapter. Cleanup
+  uses explicit atom maps and changes only coordinates through a document command.
 
 `src/utils/cdxml.ts` is the CDXML reader/writer. It preserves unknown attributes and children via
 `ChemDrawPreservationMetadata` and gates edits with an `editable`/`round-trip-only`/`render-only`

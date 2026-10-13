@@ -277,7 +277,7 @@ export function getActivePage(
   return document.pages.find((page) => page.id === activePageId) ?? document.pages[0] ?? null;
 }
 
-export function buildDocumentIndex(
+export function buildDocumentIndexUncached(
   document: ChemDrawDocument | null | undefined,
   options?: {
     activePageId?: string | null;
@@ -346,6 +346,25 @@ export function buildDocumentIndex(
     spatialIndex,
     pageBounds: activePage.bounds ?? unionBounds(spatialEntries.map((entry) => entry.bounds)),
   };
+}
+
+const documentIndexCache = new WeakMap<ChemDrawDocument, { key: string; index: DocumentIndex }>();
+
+/** Cache only snapshots whose caller promises immutability by freezing them. */
+export function buildDocumentIndex(
+  document: ChemDrawDocument | null | undefined,
+  options?: { activePageId?: string | null; documentStyleSettings?: DocumentStyleSettings },
+): DocumentIndex {
+  if (!document || !Object.isFrozen(document)) return buildDocumentIndexUncached(document, options);
+  const key = JSON.stringify([
+    options?.activePageId ?? document.pages[0]?.id,
+    options?.documentStyleSettings ?? DEFAULT_DOCUMENT_STYLE_SETTINGS,
+  ]);
+  const cached = documentIndexCache.get(document);
+  if (cached?.key === key) return cached.index;
+  const index = buildDocumentIndexUncached(document, options);
+  documentIndexCache.set(document, { key, index });
+  return index;
 }
 
 export function queryObjectsInBounds(index: DocumentIndex, bounds: ChemDrawBounds): SpatialEntry[] {

@@ -8,7 +8,7 @@ import type {
 import type { DocumentStyleSettings, DocumentViewSettings, PageSetup } from '../../types/settings';
 import { convertNativeToCanvas } from '../../lib/chemdrawMetrics';
 import { computeBondVisibleIntervals, computeRingCentroids } from '../../lib/renderGeometry';
-import { buildDocumentIndex } from '../document';
+import { buildDocumentIndex, buildDocumentIndexUncached } from '../document';
 import type { DocumentSceneState, LegacyCanvasSceneState } from './types';
 
 export interface SceneCanvasState {
@@ -52,6 +52,8 @@ export interface BuildSceneInput {
   documentViewSettings: DocumentViewSettings;
   pageSetup: PageSetup;
   interaction?: Partial<SceneInteractionState>;
+  /** Opt-out for parity tests and the opt-in benchmark. */
+  useCache?: boolean;
 }
 
 function defaultInteractionState(): SceneInteractionState {
@@ -97,7 +99,7 @@ function indexNativeObjects(document: ChemDrawDocument | null) {
  * (`computeRingCentroids`, `computeBondVisibleIntervals`) are the same ones `svgExport` uses, so
  * there is no second implementation to keep in sync.
  */
-export function buildLegacySceneState(
+export function buildLegacySceneStateUncached(
   canvasState: SceneCanvasState,
   document: ChemDrawDocument | null,
   documentStyleSettings: DocumentStyleSettings,
@@ -144,6 +146,34 @@ export function buildLegacySceneState(
   };
 }
 
+const geometryCache = new WeakMap<
+  ChemDrawDocument,
+  { settings: string; scene: LegacyCanvasSceneState }
+>();
+export function buildLegacySceneState(
+  canvasState: SceneCanvasState,
+  document: ChemDrawDocument | null,
+  documentStyleSettings: DocumentStyleSettings,
+): LegacyCanvasSceneState {
+  const arrays = ['atoms', 'bonds', 'arrows', 'groups', 'textBoxes'] as const;
+  if (
+    !document ||
+    !Object.isFrozen(document) ||
+    arrays.some((key) => !Object.isFrozen(canvasState[key]))
+  )
+    return buildLegacySceneStateUncached(canvasState, document, documentStyleSettings);
+  const settings = JSON.stringify(documentStyleSettings);
+  const cached = geometryCache.get(document);
+  if (
+    cached?.settings === settings &&
+    arrays.every((key) => cached.scene[key] === canvasState[key])
+  )
+    return cached.scene;
+  const scene = buildLegacySceneStateUncached(canvasState, document, documentStyleSettings);
+  geometryCache.set(document, { settings, scene });
+  return scene;
+}
+
 /** Assembles a complete, renderable scene. See {@link buildLegacySceneState} for the constraints. */
 export function buildDocumentSceneState(input: BuildSceneInput): DocumentSceneState {
   const {
@@ -163,8 +193,14 @@ export function buildDocumentSceneState(input: BuildSceneInput): DocumentSceneSt
       Object.assign(resolvedInteraction, { [key]: interaction[key] });
   }
   return {
-    index: buildDocumentIndex(document, { documentStyleSettings }),
-    legacy: buildLegacySceneState(canvasState, document, documentStyleSettings),
+    index: (input.useCache === false ? buildDocumentIndexUncached : buildDocumentIndex)(document, {
+      documentStyleSettings,
+    }),
+    legacy: (input.useCache === false ? buildLegacySceneStateUncached : buildLegacySceneState)(
+      canvasState,
+      document,
+      documentStyleSettings,
+    ),
     documentStyleSettings,
     documentViewSettings,
     pageSetup,

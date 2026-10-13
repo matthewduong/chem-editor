@@ -103,6 +103,24 @@ try {
   assert.equal(await saveDocument(), before, 'Undo did not restore the imported document');
   await browser.keys(['Control', 'Shift', 'z']);
   assert.equal(await saveDocument(), edited, 'Redo did not restore the edit');
+  await browser.keys(['Control', 'k']);
+  const cleaned = await saveDocument();
+  for (const id of ['3', '4', '5'])
+    assert.match(cleaned, new RegExp(`id="${id}"`), 'Cleanup changed imported identities');
+  await browser.keys(['Control', 'z']);
+  assert.equal(await saveDocument(), edited, 'Cleanup undo did not restore the document');
+  await browser.keys(['Control', 'a']);
+  const priorLibrary = await invoke('load_template_library', {});
+  assert(!priorLibrary?.error, JSON.stringify(priorLibrary));
+  const templateName = `Packaged acceptance ${Date.now()}`;
+  await browser.$('[title="Templates"]').click();
+  await browser.$('[aria-label="Template name"]').setValue(templateName);
+  await browser.$('[aria-label="Template tags"]').setValue('packaged-acceptance');
+  await browser.$('button=Save selection').click();
+  await browser.$(`button=${templateName}`).waitForExist();
+  const savedLibrary = await invoke('load_template_library', {});
+  assert(JSON.parse(savedLibrary).templates.some((t) => t.name === templateName));
+  await browser.$('[aria-label="Close templates"]').click();
   await browser.saveScreenshot(path.join(work, 'edited.png'));
   // These exports use the real native dialog and atomic filesystem writer.
   for (const [label, extension] of [
@@ -162,6 +180,15 @@ try {
   await browser.$('[role="dialog"]').waitForExist({ timeout: 30_000 });
   assert.match(await browser.$('[role="dialog"]').getText(), /Recover unsaved drawing/);
   await browser.$('[role="dialog"] button=Recover').click();
+  const restartedLibrary = await invoke('load_template_library', {});
+  assert(
+    JSON.parse(restartedLibrary).templates.some((t) => t.name === templateName),
+    'Template did not survive native restart',
+  );
+  await invoke('save_template_library', {
+    contents: priorLibrary ?? JSON.stringify({ version: 1, templates: [] }),
+    expected: restartedLibrary,
+  });
   await browser.$('button=File').click();
   await browser.$('button=New').click();
   await browser.$('[role="dialog"]').waitForExist();
@@ -185,6 +212,8 @@ try {
           'undo',
           'redo',
           'native save',
+          'coordinate-only cleanup and undo',
+          'template save and native restart persistence',
           'PNG export',
           'SVG export',
           'close cancel',

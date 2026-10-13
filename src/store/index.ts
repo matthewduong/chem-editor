@@ -69,7 +69,8 @@ export type Tool =
   | 'charge'
   | 'pan'
   | 'text'
-  | 'ring';
+  | 'ring'
+  | 'chain';
 export type ViewerMode = 'pinned' | 'floating' | 'split';
 export type PreviewMode = '2D' | '3D';
 export type DocumentFileFormat = 'cdxml';

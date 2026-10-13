@@ -1,5 +1,6 @@
 mod document_files;
 mod process_support;
+mod templates;
 
 use crate::process_support::{
     kill_pid, wait_with_timeout, write_crash_log, DftJobState, SidecarTracker, ONE_SHOT_TIMEOUT,
@@ -938,6 +939,8 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            templates::load_template_library,
+            templates::save_template_library,
             document_files::atomic_write_file,
             document_files::finish_document_quit,
             document_files::load_document_recovery,

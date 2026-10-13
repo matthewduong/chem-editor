@@ -36,10 +36,26 @@ export const DocumentRenderSurface = forwardRef<DocumentRenderSurfaceRef, Props>
   ({ scene, exportScene, width, height, stageScale, stagePos }, ref) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
 
+    const latest = useRef({ scene, width, height, stageScale, stagePos });
+    const frame = useRef<number | null>(null);
     useEffect(() => {
-      if (!canvasRef.current) return;
-      paintScene(canvasRef.current, scene, { width, height, stageScale, stagePos });
+      latest.current = { scene, width, height, stageScale, stagePos };
+      if (frame.current !== null) return;
+      frame.current = requestAnimationFrame(() => {
+        frame.current = null;
+        if (canvasRef.current) {
+          const { scene, ...options } = latest.current;
+          paintScene(canvasRef.current, scene, options);
+        }
+      });
     }, [height, scene, stagePos, stageScale, width]);
+    useEffect(
+      () => () => {
+        if (frame.current !== null) cancelAnimationFrame(frame.current);
+        frame.current = null;
+      },
+      [],
+    );
 
     useImperativeHandle(
       ref,

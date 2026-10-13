@@ -332,11 +332,20 @@ export const ATOM_FRAGMENT_OPTIONS: Record<string, Array<{ minFV: number; smiles
 };
 
 export type CanvasToolShortcut = ShortcutDefinition & {
-  tool: 'select' | 'pan' | 'bond' | 'ring' | 'text' | 'arrow' | 'eraser' | 'fragment';
+  tool: 'select' | 'pan' | 'bond' | 'ring' | 'text' | 'arrow' | 'eraser' | 'fragment' | 'chain';
   selectedFragment?: string;
 };
 
 export const CANVAS_TOOL_SHORTCUTS: CanvasToolShortcut[] = [
+  {
+    id: 'canvas.tools.chain',
+    tool: 'chain',
+    label: 'Switch to chain tool',
+    description: 'Drag a zigzag carbon chain.',
+    category: 'Tools',
+    context: 'canvas',
+    defaultBinding: { key: '' },
+  },
   {
     id: 'canvas.tools.select',
     tool: 'select',

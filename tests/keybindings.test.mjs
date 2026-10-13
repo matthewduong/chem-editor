@@ -25,6 +25,7 @@ test('canvas tool shortcuts cover the primary drawing tools', () => {
   assert.deepEqual(
     CANVAS_TOOL_SHORTCUTS.map((shortcut) => [shortcut.id, shortcut.tool]),
     [
+      ['canvas.tools.chain', 'chain'],
       ['canvas.tools.select', 'select'],
       ['canvas.tools.pan', 'pan'],
       ['canvas.tools.bond', 'bond'],

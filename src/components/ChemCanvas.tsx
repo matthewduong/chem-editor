@@ -1,3 +1,8 @@
+import { placeTemplate, type UserTemplate } from '../lib/templates';
+import { ToolLifecycle } from '../editor/toolLifecycle';
+import { useChainTool } from '../tools/useChainTool';
+import { prepareCleanupCommand } from '../editor/commands/cleanup';
+import { createRDKitChemistryService } from '../lib/chemistry/rdkit';
 import type { KonvaEventObject } from 'konva/lib/Node';
 import type { Stage as KonvaStage } from 'konva/lib/Stage';
 import {
@@ -283,7 +288,14 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
   const [hoveredScaleCorner, setHoveredScaleCorner] = useState<'tl' | 'tr' | 'bl' | 'br' | null>(
     null,
   );
-  const [rdkitInvalidAtomIds, setRdkitInvalidAtomIds] = useState<Set<string>>(new Set());
+  const [rdkitValidation, setRdkitValidation] = useState<{
+    source: typeof chemDrawDocument;
+    ids: Set<string>;
+  } | null>(null);
+  const rdkitInvalidAtomIds = useMemo(
+    () => (rdkitValidation?.source === chemDrawDocument ? rdkitValidation.ids : new Set<string>()),
+    [chemDrawDocument, rdkitValidation],
+  );
   const [atomLabelPanelLayout, setAtomLabelPanelLayout] = useState<EditPanelLayout | null>(null);
   const [arrowStylePanelLayout, setArrowStylePanelLayout] = useState<EditPanelLayout | null>(null);
   const [bondStylePanelLayout, setBondStylePanelLayout] = useState<EditPanelLayout | null>(null);
@@ -818,6 +830,12 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
     affectedBondIds: new Set(),
   });
 
+  const templatePlacement = useRef<UserTemplate | null>(null);
+  const gestureLifecycle = useRef(
+    new ToolLifecycle<ReturnType<typeof getCanvasHitAt>, typeof chemDrawDocument>(),
+  );
+  const chainTool = useChainTool();
+  const pendingRing = useRef<RingPlacementPreview | null>(null);
   const bondTool = useBondTool();
   const selectTool = useSelectTool();
   const atomTool = useAtomTool();
@@ -826,6 +844,10 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
   const prevDocumentRef = useRef(chemDrawDocument);
   useEffect(() => {
     if (prevToolRef.current !== tool || prevDocumentRef.current !== chemDrawDocument) {
+      gestureLifecycle.current.cancel();
+      chainTool.cancel();
+      templatePlacement.current = null;
+      pendingRing.current = null;
       bondTool.cleanup();
       selectTool.cleanup();
       atomTool.cleanup();
@@ -1017,7 +1039,7 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
             };
           });
           cachedCompsRef.current = { comps, fullSmiles, invalidAtomIds, componentEntries };
-          setRdkitInvalidAtomIds(invalidAtomIds);
+          setRdkitValidation({ source: chemDrawDocument, ids: invalidAtomIds });
           const { isInputFocused } = getCanvasEditorState();
           if (!isInputFocused) setEditableSmiles(fullSmiles);
         }
@@ -1234,6 +1256,7 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
     );
     return () => clearTimeout(timer);
   }, [
+    chemDrawDocument,
     aliasValidator,
     atoms,
     bonds,
@@ -2179,6 +2202,10 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
 
   useCanvasKeyboard({
     cancelSelectionDrag: () => {
+      gestureLifecycle.current.cancel();
+      templatePlacement.current = null;
+      pendingRing.current = null;
+      chainTool.cancel();
       selectionDragRef.current.isDragging = false;
       selectionDragRef.current.sourceDocument = null;
     },
@@ -2251,6 +2278,16 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
     const hitTB = !hitA && !hitB && !hitArr ? hit.textBox : null;
     const hitNative = !hitA && !hitB && !hitArr && !hitTB ? hit.nativeObjectId : null;
 
+    gestureLifecycle.current.begin(useStore.getState().chemDrawDocument, {
+      point: pos,
+      hit,
+      modifiers,
+    });
+    if (templatePlacement.current) return;
+    if (tool === 'chain') {
+      chainTool.begin({ point: pos, hit: hitA, modifiers });
+      return;
+    }
     if (hitA) setLastInteractedAtomId(hitA.id);
 
     // Cross-tool: drag selected atoms/bonds
@@ -2369,7 +2406,7 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
           semanticMode: 'auto',
           conversionStatus: 'plain',
         };
-        commitCanvasEdit({
+        previewCanvasEdit({
           atoms: ka,
           bonds: kb,
           arrows: karr,
@@ -2472,27 +2509,8 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
       return;
     }
     if (tool === 'ring') {
-      const { atoms: ka, bonds: kb, groups: kg, textBoxes: ktb } = getCanvasEditorState();
-      const previewPlacement = resolveRingGeometryAtPointer(pos, hitA, hitB);
-      const { atoms: nextAtoms, bonds: nextBonds } =
-        previewPlacement.kind === 'template'
-          ? materializeResolvedRingTemplatePlacement(previewPlacement.placement, ka, kb)
-          : (() => {
-              const { atoms: rAtoms, bonds: rBonds } = materializeRingGeometry(
-                previewPlacement.geometry,
-              );
-              return {
-                atoms: [...ka, ...rAtoms],
-                bonds: [...kb, ...rBonds],
-              };
-            })();
-      commitCanvasEdit({
-        atoms: nextAtoms,
-        bonds: nextBonds,
-        arrows,
-        groups: kg ?? [],
-        textBoxes: ktb ?? [],
-      });
+      pendingRing.current = resolveRingGeometryAtPointer(pos, hitA, hitB);
+      setRingPreview(pendingRing.current);
       return;
     }
     if (tool === 'bond') {
@@ -2511,6 +2529,29 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
     const pos = getRelativePointerPosition();
     const hit = getCanvasHitAt(pos.x, pos.y);
     const hitA = hit.atom;
+    gestureLifecycle.current.update({ point: pos, hit, modifiers });
+    if (templatePlacement.current) {
+      const store = useStore.getState();
+      if (!store.chemDrawDocument) return;
+      try {
+        const placement = placeTemplate(
+          store.chemDrawDocument,
+          templatePlacement.current,
+          pos,
+          modifiers.shift
+            ? hitTestDocumentScene(exportScene, pos, { stageScale })?.objectId
+            : undefined,
+        );
+        store.setPreviewChemDrawDocument(placement.document);
+      } catch {
+        store.clearPreviewChemDrawDocument();
+      }
+      return;
+    }
+    if (tool === 'chain') {
+      chainTool.update({ point: pos, hit: hitA, modifiers });
+      return;
+    }
     const hitB = !hitA ? hit.bond : null;
     const hitArr = !hitA && !hitB ? hit.arrow : null;
     const hitTB = !hitA && !hitB && !hitArr ? hit.textBox : null;
@@ -2617,7 +2658,9 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
     }
     setHoveredScaleCorner(null);
     if (tool === 'ring') {
-      setRingPreview(resolveRingGeometryAtPointer(pos, hitA, hitB));
+      const placement = resolveRingGeometryAtPointer(pos, hitA, hitB);
+      if (pendingRing.current) pendingRing.current = placement;
+      setRingPreview(placement);
       return;
     }
     if (tool === 'bond') {
@@ -2659,6 +2702,60 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
   const handleMouseUp = (e: KonvaEventObject<MouseEvent>) => {
     syncModifierKeys(e.evt);
     markInteractionIdle();
+    if (!gestureLifecycle.current.commit(useStore.getState().chemDrawDocument)) return;
+    if (templatePlacement.current) {
+      const store = useStore.getState();
+      const template = templatePlacement.current;
+      templatePlacement.current = null;
+      try {
+        const pos = getRelativePointerPosition();
+        if (!store.chemDrawDocument) return;
+        const result = placeTemplate(
+          store.chemDrawDocument,
+          template,
+          pos,
+          e.evt.shiftKey
+            ? hitTestDocumentScene(exportScene, pos, { stageScale })?.objectId
+            : undefined,
+        );
+        store.commitDocument(result.document);
+        store.setSelectedObjectIds(new Set(result.objectIds));
+      } catch (error) {
+        store.showToast(error instanceof Error ? error.message : 'Template insertion failed.');
+      }
+      store.clearPreviewChemDrawDocument();
+      return;
+    }
+    if (tool === 'chain') {
+      chainTool.commit();
+      return;
+    }
+    if (tool === 'ring' && pendingRing.current) {
+      const { atoms: ka, bonds: kb, groups: kg, textBoxes: ktb } = getCanvasEditorState();
+      const previewPlacement = pendingRing.current;
+      pendingRing.current = null;
+      setRingPreview(null);
+      const { atoms: nextAtoms, bonds: nextBonds } =
+        previewPlacement.kind === 'template'
+          ? materializeResolvedRingTemplatePlacement(previewPlacement.placement, ka, kb)
+          : (() => {
+              const { atoms: rAtoms, bonds: rBonds } = materializeRingGeometry(
+                previewPlacement.geometry,
+              );
+              return {
+                atoms: [...ka, ...rAtoms],
+                bonds: [...kb, ...rBonds],
+              };
+            })();
+      commitCanvasEdit({
+        atoms: nextAtoms,
+        bonds: nextBonds,
+        arrows,
+        groups: kg ?? [],
+        textBoxes: ktb ?? [],
+      });
+      return;
+    }
     if (arrowPreview) {
       const { x1, y1, x2, y2, cpx, cpy, type } = arrowPreview;
       if (Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2) > 10) {
@@ -2766,6 +2863,22 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
       }
       return;
     }
+  };
+
+  const cancelPointerGesture = () => {
+    gestureLifecycle.current.cancel();
+    chainTool.cancel();
+    templatePlacement.current = null;
+    pendingRing.current = null;
+    bondTool.cleanup();
+    atomTool.cleanup();
+    selectTool.cleanup();
+    textToolDragRef.current = null;
+    selectionDragRef.current.isDragging = false;
+    setArrowPreview(null);
+    setRingPreview(null);
+    useStore.getState().clearPreviewChemDrawDocument();
+    useStore.getState().clearSelectionPreviewTransform();
   };
 
   const handleDblClick = () => {
@@ -2947,104 +3060,81 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
           console.error(e);
         }
       },
-      cleanUp: () => {
-        if (!rdkit) return;
-        const {
-          atoms: a,
-          bonds: b,
-          arrows: arr,
-          groups: grp,
-          textBoxes: tb,
-          selectedAtomIds: selIds,
-        } = getCanvasEditorState();
-        if (selIds.size > 0) {
-          const sA = a.filter((x) => selIds.has(x.id)),
-            sB = b.filter((x) => selIds.has(x.from) && selIds.has(x.to));
-          if (!sA.length) return;
-          const mb = graphToMolblock(sA, sB, width, height, resolveAliasEntry).molblock;
-          if (!mb) return;
-          try {
-            const mol = rdkit.get_mol(mb);
-            if (!mol) return;
-            mol.set_new_coords?.();
-            const nMb = mol.get_molblock?.();
-            mol.delete();
-            if (!nMb) return;
-            const geom = parseMolblockGeometry(nMb, 1);
-            if (!geom || geom.atoms.length !== sA.length) return;
-            const normGeom = normalizeMolblockBondLength(geom, documentStyleSettings.bondLength);
-            const rC = normGeom.atoms.map((atom, i) => ({
-              id: sA[i]!.id,
-              x: atom.x,
-              y: atom.y,
-            }));
-            const oCx = sA.reduce((s, x) => s + x.x, 0) / sA.length,
-              oCy = sA.reduce((s, x) => s + x.y, 0) / sA.length;
-            const nCx = rC.reduce((s, c) => s + c.x, 0) / rC.length,
-              nCy = rC.reduce((s, c) => s + c.y, 0) / rC.length;
-            const dx = oCx - nCx,
-              dy = oCy - nCy;
-            const map = new Map(rC.map((c) => [c.id, { x: c.x + dx, y: c.y + dy }]));
-            getCanvasEditorState().setChemDrawWarnings([]);
-            commitCanvasEdit({
-              atoms: a.map((x) => {
-                const nc = map.get(x.id);
-                return nc ? { ...x, ...nc } : x;
-              }),
-              bonds: b,
-              arrows: arr,
-              groups: grp ?? [],
-              textBoxes: tb ?? [],
-            });
-          } catch (e) {
-            getCanvasEditorState().showToast('Structure cleanup failed');
-            console.error(e);
-          }
-          return;
-        }
-        const mb = graphToMolblock(a, b, width, height, resolveAliasEntry).molblock;
-        if (!mb) return;
+      beginTemplatePlacement: (template: UserTemplate) => {
+        useStore.getState().deselectAll();
+        templatePlacement.current = template;
+        useStore
+          .getState()
+          .showToast(
+            'Click to place the template. Hold Shift over an atom or bond to attach; Escape cancels.',
+            'info',
+          );
+      },
+      revealObjects: (ids: string[]) => {
+        const document = useStore.getState().chemDrawDocument;
+        if (!document) return;
+        const store = useStore.getState();
+        const objects = document.pages[0]?.objects.filter((o) => ids.includes(o.id)) ?? [];
+        store.deselectAll();
+        store.setSelectedObjectIds(new Set(ids));
+        store.setSelectedAtomIds(
+          new Set(objects.filter((o) => o.type === 'node').map((o) => o.id)),
+        );
+        store.setSelectedBondIds(
+          new Set(objects.filter((o) => o.type === 'bond').map((o) => o.id)),
+        );
+        store.setSelectedArrowIds(
+          new Set(objects.filter((o) => o.type === 'arrow').map((o) => o.id)),
+        );
+        store.setSelectedTextBoxIds(
+          new Set(objects.filter((o) => o.type === 'text').map((o) => o.id)),
+        );
+        const index = buildDocumentIndex(document, {
+          documentStyleSettings: useStore.getState().documentStyleSettings,
+        });
+        const bounds = ids.flatMap((id) => {
+          const b = index.boundsById.get(id);
+          return b ? [b] : [];
+        });
+        if (!bounds.length) return;
+        const cx =
+          (Math.min(...bounds.map((b) => b.left)) + Math.max(...bounds.map((b) => b.right))) / 2;
+        const cy =
+          (Math.min(...bounds.map((b) => b.top)) + Math.max(...bounds.map((b) => b.bottom))) / 2;
+        setStagePos({ x: width / 2 - cx * stageScale, y: height / 2 - cy * stageScale });
+      },
+      cleanUp: async () => {
+        const state = useStore.getState();
+        const source = state.chemDrawDocument;
+        if (!source) return;
+        const revision = state.documentRevision;
+        const session = state.documentSessionId;
         try {
-          const mol = rdkit.get_mol(mb);
-          if (mol) {
-            mol.set_new_coords?.();
-            const nMb = mol.get_molblock?.();
-            mol.delete();
-            if (!nMb) return;
-            const geomFull = parseMolblockGeometry(nMb, 1);
-            if (!geomFull) return;
-            const normFull = normalizeMolblockBondLength(
-              geomFull,
-              documentStyleSettings.bondLength,
+          const command = await prepareCleanupCommand(
+            source,
+            new Set([
+              ...state.selectedObjectIds,
+              ...state.selectedAtomIds,
+              ...state.selectedBondIds,
+              ...state.selectedArrowIds,
+              ...state.selectedTextBoxIds,
+            ]),
+            createRDKitChemistryService(rdkit),
+            state.documentStyleSettings.bondLength,
+          );
+          const current = useStore.getState();
+          if (current.documentRevision !== revision || current.documentSessionId !== session) {
+            current.showToast(
+              'The document changed during cleanup; no changes were applied.',
+              'info',
             );
-            const newAtoms: Atom[] = normFull.atoms.map((atom) => ({
-              id: crypto.randomUUID(),
-              x: width / 2 + atom.x,
-              y: height / 2 + atom.y,
-              kind: 'element' as const,
-              element: atom.element,
-              ...(atom.charge != null ? { charge: atom.charge } : {}),
-              ...(atom.isotope != null ? { isotope: atom.isotope } : {}),
-            }));
-            const newBonds: Bond[] = normFull.bonds.map((bond) => ({
-              id: crypto.randomUUID(),
-              from: newAtoms[bond.from]!.id,
-              to: newAtoms[bond.to]!.id,
-              order: bond.order,
-              stereo: bond.stereo,
-            }));
-            resetStageView();
-            getCanvasEditorState().setChemDrawWarnings([]);
-            commitCanvasEdit({
-              atoms: newAtoms,
-              bonds: newBonds,
-              arrows: arr,
-              textBoxes: tb ?? [],
-            });
+            return;
           }
-        } catch (e) {
-          getCanvasEditorState().showToast('Structure cleanup failed');
-          console.error(e);
+          current.dispatchEditorCommand(command);
+        } catch (error) {
+          useStore
+            .getState()
+            .showToast(error instanceof Error ? error.message : 'Structure cleanup failed');
         }
       },
       applyTextFormat: (cmd: string, value?: string) => {
@@ -3168,8 +3258,8 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
     }),
     [
       fileController,
+      stageScale,
       aliasValidator,
-      documentStyleSettings,
       insertEmbeddedImage,
       rdkit,
       resetStageView,
@@ -3452,10 +3542,19 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
           stagePos={stagePos}
         />
       }
+      {tool === 'chain' && chainTool.count > 0 && (
+        <div
+          role="status"
+          style={{ position: 'absolute', bottom: 20, left: 20, pointerEvents: 'none' }}
+        >
+          {chainTool.count} added atoms
+        </div>
+      )}
       <Stage
         ref={stageRef}
         width={width}
         height={height}
+        onPointerCancel={cancelPointerGesture}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
@@ -3692,7 +3791,7 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
         atomTool={atomTool}
         isDarkMode={isDarkMode}
         editingTextBoxId={editingTextBoxId}
-        textBoxes={textBoxes}
+        textBoxes={sceneTextBoxes}
         editOverlayRef={editOverlayRef}
         handleTextEditBlur={handleTextEditBlur}
         handleTextEditPaste={handleTextEditPaste}

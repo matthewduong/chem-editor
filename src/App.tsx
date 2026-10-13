@@ -1,3 +1,5 @@
+import { TemplatesPanel } from './components/TemplatesPanel';
+import { StructureDiagnostics } from './components/StructureDiagnostics';
 import { useDocumentLifecycle } from './hooks/useDocumentLifecycle';
 import { molblockToState, parseMolblockGeometry } from './lib/graph';
 import { canvasStateToChemDrawDocument } from './lib/chemdrawModel';
@@ -2839,6 +2841,19 @@ function App() {
               {getBondIcon()}
             </PaletteButton>
             <PaletteButton
+              variant="tool"
+              active={tool === 'chain'}
+              title="Chain"
+              label="Chain"
+              onClick={() => {
+                setTool('chain');
+                setShowBondMenu(false);
+              }}
+              style={toolButtonStyle}
+            >
+              ⌁
+            </PaletteButton>
+            <PaletteButton
               ref={ringBtnRef}
               variant="tool"
               active={tool === 'ring'}
@@ -3792,6 +3807,7 @@ function App() {
                 >
                   Clean Up
                 </MenuItem>
+
                 <MenuItem
                   onClick={() => {
                     setRotateInput('');
@@ -5593,6 +5609,17 @@ function App() {
       )}
 
       {/* Toast notifications */}
+      <div style={{ position: 'absolute', top: 4, right: 175, zIndex: 2200 }}>
+        <TemplatesPanel
+          insert={(template) => canvasRef.current?.beginTemplatePlacement(template)}
+        />
+        <StructureDiagnostics
+          reveal={(ids) => {
+            useStore.getState().setSelectedObjectIds(new Set(ids));
+            canvasRef.current?.revealObjects(ids);
+          }}
+        />
+      </div>
       {toasts.length > 0 && (
         <div
           style={{

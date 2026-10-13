@@ -73,6 +73,8 @@ export interface MolblockResult {
 }
 
 export interface ParsedMolblockAtom {
+  /** Explicit molfile atom-map identity; never infer correspondence from array order. */
+  mapNumber?: number;
   x: number;
   y: number;
   element: string;
@@ -138,7 +140,14 @@ export function parseMolblockGeometry(
     const y = -Number.parseFloat(line.substring(10, 20)) * coordinateScale;
     // A non-numeric coordinate would otherwise poison every downstream layout calculation.
     if (!Number.isFinite(x) || !Number.isFinite(y)) return null;
-    atoms.push({ x, y, element: line.substring(31, 34).trim() });
+    const mapNumber = Number(line.substring(60, 63).trim() || 0);
+    if (!Number.isInteger(mapNumber) || mapNumber < 0) return null;
+    atoms.push({
+      x,
+      y,
+      element: line.substring(31, 34).trim(),
+      ...(mapNumber ? { mapNumber } : {}),
+    });
   }
 
   const bonds: ParsedMolblockBond[] = [];
@@ -253,7 +262,14 @@ function parseMolblockV3000Geometry(
       const x = Number.parseFloat(fields[2]!) * coordinateScale;
       const y = -Number.parseFloat(fields[3]!) * coordinateScale;
       if (!Number.isFinite(id) || !Number.isFinite(x) || !Number.isFinite(y)) return null;
-      const atom: ParsedMolblockAtom = { x, y, element: fields[1]! };
+      const mapNumber = Number(fields[5] ?? 0);
+      if (!Number.isInteger(mapNumber) || mapNumber < 0) return null;
+      const atom: ParsedMolblockAtom = {
+        x,
+        y,
+        element: fields[1]!,
+        ...(mapNumber ? { mapNumber } : {}),
+      };
       for (const field of fields.slice(6)) {
         const [key, value] = field.split('=');
         const number = Number.parseInt(value ?? '', 10);

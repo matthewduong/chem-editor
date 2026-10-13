@@ -23,6 +23,8 @@ export interface ChemCanvasRef {
   getMolblock: () => string;
   loadFromSmiles: (smiles: string) => void;
   cleanUp: () => void;
+  beginTemplatePlacement: (template: import('../lib/templates').UserTemplate) => void;
+  revealObjects: (ids: string[]) => void;
   addFromState: (buf: import('../lib/clipboard').ClipboardBuffer) => void;
   addFromSmiles: (input: string) => void;
   applyTextFormat: (cmd: string, value?: string) => void;

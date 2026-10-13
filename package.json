@@ -85,6 +85,7 @@
     "clean": "node scripts/clean.mjs",
     "clean:deep": "node scripts/clean.mjs --deep",
     "test:py:qm": "node scripts/run-python-tests.mjs --qm",
+    "benchmark:render": "node scripts/render-benchmark.mjs",
     "test:browser": "playwright test",
     "test:packaged": "node scripts/check-packaged-app.mjs",
     "test:packaged:ui": "node scripts/test-packaged-ui.mjs"
