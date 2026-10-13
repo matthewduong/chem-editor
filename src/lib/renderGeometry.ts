@@ -7,6 +7,7 @@ import {
   getAtomHydrogenCount,
   segmentAtomDisplayText,
 } from './atomLabels';
+import { bondsOfAtom } from './graphLookup';
 import { getAtomAlias, getAtomLeadElement, isAliasAtom } from './atomIdentity';
 import {
   DEFAULT_CHEMDRAW_STYLE_SHEET,
@@ -870,7 +871,7 @@ function getAtomLabelMetrics(
   bonds: Bond[],
   documentStyleSettings?: DocumentStyleSettings | null,
 ) {
-  const connectedBonds = bonds.filter((bond) => bond.from === atom.id || bond.to === atom.id);
+  const connectedBonds = bondsOfAtom(atom.id, bonds);
   const labelVisible = isAtomLabelVisible(atom, connectedBonds.length);
   if (!labelVisible) return null;
 

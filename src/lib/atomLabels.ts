@@ -2,6 +2,7 @@ import type { Atom, AtomLabelOrientation, Bond } from '../types/chemistry';
 import { getAtomAlias, getAtomLeadElement, getAtomNodeText } from './atomIdentity';
 import { resolveAliasChemistry } from './aliasChemistry';
 import { isElementSymbol } from './elements';
+import { bondsOfAtom, findAtomById } from './graphLookup';
 import { SHORTHAND_DATA } from './shorthand';
 
 const SUBSCRIPT_DIGITS = ['₀', '₁', '₂', '₃', '₄', '₅', '₆', '₇', '₈', '₉'];
@@ -35,13 +36,13 @@ function resolveAutoOrientation(
   atoms: Atom[],
   bonds: Bond[],
 ): 'label-first' | 'hydrogen-first' {
-  const connections = bonds.filter((bond) => bond.from === atom.id || bond.to === atom.id);
+  const connections = bondsOfAtom(atom.id, bonds);
   if (connections.length === 0) return 'label-first';
 
   let horizontalBias = 0;
   for (const bond of connections) {
     const neighborId = bond.from === atom.id ? bond.to : bond.from;
-    const neighbor = atoms.find((candidate) => candidate.id === neighborId);
+    const neighbor = findAtomById(neighborId, atoms);
     if (!neighbor) continue;
     const dx = neighbor.x - atom.x;
     const dy = neighbor.y - atom.y;
@@ -54,9 +55,7 @@ function resolveAutoOrientation(
   if (horizontalBias < -0.18) return 'hydrogen-first';
 
   const neighbors = connections
-    .map((bond) =>
-      atoms.find((candidate) => candidate.id === (bond.from === atom.id ? bond.to : bond.from)),
-    )
+    .map((bond) => findAtomById(bond.from === atom.id ? bond.to : bond.from, atoms))
     .filter((neighbor): neighbor is Atom => Boolean(neighbor));
   if (neighbors.length === 0) return 'label-first';
 
@@ -89,9 +88,7 @@ export function getAtomHydrogenCount(
   // sum recovers the whole bond an aromatic bond stands for, and over a closed ring the sum was
   // already integral, so ordinary aromatics are unaffected.
   const bondCount = Math.round(
-    bonds
-      .filter((bond) => bond.from === atom.id || bond.to === atom.id)
-      .reduce((sum, bond) => sum + bond.order, 0),
+    bondsOfAtom(atom.id, bonds).reduce((sum, bond) => sum + bond.order, 0),
   );
 
   // For shorthand groups, use the group's external valency
@@ -119,7 +116,7 @@ export function getAtomDisplayText(
   const key = getAtomNodeText(atom);
   const entry = SHORTHAND_DATA[key];
   const orientation = resolveAtomLabelOrientation(atom, atoms, bonds);
-  const connections = bonds.filter((bond) => bond.from === atom.id || bond.to === atom.id);
+  const connections = bondsOfAtom(atom.id, bonds);
 
   let baseText = key;
 
