@@ -18,7 +18,7 @@ import {
 } from '../lib/keybindings';
 import { shouldIgnoreKeyboardShortcuts } from '../lib/keyboard';
 import { getNextDoubleBondToolMode } from '../lib/renderGeometry';
-import { getPreferredAttachmentAngle } from '../lib/ringTemplates';
+import { getNewBondAngle } from '../lib/newBondAngle';
 import { commitCanvasEdit, getCanvasEditorState, useStore } from '../store';
 import type {
   ArrowType,
@@ -353,7 +353,10 @@ export function useCanvasKeyboard({
           // Stereo bond shortcuts — only if atom has room for one more bond
           if (matches('canvas.stereo.wedge') || matches('canvas.stereo.hash')) {
             if (atomFV >= 1) {
-              const angle = getPreferredAttachmentAngle(atom, kAtoms, kBonds, false);
+              const angle = getNewBondAngle(atom, kAtoms, kBonds, {
+                newBondOrder: 1,
+                stereo: 1,
+              });
               const nid = crypto.randomUUID();
               commitCanvasEdit({
                 atoms: [

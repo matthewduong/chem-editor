@@ -132,6 +132,29 @@ for (const scale of [1, 2]) {
       expect((await observe(page)).document).toEqual(before.document);
       expect((await observe(page)).historyIndex).toBe(before.historyIndex);
     });
+    test('clicking the end of a chain zigzags rather than curling', async ({ page }) => {
+      await openEditor(page);
+      await tool(page, 'Bond Tool');
+      const empty = await point(page, 600, 500);
+      await page.mouse.click(empty.x, empty.y);
+      for (let i = 0; i < 4; i++) {
+        const { atoms } = await observe(page);
+        const end = atoms.at(-1)!;
+        const where = await documentPoint(page, end.x, end.y);
+        await page.mouse.click(where.x, where.y);
+        await expect.poll(async () => (await observe(page)).atoms.length).toBe(atoms.length + 1);
+      }
+      const { atoms, bonds } = await observe(page);
+      expect(bonds).toHaveLength(atoms.length - 1);
+      const headings = atoms.slice(1).map((a, i) => Math.atan2(a.y - atoms[i].y, a.x - atoms[i].x));
+      const turns = headings
+        .slice(1)
+        .map((h, i) => Math.round((((h - headings[i]) * 180) / Math.PI + 540) % 360) - 180);
+      // every turn is 60 degrees and the sign alternates; a curl would keep one sign
+      expect(turns.every((t) => Math.abs(Math.abs(t) - 60) <= 1)).toBe(true);
+      for (let i = 1; i < turns.length; i++)
+        expect(Math.sign(turns[i])).toBe(-Math.sign(turns[i - 1]));
+    });
     test('arrow drag commits one undo entry; click, Escape and tool switch create none', async ({
       page,
     }) => {

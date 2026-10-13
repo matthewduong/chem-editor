@@ -3,7 +3,8 @@ import { createReplaceDocumentCommand } from '../editor/commands';
 import { applyBondEdit, reverseBondDirection } from '../lib/chemdrawModel';
 import { SNAP_ANGLE } from '../lib/graph';
 import { DEFAULT_DOUBLE_BOND_MODE, getNextDoubleBondToolMode } from '../lib/renderGeometry';
-import { getPreferredAttachmentAngle, resolveChairAttachmentSnapping } from '../lib/ringTemplates';
+import { getNewBondAngle } from '../lib/newBondAngle';
+import { resolveChairAttachmentSnapping } from '../lib/ringTemplates';
 import { commitCanvasEdit, getCanvasEditorState, previewCanvasEdit, useStore } from '../store';
 import type { Atom, Bond } from '../types/chemistry';
 
@@ -228,7 +229,10 @@ export function useBondTool(): BondToolOverlay & BondToolActions {
     let targetId = preview.targetId;
 
     if (Math.sqrt((finalX - start.x) ** 2 + (finalY - start.y) ** 2) < 5 && !targetId) {
-      const fallbackAngle = getPreferredAttachmentAngle(start, atoms, bonds, false);
+      const fallbackAngle = getNewBondAngle(start, atoms, bonds, {
+        newBondOrder: bondOrder,
+        stereo,
+      });
       const chairSnap = resolveChairAttachmentSnapping({
         atomId: aid,
         atoms,
