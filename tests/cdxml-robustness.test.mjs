@@ -160,3 +160,27 @@ for (const { name, xml } of fixtures) {
     }
   });
 }
+
+// ChemDraw 26.1.0.6801 (2026-10-13): with every nested expansion <fragment> of a 25-fragment
+// scheme removed it reopened with all nodes and fragments back and rendered pixel-identical, so an
+// expansion under a labelled shorthand atom is not a loss. One with no label to rebuild from is.
+test('only a nested expansion with no label to regenerate it is reported as ignored', () => {
+  const nested = (label) =>
+    wrap(
+      `<fragment id="2"><n id="3" p="10 10" NodeType="Fragment">${label}` +
+        `<fragment id="4"><n id="5" p="0 0" Element="8"/><n id="6" p="5 5"/>` +
+        `<b id="7" B="5" E="6"/></fragment></n></fragment>`,
+    );
+  const labelled = cdxmlToChemDrawDocument(
+    nested('<t p="10 10"><s font="3" size="10">OEt</s></t>'),
+  );
+  assert.equal(
+    labelled.warnings.some((warning) => /outside fragment scope/.test(warning)),
+    false,
+  );
+  const bare = cdxmlToChemDrawDocument(nested(''));
+  assert.equal(
+    bare.warnings.some((warning) => /outside fragment scope/.test(warning)),
+    true,
+  );
+});

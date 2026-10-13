@@ -3259,11 +3259,23 @@ export function cdxmlToChemDrawDocument(xmlString: string): ChemDrawConversionRe
     objects.push(textObject);
   }
 
+  // A shorthand atom (OTBS, PPh3, a nickname) carries its expanded atom graph as a nested
+  // <fragment>. Those atoms are deliberately not modelled: ChemDraw rebuilds the expansion from the
+  // label on load. Measured on ChemDraw 26.1.0.6801 (2026-10-13), a 25-fragment scheme with its 10
+  // nested fragments removed opened with all 217 nodes and 25 fragments back and rendered
+  // pixel-identical. So only a nested fragment whose parent has no label to rebuild it from is lost.
+  const isRegeneratedExpansion = (node: Element): boolean => {
+    const fragment = node.parentElement;
+    const owner = fragment?.parentElement;
+    if (fragment?.tagName !== 'fragment' || owner?.tagName !== 'n') return false;
+    return Array.from(owner.children).some((child) => child.tagName === 't');
+  };
   const standaloneNodeCount = Array.from(doc.getElementsByTagName('n')).filter(
     (node) =>
       isElementOnPage(node, pageEl) &&
       !hasAncestorTag(node, 'table') &&
-      !nodeObjectIds.has(node.getAttribute('id') ?? ''),
+      !nodeObjectIds.has(node.getAttribute('id') ?? '') &&
+      !isRegeneratedExpansion(node),
   ).length;
   if (standaloneNodeCount > 0) {
     warnings.push(
