@@ -212,6 +212,29 @@ for (const scale of [1, 2]) {
       await drag(page, { x: 500, y: 600 }, { x: 540, y: 620 });
       await expect(panel.getByText(/Document changed/)).toBeVisible();
     });
+    test('built-in templates are searchable, read-only and insert as one undo entry', async ({
+      page,
+    }) => {
+      await openEditor(page);
+      const before = await observe(page);
+      await page.getByTitle('Templates', { exact: true }).click();
+      await page.getByLabel('Template search').fill('pyridine');
+      const pyridine = page.getByRole('button', { name: 'Pyridine', exact: true });
+      await expect(pyridine).toBeVisible();
+      await expect(page.getByText(/Built-in/).first()).toBeVisible();
+      await pyridine.click();
+      await expect(page.getByRole('button', { name: 'Delete template' })).toHaveCount(0);
+      await page.getByRole('button', { name: 'Insert', exact: true }).click();
+      const p = await point(page, 700, 500);
+      await page.mouse.click(p.x, p.y);
+      const after = await observe(page);
+      expect(after.atoms).toHaveLength(6);
+      expect(after.atoms.filter((a) => a.element === 'N')).toHaveLength(1);
+      expect(after.bonds).toHaveLength(6);
+      expect(after.historyIndex).toBe(before.historyIndex + 1);
+      await page.keyboard.press('Control+z');
+      expect((await observe(page)).atoms).toHaveLength(0);
+    });
     test('save selection, search and insert native templates with cancel and undo', async ({
       page,
     }) => {

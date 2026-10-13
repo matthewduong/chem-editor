@@ -1,8 +1,30 @@
-import { useState } from 'react';
+import { memo, useMemo, useState } from 'react';
 import { useStore } from '../store';
 import { useTemplateLibrary } from '../hooks/useTemplateLibrary';
+import { buildBuiltinTemplates, isBuiltinTemplate } from '../lib/builtinTemplates';
 import { saveSelectionTemplate, type UserTemplate } from '../lib/templates';
 import { generateDocumentSVG } from '../lib/svgExport';
+
+const TemplateThumbnail = memo(function TemplateThumbnail({
+  template,
+}: {
+  template: UserTemplate;
+}) {
+  const src = useMemo(
+    () =>
+      `data:image/svg+xml;charset=utf-8,${encodeURIComponent(generateDocumentSVG(template.fragment, { transparent: true }))}`,
+    [template.fragment],
+  );
+  return (
+    <img
+      alt={`${template.name} preview`}
+      width={110}
+      height={70}
+      style={{ objectFit: 'contain' }}
+      src={src}
+    />
+  );
+});
 
 export function TemplatesPanel({ insert }: { insert: (template: UserTemplate) => void }) {
   const [open, setOpen] = useState(false),
@@ -12,6 +34,9 @@ export function TemplatesPanel({ insert }: { insert: (template: UserTemplate) =>
     [attachment, setAttachment] = useState('');
   const { library, error, busy, update, persistent } = useTemplateLibrary();
   const document = useStore((s) => s.chemDrawDocument);
+  const bondLength = useStore((s) => s.documentStyleSettings.bondLength);
+  // Built-ins are generated at the document's bond length, so they match its style.
+  const builtins = useMemo(() => buildBuiltinTemplates(bondLength), [bondLength]);
   const [selected, setSelected] = useState<string | null>(null);
   const selection = () => {
     const s = useStore.getState();
@@ -149,7 +174,7 @@ export function TemplatesPanel({ insert }: { insert: (template: UserTemplate) =>
             Save selection
           </button>
           <div>
-            {library?.templates
+            {[...(library?.templates ?? []), ...builtins]
               .filter((t) =>
                 `${t.name} ${t.tags.join(' ')}`.toLowerCase().includes(query.toLowerCase()),
               )
@@ -171,14 +196,11 @@ export function TemplatesPanel({ insert }: { insert: (template: UserTemplate) =>
                   >
                     {t.name}
                   </button>
-                  <img
-                    alt={`${t.name} preview`}
-                    width={110}
-                    height={70}
-                    style={{ objectFit: 'contain' }}
-                    src={`data:image/svg+xml;charset=utf-8,${encodeURIComponent(generateDocumentSVG(t.fragment, { transparent: true }))}`}
-                  />
-                  <small>{t.tags.join(', ')}</small>
+                  <TemplateThumbnail template={t} />
+                  <small>
+                    {isBuiltinTemplate(t) ? 'Built-in · ' : ''}
+                    {t.tags.join(', ')}
+                  </small>
                   <button
                     onClick={() => {
                       insert(t);
