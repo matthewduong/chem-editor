@@ -3,6 +3,7 @@ import { getAtomAlias, getAtomLeadElement, getAtomNodeText } from './atomIdentit
 import { resolveAliasChemistry } from './aliasChemistry';
 import { isElementSymbol } from './elements';
 import { bondsOfAtom, findAtomById } from './graphLookup';
+import { chemDrawImplicitHydrogens } from './chemistry/displayHydrogens';
 import { SHORTHAND_DATA } from './shorthand';
 
 const SUBSCRIPT_DIGITS = ['₀', '₁', '₂', '₃', '₄', '₅', '₆', '₇', '₈', '₉'];
@@ -99,6 +100,9 @@ export function getAtomHydrogenCount(
 
   const charge = atom.charge || 0;
   const leadElement = getAtomLeadElement(atom);
+  // ChemDraw's own counts, where they have been measured (see chemistry/displayHydrogens.ts).
+  const measured = chemDrawImplicitHydrogens(leadElement, charge, bondCount);
+  if (measured !== null) return measured;
   let effectiveValence = knownValence;
   if (leadElement === 'C') effectiveValence = knownValence - Math.abs(charge);
   else if (leadElement === 'N' || leadElement === 'O') effectiveValence = knownValence + charge;
