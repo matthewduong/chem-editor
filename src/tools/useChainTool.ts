@@ -37,6 +37,7 @@ export function useChainTool() {
   };
   return {
     count,
+    isActive: () => gesture.current !== null,
     begin(input: Input) {
       cancel();
       const s = useStore.getState(),

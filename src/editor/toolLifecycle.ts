@@ -27,3 +27,20 @@ export class ToolLifecycle<Hit, Source> {
     this.active = null;
   }
 }
+
+/**
+ * What a driver needs from any gesture tool, whatever its begin/update arguments are. Every
+ * tool also exposes `begin`, `update` and `commit` with its own explicit inputs; `commit` is
+ * gated on the document the press began on, so a stale pointer-up never edits a document that
+ * was replaced mid-gesture.
+ */
+export interface GestureTool {
+  /** A press is in progress. */
+  isActive(): boolean;
+  /** Abandon the press and clear its preview. Safe to call at any time. */
+  cancel(): void;
+}
+
+export function cancelGestures(tools: readonly Pick<GestureTool, 'cancel'>[]): void {
+  for (const tool of tools) tool.cancel();
+}

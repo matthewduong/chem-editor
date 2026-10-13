@@ -4,6 +4,7 @@ import {
   createRotateSelectionCommand,
   createScaleSelectionCommand,
 } from '../editor/commands';
+import { ToolLifecycle } from '../editor/toolLifecycle';
 import { SNAP_ANGLE } from '../lib/graph';
 import { getArrowSelectionPoints } from '../lib/renderGeometry';
 import { commitCanvasEdit, getCanvasEditorState, previewCanvasEdit } from '../store';
@@ -25,7 +26,7 @@ export interface ScaleHandleHit {
 }
 
 export interface SelectToolActions {
-  onMouseDown: (
+  begin: (
     pos: { x: number; y: number },
     hitAtom: Atom | null,
     hitBond: Bond | null,
@@ -36,9 +37,10 @@ export interface SelectToolActions {
     hitScaleHandle?: ScaleHandleHit | null,
     hitObjectId?: string | null,
   ) => void;
-  onMouseMove: (pos: { x: number; y: number }, hitAtom: Atom | null, isShiftDown: boolean) => void;
-  onMouseUp: () => void;
-  cleanup: () => void;
+  update: (pos: { x: number; y: number }, hitAtom: Atom | null, isShiftDown: boolean) => void;
+  commit: () => void;
+  cancel: () => void;
+  isActive: () => boolean;
 }
 
 function collectMovedAtomIds(
@@ -76,6 +78,7 @@ export function useSelectTool(): SelectToolOverlay & SelectToolActions {
   const isRotatingRef = useRef(false);
   const isScalingRef = useRef(false);
   const isSelectionBoxRef = useRef(false);
+  const lifecycle = useRef(new ToolLifecycle<Atom | null, ChemDrawDocument | null>());
   const dragStartPosRef = useRef<{ x: number; y: number } | null>(null);
   const moveDataRef = useRef<{
     sourceDocument: ChemDrawDocument | null;
@@ -125,7 +128,7 @@ export function useSelectTool(): SelectToolOverlay & SelectToolActions {
     setIsSelectionBoxActive(v);
   };
 
-  const onMouseDown = useCallback(
+  const begin = useCallback(
     (
       pos: { x: number; y: number },
       hitAtom: Atom | null,
@@ -137,6 +140,11 @@ export function useSelectTool(): SelectToolOverlay & SelectToolActions {
       hitScaleHandle?: ScaleHandleHit | null,
       hitObjectId?: string | null,
     ) => {
+      lifecycle.current.begin(getCanvasEditorState().chemDrawDocument, {
+        point: pos,
+        hit: hitAtom,
+        modifiers: { primary: false, shift: isShiftDown },
+      });
       const {
         atoms,
         bonds,
@@ -412,7 +420,7 @@ export function useSelectTool(): SelectToolOverlay & SelectToolActions {
     [],
   );
 
-  const onMouseMove = useCallback(
+  const update = useCallback(
     (pos: { x: number; y: number }, _hitAtom: Atom | null, isShiftDown: boolean) => {
       if (isScalingRef.current && scaleDataRef.current) {
         const {
@@ -779,7 +787,28 @@ export function useSelectTool(): SelectToolOverlay & SelectToolActions {
     [selectionBoxStart],
   );
 
-  const onMouseUp = useCallback(() => {
+  const cancel = useCallback(() => {
+    lifecycle.current.cancel();
+    setDragging(false);
+    setRotating(false);
+    setScalingState(false);
+    setSelectionBox(false);
+    setSelectionBoxStart(null);
+    setSelectionBoxEnd(null);
+    dragStartPosRef.current = null;
+    moveDataRef.current = null;
+    rotateDataRef.current = null;
+    scaleDataRef.current = null;
+    getCanvasEditorState().clearPreviewChemDrawDocument();
+    getCanvasEditorState().clearSelectionPreviewTransform();
+  }, []);
+
+  const commit = useCallback(() => {
+    // A press that began on a document that has since been replaced must not edit the new one.
+    if (!lifecycle.current.commit(getCanvasEditorState().chemDrawDocument)) {
+      cancel();
+      return;
+    }
     if (isScalingRef.current) {
       setScalingState(false);
       const {
@@ -879,22 +908,7 @@ export function useSelectTool(): SelectToolOverlay & SelectToolActions {
       }
       commitCanvasEdit({ atoms, bonds, arrows, groups: groups ?? [], textBoxes: textBoxes ?? [] });
     }
-  }, []);
-
-  const cleanup = useCallback(() => {
-    setDragging(false);
-    setRotating(false);
-    setScalingState(false);
-    setSelectionBox(false);
-    setSelectionBoxStart(null);
-    setSelectionBoxEnd(null);
-    dragStartPosRef.current = null;
-    moveDataRef.current = null;
-    rotateDataRef.current = null;
-    scaleDataRef.current = null;
-    getCanvasEditorState().clearPreviewChemDrawDocument();
-    getCanvasEditorState().clearSelectionPreviewTransform();
-  }, []);
+  }, [cancel]);
 
   return {
     isDragging,
@@ -903,9 +917,14 @@ export function useSelectTool(): SelectToolOverlay & SelectToolActions {
     isSelectionBoxActive,
     selectionBoxStart,
     selectionBoxEnd,
-    onMouseDown,
-    onMouseMove,
-    onMouseUp,
-    cleanup,
+    begin,
+    update,
+    commit,
+    cancel,
+    isActive: () =>
+      isDraggingRef.current ||
+      isRotatingRef.current ||
+      isScalingRef.current ||
+      isSelectionBoxRef.current,
   };
 }

@@ -22,10 +22,11 @@ vi.mock('../../src/hooks/useRDKit.ts', () => ({
 
 vi.mock('../../src/tools/useBondTool.ts', () => ({
   useBondTool: () => ({
-    cleanup: vi.fn(),
-    onMouseDown: vi.fn(),
-    onMouseMove: vi.fn(),
-    onMouseUp: vi.fn(),
+    cancel: vi.fn(),
+    begin: vi.fn(),
+    update: vi.fn(),
+    commit: vi.fn(),
+    isActive: () => false,
     dragPreviewLine: null,
     activeAtomId: null,
   }),
@@ -33,10 +34,11 @@ vi.mock('../../src/tools/useBondTool.ts', () => ({
 
 vi.mock('../../src/tools/useSelectTool.ts', () => ({
   useSelectTool: () => ({
-    cleanup: vi.fn(),
-    onMouseDown: vi.fn(),
-    onMouseMove: vi.fn(),
-    onMouseUp: vi.fn(),
+    cancel: vi.fn(),
+    begin: vi.fn(),
+    update: vi.fn(),
+    commit: vi.fn(),
+    isActive: () => false,
     isSelectionBoxActive: false,
     selectionBoxStart: null,
     selectionBoxEnd: null,
@@ -45,10 +47,11 @@ vi.mock('../../src/tools/useSelectTool.ts', () => ({
 
 vi.mock('../../src/tools/useAtomTool.ts', () => ({
   useAtomTool: () => ({
-    cleanup: vi.fn(),
-    onMouseDown: vi.fn(),
-    onMouseMove: vi.fn(),
-    onMouseUp: vi.fn(),
+    cancel: vi.fn(),
+    begin: vi.fn(),
+    update: vi.fn(),
+    commit: vi.fn(),
+    isActive: () => false,
     openEditor: vi.fn(),
     editingAtomId: null,
     dragPreviewLine: null,

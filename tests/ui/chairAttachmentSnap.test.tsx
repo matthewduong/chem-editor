@@ -121,14 +121,10 @@ describe('chair attachment snapping tools', () => {
     const existingBondIds = new Set(useStore.getState().bonds.map((bond) => bond.id));
 
     act(() => {
-      result.current.onMouseDown(
-        { x: storeStartAtom.x, y: storeStartAtom.y },
-        storeStartAtom,
-        null,
-      );
+      result.current.begin({ x: storeStartAtom.x, y: storeStartAtom.y }, storeStartAtom, null);
     });
     act(() => {
-      result.current.onMouseUp();
+      result.current.commit();
     });
 
     const nextState = useStore.getState();
@@ -167,12 +163,12 @@ describe('chair attachment snapping tools', () => {
     });
 
     act(() => {
-      bondTool.current.onMouseDown({ x: startAtom.x, y: startAtom.y }, startAtom, null);
-      atomTool.current.onMouseDown({ x: startAtom.x, y: startAtom.y }, startAtom);
+      bondTool.current.begin({ x: startAtom.x, y: startAtom.y }, startAtom, null);
+      atomTool.current.begin({ x: startAtom.x, y: startAtom.y }, startAtom);
     });
     act(() => {
-      bondTool.current.onMouseMove(pointer, null);
-      atomTool.current.onMouseMove(pointer, null);
+      bondTool.current.update(pointer, null);
+      atomTool.current.update(pointer, null);
     });
 
     expect(bondTool.current.dragPreviewLine?.x2).toBeCloseTo(resolved!.selectedCandidate!.x, 2);
@@ -205,10 +201,10 @@ describe('chair attachment snapping tools', () => {
     const startAtom = findAtomByTemplateKey(useStore.getState().atoms, 'a0');
 
     act(() => {
-      result.current.onMouseDown({ x: startAtom.x, y: startAtom.y }, startAtom, null);
+      result.current.begin({ x: startAtom.x, y: startAtom.y }, startAtom, null);
     });
     act(() => {
-      result.current.onMouseMove({ x: targetAtom.x, y: targetAtom.y }, targetAtom);
+      result.current.update({ x: targetAtom.x, y: targetAtom.y }, targetAtom);
     });
 
     expect(result.current.dragPreviewLine).toMatchObject({
@@ -244,10 +240,10 @@ describe('chair attachment snapping tools', () => {
       SNAP_ANGLE;
 
     act(() => {
-      result.current.onMouseDown({ x: startAtom.x, y: startAtom.y }, startAtom);
+      result.current.begin({ x: startAtom.x, y: startAtom.y }, startAtom);
     });
     act(() => {
-      result.current.onMouseMove(pointer, null);
+      result.current.update(pointer, null);
     });
 
     expect(result.current.dragPreviewLine?.x2).toBeCloseTo(

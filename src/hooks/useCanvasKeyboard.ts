@@ -18,7 +18,7 @@ import {
 import { shouldIgnoreKeyboardShortcuts } from '../lib/keyboard';
 import { getNextDoubleBondToolMode } from '../lib/renderGeometry';
 import { getNewBondAngle } from '../lib/newBondAngle';
-import { commitCanvasEdit, getCanvasEditorState, useStore } from '../store';
+import { commitCanvasEdit, getCanvasEditorState } from '../store';
 import type {
   ArrowType,
   Atom,
@@ -80,13 +80,6 @@ interface CanvasKeyboardBindings {
   setSelectedTextBoxIds: (ids: Set<string>) => void;
   hoveredArrowId: string | null;
   hoveredTextBoxId: string | null;
-  bondTool: import('../tools/useBondTool').BondToolOverlay &
-    import('../tools/useBondTool').BondToolActions;
-  selectTool: import('../tools/useSelectTool').SelectToolOverlay &
-    import('../tools/useSelectTool').SelectToolActions;
-  cancelTextDrag: () => void;
-  cancelArrow: () => void;
-  cancelRing: () => void;
   setEditingArrowLabels: import('react').Dispatch<
     import('react').SetStateAction<{
       id: string;
@@ -169,11 +162,6 @@ export function useCanvasKeyboard({
   setSelectedTextBoxIds,
   hoveredArrowId,
   hoveredTextBoxId,
-  bondTool,
-  selectTool,
-  cancelTextDrag,
-  cancelArrow,
-  cancelRing,
   setEditingArrowLabels,
   setEditingTextBoxId,
   setEditingAtomLabel,
@@ -307,14 +295,6 @@ export function useCanvasKeyboard({
       // Escape → close arrow label editor
       if (e.key === 'Escape') {
         cancelSelectionDrag();
-        bondTool.cleanup();
-        atomTool.cleanup();
-        selectTool.cleanup();
-        cancelTextDrag();
-        cancelArrow();
-        cancelRing();
-        useStore.getState().clearPreviewChemDrawDocument();
-        useStore.getState().clearSelectionPreviewTransform();
         setEditingArrowLabels(null);
         setEditingTextBoxId(null);
         setEditingAtomLabel(null);

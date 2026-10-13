@@ -21,6 +21,7 @@ export function useArrowTool() {
   };
   return {
     preview,
+    isActive: () => latest.current !== null,
     begin(type: Arrow['type'], point: { x: number; y: number }) {
       lifecycle.current.begin(useStore.getState().chemDrawDocument, {
         point,

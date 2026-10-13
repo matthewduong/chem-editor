@@ -1,5 +1,7 @@
 import { useCallback, useRef, useState } from 'react';
 import { createReplaceDocumentCommand } from '../editor/commands';
+import { ToolLifecycle } from '../editor/toolLifecycle';
+import type { ChemDrawDocument } from '../types/chemdraw';
 import { setAliasAtomValue, setAtomValue } from '../lib/atomIdentity';
 import { applyNodeValueEdit } from '../lib/chemdrawModel';
 import { SNAP_ANGLE } from '../lib/graph';
@@ -22,10 +24,11 @@ export interface AtomToolOverlay {
 }
 
 export interface AtomToolActions {
-  onMouseDown: (pos: { x: number; y: number }, hitAtom: Atom | null) => void;
-  onMouseMove: (pos: { x: number; y: number }, hitAtom: Atom | null) => void;
-  onMouseUp: () => void;
-  cleanup: () => void;
+  begin: (pos: { x: number; y: number }, hitAtom: Atom | null) => void;
+  update: (pos: { x: number; y: number }, hitAtom: Atom | null) => void;
+  commit: () => void;
+  cancel: () => void;
+  isActive: () => boolean;
   openEditor: (id: string, value: string) => void;
   closeEditor: () => void;
   setEditingValue: (val: string) => void;
@@ -40,6 +43,7 @@ export function useAtomTool(): AtomToolOverlay & AtomToolActions {
   const editingAtomIdRef = useRef<string | null>(null);
   const [editingValue, setEditingValue] = useState('');
   const activeAtomWasExisting = useRef(false);
+  const lifecycle = useRef(new ToolLifecycle<Atom | null, ChemDrawDocument | null>());
 
   const activeAtomIdRef = useRef<string | null>(null);
   const isDraggingRef = useRef(false);
@@ -58,7 +62,12 @@ export function useAtomTool(): AtomToolOverlay & AtomToolActions {
     setDragPreviewLine(v);
   };
 
-  const onMouseDown = useCallback((pos: { x: number; y: number }, hitAtom: Atom | null) => {
+  const begin = useCallback((pos: { x: number; y: number }, hitAtom: Atom | null) => {
+    lifecycle.current.begin(useStore.getState().chemDrawDocument, {
+      point: pos,
+      hit: hitAtom,
+      modifiers: { primary: false, shift: false },
+    });
     const {
       atoms,
       bonds,
@@ -97,7 +106,7 @@ export function useAtomTool(): AtomToolOverlay & AtomToolActions {
     }
   }, []);
 
-  const onMouseMove = useCallback((pos: { x: number; y: number }, hitAtom: Atom | null) => {
+  const update = useCallback((pos: { x: number; y: number }, hitAtom: Atom | null) => {
     if (!isDraggingRef.current || !activeAtomIdRef.current) return;
     const { atoms, bonds, documentStyleSettings } = getCanvasEditorState();
     const bondLength = documentStyleSettings.bondLength;
@@ -142,8 +151,26 @@ export function useAtomTool(): AtomToolOverlay & AtomToolActions {
     }
   }, []);
 
-  const onMouseUp = useCallback(() => {
+  const cancel = useCallback(() => {
+    lifecycle.current.cancel();
+    if (isDraggingRef.current && !activeAtomWasExisting.current) {
+      useStore.getState().clearPreviewChemDrawDocument();
+    }
+    setDragging(false);
+    setPreview(null);
+    setActive(null);
+    editingAtomIdRef.current = null;
+    setEditingAtomId(null);
+    setEditingValue('');
+  }, []);
+
+  const commit = useCallback(() => {
     if (!isDraggingRef.current) return;
+    // A press that began on a document that has since been replaced must not edit the new one.
+    if (!lifecycle.current.commit(useStore.getState().chemDrawDocument)) {
+      cancel();
+      return;
+    }
     setDragging(false);
 
     const {
@@ -259,7 +286,7 @@ export function useAtomTool(): AtomToolOverlay & AtomToolActions {
     }
     setPreview(null);
     setActive(null);
-  }, []);
+  }, [cancel]);
 
   const handleFinishEditing = useCallback(() => {
     const id = editingAtomIdRef.current;
@@ -289,18 +316,6 @@ export function useAtomTool(): AtomToolOverlay & AtomToolActions {
     });
   }, [editingValue]);
 
-  const cleanup = useCallback(() => {
-    if (isDraggingRef.current && !activeAtomWasExisting.current) {
-      useStore.getState().clearPreviewChemDrawDocument();
-    }
-    setDragging(false);
-    setPreview(null);
-    setActive(null);
-    editingAtomIdRef.current = null;
-    setEditingAtomId(null);
-    setEditingValue('');
-  }, []);
-
   const openEditor = useCallback((id: string, value: string) => {
     editingAtomIdRef.current = id;
     setEditingAtomId(id);
@@ -318,10 +333,11 @@ export function useAtomTool(): AtomToolOverlay & AtomToolActions {
     isDragging,
     editingAtomId,
     editingValue,
-    onMouseDown,
-    onMouseMove,
-    onMouseUp,
-    cleanup,
+    begin,
+    update,
+    commit,
+    cancel,
+    isActive: () => isDraggingRef.current,
     openEditor,
     closeEditor,
     setEditingValue,

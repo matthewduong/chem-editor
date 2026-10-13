@@ -1,5 +1,7 @@
 import { useCallback, useRef, useState } from 'react';
 import { createReplaceDocumentCommand } from '../editor/commands';
+import { ToolLifecycle } from '../editor/toolLifecycle';
+import type { ChemDrawDocument } from '../types/chemdraw';
 import { applyBondEdit, reverseBondDirection } from '../lib/chemdrawModel';
 import { SNAP_ANGLE } from '../lib/graph';
 import { DEFAULT_DOUBLE_BOND_MODE, getNextDoubleBondToolMode } from '../lib/renderGeometry';
@@ -22,10 +24,11 @@ export interface BondToolOverlay {
 }
 
 export interface BondToolActions {
-  onMouseDown: (pos: { x: number; y: number }, hitAtom: Atom | null, hitBond: Bond | null) => void;
-  onMouseMove: (pos: { x: number; y: number }, hitAtom: Atom | null) => void;
-  onMouseUp: () => void;
-  cleanup: () => void;
+  begin: (pos: { x: number; y: number }, hitAtom: Atom | null, hitBond: Bond | null) => void;
+  update: (pos: { x: number; y: number }, hitAtom: Atom | null) => void;
+  commit: () => void;
+  cancel: () => void;
+  isActive: () => boolean;
 }
 
 export function useBondTool(): BondToolOverlay & BondToolActions {
@@ -34,6 +37,7 @@ export function useBondTool(): BondToolOverlay & BondToolActions {
   const [dragPreviewLine, setDragPreviewLine] = useState<BondToolOverlay['dragPreviewLine']>(null);
   const [isDragging, setIsDragging] = useState(false);
   const activeAtomWasExisting = useRef(false);
+  const lifecycle = useRef(new ToolLifecycle<Atom | null, ChemDrawDocument | null>());
 
   // Keep refs for stable use in callbacks
   const activeAtomIdRef = useRef<string | null>(null);
@@ -53,7 +57,7 @@ export function useBondTool(): BondToolOverlay & BondToolActions {
     setDragPreviewLine(v);
   };
 
-  const onMouseDown = useCallback(
+  const begin = useCallback(
     (pos: { x: number; y: number }, hitAtom: Atom | null, hitBond: Bond | null) => {
       const {
         atoms,
@@ -67,6 +71,11 @@ export function useBondTool(): BondToolOverlay & BondToolActions {
         setLastInteractedAtomId,
         chemDrawDocument,
       } = getCanvasEditorState();
+      lifecycle.current.begin(useStore.getState().chemDrawDocument, {
+        point: pos,
+        hit: hitAtom,
+        modifiers: { primary: false, shift: false },
+      });
 
       if (hitAtom) {
         activeAtomWasExisting.current = true;
@@ -146,7 +155,7 @@ export function useBondTool(): BondToolOverlay & BondToolActions {
     [],
   );
 
-  const onMouseMove = useCallback((pos: { x: number; y: number }, hitAtom: Atom | null) => {
+  const update = useCallback((pos: { x: number; y: number }, hitAtom: Atom | null) => {
     if (!isDraggingRef.current || !activeAtomIdRef.current) return;
     const { atoms, bonds, documentStyleSettings } = getCanvasEditorState();
     const bondLength = documentStyleSettings.bondLength;
@@ -191,8 +200,24 @@ export function useBondTool(): BondToolOverlay & BondToolActions {
     }
   }, []);
 
-  const onMouseUp = useCallback(() => {
+  const cancel = useCallback(() => {
+    lifecycle.current.cancel();
+    if (isDraggingRef.current && !activeAtomWasExisting.current) {
+      useStore.getState().clearPreviewChemDrawDocument();
+    }
+    setDragging(false);
+    setPreview(null);
+    setActive(null);
+    setActiveAtomIsNew(false);
+  }, []);
+
+  const commit = useCallback(() => {
     if (!isDraggingRef.current) return;
+    // A press that began on a document that has since been replaced must not edit the new one.
+    if (!lifecycle.current.commit(useStore.getState().chemDrawDocument)) {
+      cancel();
+      return;
+    }
     setDragging(false);
 
     const {
@@ -298,26 +323,17 @@ export function useBondTool(): BondToolOverlay & BondToolActions {
     setPreview(null);
     setActive(null);
     setActiveAtomIsNew(false);
-  }, []);
-
-  const cleanup = useCallback(() => {
-    if (isDraggingRef.current && !activeAtomWasExisting.current) {
-      useStore.getState().clearPreviewChemDrawDocument();
-    }
-    setDragging(false);
-    setPreview(null);
-    setActive(null);
-    setActiveAtomIsNew(false);
-  }, []);
+  }, [cancel]);
 
   return {
     activeAtomId,
     activeAtomIsNew,
     dragPreviewLine,
     isDragging,
-    onMouseDown,
-    onMouseMove,
-    onMouseUp,
-    cleanup,
+    begin,
+    update,
+    commit,
+    cancel,
+    isActive: () => isDraggingRef.current,
   };
 }

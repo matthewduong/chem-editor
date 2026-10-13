@@ -1,5 +1,6 @@
 import { placeTemplate, type UserTemplate } from '../lib/templates';
 import { ToolLifecycle } from '../editor/toolLifecycle';
+import { cancelGestures } from '../editor/toolLifecycle';
 import { useArrowTool } from '../tools/useArrowTool';
 import { useRingTool } from '../tools/useRingTool';
 import { useTextDragTool } from '../tools/useTextDragTool';
@@ -833,27 +834,7 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
   const prevDocumentRef = useRef(chemDrawDocument);
   useEffect(() => {
     if (prevToolRef.current !== tool || prevDocumentRef.current !== chemDrawDocument) {
-      gestureLifecycle.current.cancel();
-      chainTool.cancel();
-      templatePlacement.current = null;
-      ringTool.cancel();
-      bondTool.cleanup();
-      selectTool.cleanup();
-      atomTool.cleanup();
-      textDragTool.cancel();
-      arrowTool.cancel();
-      getCanvasEditorState().clearPreviewChemDrawDocument();
-      getCanvasEditorState().clearSelectionPreviewTransform();
-      selectionDragRef.current = {
-        isDragging: false,
-        startPos: null,
-        sourceDocument: null,
-        totalDx: 0,
-        totalDy: 0,
-        selectedObjectIds: new Set(),
-        movedAtomIds: new Set(),
-        affectedBondIds: new Set(),
-      };
+      cancelAllGestures();
       prevToolRef.current = tool;
       prevDocumentRef.current = chemDrawDocument;
     }
@@ -2190,15 +2171,31 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
 
   const ringTool = useRingTool(resolveRingGeometryAtPointer);
 
+  /**
+   * Abandons every gesture in progress and clears their previews. The single place that
+   * knows the full list, so Escape, a tool change, a document replacement and a cancelled
+   * pointer cannot drift apart.
+   */
+  const cancelAllGestures = () => {
+    gestureLifecycle.current.cancel();
+    templatePlacement.current = null;
+    cancelGestures([chainTool, ringTool, arrowTool, textDragTool, bondTool, atomTool, selectTool]);
+    selectionDragRef.current = {
+      isDragging: false,
+      startPos: null,
+      sourceDocument: null,
+      totalDx: 0,
+      totalDy: 0,
+      selectedObjectIds: new Set(),
+      movedAtomIds: new Set(),
+      affectedBondIds: new Set(),
+    };
+    useStore.getState().clearPreviewChemDrawDocument();
+    useStore.getState().clearSelectionPreviewTransform();
+  };
+
   useCanvasKeyboard({
-    cancelSelectionDrag: () => {
-      gestureLifecycle.current.cancel();
-      templatePlacement.current = null;
-      ringTool.cancel();
-      chainTool.cancel();
-      selectionDragRef.current.isDragging = false;
-      selectionDragRef.current.sourceDocument = null;
-    },
+    cancelSelectionDrag: cancelAllGestures,
     syncModifierKeys,
     atomTool,
     editingTextBoxId,
@@ -2214,11 +2211,6 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
     setSelectedTextBoxIds,
     hoveredArrowId,
     hoveredTextBoxId,
-    bondTool,
-    selectTool,
-    cancelTextDrag: textDragTool.cancel,
-    cancelArrow: arrowTool.cancel,
-    cancelRing: ringTool.cancel,
     setEditingArrowLabels,
     setEditingTextBoxId,
     setEditingAtomLabel,
@@ -2410,7 +2402,7 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
       }
       const selCtr = getSelectionCenter();
       const rotHandlePos = selCtr && bbox ? { x: selCtr.x, y: bbox.minY - 30 } : selCtr;
-      selectTool.onMouseDown(
+      selectTool.begin(
         pos,
         hitA,
         hitB,
@@ -2489,11 +2481,11 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
       return;
     }
     if (tool === 'bond') {
-      bondTool.onMouseDown(pos, hitA, hitB);
+      bondTool.begin(pos, hitA, hitB);
       return;
     }
     if (tool === 'atom') {
-      atomTool.onMouseDown(pos, hitA);
+      atomTool.begin(pos, hitA);
       return;
     }
   };
@@ -2607,7 +2599,7 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
       } else {
         setHoveredScaleCorner(null);
       }
-      selectTool.onMouseMove(pos, hitA, modifiers.shift);
+      selectTool.update(pos, hitA, modifiers.shift);
       return;
     }
     setHoveredScaleCorner(null);
@@ -2616,11 +2608,11 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
       return;
     }
     if (tool === 'bond') {
-      bondTool.onMouseMove(pos, hitA);
+      bondTool.update(pos, hitA);
       return;
     }
     if (tool === 'atom') {
-      atomTool.onMouseMove(pos, hitA);
+      atomTool.update(pos, hitA);
       return;
     }
     if (tool === 'text' && textDragTool.isActive()) {
@@ -2751,15 +2743,15 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
       return;
     }
     if (tool === 'select') {
-      selectTool.onMouseUp();
+      selectTool.commit();
       return;
     }
     if (tool === 'bond') {
-      bondTool.onMouseUp();
+      bondTool.commit();
       return;
     }
     if (tool === 'atom') {
-      atomTool.onMouseUp();
+      atomTool.commit();
       return;
     }
     if (tool === 'text' && textDragTool.isActive()) {
@@ -2799,20 +2791,7 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
     }
   };
 
-  const cancelPointerGesture = () => {
-    gestureLifecycle.current.cancel();
-    chainTool.cancel();
-    templatePlacement.current = null;
-    ringTool.cancel();
-    bondTool.cleanup();
-    atomTool.cleanup();
-    selectTool.cleanup();
-    textDragTool.cancel();
-    selectionDragRef.current.isDragging = false;
-    arrowTool.cancel();
-    useStore.getState().clearPreviewChemDrawDocument();
-    useStore.getState().clearSelectionPreviewTransform();
-  };
+  const cancelPointerGesture = cancelAllGestures;
 
   const handleDblClick = () => {
     const pos = getRelativePointerPosition();
