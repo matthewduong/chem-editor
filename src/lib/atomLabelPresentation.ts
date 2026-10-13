@@ -104,7 +104,19 @@ export function getLeadElementAnchorOffset(
   const textWidth = runs.reduce((sum, run) => sum + measureWidth(run), 0);
   const width = getLabelWidth(fontSize, textWidth);
   const padding = (width - textWidth) / 2;
-  const leadRange = findLeadElementDisplayRange(labelText, leadElement);
+  // A lone lead element (`N`) has no range of its own: it is the whole label, centred. With a
+  // charge written beside it (`N+`, `C2+`, `-O`) the element is still what ChemDraw centres on the
+  // atom, not the element and charge together (measured, ChemDraw 26.1.0.6801: N sat on the atom
+  // for `N+`, and `-O` kept O there).
+  const found = findLeadElementDisplayRange(labelText, leadElement);
+  const leadRange =
+    found ??
+    (leadElement && labelText.length > leadElement.length && labelText.includes(leadElement)
+      ? {
+          start: labelText.indexOf(leadElement),
+          end: labelText.indexOf(leadElement) + leadElement.length,
+        }
+      : null);
   if (!leadRange) return { offset: width / 2, width, padding };
 
   let textCursor = 0;

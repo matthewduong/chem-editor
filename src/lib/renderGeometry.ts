@@ -356,6 +356,12 @@ type LabelClipMetrics = {
   halfHeight: number;
   clipMode: 'rect' | 'circle';
   clipRadius?: number;
+  /**
+   * The charge drawn beside the lead element, as a box about the atom (y down). A bond that leaves
+   * towards it stops outside the charge too: ChemDraw leaves a larger gap on that side
+   * (`—C²⁺—` is not a bond running up to a bare C).
+   */
+  adornment?: { minX: number; maxX: number; minY: number; maxY: number };
 };
 
 export type AtomLabelLayoutMetrics = {
@@ -1012,10 +1018,50 @@ function getAtomLabelMetrics(
       : 0;
   const labelText = getAtomDisplayText(atom, atoms, bonds, hydrogenCount).text;
   const fontSize = atom.labelFontSize ?? getDefaultAtomLabelFontSize(documentStyleSettings);
-  return (
+  const metrics =
     getLeadElementLabelMetrics(atom, labelText, fontSize, documentStyleSettings) ??
-    getFullLabelMetrics(labelText, fontSize, documentStyleSettings)
-  );
+    getFullLabelMetrics(labelText, fontSize, documentStyleSettings);
+  return withChargeAdornment(metrics, atom, labelText, fontSize, documentStyleSettings);
+}
+
+/**
+ * Where the charge of an atom-first label is drawn: after the whole label text, raised by 0.53 em
+ * at 0.75 scale (the measured superscript rule). Hydrogen-first labels put it on the other side
+ * and are left to the label's own box.
+ */
+function withChargeAdornment(
+  metrics: LabelClipMetrics,
+  atom: Atom,
+  labelText: string,
+  fontSize: number,
+  documentStyleSettings?: DocumentStyleSettings | null,
+): LabelClipMetrics {
+  const charge = Math.round(atom.charge || 0);
+  if (!charge || metrics.clipMode !== 'circle') return metrics;
+  const alias = getAtomAlias(atom);
+  if (alias && /^[+\-\u2212]|[+\-\u2212]\s*$/.test(alias)) return metrics;
+  const leadRange = findLeadElementDisplayRange(labelText, getAtomLeadElement(atom));
+  if (leadRange && leadRange.start > 0) return metrics;
+  const trailing = leadRange ? labelText.slice(leadRange.end) : '';
+  const scale = 0.75;
+  const text = `${Math.abs(charge) > 1 ? String(Math.abs(charge)) : ''}${charge > 0 ? '+' : '\u2212'}`;
+  const chargeWidth = measureLabelSegmentWidth(text, fontSize * scale, documentStyleSettings);
+  const trailingWidth = trailing
+    ? measureLabelSegmentWidth(trailing, fontSize, documentStyleSettings)
+    : 0;
+  const capHeight = getAtomLabelCapHeight(fontSize);
+  const margin = getResolvedLabelMarginWidth(documentStyleSettings);
+  const baseline = capHeight / 2 - fontSize * 0.53;
+  const minX = metrics.halfWidth - 1 + trailingWidth;
+  return {
+    ...metrics,
+    adornment: {
+      minX,
+      maxX: minX + chargeWidth + margin,
+      minY: baseline - capHeight * scale - margin,
+      maxY: baseline + margin,
+    },
+  };
 }
 
 type AtomLabelMetrics = ReturnType<typeof getAtomLabelMetrics>;
@@ -1073,6 +1119,30 @@ function intersectRayWithRect(ux: number, uy: number, rect: LabelClipMetrics): n
   return null;
 }
 
+/** Where a ray from the origin leaves the box it passes through, or null if it misses it. */
+function intersectRayWithBox(
+  ux: number,
+  uy: number,
+  box: { minX: number; maxX: number; minY: number; maxY: number },
+): number | null {
+  let tMin = 0;
+  let tMax = Infinity;
+  for (const [u, lo, hi] of [
+    [ux, box.minX, box.maxX],
+    [uy, box.minY, box.maxY],
+  ] as const) {
+    if (Math.abs(u) < 1e-9) {
+      if (lo > 0 || hi < 0) return null;
+      continue;
+    }
+    const t1 = lo / u;
+    const t2 = hi / u;
+    tMin = Math.max(tMin, Math.min(t1, t2));
+    tMax = Math.min(tMax, Math.max(t1, t2));
+  }
+  return tMin <= tMax && Number.isFinite(tMax) ? tMax : null;
+}
+
 export function getAtomBondClipOffset(
   atom: Atom,
   atoms: Atom[],
@@ -1087,10 +1157,15 @@ export function getAtomBondClipOffset(
 
   const fontSize = atom.labelFontSize ?? getDefaultAtomLabelFontSize(documentStyleSettings);
   if (metrics.clipMode === 'circle') {
-    return Math.max(
+    const circle = Math.max(
       getAtomMinimumBondClipOffset(fontSize, documentStyleSettings),
       metrics.clipRadius ?? 0,
     );
+    const box = metrics.adornment;
+    if (!box) return circle;
+    // The ray's distance to the far side of the charge box, if it goes through it.
+    const around = intersectRayWithBox(ux, uy, box);
+    return around === null ? circle : Math.max(circle, around);
   }
 
   const rectDistance = intersectRayWithRect(ux, uy, metrics) ?? 0;

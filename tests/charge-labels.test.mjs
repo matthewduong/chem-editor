@@ -3,7 +3,11 @@ import assert from 'node:assert/strict';
 import { buildChargeRuns } from '../.unit-test-dist/src/lib/atomLabelPresentation.js';
 import { asGeneratedLabelAtom } from '../.unit-test-dist/src/lib/atomLabels.js';
 import { getSuperscriptBaselineShift } from '../.unit-test-dist/src/lib/chemdrawMetrics.js';
-import { isAtomLabelVisible } from '../.unit-test-dist/src/lib/renderGeometry.js';
+import {
+  getAtomBondClipOffset,
+  isAtomLabelVisible,
+} from '../.unit-test-dist/src/lib/renderGeometry.js';
+import { getLeadElementAnchorOffset } from '../.unit-test-dist/src/lib/atomLabelPresentation.js';
 
 // ChemDraw 26.1.0.6801 (2026-10-13) writes a charge into the label text: NH3+, O-, C2+, with the
 // sign as a plain ASCII hyphen or plus and the magnitude as its own superscript run.
@@ -54,4 +58,32 @@ test('a superscript moves the label baseline down by the amount ChemDraw does', 
     ]),
     0.091,
   );
+});
+
+// ChemDraw 26.1.0.6801 (2026-10-13), hand-written file with N+ and C2+ and no label text: the
+// element sits on the atom and the charge hangs off it, and a bond that leaves towards the charge
+// stops outside it (a 14.4pt bond to C2+ is drawn as a dot).
+test('the lead element, not element plus charge, is centred on the atom', () => {
+  const run = (text, sup) => ({ text, ...(sup ? { sup: true } : {}) });
+  const width = (r) => r.text.length * (r.sup ? 3 : 4);
+  const anchor = (runs, label, lead) =>
+    getLeadElementAnchorOffset(runs, label, lead, 10, (_, textWidth) => textWidth, width);
+  assert.equal(anchor([run('N'), run('+', true)], 'N+', 'N').offset, 2);
+  assert.equal(anchor([run('+', true), run('O')], '+O', 'O').offset, 3 + 2);
+  assert.equal(anchor([run('O')], 'O', 'O').offset, 2);
+});
+
+test('a bond towards a charge stops outside the charge, one away from it does not', () => {
+  const atoms = [
+    { id: 'c', x: 0, y: 0, kind: 'element', element: 'C', charge: 2 },
+    { id: 'r', x: 14.4, y: 0, kind: 'element', element: 'C' },
+    { id: 'l', x: -14.4, y: 0, kind: 'element', element: 'C' },
+  ];
+  const bonds = [
+    { id: 'b1', from: 'c', to: 'r', order: 1 },
+    { id: 'b2', from: 'c', to: 'l', order: 1 },
+  ];
+  const towardsCharge = getAtomBondClipOffset(atoms[0], atoms, bonds, 1, 0);
+  const awayFromCharge = getAtomBondClipOffset(atoms[0], atoms, bonds, -1, 0);
+  assert.ok(towardsCharge > awayFromCharge + 3, `${towardsCharge} vs ${awayFromCharge}`);
 });
