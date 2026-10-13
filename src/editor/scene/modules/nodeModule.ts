@@ -195,7 +195,7 @@ export const NODE_MODULE: ObjectModule = {
       labelVisible ? width : 0,
       scene.documentStyleSettings,
     );
-    if (object.query && labelVisible) {
+    if (scene.showQueryMarkers && object.query && labelVisible) {
       ctx.save();
       setStroke(ctx, isSelected ? '#2196F3' : resolvedColor, labelLayout.hoverStrokeWidth, [4, 3]);
       ctx.globalAlpha = 0.7;

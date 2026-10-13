@@ -62,6 +62,14 @@ export interface DocumentSceneState {
    * phosphonate and sulfone -- would export with a red blob on them.
    */
   showValenceErrors: boolean;
+  /**
+   * Whether to outline query and alternative-group labels with a dashed box.
+   *
+   * Another editing affordance. ChemDraw draws these labels as plain text: a scheme's
+   * AnonymousAlternativeGroup ("NaI, PPh3" over a reaction arrow) rendered with no box, and ours
+   * boxed it and the arrow beside it in every export.
+   */
+  showQueryMarkers: boolean;
 }
 
 export interface RenderSceneOptions {

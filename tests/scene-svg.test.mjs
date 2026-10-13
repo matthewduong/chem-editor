@@ -56,3 +56,8 @@ test('SVG output covers every drawing operation the renderer performs', async ()
     if (texts > 0) assert.ok(svgTexts > 0, `${fixture}: drew no text`);
   }
 });
+
+test('an alternative-group label is plain text: no dashed query box in an export', async () => {
+  const svg = await renderFixtureToSvg('alternative-group-label.cdxml');
+  assert.doesNotMatch(svg, /stroke-dasharray/);
+});

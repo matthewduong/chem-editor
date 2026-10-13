@@ -47,6 +47,7 @@ export interface SceneInteractionState {
   editingTextBoxId: string | null;
   rdkitInvalidAtomIds: Set<string>;
   showValenceErrors: boolean;
+  showQueryMarkers: boolean;
 }
 
 export interface BuildSceneInput {
@@ -79,6 +80,7 @@ function defaultInteractionState(): SceneInteractionState {
     editingTextBoxId: null,
     rdkitInvalidAtomIds: new Set(),
     showValenceErrors: false,
+    showQueryMarkers: false,
   };
 }
 

@@ -616,6 +616,7 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
       editingTextBoxId,
       rdkitInvalidAtomIds,
       showValenceErrors: true,
+      showQueryMarkers: true,
     }),
     [
       documentIndex,
@@ -670,6 +671,7 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
       editingTextBoxId,
       rdkitInvalidAtomIds,
       showValenceErrors: true,
+      showQueryMarkers: true,
     }),
     [
       contentHoveredArrowId,

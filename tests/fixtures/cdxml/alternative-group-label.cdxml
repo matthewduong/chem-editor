@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  AnonymousAlternativeGroup carrying the reagent text "NaI, PPh3" (from a real scheme). ChemDraw
+  26.1.0.6801 draws it as plain text; no dashed query box.
+-->
+<CDXML BondLength="14.4" LineWidth="0.6" BoldWidth="2" LabelSize="10">
+  <page id="page-1">
+    <fragment id="f1">
+      <n id="2" p="60 40" Element="6"/>
+      <n id="1" p="40 40" NodeType="AnonymousAlternativeGroup" GenericNickname="NaI, PPh3">
+        <t p="37 43.6"><s font="3" size="10" face="96">NaI, PPh3</s></t>
+      </n>
+      <b id="3" B="1" E="2"/>
+    </fragment>
+  </page>
+</CDXML>
