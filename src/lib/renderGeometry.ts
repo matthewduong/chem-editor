@@ -197,7 +197,14 @@ function sameAtoms(a: string[], b: string[]): boolean {
 }
 
 export function isAtomLabelVisible(atom: Atom, connectedBondCount: number): boolean {
-  return getAtomLeadElement(atom) !== 'C' || connectedBondCount === 0 || isAliasAtom(atom);
+  // ChemDraw labels a charged carbon (`C+`, `CH2-`) as well; an uncharged one only when it stands
+  // alone or is an alias.
+  return (
+    getAtomLeadElement(atom) !== 'C' ||
+    connectedBondCount === 0 ||
+    isAliasAtom(atom) ||
+    (atom.charge ?? 0) !== 0
+  );
 }
 
 type ArrowGeometryLike = Pick<Arrow, 'x1' | 'y1' | 'x2' | 'y2'> &

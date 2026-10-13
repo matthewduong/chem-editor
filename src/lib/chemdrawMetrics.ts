@@ -319,13 +319,16 @@ export function getStackedLabelBaselines(
   fontSize: number,
   side: 'above' | 'below',
   hydrogensHaveSubscript: boolean,
+  hydrogensHaveCharge = false,
 ): { lead: number; hydrogens: number } {
   if (!isFinitePositiveNumber(fontSize)) return { lead: 0, hydrogens: 0 };
   const lead = fontSize * STACKED_LABEL_LEAD_BASELINE_EM;
   const pitch = fontSize * STACKED_LABEL_LINE_PITCH_EM;
   if (side === 'below') return { lead, hydrogens: lead + pitch };
   const drop = hydrogensHaveSubscript ? fontSize * STACKED_LABEL_SUBSCRIPT_DROP_EM : 0;
-  return { lead, hydrogens: lead - pitch - drop };
+  // A charge sign on the upper line raises it a further 0.058 em (NH2+ above: 42.55 against 43.13).
+  const charge = hydrogensHaveCharge ? fontSize * 0.058 : 0;
+  return { lead, hydrogens: lead - pitch - drop - charge };
 }
 
 /** Half of Arial's 0.716 em cap height; measured with Arial only. */
@@ -572,4 +575,17 @@ export function resolveArrowGeometryMetrics(
       nativeArrow?.equilibriumRatio ?? defaults.equilibriumRatio,
     ),
   };
+}
+
+/**
+ * How far, in em, ChemDraw moves a label's baseline down when it carries a superscript.
+ *
+ * Measured on ChemDraw 26.1.0.6801 (2026-10-13): `Na+`, `Ca2+`, `NH3+`, `O-` and `C2+` at 10 and
+ * 20pt. A charge sign alone moved the baseline 0.042 em (4.0 against 3.58 at 10pt), a superscript
+ * digit with it 0.091 em (4.49), the same at both sizes.
+ */
+export function getSuperscriptBaselineShift(runs: Array<{ text: string; sup?: boolean }>): number {
+  const superscripts = runs.filter((run) => run.sup);
+  if (superscripts.length === 0) return 0;
+  return superscripts.some((run) => /[0-9]/.test(run.text)) ? 0.091 : 0.042;
 }

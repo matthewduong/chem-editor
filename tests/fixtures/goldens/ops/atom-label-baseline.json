@@ -44,8 +44,22 @@
     "op": "call",
     "name": "fillText",
     "args": [
-      "OH",
-      86.25,
+      "O",
+      86.1108,
+      54.5888
+    ]
+  },
+  {
+    "op": "set",
+    "prop": "fillStyle",
+    "value": "#000000"
+  },
+  {
+    "op": "call",
+    "name": "fillText",
+    "args": [
+      "H",
+      93.8892,
       54.5888
     ]
   },

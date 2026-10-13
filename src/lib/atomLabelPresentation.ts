@@ -156,3 +156,20 @@ export function getOrientationPreviewLabel(
       : 0;
   return getAtomDisplayText(previewAtom, atoms, bonds, hydrogenCount).text;
 }
+
+/**
+ * The charge of an atom as the superscript runs ChemDraw writes into its label.
+ *
+ * ChemDraw 26.1.0.6801 (2026-10-13) draws a charge as label text, not as a symbol: `NH3+`, `O-`,
+ * `C2+`, with a thin ASCII hyphen for a minus, the sign (and the magnitude when it is not one) at
+ * superscript size, after the atom for a label written left to right and before it for a
+ * hydrogen-first label (`+H3N`, `-O`). A charged carbon is labelled too (`C+`, `CH2+`).
+ */
+export function buildChargeRuns(charge: number, color?: string): TextRun[] {
+  if (!Number.isFinite(charge) || charge === 0) return [];
+  const magnitude = Math.abs(Math.round(charge));
+  const runs: TextRun[] = [];
+  if (magnitude > 1) runs.push({ text: String(magnitude), sup: true, ...(color ? { color } : {}) });
+  runs.push({ text: charge > 0 ? '+' : '-', sup: true, ...(color ? { color } : {}) });
+  return runs;
+}

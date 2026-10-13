@@ -46,7 +46,7 @@
     "args": [
       "N",
       10.7892,
-      -5.4112
+      -4.9912
     ]
   },
   {
@@ -60,7 +60,7 @@
     "args": [
       "H",
       18.0108,
-      -5.4112
+      -4.9912
     ]
   },
   {
@@ -74,13 +74,8 @@
     "args": [
       "3",
       25.2325,
-      -1.048
+      -0.628
     ]
-  },
-  {
-    "op": "set",
-    "prop": "font",
-    "value": "bold 11px 'Liberation Sans', sans-serif"
   },
   {
     "op": "set",
@@ -92,8 +87,8 @@
     "name": "fillText",
     "args": [
       "+",
-      27.4037,
-      -8.5
+      29.4037,
+      -8.028
     ]
   },
   {
@@ -186,22 +181,22 @@
     "name": "fillText",
     "args": [
       "O",
-      10.5108,
-      14.5888
+      9.2621,
+      15.0088
     ]
   },
   {
     "op": "set",
     "prop": "font",
-    "value": "bold 11px 'Liberation Sans', sans-serif"
+    "value": "normal 7.5px 'Liberation Sans', sans-serif"
   },
   {
     "op": "call",
     "name": "fillText",
     "args": [
-      "−",
-      19.275,
-      11.5
+      "-",
+      17.0404,
+      11.972
     ]
   },
   {
@@ -295,7 +290,7 @@
     "args": [
       "N",
       10.7892,
-      34.5888
+      35.4988
     ]
   },
   {
@@ -309,7 +304,7 @@
     "args": [
       "H",
       18.0108,
-      34.5888
+      35.4988
     ]
   },
   {
@@ -323,13 +318,8 @@
     "args": [
       "4",
       25.2325,
-      38.952
+      39.862
     ]
-  },
-  {
-    "op": "set",
-    "prop": "font",
-    "value": "bold 11px 'Liberation Sans', sans-serif"
   },
   {
     "op": "set",
@@ -340,9 +330,18 @@
     "op": "call",
     "name": "fillText",
     "args": [
-      "2+",
-      27.4037,
-      31.5
+      "2",
+      29.4037,
+      32.462
+    ]
+  },
+  {
+    "op": "call",
+    "name": "fillText",
+    "args": [
+      "+",
+      33.5748,
+      32.462
     ]
   },
   {

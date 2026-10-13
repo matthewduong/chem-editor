@@ -1,13 +1,19 @@
-import { buildAtomLabelRuns, getLeadElementAnchorOffset } from '../../../lib/atomLabelPresentation';
-import { getFaceMetrics, getPaintFontFamily } from '../../../lib/textMetrics';
+import {
+  buildAtomLabelRuns,
+  buildChargeRuns,
+  getLeadElementAnchorOffset,
+} from '../../../lib/atomLabelPresentation';
+import { getFaceMetrics } from '../../../lib/textMetrics';
 import {
   getAtomLabelBaselineOffset,
   getNodeLabelVerticalOffset,
   getStackedLabelBaselines,
+  getSuperscriptBaselineShift,
   resolveDocumentLabelTextStyle,
 } from '../../../lib/chemdrawMetrics';
 import { getAtomLeadElement } from '../../../lib/atomIdentity';
 import {
+  asGeneratedLabelAtom,
   getAtomDisplayText,
   getAtomHydrogenCount,
   resolveStackedHydrogenSide,
@@ -31,8 +37,10 @@ export const NODE_MODULE: ObjectModule = {
   draw(object, context) {
     if (object.type !== 'node') return;
     const { scene, ctx } = context;
-    const atom = scene.legacy.atomById.get(object.id);
-    if (!atom) return;
+    const storedAtom = scene.legacy.atomById.get(object.id);
+    if (!storedAtom) return;
+    // Text that is just what would be generated is generated, so it reads and stacks like it.
+    const atom = asGeneratedLabelAtom(storedAtom, scene.legacy.bonds);
     const connectedBonds = scene.legacy.bondsByAtomId.get(object.id) ?? [];
     const labelVisible = isAtomLabelVisible(atom, connectedBonds.length);
     const knownValence = VALENCIES[getAtomLeadElement(atom)] ?? null;
@@ -99,7 +107,7 @@ export const NODE_MODULE: ObjectModule = {
             scene.isDarkMode,
             scene.documentViewSettings,
           );
-    const displayRuns = buildAtomLabelRuns(
+    const baseRuns = buildAtomLabelRuns(
       atom,
       labelText,
       resolvedColor,
@@ -107,10 +115,21 @@ export const NODE_MODULE: ObjectModule = {
       scene.documentViewSettings,
       scene.isDarkMode,
     );
+    // The charge is part of the label text: after the atom for an atom-first label, before it for
+    // a hydrogen-first one (`NH3+`, `+H3N`).
+    // A file's own label text can carry the charge already (`CH2+`, `O2-`); it is not added twice.
+    const labelCarriesCharge =
+      Boolean(atom.alias) && /^[+\-\u2212]|[+\-\u2212]\s*$/.test(atom.alias ?? '');
+    const chargeRuns =
+      labelVisible && !labelCarriesCharge ? buildChargeRuns(charge, resolvedColor) : [];
+    const chargeText = chargeRuns.map((run) => run.text).join('');
+    const chargeFirst = !stackSide && display.orientation === 'hydrogen-first';
+    const displayRuns = chargeFirst ? [...chargeRuns, ...baseRuns] : [...baseRuns, ...chargeRuns];
+    const anchorText = chargeFirst ? `${chargeText}${labelText}` : `${labelText}${chargeText}`;
     const anchor = labelVisible
       ? getLeadElementAnchorOffset(
           displayRuns,
-          labelText,
+          anchorText,
           getAtomLeadElement(atom),
           labelFontSize,
           getAtomLabelBoxWidth,
@@ -181,8 +200,6 @@ export const NODE_MODULE: ObjectModule = {
       ctx.restore();
     }
 
-    // Where the end of the hydrogen line is, for the charge of a stacked label.
-    let stackedCharge: { x: number; y: number } | null = null;
     if (labelVisible && stackSide && stackParts) {
       const splitAt = stackParts.lead.length;
       const leadRuns: typeof displayRuns = [];
@@ -198,12 +215,11 @@ export const NODE_MODULE: ObjectModule = {
         }
         cursor = end;
       }
-      const widthOf = (runs: typeof displayRuns) =>
-        runs.reduce((sum, run) => sum + measureRunWidth(run, labelFontSize, labelFontFamily), 0);
       const baselines = getStackedLabelBaselines(
         labelFontSize,
         stackSide,
         /[0-9\u2080-\u2089]/.test(stackParts.hydrogens),
+        chargeRuns.length > 0,
       );
       const ascent = getFaceMetrics({ family: labelFontFamily, sizePx: labelFontSize }).ascent;
       // Both lines start where the first letter of the lead element starts, which ChemDraw
@@ -234,10 +250,6 @@ export const NODE_MODULE: ObjectModule = {
       };
       drawLine(leadRuns, baselines.lead);
       drawLine(hydrogenRuns, baselines.hydrogens);
-      stackedCharge = {
-        x: startX + widthOf(hydrogenRuns),
-        y: baselines.hydrogens - baselines.lead,
-      };
     } else if (labelVisible) {
       const textStartX = atom.x - offset + padding;
       let cursorX = textStartX;
@@ -247,6 +259,7 @@ export const NODE_MODULE: ObjectModule = {
         atom.y +
         getAtomLabelBaselineOffset(labelFontSize, labelFontFamily) -
         getFaceMetrics({ family: labelFontFamily, sizePx: labelFontSize }).ascent +
+        getSuperscriptBaselineShift(displayRuns) * labelFontSize +
         verticalOffset;
       displayRuns.forEach((run) => {
         drawRunText(
@@ -269,28 +282,6 @@ export const NODE_MODULE: ObjectModule = {
         fill: error ? '#ff0000' : '#2196F3',
       });
       ctx.restore();
-    }
-
-    if (charge) {
-      const chargeText =
-        charge === 1
-          ? '+'
-          : charge === -1
-            ? '−'
-            : charge > 1
-              ? `${charge}+`
-              : `${Math.abs(charge)}−`;
-      ctx.font = `bold ${labelLayout.chargeFontSize}px ${getPaintFontFamily(labelFontFamily)}`;
-      ctx.fillStyle = resolvedColor;
-      ctx.textBaseline = 'top';
-      // On a stacked label the charge follows the hydrogen run, at the end of the second line.
-      const chargeX = stackedCharge
-        ? stackedCharge.x - labelLayout.chargeOffsetX
-        : labelVisible
-          ? atom.x - offset + width - labelLayout.chargeOffsetX
-          : atom.x + 5;
-      const chargeY = atom.y - labelLayout.chargeOffsetY + verticalOffset + (stackedCharge?.y ?? 0);
-      ctx.fillText(chargeText, chargeX, chargeY);
     }
 
     drawObjectTags(ctx, scene, object.objectTags, {

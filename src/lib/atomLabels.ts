@@ -1,7 +1,7 @@
 import type { Atom, AtomLabelOrientation, Bond } from '../types/chemistry';
 import { getAtomAlias, getAtomLeadElement, getAtomNodeText } from './atomIdentity';
 import { resolveAliasChemistry } from './aliasChemistry';
-import { isElementSymbol } from './elements';
+import { VALENCIES, isElementSymbol } from './elements';
 import { bondsOfAtom, findAtomById } from './graphLookup';
 import { chemDrawImplicitHydrogens } from './chemistry/displayHydrogens';
 import { resolveGeneratedLabelSide } from './labelPlacement';
@@ -457,4 +457,40 @@ export function inferAtomLabelFromDisplayedText(
   }
 
   return { alias: normalized };
+}
+
+const GENERATED_LOOKING_LABEL = /^([A-Z][a-z]?)(?:H([0-9]*))?(?:([0-9]*)([+\-\u2212]))?$/;
+
+/**
+ * A label read from a file that is exactly what this editor would generate for the atom.
+ *
+ * ChemDraw stores the text of a generated label (`NH3+`, `OH`, `NH2` with the charge in it), and
+ * the importer reads any such text as an alias. Drawn as an alias it is shown as stored, so a
+ * right-aligned `NH3+` would not read `+H3N` and the charge would be added twice. When the text is
+ * the element, the hydrogens this atom's bonds imply and the charge it carries, the atom is
+ * treated as an ordinary one and the label is generated. Carbon is left alone: its label is
+ * shown only because the file asked for it.
+ */
+export function asGeneratedLabelAtom(atom: Atom, bonds: Bond[]): Atom {
+  const alias = getAtomAlias(atom);
+  if (!alias || atom.kind !== 'alias') return atom;
+  const match = GENERATED_LOOKING_LABEL.exec(alias);
+  if (!match) return atom;
+  const element = match[1]!;
+  if (element === 'C' || !isElementSymbol(element) || element !== atom.element) return atom;
+  if (SHORTHAND_DATA[alias]) return atom;
+  const textHydrogens = match[2] === undefined ? 0 : match[2] === '' ? 1 : Number(match[2]);
+  const hasSign = match[4] !== undefined;
+  const textCharge = hasSign ? (match[4] === '+' ? 1 : -1) * (match[3] ? Number(match[3]) : 1) : 0;
+  if (textCharge !== (atom.charge ?? 0)) return atom;
+  const candidate: Atom = {
+    ...atom,
+    kind: 'element',
+    alias: undefined,
+    aliasResolution: undefined,
+    labelRuns: undefined,
+  };
+  const valence = VALENCIES[element] ?? null;
+  const computed = valence === null ? 0 : getAtomHydrogenCount(candidate, bonds, valence);
+  return computed === textHydrogens ? candidate : atom;
 }
