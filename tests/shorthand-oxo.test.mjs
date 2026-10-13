@@ -4,21 +4,23 @@ import { SHORTHAND_DATA } from '../.unit-test-dist/src/lib/shorthand.js';
 import { resolveAliasChemistry } from '../.unit-test-dist/src/lib/aliasChemistry.js';
 import { checkValence } from '../.unit-test-dist/src/lib/chemistry/valence.js';
 
-// label -> [attachment element, substituent SMILES], from Ketcher's fg.sdf
+// label -> [attachment element, substituent SMILES], as ChemDraw 26.1.0.6801 expands the label
+// (read back from the nested <fragment> it saves; no charges, oxyl radicals written as [O]).
+// NCO, NCS, SO2H, PO3H2, Cy and C2H5 agree with Ketcher's fg.sdf; the rest differ from it.
 const EXPECTED = {
   NCO: ['N', 'N=C=O'],
   NCS: ['N', 'N=C=S'],
   Cy: ['C', 'C1CCCCC1'],
   C2H5: ['C', 'C(C)'],
   SO2H: ['S', 'S(=O)O'],
-  SO3: ['S', 'S(=O)(=O)[O-]'],
-  SO4H: ['O', 'OS(=O)(=O)O'],
-  SO4: ['O', 'OS(=O)(=O)[O-]'],
-  PO2: ['P', 'P(=O)[O-]'],
-  PO3: ['P', 'P(=O)([O-])[O-]'],
+  SO3: ['S', 'S(=O)(=O)[O]'],
+  SO4H: ['S', 'S(=O)(=O)OO'],
+  SO4: ['S', 'S(=O)(=O)O[O]'],
+  PO2: ['P', 'P(=O)=O'],
+  PO3: ['P', 'P(=O)([O])[O]'],
   PO3H2: ['P', 'P(=O)(O)O'],
-  PO4H2: ['O', 'OP(=O)(O)O'],
-  PO4: ['O', 'OP(=O)([O-])[O-]'],
+  PO4H2: ['P', 'P(=O)(O)OO'],
+  PO4: ['P', 'P(=O)([O])O[O]'],
 };
 
 test('oxo-acid and heterocumulene labels resolve to the explicit structure', () => {

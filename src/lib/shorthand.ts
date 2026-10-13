@@ -232,17 +232,21 @@ export const SHORTHAND_DATA: Record<string, ShorthandEntry> = {
   Tf: { lead: 'S', valency: 1, subsSmiles: 'S(=O)(=O)C(F)(F)F' },
   SO3H: { lead: 'S', valency: 1, subsSmiles: 'S(=O)(=O)O' },
   // Explicit definitions for oxo-acid labels that the formula parser read with too many
-  // double bonds (SO4 as S(=O)(=O)(=O)(=O)). Structures follow Ketcher's fg.sdf; the anionic
-  // forms are drawn ionised, as there. Attachment is through S/P, or O for the esters.
+  // double bonds (SO4 as S(=O)(=O)(=O)(=O)). These are ChemDraw 26.1.0.6801's own expansions,
+  // read back from the nested <fragment> it writes for each label (2026-10-13): the label is read
+  // literally from its first atom, so SO4H attaches through S and carries an O-O bond, and no
+  // charges are inferred. The ionised-looking forms are therefore neutral oxyl radicals; type
+  // SO3- for a sulfonate. Ketcher's fg.sdf draws SO3, SO4H, SO4, PO2, PO3, PO4H2 and PO4
+  // differently (ionised, esters attached through O); ChemDraw wins.
   SO2H: { lead: 'S', valency: 1, subsSmiles: 'S(=O)O' },
-  SO3: { lead: 'S', valency: 1, subsSmiles: 'S(=O)(=O)[O-]' },
-  SO4H: { lead: 'O', valency: 1, subsSmiles: 'OS(=O)(=O)O' },
-  SO4: { lead: 'O', valency: 1, subsSmiles: 'OS(=O)(=O)[O-]' },
-  PO2: { lead: 'P', valency: 1, subsSmiles: 'P(=O)[O-]' },
-  PO3: { lead: 'P', valency: 1, subsSmiles: 'P(=O)([O-])[O-]' },
+  SO3: { lead: 'S', valency: 1, subsSmiles: 'S(=O)(=O)[O]' },
+  SO4H: { lead: 'S', valency: 1, subsSmiles: 'S(=O)(=O)OO' },
+  SO4: { lead: 'S', valency: 1, subsSmiles: 'S(=O)(=O)O[O]' },
+  PO2: { lead: 'P', valency: 1, subsSmiles: 'P(=O)=O' },
+  PO3: { lead: 'P', valency: 1, subsSmiles: 'P(=O)([O])[O]' },
   PO3H2: { lead: 'P', valency: 1, subsSmiles: 'P(=O)(O)O' },
-  PO4H2: { lead: 'O', valency: 1, subsSmiles: 'OP(=O)(O)O' },
-  PO4: { lead: 'O', valency: 1, subsSmiles: 'OP(=O)([O-])[O-]' },
+  PO4H2: { lead: 'P', valency: 1, subsSmiles: 'P(=O)(O)OO' },
+  PO4: { lead: 'P', valency: 1, subsSmiles: 'P(=O)([O])O[O]' },
   Bs: { lead: 'S', valency: 1, subsSmiles: 'S(=O)(=O)c1ccc(Br)cc1' },
   Ds: { lead: 'S', valency: 1, subsSmiles: 'S(=O)(=O)c1ccc2cc(ccc2c1)N(C)C' },
 
