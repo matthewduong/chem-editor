@@ -47,7 +47,7 @@ is still 320-420 ms.
 
 Measured on ChemDraw 26.1.0.6801, 2026-10-13: zigzag and straight multiple-bond placement
 (confirmed), ring and solvent template double-bond placement (fusion side contradicted and
-fixed; 177 of 198 templates match line for line), drawn H counts (contradicted and replaced),
+fixed; 179 of 198 templates match line for line), drawn H counts (contradicted and replaced),
 functional-group labels (7 of 13 contradicted), stereo diagnostics on 912 real wedges.
 
 Still owed:

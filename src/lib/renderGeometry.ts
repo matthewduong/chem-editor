@@ -50,11 +50,17 @@ const MAX_RING_SIZE_OTHER_BONDS = 8;
  */
 function chooseDoubleBondRing(
   bond: Bond,
-  rings: string[][],
+  candidateRings: string[][],
   atomById: Map<string, Atom>,
   adj: Map<string, { neighborId: string; bondId: string }[]>,
   orderByBondId: Map<string, number>,
 ): string[] {
+  let rings = candidateRings;
+  // The measurement covered rings of 4 to 8 atoms. Against a macrocycle that also contains the
+  // bond (a pyrrole of a porphyrin: 5-ring against 16) ChemDraw kept the small ring, so a ring
+  // above 8 atoms only competes when no small ring contains the bond.
+  const small = rings.filter((ring) => ring.length <= MAX_RING_SIZE_OTHER_BONDS);
+  if (small.length > 0) rings = small;
   if (rings.length === 1) return rings[0]!;
   const begin = atomById.get(bond.from);
   const end = atomById.get(bond.to);

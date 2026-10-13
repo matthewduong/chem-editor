@@ -109,3 +109,20 @@ test('double bonds in rings above 8 atoms get an inside-the-ring centroid', () =
   assert.ok(Math.hypot(rings.get('b0').cx, rings.get('b0').cy) < 1e-6);
   assert.equal(rings.has('b1'), false, 'single bonds keep the eight-atom cap');
 });
+
+test('a ring above 8 atoms does not beat a small ring that also contains the bond', () => {
+  // A five-membered ring fused into a 12-membered ring that has more double bonds: ChemDraw kept
+  // the pyrrole-like small ring on the porphyrin and phthalocyanine templates.
+  const A = ringAtoms('a', 5, -1, [], 0);
+  const B = ringAtoms('b', 12, 1, [1, 3, 5, 7], 0);
+  const atoms = [
+    { id: 's1', element: 'C', x: 0, y: 0 },
+    { id: 's2', element: 'C', x: 0, y: L },
+    ...A.atoms,
+    ...B.atoms,
+  ];
+  const bonds = [{ id: 'shared', from: 's2', to: 's1', order: 2 }, ...A.bonds, ...B.bonds];
+  const centroid = computeRingCentroids(atoms, bonds).get('shared');
+  assert.equal(centroid.n, 5);
+  assert.ok(centroid.cx < 0);
+});
