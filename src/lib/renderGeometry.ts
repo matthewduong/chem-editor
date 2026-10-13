@@ -28,6 +28,86 @@ const DEFAULT_MARGIN_TO_BOND_SPACING_RATIO =
   DEFAULT_CHEMDRAW_STYLE_SHEET.marginWidth /
   ((DEFAULT_CHEMDRAW_STYLE_SHEET.bondLength * DEFAULT_CHEMDRAW_STYLE_SHEET.bondSpacingPct) / 100);
 
+/**
+ * Largest ring that still gets an inside-the-ring double bond for the non-double bonds that read
+ * this map. Double bonds are not capped: ChemDraw 26.1.0.6801 drew the inner line of every double
+ * bond of an 18-membered ring (9 of 9) and of a 14-membered one (6 of 7) on the inside.
+ */
+const MAX_RING_SIZE_OTHER_BONDS = 8;
+
+/**
+ * The rings a double bond belongs to, then ChemDraw's pick between them.
+ *
+ * A fusion double bond lies in two rings and ChemDraw draws its inner line in only one. Measured
+ * by rendering 196 bicyclic skeletons (ring sizes 4 to 8, double bonds placed in each ring) to PDF
+ * and reading which side the inner line fell on: the winner is the ring with more double bonds,
+ * then the one with more double bonds conjugated to this one (a ring double bond with an atom
+ * adjacent to this bond's atoms), then the ring on the left of the bond's begin-to-end direction in
+ * screen coordinates. Heteroatoms did not change the result in any case. The last step is a
+ * measured quirk of bond direction, not of drawing order, and reversing the bond flips it.
+ * 142 of 142 cases decided by the first two steps and 52 of 54 decided by the last follow it; the
+ * two exceptions were a cyclobutane fused to a six-membered ring.
+ */
+function chooseDoubleBondRing(
+  bond: Bond,
+  rings: string[][],
+  atomById: Map<string, Atom>,
+  adj: Map<string, { neighborId: string; bondId: string }[]>,
+  orderByBondId: Map<string, number>,
+): string[] {
+  if (rings.length === 1) return rings[0]!;
+  const begin = atomById.get(bond.from);
+  const end = atomById.get(bond.to);
+  if (!begin || !end) return rings[0]!;
+  const neighbours = new Set<string>();
+  for (const id of [bond.from, bond.to])
+    for (const { neighborId } of adj.get(id) ?? []) neighbours.add(neighborId);
+  neighbours.delete(bond.from);
+  neighbours.delete(bond.to);
+
+  const score = (ring: string[]) => {
+    let doubles = 0;
+    let conjugated = 0;
+    for (let i = 0; i < ring.length; i++) {
+      const a = ring[i]!;
+      const b = ring[(i + 1) % ring.length]!;
+      if ((a === bond.from && b === bond.to) || (a === bond.to && b === bond.from)) continue;
+      const bondId = adj.get(a)?.find((edge) => edge.neighborId === b)?.bondId;
+      if (bondId === undefined || orderByBondId.get(bondId) !== 2) continue;
+      doubles++;
+      if (neighbours.has(a) || neighbours.has(b)) conjugated++;
+    }
+    return { doubles, conjugated };
+  };
+  // Left of the direction of travel on a y-down canvas.
+  const wx = end.y - begin.y;
+  const wy = -(end.x - begin.x);
+  const mx = (begin.x + end.x) / 2;
+  const my = (begin.y + end.y) / 2;
+  const leftness = (ring: string[]) => {
+    const cx = ring.reduce((sum, id) => sum + (atomById.get(id)?.x ?? 0), 0) / ring.length;
+    const cy = ring.reduce((sum, id) => sum + (atomById.get(id)?.y ?? 0), 0) / ring.length;
+    return (cx - mx) * wx + (cy - my) * wy;
+  };
+
+  let best = rings[0]!;
+  let bestScore = score(best);
+  for (const ring of rings.slice(1)) {
+    const candidate = score(ring);
+    const better =
+      candidate.doubles !== bestScore.doubles
+        ? candidate.doubles > bestScore.doubles
+        : candidate.conjugated !== bestScore.conjugated
+          ? candidate.conjugated > bestScore.conjugated
+          : leftness(ring) > leftness(best);
+    if (better) {
+      best = ring;
+      bestScore = candidate;
+    }
+  }
+  return best;
+}
+
 export function computeRingCentroids(
   atoms: Atom[],
   bonds: Bond[],
@@ -40,8 +120,12 @@ export function computeRingCentroids(
   }
 
   const atomById = new Map(atoms.map((atom) => [atom.id, atom]));
-  const result = new Map<string, { cx: number; cy: number; n: number }>();
-  for (const bond of bonds) {
+  const orderByBondId = new Map(bonds.map((bond) => [bond.id, bond.order]));
+
+  /** Shortest ring through `bond`; `side` restricts the first step to one side of the bond. */
+  const shortestRing = (bond: Bond, side: 0 | 1 | -1): string[] | null => {
+    const begin = atomById.get(bond.from);
+    const end = atomById.get(bond.to);
     const prev = new Map<string, string>();
     const queue = [bond.from];
     prev.set(bond.from, '');
@@ -51,6 +135,14 @@ export function computeRingCentroids(
       const current = queue.shift()!;
       for (const { neighborId, bondId } of adj.get(current) ?? []) {
         if (bondId === bond.id || prev.has(neighborId)) continue;
+        if (side !== 0 && current === bond.from && begin && end) {
+          const neighbour = atomById.get(neighborId);
+          if (!neighbour) continue;
+          const cross =
+            (end.x - begin.x) * (neighbour.y - begin.y) -
+            (end.y - begin.y) * (neighbour.x - begin.x);
+          if (Math.sign(cross) !== side) continue;
+        }
         prev.set(neighborId, current);
         if (neighborId === bond.to) {
           found = true;
@@ -60,20 +152,42 @@ export function computeRingCentroids(
       }
     }
 
-    if (!found) continue;
+    if (!found) return null;
     const ring: string[] = [];
     let current = bond.to;
     while (current !== '') {
       ring.push(current);
       current = prev.get(current)!;
     }
-    if (ring.length > 8) continue;
+    return ring;
+  };
+
+  const result = new Map<string, { cx: number; cy: number; n: number }>();
+  for (const bond of bonds) {
+    let ring = shortestRing(bond, 0);
+    if (!ring) continue;
+    if (bond.order === 2) {
+      const candidates = [ring];
+      for (const side of [1, -1] as const) {
+        const other = shortestRing(bond, side);
+        if (other && !candidates.some((c) => sameAtoms(c, other))) candidates.push(other);
+      }
+      ring = chooseDoubleBondRing(bond, candidates, atomById, adj, orderByBondId);
+    } else if (ring.length > MAX_RING_SIZE_OTHER_BONDS) {
+      continue;
+    }
 
     const cx = ring.reduce((sum, id) => sum + (atomById.get(id)?.x ?? 0), 0) / ring.length;
     const cy = ring.reduce((sum, id) => sum + (atomById.get(id)?.y ?? 0), 0) / ring.length;
     result.set(bond.id, { cx, cy, n: ring.length });
   }
   return result;
+}
+
+function sameAtoms(a: string[], b: string[]): boolean {
+  if (a.length !== b.length) return false;
+  const set = new Set(a);
+  return b.every((id) => set.has(id));
 }
 
 export function isAtomLabelVisible(atom: Atom, connectedBondCount: number): boolean {
