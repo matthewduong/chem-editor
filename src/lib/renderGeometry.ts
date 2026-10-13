@@ -938,6 +938,44 @@ function getFullLabelMetrics(
   };
 }
 
+/**
+ * The clip of a label with no element to anchor on (X, R1, Boc, a nickname).
+ *
+ * ChemDraw 26.1.0.6801 (2026-10-13), 48 bonds into X, R, Ar, Boc, Ph and TBS at eight angles:
+ * every one stops 4.1-7.0pt from the atom at 10pt, whatever the label's length. A Left-justified
+ * label is clipped by its first letter, a Right-justified one by its last, so a bond to a long
+ * label's far side runs into the text instead of stopping at a box the size of the whole word.
+ * Only a label centred as a whole (three or more bonds) is clipped by its full width.
+ */
+function getAnchorLetterLabelMetrics(
+  atom: Atom,
+  atoms: Atom[],
+  bonds: Bond[],
+  labelText: string,
+  fontSize: number,
+  documentStyleSettings?: DocumentStyleSettings | null,
+): LabelClipMetrics {
+  const letters = [...labelText];
+  if (letters.length === 0) return getFullLabelMetrics(labelText, fontSize, documentStyleSettings);
+  const mode = resolveElementLabelAnchor(atom, atoms, bonds);
+  const halfHeight = getAtomLabelCapHeight(fontSize) / 2 + 1;
+  if (mode === 'whole') {
+    return {
+      halfWidth: measureLabelSegmentWidth(labelText, fontSize, documentStyleSettings) / 2 + 1,
+      halfHeight,
+      clipMode: 'rect',
+    };
+  }
+  const letter = mode === 'first' ? letters[0]! : letters[letters.length - 1]!;
+  const halfWidth = measureLabelSegmentWidth(letter, fontSize, documentStyleSettings) / 2 + 1;
+  return {
+    halfWidth,
+    halfHeight,
+    clipMode: 'circle',
+    clipRadius: getLeadElementClipRadius(fontSize, halfWidth, halfHeight, documentStyleSettings),
+  };
+}
+
 function getLeadElementClipRadius(
   fontSize: number,
   halfWidth: number,
@@ -1036,7 +1074,8 @@ function getAtomLabelMetrics(
     getLeadElementLabelMetrics(atom, labelText, fontSize, documentStyleSettings, {
       atoms,
       bonds,
-    }) ?? getFullLabelMetrics(labelText, fontSize, documentStyleSettings);
+    }) ??
+    getAnchorLetterLabelMetrics(atom, atoms, bonds, labelText, fontSize, documentStyleSettings);
   return withChargeAdornment(metrics, atom, labelText, fontSize, documentStyleSettings);
 }
 

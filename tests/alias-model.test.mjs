@@ -533,13 +533,19 @@ test('bond clipping uses the lead element token for known shorthand aliases', ()
   assert.ok(Math.abs(clip - leadElementClip('N', 16)) < 1e-9);
 });
 
-test('bond clipping falls back to the full label box when no lead token is present', () => {
-  const atom = baseAtom({ kind: 'alias', element: 'C', alias: 'foo', labelFontSize: 16 });
-  const clip = getAtomBondClipOffset(atom, [atom], [], 1, 0);
-
-  // 'foo' measures ~21px at 16px, under the 22px minimum label box, so the clip comes from the
-  // minimum rather than the text. The old 0.75em-per-character estimate put it at 36px.
-  assert.ok(Math.abs(clip - 12.12109375) < 1e-6, `clip was ${clip}`);
+// ChemDraw 26.1.0.6801 (2026-10-13), 48 bonds into X, R, Ar, Boc, Ph and TBS: every one stops
+// 4.1-7.0pt from the atom at 10pt, however long the label. No bond ever stops at a box the size of
+// the word (the old fallback gave 12-14pt, and X an 11pt minimum-width box).
+test('a label with no element to anchor on clips on one letter, not the whole word', () => {
+  const clipFor = (alias) => {
+    const atom = baseAtom({ kind: 'alias', element: 'C', alias, labelFontSize: 10 });
+    return getAtomBondClipOffset(atom, [atom], [], 1, 0);
+  };
+  for (const alias of ['X', 'R', 'Boc', 'foo']) {
+    const clip = clipFor(alias);
+    assert.ok(clip >= 4 && clip <= 7.2, `${alias} clipped at ${clip}`);
+  }
+  assert.equal(clipFor('Boc'), clipFor('Bocccc'));
 });
 
 // ChemDraw 26.1.0.6801 (2026-10-13): a bond into Cl or Br stops 2.4-5.8pt from the atom at 10pt,
