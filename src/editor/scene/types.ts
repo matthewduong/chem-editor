@@ -9,6 +9,7 @@ import type {
 import type { DocumentStyleSettings, DocumentViewSettings, PageSetup } from '../../types/settings';
 import type { DocumentIndex } from '../document';
 import type { EditorViewportBounds } from '../types';
+import type { AtomLabelMetricsCache } from '../../lib/renderGeometry';
 
 export interface LegacyCanvasSceneState {
   atoms: Atom[];
@@ -26,6 +27,8 @@ export interface LegacyCanvasSceneState {
   nativeArrows: Map<string, ChemDrawArrow>;
   ringCentroids: Map<string, { cx: number; cy: number; n: number }>;
   bondVisibleIntervals: Map<string, Array<[number, number]>>;
+  /** Per-scene memo of label metrics, filled lazily by the bond painter. */
+  labelMetricsCache?: AtomLabelMetricsCache;
 }
 
 export interface DocumentSceneState {

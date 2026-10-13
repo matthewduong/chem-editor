@@ -7,7 +7,11 @@ import type {
 } from '../../types/chemdraw';
 import type { DocumentStyleSettings, DocumentViewSettings, PageSetup } from '../../types/settings';
 import { convertNativeToCanvas } from '../../lib/chemdrawMetrics';
-import { computeBondVisibleIntervals, computeRingCentroids } from '../../lib/renderGeometry';
+import {
+  computeAllBondVisibleIntervals,
+  computeRingCentroids,
+  type AtomLabelMetricsCache,
+} from '../../lib/renderGeometry';
 import { buildDocumentIndex, buildDocumentIndexUncached } from '../document';
 import type { DocumentSceneState, LegacyCanvasSceneState } from './types';
 
@@ -122,6 +126,7 @@ export function buildLegacySceneStateUncached(
       : documentStyleSettings.bondLineWidth;
   };
 
+  const labelMetricsCache: AtomLabelMetricsCache = new Map();
   return {
     atoms,
     bonds,
@@ -137,12 +142,14 @@ export function buildLegacySceneStateUncached(
     nativeBonds,
     nativeArrows,
     ringCentroids: computeRingCentroids(atoms, bonds),
-    bondVisibleIntervals: new Map(
-      bonds.map((bond) => [
-        bond.id,
-        computeBondVisibleIntervals(bond, atoms, bonds, resolveLineWidth, documentStyleSettings),
-      ]),
+    bondVisibleIntervals: computeAllBondVisibleIntervals(
+      atoms,
+      bonds,
+      resolveLineWidth,
+      documentStyleSettings,
+      labelMetricsCache,
     ),
+    labelMetricsCache,
   };
 }
 

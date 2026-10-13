@@ -890,6 +890,28 @@ function getAtomLabelMetrics(
   );
 }
 
+type AtomLabelMetrics = ReturnType<typeof getAtomLabelMetrics>;
+/**
+ * Label metrics depend only on the atom, the graph and the style settings, never on the bond
+ * direction, so a scene can share one result per atom. Keyed by atom object, which keeps the
+ * result exact even when a malformed document repeats an id.
+ */
+export type AtomLabelMetricsCache = Map<Atom, AtomLabelMetrics>;
+
+function cachedAtomLabelMetrics(
+  atom: Atom,
+  atoms: Atom[],
+  bonds: Bond[],
+  documentStyleSettings?: DocumentStyleSettings | null,
+  cache?: AtomLabelMetricsCache,
+): AtomLabelMetrics {
+  if (!cache) return getAtomLabelMetrics(atom, atoms, bonds, documentStyleSettings);
+  if (cache.has(atom)) return cache.get(atom) as AtomLabelMetrics;
+  const metrics = getAtomLabelMetrics(atom, atoms, bonds, documentStyleSettings);
+  cache.set(atom, metrics);
+  return metrics;
+}
+
 function intersectRayWithRect(ux: number, uy: number, rect: LabelClipMetrics): number | null {
   const minX = -rect.halfWidth;
   const maxX = rect.halfWidth;
@@ -930,8 +952,9 @@ export function getAtomBondClipOffset(
   ux: number,
   uy: number,
   documentStyleSettings?: DocumentStyleSettings | null,
+  metricsCache?: AtomLabelMetricsCache,
 ): number {
-  const metrics = getAtomLabelMetrics(atom, atoms, bonds, documentStyleSettings);
+  const metrics = cachedAtomLabelMetrics(atom, atoms, bonds, documentStyleSettings, metricsCache);
   if (!metrics) return 0;
 
   const fontSize = atom.labelFontSize ?? getDefaultAtomLabelFontSize(documentStyleSettings);
@@ -959,9 +982,15 @@ function getBondSegment(
   atoms: Atom[],
   bonds: Bond[],
   documentStyleSettings?: DocumentStyleSettings | null,
+  lookups?: { atomById: Map<string, Atom>; metricsCache: AtomLabelMetricsCache },
 ): BondSegment | null {
-  const fromAtom = atoms.find((atom) => atom.id === bond.from);
-  const toAtom = atoms.find((atom) => atom.id === bond.to);
+  // `atomById` keeps the first atom per id, matching `find`.
+  const fromAtom = lookups
+    ? lookups.atomById.get(bond.from)
+    : atoms.find((atom) => atom.id === bond.from);
+  const toAtom = lookups
+    ? lookups.atomById.get(bond.to)
+    : atoms.find((atom) => atom.id === bond.to);
   if (!fromAtom || !toAtom) return null;
 
   const dx = toAtom.x - fromAtom.x;
@@ -971,8 +1000,24 @@ function getBondSegment(
 
   const ux = dx / length;
   const uy = dy / length;
-  const startClip = getAtomBondClipOffset(fromAtom, atoms, bonds, ux, uy, documentStyleSettings);
-  const endClip = getAtomBondClipOffset(toAtom, atoms, bonds, -ux, -uy, documentStyleSettings);
+  const startClip = getAtomBondClipOffset(
+    fromAtom,
+    atoms,
+    bonds,
+    ux,
+    uy,
+    documentStyleSettings,
+    lookups?.metricsCache,
+  );
+  const endClip = getAtomBondClipOffset(
+    toAtom,
+    atoms,
+    bonds,
+    -ux,
+    -uy,
+    documentStyleSettings,
+    lookups?.metricsCache,
+  );
   return {
     sX: fromAtom.x + ux * startClip,
     sY: fromAtom.y + uy * startClip,
@@ -995,17 +1040,19 @@ function mergeIntervals(intervals: Array<[number, number]>): Array<[number, numb
   return merged;
 }
 
-export function computeBondVisibleIntervals(
+/**
+ * The crossing test itself. `segmentAt(i)` supplies the visible segment of `bonds[i]`; the
+ * caller decides whether that is computed on demand or looked up from a table built once.
+ */
+function visibleIntervalsFromSegments(
   bond: Bond,
-  atoms: Atom[],
+  bondIndex: number,
   bonds: Bond[],
   resolveLineWidth: (bond: Bond) => number,
-  documentStyleSettings?: DocumentStyleSettings | null,
+  targetSegment: BondSegment | null,
+  segmentAt: (index: number) => BondSegment | null,
 ): Array<[number, number]> {
-  const bondIndex = bonds.findIndex((entry) => entry.id === bond.id);
   if (bondIndex < 0) return [[0, 1]];
-
-  const targetSegment = getBondSegment(bond, atoms, bonds, documentStyleSettings);
   if (!targetSegment) return [[0, 1]];
 
   const occlusions: Array<[number, number]> = [];
@@ -1015,7 +1062,7 @@ export function computeBondVisibleIntervals(
 
   for (let i = bondIndex + 1; i < bonds.length; i += 1) {
     const upperBond = bonds[i];
-    const upperSegment = getBondSegment(upperBond, atoms, bonds, documentStyleSettings);
+    const upperSegment = segmentAt(i);
     if (!upperSegment) continue;
 
     const upperDx = upperSegment.eX - upperSegment.sX;
@@ -1049,4 +1096,63 @@ export function computeBondVisibleIntervals(
   }
   if (1 - cursor >= 0.02) visible.push([cursor, 1]);
   return visible.length > 0 ? visible : [];
+}
+
+/** Visible intervals of one bond. Prefer `computeAllBondVisibleIntervals` for a whole scene. */
+export function computeBondVisibleIntervals(
+  bond: Bond,
+  atoms: Atom[],
+  bonds: Bond[],
+  resolveLineWidth: (bond: Bond) => number,
+  documentStyleSettings?: DocumentStyleSettings | null,
+): Array<[number, number]> {
+  const bondIndex = bonds.findIndex((entry) => entry.id === bond.id);
+  if (bondIndex < 0) return [[0, 1]];
+  return visibleIntervalsFromSegments(
+    bond,
+    bondIndex,
+    bonds,
+    resolveLineWidth,
+    getBondSegment(bond, atoms, bonds, documentStyleSettings),
+    (index) => getBondSegment(bonds[index], atoms, bonds, documentStyleSettings),
+  );
+}
+
+/**
+ * Visible intervals of every bond. A bond's clipped segment depends only on its own two atoms,
+ * so each is computed once and shared by every crossing test, instead of once per lower bond.
+ * Results are identical to calling `computeBondVisibleIntervals` per bond.
+ */
+export function computeAllBondVisibleIntervals(
+  atoms: Atom[],
+  bonds: Bond[],
+  resolveLineWidth: (bond: Bond) => number,
+  documentStyleSettings?: DocumentStyleSettings | null,
+  metricsCache: AtomLabelMetricsCache = new Map(),
+): Map<string, Array<[number, number]>> {
+  const atomById = new Map<string, Atom>();
+  for (const atom of atoms) if (!atomById.has(atom.id)) atomById.set(atom.id, atom);
+  const firstIndex = new Map<string, number>();
+  bonds.forEach((bond, index) => {
+    if (!firstIndex.has(bond.id)) firstIndex.set(bond.id, index);
+  });
+  const lookups = { atomById, metricsCache };
+  const segments = bonds.map((bond) =>
+    getBondSegment(bond, atoms, bonds, documentStyleSettings, lookups),
+  );
+  const intervals = new Map<string, Array<[number, number]>>();
+  bonds.forEach((bond, index) => {
+    intervals.set(
+      bond.id,
+      visibleIntervalsFromSegments(
+        bond,
+        firstIndex.get(bond.id) ?? -1,
+        bonds,
+        resolveLineWidth,
+        segments[index],
+        (i) => segments[i],
+      ),
+    );
+  });
+  return intervals;
 }

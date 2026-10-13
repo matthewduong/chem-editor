@@ -37,6 +37,7 @@ export const BOND_MODULE: ObjectModule = {
       unitX,
       unitY,
       scene.documentStyleSettings,
+      scene.legacy.labelMetricsCache,
     );
     const endClip = getAtomBondClipOffset(
       toAtom,
@@ -45,6 +46,7 @@ export const BOND_MODULE: ObjectModule = {
       -unitX,
       -unitY,
       scene.documentStyleSettings,
+      scene.legacy.labelMetricsCache,
     );
     const startX = fromAtom.x + unitX * startClip;
     const startY = fromAtom.y + unitY * startClip;
