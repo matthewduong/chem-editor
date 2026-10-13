@@ -56,7 +56,7 @@ export interface AtomAliasCandidateSnapshot {
   id: string;
   label: string;
   semanticKind: AtomAliasSemanticKind;
-  source: 'shorthand' | 'parsed' | 'ligand' | 'rewrite';
+  source: 'shorthand' | 'parsed' | 'ligand' | 'rewrite' | 'compound';
   subsSmiles?: string;
 }
 
@@ -138,6 +138,8 @@ export interface TextRun {
   italic?: boolean;
   sub?: boolean;
   sup?: boolean;
+  /** ChemDraw's formula face (96): digits are subscripted when the run is drawn. */
+  formula?: boolean;
   color?: string;
 }
 

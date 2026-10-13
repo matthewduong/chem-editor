@@ -587,7 +587,18 @@ function StructureFragmentIcon({
 }
 
 const ELEMENT_SHORTCUTS = ['C', 'N', 'O', 'S', 'P', 'F', 'Cl', 'Br', 'H', 'D'];
-const SHORTHAND_GROUP_ORDER = ['amino-acids', 'C', 'N', 'O', 'S', 'Si', 'B', 'P', 'other'] as const;
+const SHORTHAND_GROUP_ORDER = [
+  'amino-acids',
+  'C',
+  'N',
+  'O',
+  'S',
+  'Si',
+  'B',
+  'P',
+  'other',
+  'compounds',
+] as const;
 const SHORTHAND_GROUP_LABELS: Record<string, string> = {
   'amino-acids': 'Amino Acids',
   C: 'Carbon',
@@ -598,14 +609,17 @@ const SHORTHAND_GROUP_LABELS: Record<string, string> = {
   B: 'Boron',
   P: 'Phosphorus',
   other: 'Other',
+  compounds: 'Compounds (solvents, reagents, catalysts)',
 };
 const SHORTHAND_LIBRARY = SUPPORTED_ALIAS_LIBRARY.map((entry) => ({
   ...entry,
   group: AMINO_ACID_SHORTHANDS.has(entry.label)
     ? 'amino-acids'
-    : SHORTHAND_GROUP_LABELS[entry.lead]
-      ? entry.lead
-      : 'other',
+    : entry.source === 'compound'
+      ? 'compounds'
+      : SHORTHAND_GROUP_LABELS[entry.lead]
+        ? entry.lead
+        : 'other',
 })).sort((a, b) => {
   const groupDelta =
     SHORTHAND_GROUP_ORDER.indexOf(a.group as (typeof SHORTHAND_GROUP_ORDER)[number]) -

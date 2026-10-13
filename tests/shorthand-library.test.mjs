@@ -22,7 +22,11 @@ test('alias library entries resolve with the advertised support level', () => {
     assert.equal(canonical.lead, entry.lead, entry.label);
     assert.equal(Boolean(canonical.subsSmiles), entry.chemistryAvailable, entry.label);
 
-    const resolution = resolveAliasChemistry(entry.label);
+    // A whole-molecule acronym is that molecule on an atom with no bonds.
+    const resolution = resolveAliasChemistry(
+      entry.label,
+      entry.source === 'compound' ? { attachments: 0 } : undefined,
+    );
     if (!resolution.ok) continue;
 
     assert.equal(resolution.selected?.entry.lead, entry.lead, entry.label);
@@ -52,7 +56,10 @@ test('alias library support buckets stay internally consistent', () => {
     assert.equal(seenLabels.has(entry.label), false, `duplicate library label: ${entry.label}`);
     seenLabels.add(entry.label);
 
-    const resolution = resolveAliasChemistry(entry.label);
+    const resolution = resolveAliasChemistry(
+      entry.label,
+      entry.source === 'compound' ? { attachments: 0 } : undefined,
+    );
     assert.equal(resolution.ok, true, entry.label);
 
     if (entry.support === 'coordination') {

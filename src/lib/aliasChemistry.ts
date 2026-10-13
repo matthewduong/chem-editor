@@ -4,6 +4,8 @@ import type {
   AtomAliasSemanticKind,
 } from '../types/chemistry';
 import { VALENCIES, isElementSymbol } from './elements';
+import { COMPOUND_DATA } from './compounds';
+import { smilesStructureKey } from './smilesKey';
 import { SHORTHAND_DATA, type ShorthandEntry } from './shorthand';
 
 export type AliasChemistryFailureReason =
@@ -17,7 +19,7 @@ export interface AliasChemistryCandidate {
   id: string;
   entry: ShorthandEntry;
   score: number;
-  source: 'shorthand' | 'parsed' | 'ligand' | 'rewrite';
+  source: 'shorthand' | 'parsed' | 'ligand' | 'rewrite' | 'compound';
   displayLabel: string;
   semanticKind: AtomAliasSemanticKind;
   subsSmiles?: string;
@@ -38,6 +40,11 @@ export interface AliasChemistryValidationResult {
 }
 
 export interface AliasChemistryOptions {
+  /**
+   * Bonds on the atom carrying the label, when known. With none, a whole-molecule acronym (DMF,
+   * THF) resolves to its compound; with one or more it can only be a substituent.
+   */
+  attachments?: number;
   maxCandidates?: number;
   validateSmiles?: (smiles: string) => AliasChemistryValidationResult;
   preferredCandidateId?: string;
@@ -46,12 +53,13 @@ export interface AliasChemistryOptions {
 }
 
 export type AliasLibrarySupport = 'structure' | 'coordination' | 'display-only';
+export type AliasLibrarySource = 'shorthand' | 'ligand' | 'compound';
 
 export interface AliasLibraryEntry {
   label: string;
   lead: string;
   valency: number;
-  source: 'shorthand' | 'ligand';
+  source: AliasLibrarySource;
   support: AliasLibrarySupport;
   chemistryAvailable: boolean;
   hasCoordinationOption: boolean;
@@ -334,7 +342,9 @@ export function getAliasLibraryIssues(): string[] {
 export function getCanonicalAliasEntry(label: string | undefined): ShorthandEntry | undefined {
   const trimmed = label?.trim();
   if (!trimmed) return undefined;
-  return LEGACY_REGISTRY[trimmed] ?? CANONICAL_LIGAND_REGISTRY[trimmed];
+  return (
+    LEGACY_REGISTRY[trimmed] ?? CANONICAL_LIGAND_REGISTRY[trimmed] ?? COMPOUND_REGISTRY[trimmed]
+  );
 }
 
 const TERMINAL_ELEMENTS = new Set(['H', 'F', 'Cl', 'Br', 'I']);
@@ -389,6 +399,31 @@ export function buildAliasResolutionSnapshot(
     candidates: resolution.candidates.map(toCandidateSnapshot),
   };
 }
+
+function leadElementOfSmiles(smiles: string): string {
+  const match = /^(?:\[(?:\d+)?([A-Z][a-z]?)|([A-Z][a-z]?)|([a-z]))/.exec(smiles);
+  const symbol = match?.[1] ?? match?.[2] ?? match?.[3]?.toUpperCase() ?? 'C';
+  return symbol === 'Cl' || symbol === 'Br' || symbol.length <= 2 ? symbol : 'C';
+}
+
+export const COMPOUND_LABEL_PREFIX = 'compound:';
+
+/** Whole-molecule acronyms as registry entries; valency 0 marks them as non-substituents. */
+const COMPOUND_REGISTRY: Record<string, AliasRegistryEntry> = Object.fromEntries(
+  COMPOUND_DATA.flatMap((compound) =>
+    compound.labels.map((label) => [
+      label,
+      {
+        key: label,
+        lead: leadElementOfSmiles(compound.smiles),
+        valency: 0,
+        subsSmiles: compound.smiles,
+        source: 'shorthand' as const,
+        semanticKind: 'covalent' as const,
+      },
+    ]),
+  ),
+);
 
 function registryEntriesForLabel(label: string): AliasRegistryEntry[] {
   const entries: AliasRegistryEntry[] = [];
@@ -589,11 +624,67 @@ function parseAliasToken(input: string, pos: number): { node: AliasNode; pos: nu
   return null;
 }
 
+/**
+ * Elements that letters in an arbitrary label must not be read as.
+ *
+ * Reading `THF` as tritium-hydrogen-fluoride or `DBU` as D-B-uranium gave labels a structure that
+ * looked resolved and was nonsense. Heavy radioactive elements and yttrium/technetium/promethium
+ * never come from letters of an abbreviation; D and T count only when the label has a digit, as in
+ * CD3, CDCl3 or D2O.
+ */
+const NEVER_INFERRED = new Set([
+  'Y',
+  'Tc',
+  'Pm',
+  'Po',
+  'At',
+  'Rn',
+  'Fr',
+  'Ra',
+  'Ac',
+  'Th',
+  'Pa',
+  'U',
+  'Np',
+  'Pu',
+  'Am',
+  'Cm',
+  'Bk',
+  'Cf',
+  'Es',
+  'Fm',
+  'Md',
+  'No',
+  'Lr',
+  'Rf',
+  'Db',
+  'Sg',
+  'Bh',
+  'Hs',
+  'Mt',
+  'Ds',
+  'Rg',
+  'Cn',
+  'Nh',
+  'Fl',
+  'Mc',
+  'Lv',
+  'Ts',
+  'Og',
+]);
+
+function isInferableElement(symbol: string, label: string): boolean {
+  if (NEVER_INFERRED.has(symbol)) return false;
+  if ((symbol === 'D' || symbol === 'T') && !/[0-9]/.test(label)) return false;
+  return true;
+}
+
 function parseElementToken(input: string, pos: number): { node: AliasNode; pos: number } | null {
   const two = input.slice(pos, pos + 2);
   const one = input.slice(pos, pos + 1);
   const symbol = isElementSymbol(two) ? two : isElementSymbol(one) ? one : null;
   if (!symbol) return null;
+  if (!isInferableElement(symbol, input)) return null;
 
   const node = createElementNode(symbol);
   let cursor = pos + symbol.length;
@@ -915,6 +1006,7 @@ function rankCandidates(candidates: AliasChemistryCandidate[]): AliasChemistryCa
       const sourceRank: Record<AliasChemistryCandidate['source'], number> = {
         rewrite: 0,
         shorthand: 1,
+        compound: 1,
         parsed: 2,
         ligand: 3,
       };
@@ -938,6 +1030,25 @@ export function resolveAliasChemistry(
   const trimmed = label?.trim();
   if (!trimmed) return { ok: false, reason: 'empty', candidates: [] };
 
+  const compound = COMPOUND_REGISTRY[trimmed];
+  const compoundCandidate: AliasChemistryCandidate | null = compound
+    ? {
+        id: makeCandidateId(trimmed, 'compound', 'covalent', compound.subsSmiles),
+        entry: compound,
+        source: 'compound',
+        displayLabel: trimmed,
+        semanticKind: 'covalent',
+        score: 0,
+        subsSmiles: compound.subsSmiles,
+      }
+    : null;
+  // An atom with no bonds that carries a whole-molecule acronym is that molecule. This wins over a
+  // substituent of the same name (THF is tetrahydrofuran here, tetrahydrofuranyl once bonded).
+  if (compoundCandidate && options.attachments === 0) {
+    const validated = refineCandidatesWithValidation([compoundCandidate], options.validateSmiles);
+    return { ok: true, selected: validated[0], candidates: validated };
+  }
+
   const registryCandidates: AliasChemistryCandidate[] = registryEntriesForLabel(trimmed).map(
     (entry) => ({
       id: makeCandidateId(trimmed, entry.source, entry.semanticKind, entry.subsSmiles),
@@ -949,11 +1060,25 @@ export function resolveAliasChemistry(
       subsSmiles: entry.subsSmiles,
     }),
   );
-  const baseCandidates: AliasChemistryCandidate[] = [
-    ...registryCandidates,
+  const inferred = [
     ...inferRewriteCandidates(trimmed),
     ...inferCompositeAliasCandidates(trimmed, options.maxCandidates ?? 12),
   ];
+  // Inference (the formula parser, rewrites) keeps its candidates when the atom is bonded or its
+  // context is unknown. A named compound only stands in when nothing else describes the label,
+  // which is how a library entry such as `DMF` is listed without an atom to look at.
+  // A label that names a whole molecule has no substituent reading on a bonded atom: NBS is not
+  // nitrogen-boron-sulfur. Defined substituent entries of the same name (THF, TFA) still apply.
+  const inferredAndRegistry: AliasChemistryCandidate[] =
+    compound && (options.attachments ?? 0) > 0 && registryCandidates.length === 0
+      ? []
+      : [...registryCandidates, ...inferred];
+  const baseCandidates: AliasChemistryCandidate[] =
+    inferredAndRegistry.length === 0 && compoundCandidate && options.attachments !== undefined
+      ? []
+      : inferredAndRegistry.length === 0 && compoundCandidate
+        ? [compoundCandidate]
+        : inferredAndRegistry;
 
   if (baseCandidates.length === 0) {
     return { ok: false, reason: 'unsupported_syntax', candidates: [] };
@@ -971,6 +1096,13 @@ export function resolveAliasChemistry(
   }
 
   let usable = viable.length > 0 ? viable : ranked;
+  // A label the registry lists by name is defined, not inferred: when inference (the formula
+  // parser, a rewrite) also produces a candidate it must not make the label ambiguous.
+  const registryIds = new Set(registryCandidates.map((candidate) => candidate.id));
+  const defined = usable.filter(
+    (candidate) => registryIds.has(candidate.id) && candidate.source === 'shorthand',
+  );
+  if (defined.length > 0) usable = defined;
   if (options.preferredCandidateId) {
     const preferred = usable.find((candidate) => candidate.id === options.preferredCandidateId);
     if (preferred) {
@@ -980,8 +1112,13 @@ export function resolveAliasChemistry(
   if (usable.length > 1) {
     const first = usable[0];
     const second = usable[1];
-    const firstKey = first.canonicalSmiles ?? first.subsSmiles ?? '';
-    const secondKey = second.canonicalSmiles ?? second.subsSmiles ?? '';
+    // Compare structures, not spellings: `NCC` and `N(CC)` are one substituent.
+    const keyOf = (candidate: AliasChemistryCandidate) => {
+      const smiles = candidate.canonicalSmiles ?? candidate.subsSmiles ?? '';
+      return `${candidate.entry.lead}:${candidate.entry.valency}:${smiles ? smilesStructureKey(smiles) : ''}`;
+    };
+    const firstKey = keyOf(first);
+    const secondKey = keyOf(second);
     if (first.score === second.score && firstKey !== secondKey) {
       return { ok: false, reason: 'ambiguous', candidates: usable };
     }
@@ -995,7 +1132,10 @@ function buildAliasLibraryEntry(
   source: AliasLibraryEntry['source'],
   fallback: Pick<AliasRegistryEntry, 'lead' | 'valency' | 'semanticKind' | 'subsSmiles'>,
 ): AliasLibraryEntry {
-  const resolution = resolveAliasChemistry(label);
+  const resolution = resolveAliasChemistry(
+    label,
+    source === 'compound' ? { attachments: 0 } : undefined,
+  );
   const selected = resolution.selected;
   const selectedKind = selected?.semanticKind ?? fallback.semanticKind;
   return {
@@ -1023,6 +1163,9 @@ export const SUPPORTED_ALIAS_LIBRARY: AliasLibraryEntry[] = [
   ...Object.entries(CANONICAL_LIGAND_REGISTRY).map(([label, entry]) =>
     buildAliasLibraryEntry(label, 'ligand', entry),
   ),
+  ...Object.keys(COMPOUND_REGISTRY)
+    .filter((label) => !(label in LEGACY_REGISTRY) && !(label in CANONICAL_LIGAND_REGISTRY))
+    .map((label) => buildAliasLibraryEntry(label, 'compound', COMPOUND_REGISTRY[label]!)),
 ].sort((left, right) => left.label.localeCompare(right.label, undefined, { numeric: true }));
 
 export function getAliasChemistry(
@@ -1047,7 +1190,14 @@ export function expandAliasSmiles(
   let ringCounter = 10;
 
   for (const [mapNumber, label] of aliasMap) {
-    const entry = getAliasChemistry(label, options);
+    // `compound:` marks a label that stands for a whole molecule on an atom with no bonds, so a
+    // name that is also a substituent (THF) cannot be read as the substituent here.
+    const compoundLabel = label.startsWith(COMPOUND_LABEL_PREFIX)
+      ? label.slice(COMPOUND_LABEL_PREFIX.length)
+      : null;
+    const entry = compoundLabel
+      ? COMPOUND_REGISTRY[compoundLabel]
+      : getAliasChemistry(label, options);
     if (!entry?.subsSmiles) continue;
     const pattern = new RegExp(
       `\\[${entry.lead}[^\\]]*:${mapNumber}\\]|\\[${entry.lead.toLowerCase()}[^\\]]*:${mapNumber}\\]`,

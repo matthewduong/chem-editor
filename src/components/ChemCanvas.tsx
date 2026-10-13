@@ -865,15 +865,24 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
   } | null>(null);
 
   const aliasValidator = useMemo(() => buildAliasValidator(rdkit), [rdkit]);
+  // The bonds an atom has decide whether a whole-molecule acronym (DMF) is that molecule or a
+  // substituent, so the resolver reads them through a ref rather than closing over stale state.
+  const aliasBondsRef = useRef(bonds);
+  aliasBondsRef.current = bonds;
   const resolveAliasForAtom = useMemo(() => {
     return (atom: Atom, label: string | undefined) => {
       if (!label) return { ok: false, reason: 'empty' as const, candidates: [] };
-      const key = `${label.trim()}::${atom.aliasResolution?.selectedCandidateId ?? ''}`;
+      const attachments = aliasBondsRef.current.reduce(
+        (count, bond) => count + (bond.from === atom.id || bond.to === atom.id ? 1 : 0),
+        0,
+      );
+      const key = `${label.trim()}::${atom.aliasResolution?.selectedCandidateId ?? ''}::${attachments === 0 ? 0 : 1}`;
       const cached = aliasResolutionCacheRef.current.get(key);
       if (cached) return cached;
       const resolution = resolveAliasChemistry(label, {
         validateSmiles: aliasValidator,
         preferredCandidateId: atom.aliasResolution?.selectedCandidateId,
+        attachments,
       });
       aliasResolutionCacheRef.current.set(key, resolution);
       return resolution;

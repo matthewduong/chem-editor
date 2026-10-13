@@ -1,6 +1,6 @@
 import type { Atom, Bond, CanvasState } from '../types/chemistry';
 import { getAtomAlias, getAtomNodeText, getAtomKind, getAtomLeadElement } from './atomIdentity';
-import { getAliasChemistry } from './aliasChemistry';
+import { COMPOUND_LABEL_PREFIX, getAliasChemistry } from './aliasChemistry';
 import type { ShorthandEntry } from './shorthand';
 
 /** Canvas pixels per Å — matches ChemDraw 30pt bond = 1.5Å standard C-C */
@@ -352,7 +352,7 @@ export function graphToMolblock(
   bonds: Bond[],
   canvasWidth: number,
   canvasHeight: number,
-  resolveAliasEntry: AliasEntryResolver = (_atom, label) => getAliasChemistry(label),
+  resolveAliasEntry?: AliasEntryResolver,
   mapAllAtoms = false,
 ): MolblockResult {
   if (atoms.length === 0) return { molblock: '', shorthandMap: new Map() };
@@ -361,14 +361,29 @@ export function graphToMolblock(
   let atomBlock = '';
   const shorthandMap = new Map<number, string>();
   const atomIndexById = new Map<string, number>();
+  const bondCountByAtom = new Map<string, number>();
+  for (const bond of bonds) {
+    bondCountByAtom.set(bond.from, (bondCountByAtom.get(bond.from) ?? 0) + 1);
+    bondCountByAtom.set(bond.to, (bondCountByAtom.get(bond.to) ?? 0) + 1);
+  }
   for (let i = 0; i < atoms.length; i++) {
     const atom = atoms[i];
     atomIndexById.set(atom.id, i + 1);
     const key = getAtomNodeText(atom);
-    const entry = getAtomKind(atom) === 'alias' ? resolveAliasEntry(atom, key) : undefined;
+    const attachments = bondCountByAtom.get(atom.id) ?? 0;
+    const entry =
+      getAtomKind(atom) !== 'alias'
+        ? undefined
+        : resolveAliasEntry
+          ? resolveAliasEntry(atom, key)
+          : getAliasChemistry(key, { attachments });
     const elem = entry?.lead ?? getAtomLeadElement(atom);
     const mapNum = mapAllAtoms || entry?.subsSmiles ? i + 1 : 0;
-    if (entry?.subsSmiles && mapNum) shorthandMap.set(mapNum, key);
+    // A whole-molecule acronym on an atom with no bonds is expanded as the compound.
+    const compoundEntry = entry?.valency === 0;
+    if (entry?.subsSmiles && mapNum) {
+      shorthandMap.set(mapNum, compoundEntry ? `${COMPOUND_LABEL_PREFIX}${key}` : key);
+    }
     const x = ((atom.x - canvasWidth / 2) / MOLBLOCK_SCALE).toFixed(4).padStart(10);
     const y = (-(atom.y - canvasHeight / 2) / MOLBLOCK_SCALE).toFixed(4).padStart(10);
     const z = (0.0).toFixed(4).padStart(10);
