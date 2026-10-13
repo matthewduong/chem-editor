@@ -9,11 +9,86 @@ import {
   getArrowPointAt,
   getArrowTangentAt,
 } from '../../../lib/renderGeometry';
-import { getDocumentCaptionFontSize, resolveArrowHeadType } from '../../../lib/chemdrawMetrics';
+import {
+  ARROW_SHAFT_NOTCH_GAP_PT,
+  convertNativeToCanvas,
+  getDocumentCaptionFontSize,
+  resolveArrowHeadType,
+} from '../../../lib/chemdrawMetrics';
+import {
+  arcFractionAtDistance,
+  arcPointAt,
+  arcTangentAt,
+  resolveArcArrow,
+  sampleArc,
+} from '../../../lib/arrowArc';
 import { resolveBondColor } from '../../../lib/settings';
-import { adaptColor, drawLine, setStroke } from '../drawPrimitives';
+import { adaptColor, setStroke } from '../drawPrimitives';
 import { distanceToSegment } from '../geometry';
 import type { ObjectModule } from '../types';
+
+type CurvePoints = { x1: number; y1: number; x2: number; y2: number; cpx: number; cpy: number };
+
+/**
+ * Cuts `distance` off one end of a straight or quadratic arrow path, so a shaft stops where its
+ * head begins instead of running under it.
+ */
+function trimPath(
+  path: CurvePoints,
+  curved: boolean,
+  atEnd: boolean,
+  distance: number,
+): CurvePoints {
+  if (distance <= 0) return path;
+  const total = Math.hypot(path.x2 - path.x1, path.y2 - path.y1);
+  if (total <= distance + 1e-6) return path;
+  if (!curved) {
+    const ux = (path.x2 - path.x1) / total;
+    const uy = (path.y2 - path.y1) / total;
+    return atEnd
+      ? { ...path, x2: path.x2 - ux * distance, y2: path.y2 - uy * distance }
+      : { ...path, x1: path.x1 + ux * distance, y1: path.y1 + uy * distance };
+  }
+  const at = (t: number) => ({
+    x: (1 - t) ** 2 * path.x1 + 2 * (1 - t) * t * path.cpx + t ** 2 * path.x2,
+    y: (1 - t) ** 2 * path.y1 + 2 * (1 - t) * t * path.cpy + t ** 2 * path.y2,
+  });
+  const anchor = atEnd ? { x: path.x2, y: path.y2 } : { x: path.x1, y: path.y1 };
+  // distance from the end grows monotonically along these short arcs: bisect for it
+  let lo = atEnd ? 0 : 0;
+  let hi = 1;
+  for (let i = 0; i < 40; i += 1) {
+    const mid = (lo + hi) / 2;
+    const p = at(mid);
+    const d = Math.hypot(p.x - anchor.x, p.y - anchor.y);
+    if (atEnd ? d > distance : d < distance) {
+      if (atEnd) lo = mid;
+      else hi = mid;
+    } else if (atEnd) hi = mid;
+    else lo = mid;
+  }
+  const t = (lo + hi) / 2;
+  const p = at(t);
+  if (atEnd) {
+    // left part of the quadratic split at t
+    return {
+      x1: path.x1,
+      y1: path.y1,
+      cpx: (1 - t) * path.x1 + t * path.cpx,
+      cpy: (1 - t) * path.y1 + t * path.cpy,
+      x2: p.x,
+      y2: p.y,
+    };
+  }
+  return {
+    x1: p.x,
+    y1: p.y,
+    cpx: (1 - t) * path.cpx + t * path.x2,
+    cpy: (1 - t) * path.cpy + t * path.y2,
+    x2: path.x2,
+    y2: path.y2,
+  };
+}
 
 function drawArrowShape(
   ctx: CanvasRenderingContext2D,
@@ -28,8 +103,12 @@ function drawArrowShape(
   const geometry = getArrowGeometryMetrics(arrow, documentStyleSettings, nativeArrow);
   const headType = resolveArrowHeadType({ type: arrow.type }, nativeArrow);
   const strokeWidth = geometry.lineWidth;
+  // ChemDraw dashes a shaft 2.5pt on, 2.5pt off at any line width (50 50 at both 0.6 and 1.2).
+  const dashLength = convertNativeToCanvas(2.5, documentStyleSettings);
   const dashPattern =
-    arrow.type === 'dashed-reaction' ? [6, 4] : arrow.lineStyle === 'dashed' ? [6, 4] : null;
+    arrow.type === 'dashed-reaction' || arrow.lineStyle === 'dashed'
+      ? [dashLength, dashLength]
+      : null;
   const len = Math.hypot(arrow.x2 - arrow.x1, arrow.y2 - arrow.y1);
   if (len < 2) return;
   const usesControlPoint = arrowUsesControlPoint(arrow);
@@ -37,14 +116,20 @@ function drawArrowShape(
   const startTangent = getArrowTangentAt(arrow, 0);
   const endAngle = Math.atan2(endTangent.dy, endTangent.dx);
   const startAngle = Math.atan2(startTangent.dy, startTangent.dx);
+  // How far the shaft stops short of the tip: the notch, less 0.05pt, for the closed heads; an
+  // open angle head sits on a shaft that runs to the tip.
+  const notchGap = convertNativeToCanvas(ARROW_SHAFT_NOTCH_GAP_PT, documentStyleSettings);
+  const closedInset = Math.max(0, geometry.headCenterSize - notchGap);
+  const headInset = headType === 'angle' ? 0 : closedInset;
 
   const strokePath = (
-    points: { x1: number; y1: number; x2: number; y2: number; cpx: number; cpy: number } = arrow,
+    points: CurvePoints = arrow as CurvePoints,
     width = strokeWidth,
     dash = dashPattern,
     reverse = false,
   ) => {
     setStroke(ctx, color, width, dash ?? undefined);
+    ctx.lineCap = 'butt';
     ctx.beginPath();
     if (reverse) {
       ctx.moveTo(points.x2, points.y2);
@@ -59,81 +144,168 @@ function drawArrowShape(
     ctx.setLineDash([]);
   };
 
-  const fillHead = (x: number, y: number, angle: number) => {
-    ctx.fillStyle = color;
+  /**
+   * A head at (x, y) pointing along `angle`: the filled notched polygon for Solid, the same
+   * polygon outlined for Hollow, two strokes for Angle. `half` -1 is ChemDraw's HalfLeft (one
+   * barb, on the left of the direction of travel, the polygon standing on the shaft's edge) and
+   * 1 is HalfRight.
+   */
+  const drawHead = (
+    x: number,
+    y: number,
+    angle: number,
+    kind: 'solid' | 'hollow' | 'angle',
+    half: -1 | 0 | 1 = 0,
+  ) => {
+    const ux = Math.cos(angle);
+    const uy = Math.sin(angle);
+    const nx = -uy;
+    const ny = ux;
+    const point = (back: number, side: number) => ({
+      x: x - ux * back + nx * side,
+      y: y - uy * back + ny * side,
+    });
+    const L = geometry.headSize;
+    const C = geometry.headCenterSize;
+    const W = geometry.headWidth;
+    const base = half === 0 ? 0 : (-half * geometry.baseLineWidth) / 2;
+    const tip = point(0, base);
+    const notch = point(C, base);
+    const barbs = half === 0 ? [point(L, W), point(L, -W)] : [point(L, half * W)];
+    ctx.lineJoin = 'miter';
+    ctx.lineCap = 'butt';
+    if (kind === 'angle') {
+      setStroke(ctx, color, geometry.baseLineWidth);
+      ctx.lineCap = 'butt';
+      ctx.beginPath();
+      for (const barb of barbs) {
+        ctx.moveTo(barb.x, barb.y);
+        ctx.lineTo(tip.x, tip.y);
+      }
+      ctx.stroke();
+      return;
+    }
     ctx.beginPath();
-    ctx.moveTo(x, y);
+    ctx.moveTo(tip.x, tip.y);
+    if (half === 0) {
+      ctx.lineTo(barbs[0]!.x, barbs[0]!.y);
+      ctx.lineTo(notch.x, notch.y);
+      ctx.lineTo(barbs[1]!.x, barbs[1]!.y);
+    } else {
+      ctx.lineTo(notch.x, notch.y);
+      ctx.lineTo(barbs[0]!.x, barbs[0]!.y);
+    }
+    ctx.closePath();
+    if (kind === 'solid') {
+      ctx.fillStyle = color;
+      ctx.fill();
+    } else {
+      setStroke(ctx, color, geometry.baseLineWidth);
+      ctx.lineJoin = 'miter';
+      ctx.stroke();
+    }
+  };
+
+  const drawNoGoCross = (cx: number, cy: number, angle: number) => {
+    // ChemDraw's no-go cross: two diagonals, 5 line widths either side of the shaft's midpoint,
+    // drawn at the plain line width.
+    const half = 5 * geometry.baseLineWidth;
+    const ux = Math.cos(angle);
+    const uy = Math.sin(angle);
+    setStroke(ctx, color, geometry.baseLineWidth);
+    ctx.lineCap = 'butt';
+    ctx.beginPath();
+    for (const sign of [1, -1]) {
+      ctx.moveTo(cx - ux * half - -uy * half * sign, cy - uy * half - ux * half * sign);
+      ctx.lineTo(cx + ux * half + -uy * half * sign, cy + uy * half + ux * half * sign);
+    }
+    ctx.stroke();
+  };
+
+  const resolvedKind: 'solid' | 'hollow' | 'angle' =
+    headType === 'angle' ? 'angle' : headType === 'hollow' ? 'hollow' : 'solid';
+
+  const drawResolvedHead = (x: number, y: number, angle: number, half: -1 | 0 | 1 = 0) =>
+    drawHead(x, y, angle, resolvedKind, half);
+
+  // An arrow ChemDraw describes as an arc is drawn as that arc: a circle or ellipse swept through
+  // AngularSize. The quadratic the flat arrow carries cannot hold a half circle.
+  const arc = nativeArrow ? resolveArcArrow(nativeArrow) : null;
+  if (
+    arc &&
+    (arrow.type === 'reaction' ||
+      arrow.type === 'dashed-reaction' ||
+      arrow.type === 'curved' ||
+      arrow.type === 'half-curved' ||
+      arrow.type === 'resonance' ||
+      arrow.type === 'no-reaction')
+  ) {
+    const fromFraction =
+      arrow.type === 'resonance' ? arcFractionAtDistance(arc, headInset, false) : 0;
+    const toFraction = arcFractionAtDistance(arc, headInset, true);
+    const points = sampleArc(arc, fromFraction, Math.max(fromFraction, toFraction));
+    setStroke(ctx, color, strokeWidth, dashPattern ?? undefined);
+    ctx.lineCap = 'butt';
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    points.forEach((point, index) => {
+      if (index === 0) ctx.moveTo(point.x, point.y);
+      else ctx.lineTo(point.x, point.y);
+    });
+    ctx.stroke();
+    ctx.setLineDash([]);
+    const tip = arcPointAt(arc, 1);
+    const end = arcTangentAt(arc, 1);
+    drawResolvedHead(
+      tip.x,
+      tip.y,
+      Math.atan2(end.y, end.x),
+      arrow.type === 'half-curved' ? (nativeArrow?.headSide === 'right' ? 1 : -1) : 0,
+    );
+    if (arrow.type === 'resonance') {
+      const base = arcPointAt(arc, 0);
+      const first = arcTangentAt(arc, 0);
+      drawResolvedHead(base.x, base.y, Math.atan2(first.y, first.x) + Math.PI);
+    }
+    if (arrow.type === 'no-reaction') {
+      const mid = arcPointAt(arc, 0.5);
+      const direction = arcTangentAt(arc, 0.5);
+      const along = Math.atan2(direction.y, direction.x);
+      drawNoGoCross(mid.x, mid.y, along);
+    }
+    return;
+  }
+
+  if (arrow.type === 'fat') {
+    // The bold block arrow keeps its own proportions: a thick shaft and a solid head.
+    const shaft = trimPath(
+      arrow as CurvePoints,
+      usesControlPoint,
+      true,
+      geometry.headCenterSize * 0.9,
+    );
+    strokePath(shaft, Math.max(6, strokeWidth * 1.8), null);
+    ctx.fillStyle = color;
+    const ux = Math.cos(endAngle);
+    const uy = Math.sin(endAngle);
+    ctx.beginPath();
+    ctx.moveTo(arrow.x2, arrow.y2);
     ctx.lineTo(
-      x - geometry.headSize * Math.cos(angle) + geometry.headWidth * Math.sin(angle),
-      y - geometry.headSize * Math.sin(angle) - geometry.headWidth * Math.cos(angle),
+      arrow.x2 - geometry.headSize * ux + geometry.headWidth * -uy,
+      arrow.y2 - geometry.headSize * uy + geometry.headWidth * ux,
     );
     ctx.lineTo(
-      x - geometry.headSize * Math.cos(angle) - geometry.headWidth * Math.sin(angle),
-      y - geometry.headSize * Math.sin(angle) + geometry.headWidth * Math.cos(angle),
+      arrow.x2 - geometry.headSize * ux - geometry.headWidth * -uy,
+      arrow.y2 - geometry.headSize * uy - geometry.headWidth * ux,
     );
     ctx.closePath();
     ctx.fill();
-  };
-
-  const strokeHead = (x: number, y: number, angle: number, half = false, side: 1 | -1 = -1) => {
-    setStroke(ctx, color, strokeWidth);
-    ctx.beginPath();
-    const headLength = half ? geometry.headCenterSize : geometry.headSize;
-    const points = half
-      ? [
-          {
-            x: x - headLength * Math.cos(angle) + side * geometry.headWidth * Math.sin(angle),
-            y: y - headLength * Math.sin(angle) - side * geometry.headWidth * Math.cos(angle),
-          },
-        ]
-      : [
-          {
-            x: x - headLength * Math.cos(angle) + geometry.headWidth * Math.sin(angle),
-            y: y - headLength * Math.sin(angle) - geometry.headWidth * Math.cos(angle),
-          },
-          { x, y },
-          {
-            x: x - headLength * Math.cos(angle) - geometry.headWidth * Math.sin(angle),
-            y: y - headLength * Math.sin(angle) + geometry.headWidth * Math.cos(angle),
-          },
-        ];
-    ctx.moveTo(points[0].x, points[0].y);
-    ctx.lineTo(x, y);
-    if (!half && points[2]) ctx.lineTo(points[2].x, points[2].y);
-    ctx.stroke();
-  };
-
-  const strokeAngleHead = (x: number, y: number, angle: number) => {
-    setStroke(ctx, color, strokeWidth);
-    ctx.beginPath();
-    ctx.moveTo(x, y);
-    ctx.lineTo(
-      x - geometry.headSize * Math.cos(angle) + geometry.headWidth * Math.sin(angle),
-      y - geometry.headSize * Math.sin(angle) - geometry.headWidth * Math.cos(angle),
-    );
-    ctx.moveTo(x, y);
-    ctx.lineTo(
-      x - geometry.headSize * Math.cos(angle) - geometry.headWidth * Math.sin(angle),
-      y - geometry.headSize * Math.sin(angle) + geometry.headWidth * Math.cos(angle),
-    );
-    ctx.stroke();
-  };
-
-  const drawResolvedHead = (x: number, y: number, angle: number) => {
-    if (headType === 'filled') fillHead(x, y, angle);
-    else if (headType === 'angle') strokeAngleHead(x, y, angle);
-    else strokeHead(x, y, angle);
-  };
-
-  if (arrow.type === 'fat') {
-    strokePath(arrow, Math.max(6, strokeWidth * 1.8), null);
-    fillHead(arrow.x2, arrow.y2, endAngle);
     return;
   }
 
   if (arrow.type === 'equilibrium') {
-    const top = getArrowOffsetCurve(arrow, -geometry.shaftSpacing);
-    const bottomBase = getArrowOffsetCurve(arrow, geometry.shaftSpacing);
+    const top = getArrowOffsetCurve(arrow, -geometry.shaftSpacing / 2);
+    const bottomBase = getArrowOffsetCurve(arrow, geometry.shaftSpacing / 2);
     const bottom =
       geometry.equilibriumRatio < 0.999
         ? {
@@ -144,56 +316,51 @@ function drawArrowShape(
             cpy: bottomBase.y2 + (bottomBase.cpy - bottomBase.y2) * geometry.equilibriumRatio,
           }
         : bottomBase;
-    strokePath(top);
-    strokeHead(top.x2, top.y2, endAngle, true, -1);
-    strokePath(bottom, strokeWidth, null, true);
-    strokeHead(bottom.x1, bottom.y1, startAngle + Math.PI, true, 1);
+    strokePath(trimPath(top, usesControlPoint, true, closedInset));
+    drawHead(top.x2, top.y2, endAngle, 'solid', -1);
+    strokePath(trimPath(bottom, usesControlPoint, false, closedInset), strokeWidth, null, true);
+    drawHead(bottom.x1, bottom.y1, startAngle + Math.PI, 'solid', -1);
     return;
   }
 
   if (arrow.type === 'retrosynthetic') {
-    const top = getArrowOffsetCurve(arrow, -geometry.shaftSpacing);
-    const bottom = getArrowOffsetCurve(arrow, geometry.shaftSpacing);
+    const top = getArrowOffsetCurve(arrow, -geometry.shaftSpacing / 2);
+    const bottom = getArrowOffsetCurve(arrow, geometry.shaftSpacing / 2);
     strokePath(top);
     strokePath(bottom);
-    drawResolvedHead(arrow.x2, arrow.y2, endAngle);
+    // The open head spans both shafts: it is drawn about the axis, from its tip on the axis.
+    drawHead(arrow.x2, arrow.y2, endAngle, 'angle');
     return;
   }
 
-  strokePath();
-  if (arrow.type === 'reaction' || arrow.type === 'dashed-reaction' || arrow.type === 'curved') {
-    drawResolvedHead(arrow.x2, arrow.y2, endAngle);
+  const inset = headInset;
+  const shaft =
+    arrow.type === 'resonance'
+      ? trimPath(
+          trimPath(arrow as CurvePoints, usesControlPoint, true, inset),
+          usesControlPoint,
+          false,
+          inset,
+        )
+      : trimPath(
+          arrow as CurvePoints,
+          usesControlPoint,
+          true,
+          arrow.type === 'half-curved' ? inset : inset,
+        );
+  strokePath(shaft);
+
+  if (arrow.type === 'half-curved') {
+    drawResolvedHead(arrow.x2, arrow.y2, endAngle, -1);
+    return;
+  }
+  drawResolvedHead(arrow.x2, arrow.y2, endAngle);
+  if (arrow.type === 'resonance') {
+    drawResolvedHead(arrow.x1, arrow.y1, startAngle + Math.PI);
   } else if (arrow.type === 'no-reaction') {
-    drawResolvedHead(arrow.x2, arrow.y2, endAngle);
     const mid = getArrowPointAt(arrow, 0.5);
     const tangent = getArrowTangentAt(arrow, 0.5);
-    const angle = Math.atan2(tangent.dy, tangent.dx);
-    const crossLen = Math.max(9, geometry.headSize * 0.9);
-    const perpX = -Math.sin(angle);
-    const perpY = Math.cos(angle);
-    drawLine(
-      ctx,
-      mid.x - Math.cos(angle) * crossLen - perpX * crossLen,
-      mid.y - Math.sin(angle) * crossLen - perpY * crossLen,
-      mid.x + Math.cos(angle) * crossLen + perpX * crossLen,
-      mid.y + Math.sin(angle) * crossLen + perpY * crossLen,
-      color,
-      Math.max(strokeWidth, 2.5),
-    );
-    drawLine(
-      ctx,
-      mid.x + Math.cos(angle) * crossLen - perpX * crossLen,
-      mid.y + Math.sin(angle) * crossLen - perpY * crossLen,
-      mid.x - Math.cos(angle) * crossLen + perpX * crossLen,
-      mid.y - Math.sin(angle) * crossLen + perpY * crossLen,
-      color,
-      Math.max(strokeWidth, 2.5),
-    );
-  } else if (arrow.type === 'resonance') {
-    drawResolvedHead(arrow.x2, arrow.y2, endAngle);
-    drawResolvedHead(arrow.x1, arrow.y1, startAngle + Math.PI);
-  } else if (arrow.type === 'half-curved') {
-    strokeHead(arrow.x2, arrow.y2, endAngle, true, -1);
+    drawNoGoCross(mid.x, mid.y, Math.atan2(tangent.dy, tangent.dx));
   }
 }
 

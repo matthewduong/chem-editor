@@ -203,6 +203,8 @@ export interface ChemDrawArrow {
   type: 'arrow';
   arrowType: ArrowType;
   headType?: ChemDrawArrowHeadType;
+  /** Which side the barb of a half head is on, from ArrowheadHead HalfLeft / HalfRight. */
+  headSide?: 'left' | 'right';
   tail: ChemDrawPoint;
   head: ChemDrawPoint;
   headSize?: number;

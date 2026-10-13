@@ -191,7 +191,7 @@ const NATIVE_STYLE_FIXTURE = `<?xml version="1.0" encoding="UTF-8"?>
       </n>
       <b id="b1" B="n1" E="n2" Order="2" LineWidth="1.5" BondSpacing="22"/>
     </fragment>
-    <arrow id="a1" Head3D="130 60 0" Tail3D="100 60 0" LineWidth="1.4" HeadSize="800" ArrowheadCenterSize="600" ArrowheadWidth="400" ArrowShaftSpacing="300" ArrowEquilibriumRatio="0.82" ArrowheadHead="Full" ArrowheadType="Solid" FillType="None"/>
+    <arrow id="a1" Head3D="130 60 0" Tail3D="100 60 0" LineWidth="1.4" HeadSize="800" ArrowheadCenterSize="600" ArrowheadWidth="400" ArrowShaftSpacing="300" ArrowEquilibriumRatio="82" ArrowheadHead="Full" ArrowheadType="Solid" FillType="None"/>
     <t p="40 90" Justification="Center">
       <s font="3" size="13" face="2" color="0">note</s>
     </t>
@@ -411,15 +411,38 @@ test('arrow geometry honors native defaults and explicit ChemDraw overrides acro
     style: { lineWidth: 1.6, lineType: 'solid' },
   };
 
-  for (const type of arrowTypes) {
+  // Head metrics are multiples of the arrow's line width (ChemDraw 26.1.0.6801, 2026-10-13): at a
+  // line width of 1.6 native points, a HeadSize of 900 is 14.4, a center size of 700 is 11.2 and a
+  // width of 500 is 8.0 plus the 0.05 each barb stands off the axis. 4.1667 canvas units a point.
+  const perPoint = 37.5 / 9;
+  for (const type of arrowTypes.filter((candidate) => candidate !== 'fat')) {
     const overridden = resolveArrowGeometryMetrics({ type }, HIGH_FIDELITY_STYLE, nativeOverride);
     approxEqual(overridden.lineWidth, 6.666666666666668);
-    approxEqual(overridden.headSize, 37.5);
-    approxEqual(overridden.headCenterSize, 29.166666666666668);
-    approxEqual(overridden.headWidth, 20.833333333333336);
-    approxEqual(overridden.shaftSpacing, 16.666666666666668);
+    approxEqual(overridden.baseLineWidth, 6.666666666666668);
+    approxEqual(overridden.headSize, 9 * 1.6 * perPoint);
+    approxEqual(overridden.headCenterSize, 7 * 1.6 * perPoint);
+    approxEqual(overridden.headWidth, (5 * 1.6 + 0.05) * perPoint);
+    approxEqual(overridden.shaftSpacing, 4 * 1.6 * perPoint);
     approxEqual(overridden.equilibriumRatio, 0.82);
   }
+});
+
+test("an arrow with no native metrics gets ChemDraw's 1000/875/250 head at the document line width", () => {
+  // ACS 1996: LineWidth 0.6 makes a 6pt head, 5.25pt notch and 1.55pt barbs (measured).
+  const metrics = resolveArrowGeometryMetrics(
+    { type: 'reaction' },
+    DEFAULT_DOCUMENT_STYLE_SETTINGS,
+  );
+  approxEqual(metrics.headSize, 6);
+  approxEqual(metrics.headCenterSize, 5.25);
+  approxEqual(metrics.headWidth, 1.55);
+  const bold = resolveArrowGeometryMetrics(
+    { type: 'reaction', lineStyle: 'bold' },
+    DEFAULT_DOCUMENT_STYLE_SETTINGS,
+    { style: { lineWidth: 0.6, lineType: 'bold' } },
+  );
+  approxEqual(bold.lineWidth, 2);
+  approxEqual(bold.headSize, 6);
 });
 
 test('app-authored canvas documents export ACS 1996 ChemDraw defaults and round-trip through the document model without geometry drift', () => {
@@ -499,7 +522,7 @@ test('native document style-sheet metrics and explicit arrow geometry survive pr
   assert.match(exported, /\bArrowheadWidth="400(?:\.0+)?"/);
   assert.match(exported, /\bArrowShaftSpacing="300(?:\.0+)?"/);
   assert.match(exported, /\bArrowheadType="Solid"/);
-  assert.match(exported, /\bArrowEquilibriumRatio="0\.82(?:0+)?"/);
+  assert.match(exported, /\bArrowEquilibriumRatio="82(?:\.0+)?"/);
 });
 
 test('document atom-color view mode does not change exported CDXML semantics', () => {

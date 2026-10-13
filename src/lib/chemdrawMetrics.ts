@@ -487,6 +487,8 @@ const ARROW_GEOMETRY_DEFAULTS: Record<ArrowType, ArrowGeometryDefaults> = {
 
 export interface ResolvedArrowGeometryMetrics {
   lineWidth: number;
+  /** The plain line width the head metrics are multiples of (a bold arrow's shaft is thicker). */
+  baseLineWidth: number;
   headSize: number;
   headCenterSize: number;
   headWidth: number;
@@ -523,6 +525,21 @@ function normalizeEquilibriumRatio(value: number | undefined): number {
   return value ?? 1;
 }
 
+/**
+ * ChemDraw's arrow head metrics are multiples of the arrow's own line width.
+ *
+ * Measured on ChemDraw 26.1.0.6801 (2026-10-13) from the vector paths of 54 arrows at line widths
+ * 0.6 and 1.2: head length is HeadSize / 100 line widths (1000 at 0.6 is 6pt, at 1.2 is 12pt), the
+ * notch depth is ArrowheadCenterSize / 100 line widths, and each barb stands ArrowheadWidth / 100
+ * line widths plus 0.05pt off the axis. The shaft stops 0.05pt short of the notch. A bold arrow
+ * thickens only the shaft: its head still follows the plain line width.
+ */
+const ARROW_DEFAULT_HEAD_SIZE = 10;
+const ARROW_DEFAULT_CENTER_SIZE = 8.75;
+const ARROW_DEFAULT_WIDTH = 2.5;
+const ARROW_BARB_EXTRA_PT = 0.05;
+export const ARROW_SHAFT_NOTCH_GAP_PT = 0.05;
+
 export function resolveArrowGeometryMetrics(
   options: {
     type?: ArrowType;
@@ -540,37 +557,64 @@ export function resolveArrowGeometryMetrics(
     } satisfies StyleSettingsLike);
   const defaults = ARROW_GEOMETRY_DEFAULTS[options.type ?? 'reaction'] ?? DEFAULT_ARROW_GEOMETRY;
   const effectiveLineStyle = nativeArrow?.style?.lineType ?? options.lineStyle;
+  const nativeLineWidth =
+    typeof nativeArrow?.style?.lineWidth === 'number' && nativeArrow.style.lineWidth > 0
+      ? nativeArrow.style.lineWidth
+      : effectiveSettings.nativeMetrics.lineWidth;
+  const baseLineWidth = convertNativeToCanvas(nativeLineWidth, effectiveSettings);
+  // LineType Bold thickens the shaft to the document's bold width whatever LineWidth says.
   const lineWidth =
     options.lineWidth ??
-    (typeof nativeArrow?.style?.lineWidth === 'number'
-      ? convertNativeToCanvas(nativeArrow.style.lineWidth, effectiveSettings)
-      : getDefaultArrowLineWidth(options.type, effectiveLineStyle, effectiveSettings));
+    (effectiveLineStyle === 'bold' || options.type === 'fat'
+      ? getDefaultArrowLineWidth(options.type, effectiveLineStyle, effectiveSettings)
+      : typeof nativeArrow?.style?.lineWidth === 'number'
+        ? convertNativeToCanvas(nativeArrow.style.lineWidth, effectiveSettings)
+        : getDefaultArrowLineWidth(options.type, effectiveLineStyle, effectiveSettings));
+  const headLineWidth = options.lineWidth ?? baseLineWidth;
+  const fat = options.type === 'fat';
   const resolveLength = (
     nativeValue: number | undefined,
+    fallbackValue: number,
     minNative: number,
     ratio: number,
-  ): number =>
-    typeof nativeValue === 'number' && Number.isFinite(nativeValue)
-      ? convertNativeToCanvas(nativeValue, effectiveSettings)
-      : Math.max(convertNativeToCanvas(minNative, effectiveSettings), lineWidth * ratio);
+    extraPt = 0,
+  ): number => {
+    if (fat)
+      return Math.max(convertNativeToCanvas(minNative, effectiveSettings), lineWidth * ratio);
+    const value =
+      typeof nativeValue === 'number' && Number.isFinite(nativeValue) ? nativeValue : fallbackValue;
+    // `value` is the attribute over 100; the native line width carries the unit.
+    return headLineWidth * value + convertNativeToCanvas(extraPt, effectiveSettings);
+  };
   return {
     lineWidth,
-    headSize: resolveLength(nativeArrow?.headSize, defaults.minHeadSize, defaults.headSizeRatio),
+    baseLineWidth: headLineWidth,
+    headSize: resolveLength(
+      nativeArrow?.headSize,
+      ARROW_DEFAULT_HEAD_SIZE,
+      defaults.minHeadSize,
+      defaults.headSizeRatio,
+    ),
     headCenterSize: resolveLength(
       nativeArrow?.headCenterSize,
+      ARROW_DEFAULT_CENTER_SIZE,
       defaults.minHeadCenterSize,
       defaults.headCenterSizeRatio,
     ),
     headWidth: resolveLength(
       nativeArrow?.headWidth,
+      ARROW_DEFAULT_WIDTH,
       defaults.minHeadWidth,
       defaults.headWidthRatio,
+      ARROW_BARB_EXTRA_PT,
     ),
-    shaftSpacing: resolveLength(
-      nativeArrow?.shaftSpacing,
-      defaults.minShaftSpacing,
-      defaults.shaftSpacingRatio,
-    ),
+    shaftSpacing:
+      typeof nativeArrow?.shaftSpacing === 'number' && Number.isFinite(nativeArrow.shaftSpacing)
+        ? headLineWidth * nativeArrow.shaftSpacing
+        : Math.max(
+            convertNativeToCanvas(defaults.minShaftSpacing, effectiveSettings),
+            lineWidth * defaults.shaftSpacingRatio,
+          ),
     equilibriumRatio: normalizeEquilibriumRatio(
       nativeArrow?.equilibriumRatio ?? defaults.equilibriumRatio,
     ),

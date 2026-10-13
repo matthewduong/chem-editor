@@ -58,6 +58,11 @@
     ]
   },
   {
+    "op": "set",
+    "prop": "lineCap",
+    "value": "butt"
+  },
+  {
     "op": "call",
     "name": "beginPath",
     "args": []
@@ -74,7 +79,7 @@
     "op": "call",
     "name": "lineTo",
     "args": [
-      40,
+      34.8,
       0
     ]
   },
@@ -91,11 +96,9 @@
     ]
   },
   {
-    "op": "call",
-    "name": "setLineDash",
-    "args": [
-      []
-    ]
+    "op": "set",
+    "prop": "lineJoin",
+    "value": "miter"
   },
   {
     "op": "call",
@@ -106,14 +109,6 @@
     "op": "call",
     "name": "moveTo",
     "args": [
-      32,
-      -3.4
-    ]
-  },
-  {
-    "op": "call",
-    "name": "lineTo",
-    "args": [
       40,
       0
     ]
@@ -122,13 +117,39 @@
     "op": "call",
     "name": "lineTo",
     "args": [
-      32,
-      3.4
+      34,
+      1.55
     ]
   },
   {
     "op": "call",
-    "name": "stroke",
+    "name": "lineTo",
+    "args": [
+      34.75,
+      0
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      34,
+      -1.55
+    ]
+  },
+  {
+    "op": "call",
+    "name": "closePath",
+    "args": []
+  },
+  {
+    "op": "set",
+    "prop": "fillStyle",
+    "value": "#000000"
+  },
+  {
+    "op": "call",
+    "name": "fill",
     "args": []
   },
   {
@@ -174,6 +195,101 @@
     ]
   },
   {
+    "op": "set",
+    "prop": "lineCap",
+    "value": "butt"
+  },
+  {
+    "op": "call",
+    "name": "beginPath",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "moveTo",
+    "args": [
+      5.2,
+      20
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      34.8,
+      20
+    ]
+  },
+  {
+    "op": "call",
+    "name": "stroke",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "set",
+    "prop": "lineJoin",
+    "value": "miter"
+  },
+  {
+    "op": "call",
+    "name": "beginPath",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "moveTo",
+    "args": [
+      40,
+      20
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      34,
+      21.55
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      34.75,
+      20
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      34,
+      18.45
+    ]
+  },
+  {
+    "op": "call",
+    "name": "closePath",
+    "args": []
+  },
+  {
+    "op": "set",
+    "prop": "fillStyle",
+    "value": "#000000"
+  },
+  {
+    "op": "call",
+    "name": "fill",
+    "args": []
+  },
+  {
     "op": "call",
     "name": "beginPath",
     "args": []
@@ -190,47 +306,15 @@
     "op": "call",
     "name": "lineTo",
     "args": [
-      40,
-      20
-    ]
-  },
-  {
-    "op": "call",
-    "name": "stroke",
-    "args": []
-  },
-  {
-    "op": "call",
-    "name": "setLineDash",
-    "args": [
-      []
-    ]
-  },
-  {
-    "op": "call",
-    "name": "setLineDash",
-    "args": [
-      []
-    ]
-  },
-  {
-    "op": "call",
-    "name": "beginPath",
-    "args": []
-  },
-  {
-    "op": "call",
-    "name": "moveTo",
-    "args": [
-      32,
-      16.6
+      6,
+      18.45
     ]
   },
   {
     "op": "call",
     "name": "lineTo",
     "args": [
-      40,
+      5.25,
       20
     ]
   },
@@ -238,54 +322,18 @@
     "op": "call",
     "name": "lineTo",
     "args": [
-      32,
-      23.4
+      6,
+      21.55
     ]
   },
   {
     "op": "call",
-    "name": "stroke",
+    "name": "closePath",
     "args": []
   },
   {
     "op": "call",
-    "name": "setLineDash",
-    "args": [
-      []
-    ]
-  },
-  {
-    "op": "call",
-    "name": "beginPath",
-    "args": []
-  },
-  {
-    "op": "call",
-    "name": "moveTo",
-    "args": [
-      8,
-      23.4
-    ]
-  },
-  {
-    "op": "call",
-    "name": "lineTo",
-    "args": [
-      0,
-      20
-    ]
-  },
-  {
-    "op": "call",
-    "name": "lineTo",
-    "args": [
-      8,
-      16.6
-    ]
-  },
-  {
-    "op": "call",
-    "name": "stroke",
+    "name": "fill",
     "args": []
   },
   {
@@ -328,12 +376,17 @@
     "name": "setLineDash",
     "args": [
       [
-        6,
-        4
+        2.5,
+        2.5
       ]
     ]
   },
   {
+    "op": "set",
+    "prop": "lineCap",
+    "value": "butt"
+  },
+  {
     "op": "call",
     "name": "beginPath",
     "args": []
@@ -350,7 +403,7 @@
     "op": "call",
     "name": "lineTo",
     "args": [
-      40,
+      34.8,
       40
     ]
   },
@@ -367,11 +420,9 @@
     ]
   },
   {
-    "op": "call",
-    "name": "setLineDash",
-    "args": [
-      []
-    ]
+    "op": "set",
+    "prop": "lineJoin",
+    "value": "miter"
   },
   {
     "op": "call",
@@ -382,14 +433,6 @@
     "op": "call",
     "name": "moveTo",
     "args": [
-      32,
-      36.6
-    ]
-  },
-  {
-    "op": "call",
-    "name": "lineTo",
-    "args": [
       40,
       40
     ]
@@ -398,13 +441,39 @@
     "op": "call",
     "name": "lineTo",
     "args": [
-      32,
-      43.4
+      34,
+      41.55
     ]
   },
   {
     "op": "call",
-    "name": "stroke",
+    "name": "lineTo",
+    "args": [
+      34.75,
+      40
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      34,
+      38.45
+    ]
+  },
+  {
+    "op": "call",
+    "name": "closePath",
+    "args": []
+  },
+  {
+    "op": "set",
+    "prop": "fillStyle",
+    "value": "#000000"
+  },
+  {
+    "op": "call",
+    "name": "fill",
     "args": []
   },
   {
@@ -450,6 +519,11 @@
     ]
   },
   {
+    "op": "set",
+    "prop": "lineCap",
+    "value": "butt"
+  },
+  {
     "op": "call",
     "name": "beginPath",
     "args": []
@@ -466,7 +540,7 @@
     "op": "call",
     "name": "lineTo",
     "args": [
-      40,
+      34.8,
       60
     ]
   },
@@ -483,11 +557,9 @@
     ]
   },
   {
-    "op": "call",
-    "name": "setLineDash",
-    "args": [
-      []
-    ]
+    "op": "set",
+    "prop": "lineJoin",
+    "value": "miter"
   },
   {
     "op": "call",
@@ -498,14 +570,6 @@
     "op": "call",
     "name": "moveTo",
     "args": [
-      32,
-      56.6
-    ]
-  },
-  {
-    "op": "call",
-    "name": "lineTo",
-    "args": [
       40,
       60
     ]
@@ -514,13 +578,39 @@
     "op": "call",
     "name": "lineTo",
     "args": [
-      32,
-      63.4
+      35.2,
+      61.55
     ]
   },
   {
     "op": "call",
-    "name": "stroke",
+    "name": "lineTo",
+    "args": [
+      34.75,
+      60
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      35.2,
+      58.45
+    ]
+  },
+  {
+    "op": "call",
+    "name": "closePath",
+    "args": []
+  },
+  {
+    "op": "set",
+    "prop": "fillStyle",
+    "value": "#000000"
+  },
+  {
+    "op": "call",
+    "name": "fill",
     "args": []
   },
   {
@@ -566,6 +656,11 @@
     ]
   },
   {
+    "op": "set",
+    "prop": "lineCap",
+    "value": "butt"
+  },
+  {
     "op": "call",
     "name": "beginPath",
     "args": []
@@ -575,15 +670,15 @@
     "name": "moveTo",
     "args": [
       0,
-      76.5
+      78.25
     ]
   },
   {
     "op": "call",
     "name": "lineTo",
     "args": [
-      40,
-      76.5
+      34.8,
+      78.25
     ]
   },
   {
@@ -599,44 +694,9 @@
     ]
   },
   {
-    "op": "call",
-    "name": "setLineDash",
-    "args": [
-      []
-    ]
-  },
-  {
-    "op": "call",
-    "name": "beginPath",
-    "args": []
-  },
-  {
-    "op": "call",
-    "name": "moveTo",
-    "args": [
-      33.6,
-      79.5
-    ]
-  },
-  {
-    "op": "call",
-    "name": "lineTo",
-    "args": [
-      40,
-      76.5
-    ]
-  },
-  {
-    "op": "call",
-    "name": "stroke",
-    "args": []
-  },
-  {
-    "op": "call",
-    "name": "setLineDash",
-    "args": [
-      []
-    ]
+    "op": "set",
+    "prop": "lineJoin",
+    "value": "miter"
   },
   {
     "op": "call",
@@ -648,28 +708,49 @@
     "name": "moveTo",
     "args": [
       40,
-      83.5
+      78.55
     ]
   },
   {
     "op": "call",
     "name": "lineTo",
     "args": [
-      0,
-      83.5
+      34.75,
+      78.55
     ]
   },
   {
     "op": "call",
-    "name": "stroke",
+    "name": "lineTo",
+    "args": [
+      34,
+      76.4
+    ]
+  },
+  {
+    "op": "call",
+    "name": "closePath",
     "args": []
   },
   {
+    "op": "set",
+    "prop": "fillStyle",
+    "value": "#000000"
+  },
+  {
     "op": "call",
-    "name": "setLineDash",
-    "args": [
-      []
-    ]
+    "name": "fill",
+    "args": []
+  },
+  {
+    "op": "set",
+    "prop": "lineCap",
+    "value": "round"
+  },
+  {
+    "op": "set",
+    "prop": "lineJoin",
+    "value": "round"
   },
   {
     "op": "call",
@@ -677,6 +758,11 @@
     "args": [
       []
     ]
+  },
+  {
+    "op": "set",
+    "prop": "lineCap",
+    "value": "butt"
   },
   {
     "op": "call",
@@ -687,21 +773,72 @@
     "op": "call",
     "name": "moveTo",
     "args": [
-      6.4,
-      86.5
+      40,
+      81.75
     ]
   },
   {
     "op": "call",
     "name": "lineTo",
     "args": [
-      0,
-      83.5
+      5.2,
+      81.75
     ]
   },
   {
     "op": "call",
     "name": "stroke",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "set",
+    "prop": "lineJoin",
+    "value": "miter"
+  },
+  {
+    "op": "call",
+    "name": "beginPath",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "moveTo",
+    "args": [
+      0,
+      81.45
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      5.25,
+      81.45
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      6,
+      83.6
+    ]
+  },
+  {
+    "op": "call",
+    "name": "closePath",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "fill",
     "args": []
   },
   {

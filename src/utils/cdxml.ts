@@ -64,6 +64,7 @@ import {
   DEFAULT_CANVAS_BOND_LENGTH,
   DEFAULT_CHEMDRAW_STYLE_SHEET,
   convertCanvasToNative,
+  convertNativeToCanvas,
   normalizeNativeBondLength,
   getDefaultArrowHeadType,
   getDocumentBondLineWidth,
@@ -1617,29 +1618,30 @@ function chemDrawDocumentToCDXMLInternal(document: ChemDrawDocument): string {
     const rawArrowAttributes = emitRawAttributes(arrow.preservation?.rawAttributes);
     const rawArrowChildren = emitRawChildren(arrow.preservation?.rawChildrenXml, '      ');
     const resolvedHeadType = arrow.headType ?? getDefaultArrowHeadType(arrow.arrowType);
+    // Head metrics are multiples of the arrow's plain line width (see resolveArrowGeometryMetrics),
+    // so a bold arrow keeps its plain LineWidth and gets its thick shaft from LineType.
+    const plainWidth =
+      arrow.arrowType === 'fat' ? arrowGeometry.lineWidth : arrowGeometry.baseLineWidth;
     const lineWidthAttr = ` LineWidth="${formatCdxmlNumber(
-      convertCanvasToNative(arrowGeometry.lineWidth, documentStyleSettings),
+      convertCanvasToNative(plainWidth, documentStyleSettings),
     )}"`;
-    const headSizeAttr = ` HeadSize="${formatChemDrawArrowMetric(
-      convertCanvasToNative(arrowGeometry.headSize, documentStyleSettings),
-    )}"`;
-    const headCenterSizeAttr = ` ArrowheadCenterSize="${formatChemDrawArrowMetric(
-      convertCanvasToNative(arrowGeometry.headCenterSize, documentStyleSettings),
-    )}"`;
-    const headWidthAttr = ` ArrowheadWidth="${formatChemDrawArrowMetric(
-      convertCanvasToNative(arrowGeometry.headWidth, documentStyleSettings),
-    )}"`;
+    const asMultiple = (canvasLength: number, extraNativePt = 0) =>
+      formatChemDrawArrowMetric(
+        (canvasLength - convertNativeToCanvas(extraNativePt, documentStyleSettings)) /
+          Math.max(plainWidth, 1e-9),
+      );
+    const headSizeAttr = ` HeadSize="${asMultiple(arrowGeometry.headSize)}"`;
+    const headCenterSizeAttr = ` ArrowheadCenterSize="${asMultiple(arrowGeometry.headCenterSize)}"`;
+    const headWidthAttr = ` ArrowheadWidth="${asMultiple(arrowGeometry.headWidth, 0.05)}"`;
     const shaftSpacingAttr =
       arrow.arrowType === 'equilibrium' ||
       arrow.arrowType === 'retrosynthetic' ||
       arrow.shaftSpacing != null
-        ? ` ArrowShaftSpacing="${formatChemDrawArrowMetric(
-            convertCanvasToNative(arrowGeometry.shaftSpacing, documentStyleSettings),
-          )}"`
+        ? ` ArrowShaftSpacing="${asMultiple(arrowGeometry.shaftSpacing)}"`
         : '';
     const equilibriumRatioAttr =
       arrow.arrowType === 'equilibrium' || arrow.equilibriumRatio != null
-        ? ` ArrowEquilibriumRatio="${formatCdxmlNumber(arrowGeometry.equilibriumRatio, 3)}"`
+        ? ` ArrowEquilibriumRatio="${formatCdxmlNumber(arrowGeometry.equilibriumRatio * 100, 3)}"`
         : '';
     const arrowheadTypeAttr = ` ArrowheadType="${arrowHeadTypeToCdxml(resolvedHeadType)}"`;
     const fillTypeAttr = ` FillType="${arrowFillTypeToCdxml(resolvedHeadType)}"`;
@@ -1667,7 +1669,12 @@ function chemDrawDocumentToCDXMLInternal(document: ChemDrawDocument): string {
       curvedGeometryAttr.length > 0 ? '' : ` Head3D="${hx} ${hy} 0" Tail3D="${tx} ${ty} 0"`;
 
     if (arrow.arrowType === 'curved' || arrow.arrowType === 'half-curved') {
-      const headStr = arrow.arrowType === 'half-curved' ? 'HalfLeft' : 'Full';
+      const headStr =
+        arrow.arrowType === 'half-curved'
+          ? arrow.headSide === 'right'
+            ? 'HalfRight'
+            : 'HalfLeft'
+          : 'Full';
       if (arrow.arcCenter && arrow.majorAxisEnd && arrow.minorAxisEnd) {
         const angularSizeAttr =
           arrow.angularSize != null && Number.isFinite(arrow.angularSize)
@@ -2916,7 +2923,6 @@ export function cdxmlToChemDrawDocument(xmlString: string): ChemDrawConversionRe
     const tailStr = a.getAttribute('ArrowheadTail') ?? '';
     const arrowTypeAttr = a.getAttribute('ArrowType') ?? '';
     const headStr = a.getAttribute('ArrowheadHead') ?? '';
-    const fillType = a.getAttribute('FillType') ?? '';
     const noGo = a.getAttribute('NoGo') ?? '';
     const lineTypeAttr = (a.getAttribute('LineType') ?? '').toLowerCase();
     const editorArrowTypeAttr = a.getAttribute(CHEM_EDITOR_ARROW_TYPE_ATTR);
@@ -2936,7 +2942,11 @@ export function cdxmlToChemDrawDocument(xmlString: string): ChemDrawConversionRe
       a.getAttribute('HeadWidth'),
     );
     const shaftSpacingAttr = parseChemDrawArrowMetric(a.getAttribute('ArrowShaftSpacing'));
-    const equilibriumRatioAttr = parseFloat(a.getAttribute('ArrowEquilibriumRatio') ?? '');
+    // ChemDraw stores the ratio in hundredths (100 = both halves the same length, measured). Files
+    // this editor wrote before that was known carry the bare ratio, which no real file does.
+    const equilibriumRatioRaw = parseFloat(a.getAttribute('ArrowEquilibriumRatio') ?? '');
+    const equilibriumRatioAttr =
+      equilibriumRatioRaw > 2 ? equilibriumRatioRaw / 100 : equilibriumRatioRaw;
 
     let arrowType: ArrowType = isCurved ? 'curved' : 'reaction';
     if (
@@ -2952,9 +2962,10 @@ export function cdxmlToChemDrawDocument(xmlString: string): ChemDrawConversionRe
       arrowType = 'resonance';
     } else if (headStr === 'HalfRight' || headStr === 'HalfLeft') {
       arrowType = isCurved ? 'half-curved' : 'equilibrium';
-    } else if (fillType === 'Solid' || headType === 'filled') {
-      arrowType = 'fat';
     }
+    // FillType Solid with a Hollow head is drawn by ChemDraw as an ordinary arrow with an outlined
+    // head (measured), not as a block arrow; `fat` is this editor's own bold block arrow and only
+    // comes back through ChemEditorArrowType.
     if (
       editorArrowTypeAttr === 'reaction' ||
       editorArrowTypeAttr === 'equilibrium' ||
@@ -3010,6 +3021,11 @@ export function cdxmlToChemDrawDocument(xmlString: string): ChemDrawConversionRe
       tail,
       head,
       ...(headType ? { headType } : {}),
+      ...(headStr === 'HalfLeft'
+        ? { headSide: 'left' as const }
+        : headStr === 'HalfRight'
+          ? { headSide: 'right' as const }
+          : {}),
       ...(headSizeAttr != null ? { headSize: headSizeAttr } : {}),
       ...(headCenterSizeAttr != null ? { headCenterSize: headCenterSizeAttr } : {}),
       ...(headWidthAttr != null ? { headWidth: headWidthAttr } : {}),
