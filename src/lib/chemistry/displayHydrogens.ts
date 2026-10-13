@@ -62,11 +62,29 @@ function ladder(element: string, valenceElectrons: number): number[] {
   }
 }
 
+/**
+ * Neutral atoms with no bond, for elements the bonded measurement did not cover (ChemDraw
+ * 26.1.0.6801, 2026-10-13). Ge, Sn and Ga take fewer hydrogens than their group valence, As and
+ * Sb none, like phosphorus.
+ */
+const ISOLATED_NEUTRAL_HYDROGENS: Record<string, number> = {
+  Al: 3,
+  Ga: 2,
+  Ge: 2,
+  Sn: 2,
+  As: 0,
+  Sb: 0,
+  Te: 2,
+};
+
 export function chemDrawImplicitHydrogens(
   element: string,
   charge: number,
   bondOrderSum: number,
 ): number | null {
+  if (bondOrderSum === 0 && charge === 0 && element in ISOLATED_NEUTRAL_HYDROGENS) {
+    return ISOLATED_NEUTRAL_HYDROGENS[element]!;
+  }
   const group = GROUP_ELECTRONS[element];
   if (group === undefined) return null;
   if (!Number.isInteger(charge) || Math.abs(charge) > 1) return null;

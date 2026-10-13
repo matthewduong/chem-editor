@@ -39,7 +39,17 @@ function resolveAutoOrientation(
   bonds: Bond[],
 ): 'label-first' | 'hydrogen-first' {
   const connections = bondsOfAtom(atom.id, bonds);
-  if (connections.length === 0) return 'label-first';
+  if (connections.length === 0) {
+    // An isolated atom: ChemDraw writes H2O, HF, HCl and H2S hydrogen-first and NH3, OH- and the
+    // rest atom-first (see labelPlacement.ts). Shorthand labels stay as typed.
+    if (getAtomAlias(atom)) return 'label-first';
+    const side = resolveGeneratedLabelSide(atom, atoms, bonds, {
+      hasHydrogens: true,
+      element: getAtomLeadElement(atom),
+      charge: atom.charge ?? 0,
+    });
+    return side === 'right' ? 'hydrogen-first' : 'label-first';
+  }
 
   // A generated label (no shorthand alias) follows ChemDraw's own placement rule, which was
   // measured rather than inferred; see labelPlacement.ts. Shorthand groups keep the heuristic
@@ -104,6 +114,9 @@ export function getAtomHydrogenCount(
   // For shorthand groups, use the group's external valency
   // (internal bonds are already accounted for in the shorthand definition)
   if (shorthandEntry) {
+    // ChemDraw shows a shorthand label with no bond exactly as typed (`Boc`, `THF`), not as the
+    // hydrogen-capped molecule (`BocH`).
+    if (bondCount === 0) return 0;
     return Math.max(0, shorthandEntry.valency - bondCount);
   }
 

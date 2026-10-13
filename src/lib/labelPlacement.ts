@@ -8,6 +8,8 @@ export type LabelSide = 'left' | 'right' | 'above' | 'below';
 const STACK_HALF_ANGLE = Math.PI / 8;
 const EPSILON = 1e-6;
 
+const HYDROGEN_FIRST_WHEN_ISOLATED = new Set(['O', 'S', 'Se', 'Te', 'F', 'Cl', 'Br', 'I']);
+
 /**
  * Which side of an atom ChemDraw lays its generated label out on, from the directions of the
  * atom's bonds.
@@ -29,13 +31,16 @@ const EPSILON = 1e-6;
  * `right` means ChemDraw's `Right` alignment: the text ends at the atom, so the label body is to
  * the left and a hydrogen-first label reads `HN`. `left` is the usual `NH`.
  *
- * Returns `null` for an atom with no bonds, which was not measured.
+ * An atom with no bonds has no gap to measure. ChemDraw (the same 2026-10-13 run, 62 isolated
+ * element and charge combinations) writes its hydrogens first, `H2O`, `HF`, `HCl`, `H2S`, `H2Se`,
+ * `H2Te`, only for the neutral oxygen-group and halogen atoms; everything else keeps the atom
+ * first: `NH3`, `NH4+`, `OH-`, `OH3+`, `ClH2+`, `BH3`, `SiH4`, `AlH3`, `GeH2`, `CH3-`.
  */
 export function resolveGeneratedLabelSide(
   atom: Atom,
   atoms: Atom[],
   bonds: Bond[],
-  options: { hasHydrogens: boolean },
+  options: { hasHydrogens: boolean; element?: string; charge?: number },
 ): LabelSide | null {
   const angles: number[] = [];
   for (const bond of bondsOfAtom(atom.id, bonds)) {
@@ -46,7 +51,14 @@ export function resolveGeneratedLabelSide(
     if (Math.hypot(dx, dy) < EPSILON) continue;
     angles.push(Math.atan2(dy, dx));
   }
-  if (angles.length === 0) return null;
+  if (angles.length === 0) {
+    const neutral = (options.charge ?? 0) === 0;
+    return options.hasHydrogens &&
+      neutral &&
+      HYDROGEN_FIRST_WHEN_ISOLATED.has(options.element ?? '')
+      ? 'right'
+      : 'left';
+  }
 
   if (angles.length === 1) {
     const bondDx = Math.cos(angles[0]!);

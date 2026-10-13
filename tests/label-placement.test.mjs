@@ -6,6 +6,7 @@ import {
   splitHydrogenLabel,
 } from '../.unit-test-dist/src/lib/atomLabels.js';
 import { getStackedLabelBaselines } from '../.unit-test-dist/src/lib/chemdrawMetrics.js';
+import { chemDrawImplicitHydrogens } from '../.unit-test-dist/src/lib/chemistry/displayHydrogens.js';
 
 // Bond directions (degrees counter-clockwise from +x, y up) -> the LabelAlignment ChemDraw
 // 26.1.0.6801 saved for a heteroatom with hydrogens and no label of its own (macOS, 2026-10-13).
@@ -149,9 +150,57 @@ test('without hydrogens a label is never stacked', () => {
   assert.equal(resolveGeneratedLabelSide(atom, atoms, bonds, { hasHydrogens: false }), 'left');
 });
 
-test('an atom with no bonds has no measured placement', () => {
-  const { atom, atoms, bonds } = build([]);
-  assert.equal(resolveGeneratedLabelSide(atom, atoms, bonds, { hasHydrogens: true }), null);
+// Isolated atoms (no bond) with hydrogens, as ChemDraw 26.1.0.6801 saved them: element, charge,
+// hydrogen count, alignment. 'right' is hydrogen-first (H2O).
+const ISOLATED = [
+  ['N', 0, 3, 'left'],
+  ['N', 1, 4, 'left'],
+  ['N', -1, 2, 'left'],
+  ['O', 0, 2, 'right'],
+  ['O', -1, 1, 'left'],
+  ['O', 1, 3, 'left'],
+  ['S', 0, 2, 'right'],
+  ['S', -1, 1, 'left'],
+  ['Se', 0, 2, 'right'],
+  ['Te', 0, 2, 'right'],
+  ['F', 0, 1, 'right'],
+  ['Cl', 0, 1, 'right'],
+  ['Br', 0, 1, 'right'],
+  ['I', 0, 1, 'right'],
+  ['Cl', 1, 2, 'left'],
+  ['F', 1, 2, 'left'],
+  ['B', 0, 3, 'left'],
+  ['B', -1, 4, 'left'],
+  ['Si', 0, 4, 'left'],
+  ['Al', 0, 3, 'left'],
+  ['Ge', 0, 2, 'left'],
+  ['Sn', 0, 2, 'left'],
+  ['C', -1, 3, 'left'],
+  ['C', 1, 3, 'left'],
+  ['P', 1, 4, 'left'],
+  ['As', 1, 2, 'left'],
+];
+
+test('an atom with no bonds follows the measured isolated-atom rule', () => {
+  for (const [element, charge, hydrogens, expected] of ISOLATED) {
+    const { atom, atoms, bonds } = build([], { element, charge });
+    assert.equal(
+      resolveGeneratedLabelSide(atom, atoms, bonds, {
+        hasHydrogens: hydrogens > 0,
+        element,
+        charge,
+      }),
+      expected,
+      `${element}${charge}`,
+    );
+  }
+});
+
+test('isolated hydrogen counts for elements outside the bonded table', () => {
+  assert.equal(chemDrawImplicitHydrogens('Ge', 0, 0), 2);
+  assert.equal(chemDrawImplicitHydrogens('Al', 0, 0), 3);
+  assert.equal(chemDrawImplicitHydrogens('As', 0, 0), 0);
+  assert.equal(chemDrawImplicitHydrogens('Ge', 0, 1), null);
 });
 
 test('explicit alignment and orientation override the rule; shorthand never stacks', () => {
