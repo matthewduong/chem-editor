@@ -28,7 +28,7 @@ const DEFAULT_CANVAS_SCALE = DEFAULT_CANVAS_BOND_LENGTH / DEFAULT_CHEMDRAW_STYLE
 type TextFormatLike = Pick<TextFormat, 'fontFamily' | 'fontSize'>;
 type StyleSettingsLike = Pick<DocumentStyleSettings, 'bondLength' | 'nativeMetrics'>;
 type LabelAlignment = 'left' | 'center' | 'right' | 'above' | 'below' | undefined;
-type TextRunFaceStyle = Pick<TextRun, 'bold' | 'italic' | 'sub' | 'sup'>;
+type TextRunFaceStyle = Pick<TextRun, 'bold' | 'italic' | 'sub' | 'sup' | 'formula'>;
 
 function clampNumber(value: unknown, fallback: number, min: number, max: number): number {
   if (typeof value !== 'number' || Number.isNaN(value)) return fallback;
@@ -207,6 +207,8 @@ function decodeChemDrawFaceStyles(face: unknown): TextRunFaceStyle {
   if (!Number.isFinite(face)) return {};
   const normalizedFace = normalizeChemDrawFace(face as number);
   return {
+    // Face 96 is the formula face: digits are subscripted when the run is drawn.
+    ...(((face as number) & 96) === 96 && (face as number) < 128 ? { formula: true } : {}),
     ...(normalizedFace & 1 ? { bold: true } : {}),
     ...(normalizedFace & 2 ? { italic: true } : {}),
     ...(normalizedFace & 32 ? { sub: true } : {}),

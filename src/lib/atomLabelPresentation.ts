@@ -11,9 +11,32 @@ import { getAtomAlias, getAtomLeadElement, setAtomValue } from './atomIdentity';
 import { resolveDocumentLabelFaceStyle } from './chemdrawMetrics';
 import { VALENCIES } from './elements';
 import { resolveAtomLabelColor, resolveBondColor } from './settings';
+import { expandFormulaRuns, expandUnicodeSubscripts } from './formulaStyle';
 import { SHORTHAND_DATA } from './shorthand';
 
 export function buildAtomLabelRuns(
+  atom: Atom,
+  displayText: string,
+  baseColor: string,
+  documentStyleSettings: DocumentStyleSettings,
+  documentViewSettings: DocumentViewSettings,
+  isDarkMode: boolean,
+): TextRun[] {
+  return expandUnicodeSubscripts(
+    expandFormulaRuns(
+      buildAtomLabelRunsUnexpanded(
+        atom,
+        displayText,
+        baseColor,
+        documentStyleSettings,
+        documentViewSettings,
+        isDarkMode,
+      ),
+    ),
+  );
+}
+
+function buildAtomLabelRunsUnexpanded(
   atom: Atom,
   displayText: string,
   baseColor: string,

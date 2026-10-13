@@ -107,7 +107,7 @@ export const NODE_MODULE: ObjectModule = {
       scene.documentViewSettings,
       scene.isDarkMode,
     );
-    const { offset, width, padding } = labelVisible
+    const anchor = labelVisible
       ? getLeadElementAnchorOffset(
           displayRuns,
           labelText,
@@ -117,6 +117,26 @@ export const NODE_MODULE: ObjectModule = {
           (run) => measureRunWidth(run, labelFontSize, labelFontFamily),
         )
       : { offset: 0, width: 0, padding: 0 };
+    // A label on an atom with no bond is written as typed with its first letter centred on the
+    // atom (ChemDraw 26.1.0.6801: p.x was 3.61 left of the atom for DMF, 3.33 for Boc and Et3N,
+    // 1.39 for tBuOK, half of the first letter in every case), not centred on the lead element.
+    const firstRun = displayRuns[0];
+    const isolatedLabel =
+      labelVisible &&
+      connectedBonds.length === 0 &&
+      !stackSide &&
+      Boolean(atom.alias) &&
+      firstRun !== undefined;
+    const offset = isolatedLabel
+      ? anchor.padding +
+        measureRunWidth(
+          { ...firstRun, text: firstRun.text.slice(0, 1) },
+          labelFontSize,
+          labelFontFamily,
+        ) /
+          2
+      : anchor.offset;
+    const { width, padding } = anchor;
     const labelLayout = getAtomLabelLayoutMetrics(
       labelFontSize,
       labelVisible ? width : 0,

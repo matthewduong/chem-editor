@@ -43,6 +43,11 @@ unrelated to Ketcher and are fixed (see `development/gaps.md`): scene assembly 3
 atoms to 8 ms at 1,000, and paint 670-850 ms to 22 ms at 5,000. Pointer preview at 5,000 atoms
 is still 320-420 ms.
 
+## Shorthand coverage
+
+See `development/gaps.md`, "Shorthand acronyms, compounds and isolated atoms". Ketcher's 13 functional
+group entries were one input; the audit that followed measured 518 labels against ChemDraw.
+
 ## Verification still owed
 
 Measured on ChemDraw 26.1.0.6801, 2026-10-13: zigzag and straight multiple-bond placement

@@ -109,9 +109,22 @@ export function getTextRunFontStyle(run: Pick<TextRun, 'bold' | 'italic'>): stri
   return 'normal';
 }
 
-/** Point size a run is actually set at: sub/sup are drawn at 65% of the base size. */
+/**
+ * Subscript and superscript text is set at 75% of the base size, with its baseline 0.21 em below
+ * (sub) or 0.53 em above (sup) the line's.
+ *
+ * Measured on ChemDraw 26.1.0.6801 (2026-10-13) with ten-digit runs at 10 and 20pt: the extent of
+ * `H8888888888` in face 32, 64 and 96 gave a digit advance of 0.7516 and 0.7497 of the plain one,
+ * the subscript's ink ended 0.21 em under the baseline, and the superscript's top stood 1.07 em
+ * above it. The 0.65 and 0.22 this replaced were estimates.
+ */
+export const SUB_SUP_SCALE = 0.75;
+export const SUBSCRIPT_DROP_EM = 0.21;
+export const SUPERSCRIPT_RAISE_EM = 0.53;
+
+/** Point size a run is actually set at. */
 export function getRunFontSize(run: Pick<TextRun, 'sub' | 'sup'>, fontSize: number): number {
-  return run.sub || run.sup ? fontSize * 0.65 : fontSize;
+  return run.sub || run.sup ? fontSize * SUB_SUP_SCALE : fontSize;
 }
 
 /**

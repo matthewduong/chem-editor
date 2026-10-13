@@ -414,9 +414,23 @@
     "op": "call",
     "name": "fillText",
     "args": [
-      "H₂",
+      "H",
       112.665,
       62.8773
+    ]
+  },
+  {
+    "op": "set",
+    "prop": "font",
+    "value": "normal 7.5px 'Liberation Sans', sans-serif"
+  },
+  {
+    "op": "call",
+    "name": "fillText",
+    "args": [
+      "2",
+      119.8867,
+      67.2404
     ]
   },
   {
@@ -571,6 +585,11 @@
   },
   {
     "op": "set",
+    "prop": "font",
+    "value": "normal 10px 'Liberation Sans', sans-serif"
+  },
+  {
+    "op": "set",
     "prop": "fillStyle",
     "value": "#3050f8"
   },
@@ -592,9 +611,23 @@
     "op": "call",
     "name": "fillText",
     "args": [
-      "H₂",
+      "H",
       150.3892,
       62.8773
+    ]
+  },
+  {
+    "op": "set",
+    "prop": "font",
+    "value": "normal 7.5px 'Liberation Sans', sans-serif"
+  },
+  {
+    "op": "call",
+    "name": "fillText",
+    "args": [
+      "2",
+      157.6108,
+      67.2404
     ]
   },
   {
@@ -612,7 +645,7 @@
     "name": "fillText",
     "args": [
       "+",
-      159.4927,
+      159.782,
       59.85
     ]
   },
@@ -789,9 +822,23 @@
     "op": "call",
     "name": "fillText",
     "args": [
-      "H₂",
+      "H",
       188.3892,
       43.9773
+    ]
+  },
+  {
+    "op": "set",
+    "prop": "font",
+    "value": "normal 7.5px 'Liberation Sans', sans-serif"
+  },
+  {
+    "op": "call",
+    "name": "fillText",
+    "args": [
+      "2",
+      195.6108,
+      48.3404
     ]
   },
   {
@@ -809,7 +856,7 @@
     "name": "fillText",
     "args": [
       "+",
-      197.4927,
+      197.782,
       40.95
     ]
   },
@@ -1866,9 +1913,23 @@
     "op": "call",
     "name": "fillText",
     "args": [
-      "H2",
+      "H",
       116.665,
       133.9773
+    ]
+  },
+  {
+    "op": "set",
+    "prop": "font",
+    "value": "normal 7.5px 'Liberation Sans', sans-serif"
+  },
+  {
+    "op": "call",
+    "name": "fillText",
+    "args": [
+      "2",
+      123.8867,
+      138.3404
     ]
   },
   {

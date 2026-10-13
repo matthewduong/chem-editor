@@ -225,7 +225,7 @@ test('shared text-style resolvers keep label and caption sizing document-driven'
   const labelDefaults = resolveDocumentLabelTextStyle(HIGH_FIDELITY_STYLE);
   approxEqual(labelDefaults.fontSize, 50);
   assert.equal(labelDefaults.fontFamily, 'Helvetica');
-  assert.deepEqual(resolveDocumentLabelFaceStyle(HIGH_FIDELITY_STYLE), {});
+  assert.deepEqual(resolveDocumentLabelFaceStyle(HIGH_FIDELITY_STYLE), { formula: true });
 
   const labelFromNative = resolveDocumentLabelTextStyle(HIGH_FIDELITY_STYLE, {
     nativeStyle: { fontFamily: 'Arial', fontSize: 11 },
@@ -288,7 +288,7 @@ test('implicit atom labels stay plain-weight by default while explicit bold runs
       labelFace: 97,
     },
   });
-  assert.deepEqual(resolveDocumentLabelFaceStyle(boldFaceSettings), { bold: true });
+  assert.deepEqual(resolveDocumentLabelFaceStyle(boldFaceSettings), { bold: true, formula: true });
 });
 
 test('explicit authored colors survive monochrome ChemDraw document defaults', () => {

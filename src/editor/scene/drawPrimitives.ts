@@ -1,6 +1,11 @@
 import type { TextRun } from '../../types/chemistry';
-import { getTextRunFontStyle } from '../../lib/textRunPresentation';
-import { getPaintFontFamily } from '../../lib/textMetrics';
+import {
+  SUBSCRIPT_DROP_EM,
+  SUPERSCRIPT_RAISE_EM,
+  getRunFontSize,
+  getTextRunFontStyle,
+} from '../../lib/textRunPresentation';
+import { getFaceMetrics, getPaintFontFamily } from '../../lib/textMetrics';
 
 export function adaptColor(color: string, isDarkMode: boolean): string {
   if (!isDarkMode) return color;
@@ -101,7 +106,7 @@ export function drawRunText(
   fontFamily: string,
   color: string,
 ) {
-  const actualFontSize = run.sub || run.sup ? fontSize * 0.65 : fontSize;
+  const actualFontSize = getRunFontSize(run, fontSize);
   // Paint with the same vendored face the metrics table was generated from, and with kerning
   // off, so the painted advance equals the measured advance by construction rather than by
   // hoping a table reproduces the host text stack's kerning.
@@ -109,6 +114,14 @@ export function drawRunText(
   ctx.fontKerning = 'none';
   ctx.fillStyle = color;
   ctx.textBaseline = 'top';
-  const yOffset = run.sup ? -fontSize * 0.18 : run.sub ? fontSize * 0.22 : 0;
+  // `y` is the top of the base line. A smaller run keeps the base baseline, then moves from it:
+  // its own top is the baseline minus its own, smaller, ascent.
+  let yOffset = 0;
+  if (run.sub || run.sup) {
+    const shift = run.sup ? -SUPERSCRIPT_RAISE_EM * fontSize : SUBSCRIPT_DROP_EM * fontSize;
+    const baseAscent = getFaceMetrics({ family: fontFamily, sizePx: fontSize }).ascent;
+    const runAscent = getFaceMetrics({ family: fontFamily, sizePx: actualFontSize }).ascent;
+    yOffset = shift + baseAscent - runAscent;
+  }
   ctx.fillText(run.text, x, y + yOffset);
 }

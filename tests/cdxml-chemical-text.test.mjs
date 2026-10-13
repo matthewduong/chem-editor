@@ -7,7 +7,7 @@ import {
 } from '../.unit-test-dist/src/lib/chemdrawModel.js';
 import { decodeCdxmlFaceStyles, stateToCDXML } from '../.unit-test-dist/src/utils/cdxml.js';
 
-test('ChemDraw face=96 decodes as plain text while 32 and 64 remain sub/sup', () => {
+test('ChemDraw face=96 is the formula face while 32 and 64 alone remain sub/sup', () => {
   assert.deepEqual(
     [
       decodeCdxmlFaceStyles(96),
@@ -15,7 +15,7 @@ test('ChemDraw face=96 decodes as plain text while 32 and 64 remain sub/sup', ()
       decodeCdxmlFaceStyles(64),
       decodeCdxmlFaceStyles(98),
     ],
-    [{}, { sub: true }, { sup: true }, { italic: true }],
+    [{ formula: true }, { sub: true }, { sup: true }, { formula: true, italic: true }],
   );
 });
 

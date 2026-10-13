@@ -161,9 +161,23 @@
     "op": "call",
     "name": "fillText",
     "args": [
-      "H₂",
+      "H",
       18.0108,
       14.5888
+    ]
+  },
+  {
+    "op": "set",
+    "prop": "font",
+    "value": "normal 7.5px 'Liberation Sans', sans-serif"
+  },
+  {
+    "op": "call",
+    "name": "fillText",
+    "args": [
+      "2",
+      25.2325,
+      18.952
     ]
   },
   {
@@ -240,6 +254,11 @@
     "op": "call",
     "name": "restore",
     "args": []
+  },
+  {
+    "op": "set",
+    "prop": "font",
+    "value": "normal 10px 'Liberation Sans', sans-serif"
   },
   {
     "op": "set",

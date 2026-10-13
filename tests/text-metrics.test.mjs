@@ -88,10 +88,12 @@ test('astral characters consume a single advance', () => {
   assert.equal(measureAdvance('\u{1D400}', font), measureAdvance('', font));
 });
 
-test('subscripts and superscripts measure at 65% of the base size', () => {
+// ChemDraw 26.1.0.6801 set ten subscripted digits at 0.7516 (10pt) and 0.7497 (20pt) of the plain
+// advance (2026-10-13), so the scale is 0.75 rather than the 0.65 first assumed.
+test('subscripts and superscripts measure at 75% of the base size', () => {
   const base = measureRunWidth({ text: '2' }, 10, 'Arial');
   const sub = measureRunWidth({ text: '2', sub: true }, 10, 'Arial');
-  assert.ok(Math.abs(sub - base * 0.65) < 1e-9);
+  assert.ok(Math.abs(sub - base * 0.75) < 1e-9);
 });
 
 test('run measurement agrees with direct measurement', () => {

@@ -569,9 +569,11 @@ function normalizeCdxmlFace(face: number): number {
 
 export function decodeCdxmlFaceStyles(
   face: number,
-): Pick<TextRun, 'bold' | 'italic' | 'sub' | 'sup'> {
+): Pick<TextRun, 'bold' | 'italic' | 'sub' | 'sup' | 'formula'> {
   const normalizedFace = normalizeCdxmlFace(face);
   return {
+    // Bits 32 and 64 together are ChemDraw's formula face, not a run that is both sub and sup.
+    ...((face & 96) === 96 && face < 128 ? { formula: true } : {}),
     ...(normalizedFace & 1 ? { bold: true } : {}),
     ...(normalizedFace & 2 ? { italic: true } : {}),
     ...(normalizedFace & 32 ? { sub: true } : {}),
