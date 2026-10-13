@@ -1,3 +1,13 @@
+import {
+  BondIcon,
+  ChainIcon,
+  EraserIcon,
+  PanIcon,
+  ReactionArrowIcon,
+  SelectIcon,
+  StructureFragmentIcon,
+  TextToolIcon,
+} from './components/ToolIcons';
 import { TemplatesPanel } from './components/TemplatesPanel';
 import { StructureDiagnostics } from './components/StructureDiagnostics';
 import { useDocumentLifecycle } from './hooks/useDocumentLifecycle';
@@ -368,223 +378,6 @@ const REACTION_ARROW_OPTIONS: Array<{ type: ArrowType; title: string }> = [
   { type: 'curved', title: 'Curved Arrow' },
   { type: 'half-curved', title: 'Hook Arrow' },
 ];
-
-function ReactionArrowIcon({ type, size = 20 }: { type: ArrowType; size?: number }) {
-  const strokeProps = {
-    stroke: 'currentColor',
-    strokeWidth: 2.15,
-    strokeLinecap: 'round' as const,
-    strokeLinejoin: 'round' as const,
-    fill: 'none' as const,
-  };
-
-  switch (type) {
-    case 'reaction':
-      return (
-        <svg
-          width={size}
-          height={size}
-          viewBox="0 0 24 24"
-          aria-hidden="true"
-          style={{ display: 'block', overflow: 'visible' }}
-        >
-          <path d="M4.5 12H17.2" {...strokeProps} />
-          <path d="M13.2 8.2L18.7 12L13.2 15.8" {...strokeProps} />
-        </svg>
-      );
-    case 'dashed-reaction':
-      return (
-        <svg
-          width={size}
-          height={size}
-          viewBox="0 0 24 24"
-          aria-hidden="true"
-          style={{ display: 'block', overflow: 'visible' }}
-        >
-          <path d="M4.5 12H14.4" strokeDasharray="4.6 3.2" {...strokeProps} />
-          <path d="M13.1 8.2L18.7 12L13.1 15.8" {...strokeProps} />
-        </svg>
-      );
-    case 'no-reaction':
-      return (
-        <svg
-          width={size}
-          height={size}
-          viewBox="0 0 24 24"
-          aria-hidden="true"
-          style={{ display: 'block', overflow: 'visible' }}
-        >
-          <path d="M4.5 12H17.2" {...strokeProps} />
-          <path d="M13.2 8.2L18.7 12L13.2 15.8" {...strokeProps} />
-          <path d="M8.8 15.2L14.5 8.8" {...strokeProps} />
-        </svg>
-      );
-    case 'equilibrium':
-      return (
-        <svg
-          width={size}
-          height={size}
-          viewBox="0 0 24 24"
-          aria-hidden="true"
-          style={{ display: 'block', overflow: 'visible' }}
-        >
-          <path d="M4.3 9H16.7" {...strokeProps} />
-          <path d="M13.2 7L17.7 9L13.2 11" {...strokeProps} />
-          <path d="M19.7 15H7.3" {...strokeProps} />
-          <path d="M10.8 13L6.3 15L10.8 17" {...strokeProps} />
-        </svg>
-      );
-    case 'resonance':
-      return (
-        <svg
-          width={size}
-          height={size}
-          viewBox="0 0 24 24"
-          aria-hidden="true"
-          style={{ display: 'block', overflow: 'visible' }}
-        >
-          <path d="M5.8 12H18.2" {...strokeProps} />
-          <path d="M9.1 8.2L4.5 12L9.1 15.8" {...strokeProps} />
-          <path d="M14.9 8.2L19.5 12L14.9 15.8" {...strokeProps} />
-        </svg>
-      );
-    case 'retrosynthetic':
-      return (
-        <svg
-          width={size}
-          height={size}
-          viewBox="0 0 24 24"
-          aria-hidden="true"
-          style={{ display: 'block', overflow: 'visible' }}
-        >
-          <path d="M4.2 10.1H14.2" {...strokeProps} />
-          <path d="M4.2 13.9H14.2" {...strokeProps} />
-          <path d="M13.2 7.2L19.5 12L13.2 16.8" {...strokeProps} />
-        </svg>
-      );
-    case 'fat':
-      return (
-        <svg
-          width={size}
-          height={size}
-          viewBox="0 0 24 24"
-          aria-hidden="true"
-          style={{ display: 'block', overflow: 'visible' }}
-        >
-          <path d="M4 9.2H11.6V6.7L20 12L11.6 17.3V14.8H4Z" fill="currentColor" />
-        </svg>
-      );
-    case 'curved':
-      return (
-        <svg
-          width={size}
-          height={size}
-          viewBox="0 0 24 24"
-          aria-hidden="true"
-          style={{ display: 'block', overflow: 'visible' }}
-        >
-          <path d="M6 18V13.2C6 8.6 9.2 6 13.8 6H16.1" {...strokeProps} />
-          <path d="M13.4 3.8L17.2 6L13.4 8.2" {...strokeProps} />
-        </svg>
-      );
-    case 'half-curved':
-      return (
-        <svg
-          width={size}
-          height={size}
-          viewBox="0 0 24 24"
-          aria-hidden="true"
-          style={{ display: 'block', overflow: 'visible' }}
-        >
-          <path d="M6.4 18V13.5C6.4 10.1 8.6 7.7 11.9 7.4" {...strokeProps} />
-          <path d="M10.5 5.9L13.9 7.2L11.1 9.6" {...strokeProps} />
-        </svg>
-      );
-    default:
-      return null;
-  }
-}
-
-function StructureFragmentIcon({
-  id,
-  size = 22,
-}: {
-  id:
-    | 'bond'
-    | 'benzene'
-    | 'cyclohexane'
-    | 'cyclopentane'
-    | 'cyclobutane'
-    | 'cyclopropane'
-    | 'chair'
-    | 'chair-flipped';
-  size?: number;
-}) {
-  const stroke = {
-    stroke: 'currentColor',
-    strokeWidth: 1.9,
-    strokeLinecap: 'round' as const,
-    strokeLinejoin: 'round' as const,
-    fill: 'none' as const,
-  };
-  const polygon = (sides: number, radius: number, rotation = -Math.PI / 2) =>
-    Array.from({ length: sides }, (_, index) => {
-      const angle = rotation + (Math.PI * 2 * index) / sides;
-      const x = 12 + Math.cos(angle) * radius;
-      const y = 12 + Math.sin(angle) * radius;
-      return `${x.toFixed(2)},${y.toFixed(2)}`;
-    }).join(' ');
-  const chairPath = (flipped = false) =>
-    [
-      [flipped ? 5.6 : 6.1, 7.2],
-      [flipped ? 3.4 : 7.7, 16.4],
-      [flipped ? 9.6 : 13.1, 13.6],
-      [flipped ? 14.8 : 18.4, 16.3],
-      [flipped ? 20.0 : 17.8, 7.2],
-      [flipped ? 14.9 : 12.6, 9.9],
-      [flipped ? 5.6 : 6.1, 7.2],
-    ]
-      .map(([x, y]) => `${x.toFixed(2)},${y.toFixed(2)}`)
-      .join(' ');
-
-  if (id === 'bond') {
-    return (
-      <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M4.5 12H19.5" {...stroke} />
-      </svg>
-    );
-  }
-
-  if (id === 'benzene') {
-    return (
-      <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
-        <polygon points={polygon(6, 6.7)} {...stroke} />
-        <circle cx="12" cy="12" r="3.8" {...stroke} />
-      </svg>
-    );
-  }
-
-  if (id === 'chair' || id === 'chair-flipped') {
-    return (
-      <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
-        <polyline points={chairPath(id === 'chair-flipped')} {...stroke} />
-      </svg>
-    );
-  }
-
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
-      <polygon
-        points={polygon(
-          id === 'cyclohexane' ? 6 : id === 'cyclopentane' ? 5 : id === 'cyclobutane' ? 4 : 3,
-          id === 'cyclobutane' ? 5.7 : id === 'cyclopropane' ? 6.4 : 6.8,
-          id === 'cyclobutane' ? Math.PI / 4 : -Math.PI / 2,
-        )}
-        {...stroke}
-      />
-    </svg>
-  );
-}
 
 const ELEMENT_SHORTCUTS = ['C', 'N', 'O', 'S', 'P', 'F', 'Cl', 'Br', 'H', 'D'];
 const SHORTHAND_GROUP_ORDER = [
@@ -2375,68 +2168,7 @@ function App() {
     [documentViewSettings, setDocumentViewSettings],
   );
 
-  const getBondIcon = () => {
-    if (stereo === 1) {
-      return (
-        <svg
-          width={22 * buttonScale}
-          height={22 * buttonScale}
-          viewBox="0 0 24 24"
-          aria-hidden="true"
-        >
-          <path d="M4.5 15.8L12 8.2L19.5 15.8Z" fill="currentColor" />
-        </svg>
-      );
-    }
-    if (stereo === 6) {
-      return (
-        <svg
-          width={22 * buttonScale}
-          height={22 * buttonScale}
-          viewBox="0 0 24 24"
-          aria-hidden="true"
-        >
-          {[0, 1, 2, 3].map((index) => (
-            <path
-              key={index}
-              d={`M${6 + index * 2.4} ${16 - index * 2.2}L${10 + index * 2.2} ${8 + index * 2.2}`}
-              stroke="currentColor"
-              strokeWidth="1.6"
-              strokeLinecap="round"
-            />
-          ))}
-        </svg>
-      );
-    }
-    if (bondOrder === 2) {
-      return (
-        <svg
-          width={22 * buttonScale}
-          height={22 * buttonScale}
-          viewBox="0 0 24 24"
-          aria-hidden="true"
-        >
-          <path d="M4.5 9H19.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-          <path d="M4.5 15H19.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-        </svg>
-      );
-    }
-    if (bondOrder === 3) {
-      return (
-        <svg
-          width={22 * buttonScale}
-          height={22 * buttonScale}
-          viewBox="0 0 24 24"
-          aria-hidden="true"
-        >
-          <path d="M4.5 8H19.5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
-          <path d="M4.5 12H19.5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
-          <path d="M4.5 16H19.5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
-        </svg>
-      );
-    }
-    return <StructureFragmentIcon id="bond" size={22 * buttonScale} />;
-  };
+  const getBondIcon = () => <BondIcon order={bondOrder} stereo={stereo} size={24 * buttonScale} />;
 
   const renderAtomShortcut = (label: string) => {
     const active = tool === 'atom' && atomToolMode === 'element' && element === label;
@@ -2783,21 +2515,7 @@ function App() {
               }}
               style={toolButtonStyle}
             >
-              <svg
-                width={18 * buttonScale}
-                height={18 * buttonScale}
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M18 11V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v5" />
-                <path d="M14 10V4a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v10" />
-                <path d="M10 10.5V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v8" />
-                <path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15" />
-              </svg>
+              <PanIcon size={24 * buttonScale} />
             </PaletteButton>
             <PaletteButton
               variant="tool"
@@ -2809,7 +2527,7 @@ function App() {
               }}
               style={toolButtonStyle}
             >
-              ✥
+              <SelectIcon size={24 * buttonScale} />
             </PaletteButton>
             <PaletteButton
               variant="tool"
@@ -2821,7 +2539,7 @@ function App() {
               }}
               style={toolButtonStyle}
             >
-              T
+              <TextToolIcon size={24 * buttonScale} />
             </PaletteButton>
             <PaletteButton
               variant="tool"
@@ -2833,7 +2551,7 @@ function App() {
               }}
               style={toolButtonStyle}
             >
-              ▱
+              <EraserIcon size={24 * buttonScale} />
             </PaletteButton>
           </>
         );
@@ -2865,7 +2583,7 @@ function App() {
               }}
               style={toolButtonStyle}
             >
-              ⌁
+              <ChainIcon size={24 * buttonScale} />
             </PaletteButton>
             <PaletteButton
               ref={ringBtnRef}
@@ -2880,7 +2598,7 @@ function App() {
               style={toolButtonStyle}
             >
               <div
-                style={{ position: 'relative', width: 22 * buttonScale, height: 22 * buttonScale }}
+                style={{ position: 'relative', width: 24 * buttonScale, height: 24 * buttonScale }}
               >
                 <StructureFragmentIcon
                   id={
@@ -2896,7 +2614,7 @@ function App() {
                               ? 'cyclopentane'
                               : 'cyclohexane'
                   }
-                  size={22 * buttonScale}
+                  size={24 * buttonScale}
                 />
                 {ringPreset === 'polygon' && (
                   <div
@@ -2946,7 +2664,7 @@ function App() {
                       | 'cyclobutane'
                       | 'cyclopropane'
                   }
-                  size={22 * buttonScale}
+                  size={24 * buttonScale}
                 />
               </PaletteButton>
             ))}
@@ -2969,7 +2687,7 @@ function App() {
                 }}
                 style={toolButtonStyle}
               >
-                <ReactionArrowIcon type={type} size={22 * buttonScale} />
+                <ReactionArrowIcon type={type} size={24 * buttonScale} />
               </PaletteButton>
             ))}
           </>
