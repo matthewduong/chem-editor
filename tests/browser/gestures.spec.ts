@@ -132,6 +132,41 @@ for (const scale of [1, 2]) {
       expect((await observe(page)).document).toEqual(before.document);
       expect((await observe(page)).historyIndex).toBe(before.historyIndex);
     });
+    test('arrow drag commits one undo entry; click, Escape and tool switch create none', async ({
+      page,
+    }) => {
+      await openEditor(page);
+      await page.getByRole('button', { name: 'Expand Reaction', exact: true }).click();
+      await tool(page, 'Reaction');
+      const before = await observe(page);
+      const arrows = (o: Awaited<ReturnType<typeof observe>>) =>
+        o.document!.pages[0].objects.filter((x) => x.type === 'arrow');
+      expect(arrows(before)).toHaveLength(0);
+      const a = await point(page, 500, 400);
+      await page.mouse.move(a.x, a.y);
+      await page.mouse.down();
+      await page.mouse.up();
+      expect((await observe(page)).historyIndex).toBe(before.historyIndex);
+      await page.mouse.move(a.x, a.y + 60);
+      await page.mouse.down();
+      await page.mouse.move(a.x + 120, a.y + 60, { steps: 6 });
+      await page.keyboard.press('Escape');
+      await page.mouse.up();
+      expect((await observe(page)).historyIndex).toBe(before.historyIndex);
+      await page.mouse.move(a.x, a.y + 120);
+      await page.mouse.down();
+      await page.mouse.move(a.x + 60, a.y + 120, { steps: 4 });
+      await tool(page, 'Select');
+      await page.mouse.up();
+      expect(arrows(await observe(page))).toHaveLength(0);
+      await tool(page, 'Reaction');
+      await drag(page, { x: 500, y: 400 }, { x: 640, y: 405 });
+      const drawn = await observe(page);
+      expect(arrows(drawn)).toHaveLength(1);
+      expect(drawn.historyIndex).toBe(before.historyIndex + 1);
+      await page.keyboard.press('Control+z');
+      expect(arrows(await observe(page))).toHaveLength(0);
+    });
     test('chain preview commits once and cancellation creates no history', async ({ page }) => {
       await openEditor(page);
       await tool(page, 'Chain');

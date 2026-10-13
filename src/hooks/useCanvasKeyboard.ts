@@ -21,7 +21,6 @@ import { getNextDoubleBondToolMode } from '../lib/renderGeometry';
 import { getPreferredAttachmentAngle } from '../lib/ringTemplates';
 import { commitCanvasEdit, getCanvasEditorState, useStore } from '../store';
 import type {
-  Arrow,
   ArrowType,
   Atom,
   AtomLabelOrientation,
@@ -93,7 +92,7 @@ interface CanvasKeyboardBindings {
     lastPos: { x: number; y: number };
     hasMoved: boolean;
   } | null>;
-  setArrowPreview: import('react').Dispatch<import('react').SetStateAction<Arrow | null>>;
+  cancelArrow: () => void;
   setRingPreview: import('react').Dispatch<
     import('react').SetStateAction<RingPlacementPreview | null>
   >;
@@ -182,7 +181,7 @@ export function useCanvasKeyboard({
   bondTool,
   selectTool,
   textToolDragRef,
-  setArrowPreview,
+  cancelArrow,
   setRingPreview,
   setEditingArrowLabels,
   setEditingTextBoxId,
@@ -321,7 +320,7 @@ export function useCanvasKeyboard({
         atomTool.cleanup();
         selectTool.cleanup();
         textToolDragRef.current = null;
-        setArrowPreview(null);
+        cancelArrow();
         setRingPreview(null);
         useStore.getState().clearPreviewChemDrawDocument();
         useStore.getState().clearSelectionPreviewTransform();

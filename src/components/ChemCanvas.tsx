@@ -1,5 +1,6 @@
 import { placeTemplate, type UserTemplate } from '../lib/templates';
 import { ToolLifecycle } from '../editor/toolLifecycle';
+import { useArrowTool } from '../tools/useArrowTool';
 import { useChainTool } from '../tools/useChainTool';
 import { prepareCleanupCommand } from '../editor/commands/cleanup';
 import { createRDKitChemistryService } from '../lib/chemistry/rdkit';
@@ -453,7 +454,8 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
         .filter((entry) => entry.markers.length > 0),
     [getAtomElectronVisuals, sceneAtoms, selectedAtomIds],
   );
-  const [arrowPreview, setArrowPreview] = useState<Arrow | null>(null);
+  const arrowTool = useArrowTool();
+  const arrowPreview = arrowTool.preview;
 
   const [editingArrowLabels, setEditingArrowLabels] = useState<{
     id: string;
@@ -852,7 +854,7 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
       selectTool.cleanup();
       atomTool.cleanup();
       textToolDragRef.current = null;
-      setArrowPreview(null);
+      arrowTool.cancel();
       setRingPreview(null);
       getCanvasEditorState().clearPreviewChemDrawDocument();
       getCanvasEditorState().clearSelectionPreviewTransform();
@@ -2227,7 +2229,7 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
     bondTool,
     selectTool,
     textToolDragRef,
-    setArrowPreview,
+    cancelArrow: arrowTool.cancel,
     setRingPreview,
     setEditingArrowLabels,
     setEditingTextBoxId,
@@ -2353,16 +2355,7 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
         });
         return;
       }
-      setArrowPreview({
-        id: 'preview',
-        type: arrowType,
-        x1: pos.x,
-        y1: pos.y,
-        x2: pos.x,
-        y2: pos.y,
-        cpx: pos.x,
-        cpy: pos.y,
-      });
+      arrowTool.begin(arrowType, pos);
       return;
     }
 
@@ -2566,28 +2559,7 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
 
     // Arrow preview update with 15° snapping
     if (arrowPreview) {
-      const { x1, y1, type } = arrowPreview;
-      let ex = pos.x,
-        ey = pos.y;
-      if (type !== 'curved' && type !== 'half-curved') {
-        const rawAngle = Math.atan2(pos.y - y1, pos.x - x1);
-        const SNAP = SNAP_ANGLE;
-        const snapped = Math.round(rawAngle / SNAP) * SNAP;
-        const dist = Math.sqrt((pos.x - x1) ** 2 + (pos.y - y1) ** 2);
-        ex = x1 + Math.cos(snapped) * dist;
-        ey = y1 + Math.sin(snapped) * dist;
-      }
-      let cpx = (x1 + ex) / 2,
-        cpy = (y1 + ey) / 2;
-      if (
-        (type === 'curved' || type === 'half-curved') &&
-        Math.sqrt((pos.x - x1) ** 2 + (pos.y - y1) ** 2) > 1
-      ) {
-        const r = getDefaultArrowControlPoint(x1, y1, pos.x, pos.y);
-        cpx = r.cpx;
-        cpy = r.cpy;
-      }
-      setArrowPreview((prev) => (prev ? { ...prev, x2: ex, y2: ey, cpx, cpy } : null));
+      arrowTool.update(pos);
       return;
     }
 
@@ -2757,18 +2729,17 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
       return;
     }
     if (arrowPreview) {
-      const { x1, y1, x2, y2, cpx, cpy, type } = arrowPreview;
-      if (Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2) > 10) {
+      const arrow = arrowTool.commit();
+      if (arrow) {
         const { groups: kg, textBoxes: ktb } = getCanvasEditorState();
         commitCanvasEdit({
           atoms,
           bonds,
-          arrows: [...arrows, { id: crypto.randomUUID(), type, x1, y1, x2, y2, cpx, cpy }],
+          arrows: [...arrows, { ...arrow, id: crypto.randomUUID() }],
           groups: kg ?? [],
           textBoxes: ktb ?? [],
         });
       }
-      setArrowPreview(null);
       return;
     }
     if (selectionDragRef.current.isDragging) {
@@ -2875,7 +2846,7 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
     selectTool.cleanup();
     textToolDragRef.current = null;
     selectionDragRef.current.isDragging = false;
-    setArrowPreview(null);
+    arrowTool.cancel();
     setRingPreview(null);
     useStore.getState().clearPreviewChemDrawDocument();
     useStore.getState().clearSelectionPreviewTransform();
