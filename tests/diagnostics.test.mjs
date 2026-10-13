@@ -91,3 +91,84 @@ test('hypervalent sulfur and phosphorus are not reported as invalid valence', as
     false,
   );
 });
+
+const wedge = (id, a, b, display) => bond(id, a, b, { display });
+const codes = (issues) => issues.map((i) => i.code);
+
+test('a wedge whose narrow end has no other bond is reported with the bond and atom', async () => {
+  const source = doc([
+    node('a', 0),
+    node('b', 50),
+    node('c', 100),
+    wedge('w', 'a', 'b', 'wedge-begin'), // narrow end at a, which has no other bond
+    bond('x', 'b', 'c'),
+  ]);
+  const issue = (await checkStructure(source, service)).find(
+    (i) => i.code === 'stereo-bond-terminal-center',
+  );
+  assert.deepEqual(issue.objectIds, ['w', 'a']);
+  assert.equal(issue.severity, 'warning');
+});
+
+test('wedge-end puts the narrow end on the end atom', async () => {
+  const source = doc([
+    node('a', 0),
+    node('b', 50),
+    node('c', 100),
+    wedge('w', 'a', 'b', 'hash-end'), // narrow end at b, which also bonds to c
+    bond('x', 'b', 'c'),
+  ]);
+  assert.equal(
+    codes(await checkStructure(source, service)).includes('stereo-bond-terminal-center'),
+    false,
+  );
+  const reversed = doc([
+    node('a', 0),
+    node('b', 50),
+    node('c', 100),
+    wedge('w', 'a', 'b', 'hash-begin'),
+    bond('x', 'b', 'c'),
+  ]);
+  assert.equal(
+    codes(await checkStructure(reversed, service)).includes('stereo-bond-terminal-center'),
+    true,
+  );
+});
+
+test('a wedge from a tetrahedral carbon with three bonds is not reported', async () => {
+  const source = doc([
+    node('c', 0),
+    node('a', 40),
+    node('b', 0, { position: { x: 0, y: 40 } }),
+    node('d', -40),
+    wedge('w', 'c', 'a', 'wedge-begin'),
+    bond('x', 'c', 'b'),
+    bond('y', 'c', 'd'),
+  ]);
+  const found = codes(await checkStructure(source, service));
+  assert.equal(
+    found.some((c) => c.startsWith('stereo-bond')),
+    false,
+  );
+});
+
+test('a wedge from a carbon with a double bond is reported as not tetrahedral', async () => {
+  const source = doc([
+    node('c', 0),
+    node('a', 40),
+    node('o', 0, { position: { x: 0, y: 40 }, element: 'O' }),
+    node('d', -40),
+    wedge('w', 'c', 'a', 'wedge-begin'),
+    bond('x', 'c', 'o', { order: 2 }),
+    bond('y', 'c', 'd'),
+  ]);
+  const issues = await checkStructure(source, service);
+  assert.deepEqual(issues.find((i) => i.code === 'stereo-bond-sp2-center').objectIds, ['w', 'c']);
+});
+
+test('the stereo check does not edit the document', async () => {
+  const source = doc([node('a', 0), node('b', 50), wedge('w', 'a', 'b', 'wedge-begin')]);
+  const before = JSON.stringify(source);
+  await checkStructure(source, service);
+  assert.equal(JSON.stringify(source), before);
+});

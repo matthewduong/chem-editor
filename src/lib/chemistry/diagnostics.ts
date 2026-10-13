@@ -119,6 +119,42 @@ export async function checkStructure(
           [atom.id],
         );
     }
+    // A wedge or hash is drawn from the stereocenter (narrow end). These are drawing errors
+    // that the molfile route silently turns into wrong chemistry, so they are reported; the
+    // document is never changed.
+    for (const o of objects) {
+      if (o.type !== 'bond' || !component.has(o.beginNodeId)) continue;
+      const display = o.display;
+      if (
+        display !== 'wedge-begin' &&
+        display !== 'wedge-end' &&
+        display !== 'hash-begin' &&
+        display !== 'hash-end'
+      )
+        continue;
+      const narrowId = display.endsWith('-begin') ? o.beginNodeId : o.endNodeId;
+      const narrow = a.find((atom) => atom.id === narrowId);
+      if (!narrow) continue;
+      const touching = b.filter((bond) => bond.from === narrowId || bond.to === narrowId);
+      if (touching.length === 1) {
+        add(
+          'stereo-bond-terminal-center',
+          'warning',
+          'A wedge or hash starts at an atom with no other bonds. Its narrow end belongs at the stereocenter.',
+          [o.id, narrowId],
+        );
+      } else if (
+        ['C', 'N'].includes(narrow.element) &&
+        touching.some((bond) => bond.order >= 2 || !Number.isInteger(bond.order))
+      ) {
+        add(
+          'stereo-bond-sp2-center',
+          'warning',
+          `A wedge or hash starts at a ${narrow.element} with a double, triple or aromatic bond, which is not a tetrahedral stereocenter.`,
+          [o.id, narrowId],
+        );
+      }
+    }
     if (a.length > 999) {
       add(
         'engine-size-limit',

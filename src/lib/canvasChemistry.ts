@@ -4,13 +4,22 @@ import { getAtomAlias, getAtomLeadElement, isAliasAtom } from '../lib/atomIdenti
 import { resolveChemicalTextStructure } from '../lib/chemicalText';
 import { isElementSymbol, VALENCIES } from '../lib/elements';
 import { graphToMolblock } from '../lib/graph';
+import { allowedValences } from './chemistry/valence';
 import { type ShorthandEntry } from '../lib/shorthand';
 import type { Arrow, Atom, Bond, TextBox } from '../types/chemistry';
 import type { RdkitModule, RdkitMol } from '../types/rdkit';
 
 export function getAtomFreeValence(atom: Atom, bonds: Bond[]): number {
-  const knownVal = VALENCIES[getAtomLeadElement(atom)] ?? null;
+  const element = getAtomLeadElement(atom);
+  let knownVal = VALENCIES[element] ?? null;
   if (knownVal === null) return 100; // variable valency — always allow bonding
+  // Charge and radicals move the valence of an element that has only one (N+ takes four bonds,
+  // a carbon radical three). Elements with several valences (S, P) keep the single-valence
+  // table value: which state a new bond should reach is a drawing decision, not chemistry.
+  if (!isAliasAtom(atom)) {
+    const allowed = allowedValences(element, atom.charge ?? 0, atom.radicalElectrons ?? 0);
+    if (allowed?.length === 1) knownVal = allowed[0];
+  }
   const usedVal = bonds
     .filter((b) => b.from === atom.id || b.to === atom.id)
     .reduce((s, b) => s + (b.order || 1), 0);
