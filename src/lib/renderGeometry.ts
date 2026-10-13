@@ -20,6 +20,7 @@ import {
 import { VALENCIES } from './elements';
 import { SHORTHAND_DATA } from './shorthand';
 import { measureAdvance } from './textMetrics';
+import { resolveElementLabelAnchor } from './labelPlacement';
 
 export const DEFAULT_ATOM_LABEL_FONT_SIZE = DEFAULT_CHEMDRAW_LABEL_FONT_SIZE;
 const MIN_LABEL_WIDTH_RATIO = 22 / 16;
@@ -954,11 +955,24 @@ function getLeadElementLabelMetrics(
   labelText: string,
   fontSize: number,
   documentStyleSettings?: DocumentStyleSettings | null,
+  placement?: { atoms: Atom[]; bonds: Bond[] },
 ): LabelClipMetrics | null {
   const leadElement = getAtomLeadElement(atom);
   const leadRange = findLeadElementDisplayRange(labelText, leadElement);
-  if (!leadRange && labelText === leadElement && leadElement.length === 1) {
-    const width = measureLabelSegmentWidth(labelText, fontSize, documentStyleSettings);
+  if (!leadRange && labelText === leadElement) {
+    // The clip follows the letter ChemDraw puts on the atom: the first of Br when it is Left
+    // justified, the last when Right (see resolveElementLabelAnchor); the whole symbol if centred.
+    const letters = [...labelText];
+    const mode = placement
+      ? resolveElementLabelAnchor(atom, placement.atoms, placement.bonds)
+      : 'whole';
+    const clipped =
+      letters.length === 1 || mode === 'whole'
+        ? labelText
+        : mode === 'first'
+          ? letters[0]!
+          : letters[letters.length - 1]!;
+    const width = measureLabelSegmentWidth(clipped, fontSize, documentStyleSettings);
     const halfHeight = getAtomLabelCapHeight(fontSize) / 2 + 1;
     const halfWidth = width / 2 + 1;
     return {
@@ -1019,8 +1033,10 @@ function getAtomLabelMetrics(
   const labelText = getAtomDisplayText(atom, atoms, bonds, hydrogenCount).text;
   const fontSize = atom.labelFontSize ?? getDefaultAtomLabelFontSize(documentStyleSettings);
   const metrics =
-    getLeadElementLabelMetrics(atom, labelText, fontSize, documentStyleSettings) ??
-    getFullLabelMetrics(labelText, fontSize, documentStyleSettings);
+    getLeadElementLabelMetrics(atom, labelText, fontSize, documentStyleSettings, {
+      atoms,
+      bonds,
+    }) ?? getFullLabelMetrics(labelText, fontSize, documentStyleSettings);
   return withChargeAdornment(metrics, atom, labelText, fontSize, documentStyleSettings);
 }
 

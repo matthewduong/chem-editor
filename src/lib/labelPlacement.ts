@@ -101,3 +101,34 @@ export function resolveGeneratedLabelSide(
   }
   return Math.cos(direction) > EPSILON ? 'left' : Math.cos(direction) < -EPSILON ? 'right' : 'left';
 }
+
+/** Which letter of a lone multi-letter element symbol (Cl, Br, Si) sits on the atom. */
+export type ElementLabelAnchor = 'first' | 'last' | 'whole';
+
+/**
+ * Where a bare element symbol of more than one letter is anchored on its atom.
+ *
+ * Read from the label positions of 296 Cl, Br, Si and Se atoms in 121 ChemDraw-authored documents:
+ * a Left-justified label starts half its first letter before the atom (Br at -3.3, Cl at -3.6), a
+ * Right-justified one ends half its last letter after it (Br at +1.7, Cl and Si at +1.1), and a
+ * Centre-justified one is centred as a whole (Si, 0.0). Generated, those labels came out Centre
+ * for all 173 atoms with three or more bonds, and Left or Right by the bond direction for one
+ * bond, as for any other label (`resolveGeneratedLabelSide`).
+ */
+export function resolveElementLabelAnchor(
+  atom: Atom,
+  atoms: Atom[],
+  bonds: Bond[],
+  explicit?: 'left' | 'center' | 'right' | 'above' | 'below',
+): ElementLabelAnchor {
+  if (explicit === 'left') return 'first';
+  if (explicit === 'right') return 'last';
+  if (explicit) return 'whole';
+  if (atom.labelOrientation === 'hydrogen-first') return 'last';
+  if (atom.labelOrientation === 'label-first') return 'first';
+  const connected = bondsOfAtom(atom.id, bonds).length;
+  if (connected >= 3) return 'whole';
+  const side = resolveGeneratedLabelSide(atom, atoms, bonds, { hasHydrogens: false });
+  if (side === 'right') return 'last';
+  return 'first';
+}

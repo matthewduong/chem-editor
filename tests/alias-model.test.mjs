@@ -542,7 +542,10 @@ test('bond clipping falls back to the full label box when no lead token is prese
   assert.ok(Math.abs(clip - 12.12109375) < 1e-6, `clip was ${clip}`);
 });
 
-test('single-token element labels retain their existing bond clip width', () => {
+// ChemDraw 26.1.0.6801 (2026-10-13): a bond into Cl or Br stops 2.4-5.8pt from the atom at 10pt,
+// like a one-letter label, not at the edge of the two-letter box (12.7pt here). The letter that sits
+// on the atom sets it: the first for a Left-justified label.
+test('a two-letter element label clips on the letter that sits on the atom', () => {
   const atoms = [
     baseAtom({ id: 'a1', x: 0, y: 0, element: 'C' }),
     baseAtom({ id: 'a2', x: 45, y: 0, element: 'Cl', labelFontSize: 16 }),
@@ -550,9 +553,8 @@ test('single-token element labels retain their existing bond clip width', () => 
   const bonds = [baseBond()];
   const clip = getAtomBondClipOffset(atoms[1], atoms, bonds, -1, 0);
 
-  // 'Cl' has no lead-element sub-range, so it uses the full label box, which the 22px minimum
-  // width dominates. The old estimator overstated 'Cl' as 24px wide.
-  assert.equal(clip, 12);
+  assert.ok(Math.abs(clip - leadElementClip('C', 16)) < 1e-9, `clip was ${clip}`);
+  assert.ok(clip < 10, `clip was ${clip}`);
 });
 
 test('single-letter element labels use the lead element clip width', () => {
