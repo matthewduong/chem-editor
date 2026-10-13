@@ -1,8 +1,8 @@
-import { placeTemplate, type UserTemplate } from '../lib/templates';
-import { ToolLifecycle } from '../editor/toolLifecycle';
-import { cancelGestures } from '../editor/toolLifecycle';
+import type { UserTemplate } from '../lib/templates';
+import { cancelGestures, ToolLifecycle } from '../editor/toolLifecycle';
 import { useArrowTool } from '../tools/useArrowTool';
 import { useRingTool } from '../tools/useRingTool';
+import { useTemplatePlacementTool } from '../tools/useTemplatePlacementTool';
 import { useTextDragTool } from '../tools/useTextDragTool';
 import { applyRingPlacement, type RingPlacementPreview } from '../lib/ringGesture';
 import { useChainTool } from '../tools/useChainTool';
@@ -821,7 +821,7 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
     affectedBondIds: new Set(),
   });
 
-  const templatePlacement = useRef<UserTemplate | null>(null);
+  const templateTool = useTemplatePlacementTool();
   const gestureLifecycle = useRef(
     new ToolLifecycle<ReturnType<typeof getCanvasHitAt>, typeof chemDrawDocument>(),
   );
@@ -2178,8 +2178,16 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
    */
   const cancelAllGestures = () => {
     gestureLifecycle.current.cancel();
-    templatePlacement.current = null;
-    cancelGestures([chainTool, ringTool, arrowTool, textDragTool, bondTool, atomTool, selectTool]);
+    cancelGestures([
+      templateTool,
+      chainTool,
+      ringTool,
+      arrowTool,
+      textDragTool,
+      bondTool,
+      atomTool,
+      selectTool,
+    ]);
     selectionDragRef.current = {
       isDragging: false,
       startPos: null,
@@ -2265,7 +2273,7 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
       hit,
       modifiers,
     });
-    if (templatePlacement.current) return;
+    if (templateTool.isActive()) return;
     if (tool === 'chain') {
       chainTool.begin({ point: pos, hit: hitA, modifiers });
       return;
@@ -2497,22 +2505,13 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
     const hit = getCanvasHitAt(pos.x, pos.y);
     const hitA = hit.atom;
     gestureLifecycle.current.update({ point: pos, hit, modifiers });
-    if (templatePlacement.current) {
-      const store = useStore.getState();
-      if (!store.chemDrawDocument) return;
-      try {
-        const placement = placeTemplate(
-          store.chemDrawDocument,
-          templatePlacement.current,
-          pos,
-          modifiers.shift
-            ? hitTestDocumentScene(exportScene, pos, { stageScale })?.objectId
-            : undefined,
-        );
-        store.setPreviewChemDrawDocument(placement.document);
-      } catch {
-        store.clearPreviewChemDrawDocument();
-      }
+    if (templateTool.isActive()) {
+      templateTool.update(
+        pos,
+        modifiers.shift
+          ? hitTestDocumentScene(exportScene, pos, { stageScale })?.objectId
+          : undefined,
+      );
       return;
     }
     if (tool === 'chain') {
@@ -2642,27 +2641,14 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
     syncModifierKeys(e.evt);
     markInteractionIdle();
     if (!gestureLifecycle.current.commit(useStore.getState().chemDrawDocument)) return;
-    if (templatePlacement.current) {
-      const store = useStore.getState();
-      const template = templatePlacement.current;
-      templatePlacement.current = null;
-      try {
-        const pos = getRelativePointerPosition();
-        if (!store.chemDrawDocument) return;
-        const result = placeTemplate(
-          store.chemDrawDocument,
-          template,
-          pos,
-          e.evt.shiftKey
-            ? hitTestDocumentScene(exportScene, pos, { stageScale })?.objectId
-            : undefined,
-        );
-        store.commitDocument(result.document);
-        store.setSelectedObjectIds(new Set(result.objectIds));
-      } catch (error) {
-        store.showToast(error instanceof Error ? error.message : 'Template insertion failed.');
-      }
-      store.clearPreviewChemDrawDocument();
+    if (templateTool.isActive()) {
+      const pos = getRelativePointerPosition();
+      templateTool.commit(
+        pos,
+        e.evt.shiftKey
+          ? hitTestDocumentScene(exportScene, pos, { stageScale })?.objectId
+          : undefined,
+      );
       return;
     }
     if (tool === 'chain') {
@@ -2972,16 +2958,7 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
           console.error(e);
         }
       },
-      beginTemplatePlacement: (template: UserTemplate) => {
-        useStore.getState().deselectAll();
-        templatePlacement.current = template;
-        useStore
-          .getState()
-          .showToast(
-            'Click to place the template. Hold Shift over an atom or bond to attach; Escape cancels.',
-            'info',
-          );
-      },
+      beginTemplatePlacement: (template: UserTemplate) => templateTool.arm(template),
       revealObjects: (ids: string[]) => {
         const document = useStore.getState().chemDrawDocument;
         if (!document) return;
@@ -3170,6 +3147,7 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
     }),
     [
       fileController,
+      templateTool,
       stageScale,
       aliasValidator,
       insertEmbeddedImage,

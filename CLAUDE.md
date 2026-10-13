@@ -44,6 +44,14 @@ and throws on any context member it does not model, so a module reaching for som
 the suite rather than silently diverging in SVG. `tests/fixtures/goldens/ops/` pins the op stream
 per fixture — **a golden that moves means rendering changed, and the diff should say how.**
 
+Pointer tools (`src/tools/`) share one contract from `src/editor/toolLifecycle.ts`: `begin`,
+`update`, `commit`, `cancel` and `isActive`. `commit` is gated on the document the press began
+on, so a pointer-up after a replacement edits nothing, and a preview never enters history. New
+gesture geometry belongs in a headless `src/lib/*Gesture.ts` module (arrow, ring and text drag
+do this) so it can be unit-tested. `cancelAllGestures` in `ChemCanvas.tsx` is the one cancel list
+(Escape, tool change, document replacement, pointer cancel); a new tool joins that list rather
+than adding its own cleanup call.
+
 Document model:
 
 - `ChemDrawDocument` (`src/types/chemdraw.ts`) mirrors the CDXML object tree and carries
