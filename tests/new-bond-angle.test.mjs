@@ -107,3 +107,48 @@ test('a wedge or hash is never drawn straight on', () => {
   const wedged = [bond('1', 'a', 'b', { order: 1, stereo: 1 })];
   assert.equal(deg(getNewBondAngle(atoms[1], atoms, wedged, { newBondOrder: 3 })), 60);
 });
+
+// Sequences read from CDXML that ChemDraw 26.1.0.6801 saved after clicking a chain end with the
+// bond tool (macOS, 2026-10-13). Headings are degrees counter-clockwise from +x as ChemDraw
+// wrote them; the canvas is y-down so they are negated below.
+function extendLikeChemDraw(firstHeading, firstOrder, extras, orders) {
+  const toAtom = (id, from, heading) => {
+    const t = (heading * Math.PI) / 180;
+    return atom(id, from.x + L * Math.cos(t), from.y - L * Math.sin(t));
+  };
+  const atoms = [atom('a0', 0, 0)];
+  const bonds = [];
+  atoms.push(toAtom('a1', atoms[0], firstHeading));
+  bonds.push(bond('b1', 'a0', 'a1', { order: firstOrder }));
+  for (const [id, heading] of extras) {
+    atoms.push(toAtom(id, atoms[0], heading));
+    bonds.push(bond(`b${id}`, 'a0', id));
+  }
+  let end = atoms[1];
+  const headings = [];
+  orders.forEach((order, i) => {
+    const angle = getNewBondAngle(end, atoms, bonds, { newBondOrder: order });
+    headings.push(-deg(angle));
+    const next = atom(`n${i}`, end.x + L * Math.cos(angle), end.y + L * Math.sin(angle));
+    atoms.push(next);
+    bonds.push(bond(`bn${i}`, end.id, next.id, { order }));
+    end = next;
+  });
+  return headings;
+}
+
+test('ChemDraw: single-bond clicks zigzag (30, -30, 30, -30, 30)', () => {
+  assert.deepEqual(extendLikeChemDraw(30, 1, [], [1, 1, 1, 1]), [-30, 30, -30, 30]);
+});
+
+test('ChemDraw: a substituent on the neighbour does not change the zigzag', () => {
+  assert.deepEqual(extendLikeChemDraw(30, 1, [['sub', 150]], [1, 1, 1, 1]), [-30, 30, -30, 30]);
+});
+
+test('ChemDraw: double after double continues straight', () => {
+  assert.deepEqual(extendLikeChemDraw(30, 2, [], [2, 2, 2, 2]), [30, 30, 30, 30]);
+});
+
+test('ChemDraw: triple after single, then triple after triple, continue straight', () => {
+  assert.deepEqual(extendLikeChemDraw(30, 1, [], [3, 3]), [30, 30]);
+});
