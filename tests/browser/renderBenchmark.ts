@@ -90,8 +90,25 @@ export function retainHistory(size: number) {
 export function clearHistory() {
   history = [];
 }
-export async function benchmark(size: number, useCache: boolean, samples = 15) {
-  const input = { ...synthetic(size), useCache };
+/** Hard ceiling: the 5,000-atom uncached case is slow enough that more samples are not worth it. */
+export const MAX_SAMPLES = 5;
+/**
+ * `hover`: the same document object every sample, as while a pointer previews a move. Cached
+ * runs are cache *hits* here. `edit`: a fresh document object per sample, as after a commit, so
+ * cached runs are cache *misses* and show the bookkeeping overhead. Building the fresh document
+ * is not timed.
+ */
+export type BenchmarkMode = 'hover' | 'edit';
+export async function benchmark(
+  size: number,
+  useCache: boolean,
+  samples = MAX_SAMPLES,
+  mode: BenchmarkMode = 'hover',
+) {
+  samples = Math.max(1, Math.min(MAX_SAMPLES, Math.floor(samples)));
+  const setupStart = performance.now();
+  let input = { ...synthetic(size), useCache };
+  const setupMs = performance.now() - setupStart;
   const canvas = document.createElement('canvas');
   canvas.width = 1000;
   canvas.height = 800;
@@ -108,8 +125,11 @@ export async function benchmark(size: number, useCache: boolean, samples = 15) {
     paints: number[] = [],
     previews: number[] = [];
   // Warm both the runtime and the requested cache mode before recording.
+  const warmStart = performance.now();
   buildDocumentSceneState(input);
+  const warmupMs = performance.now() - warmStart;
   for (let i = 0; i < samples; i++) {
+    if (mode === 'edit') input = { ...synthetic(size), useCache };
     let t = performance.now();
     (useCache ? buildDocumentIndex : buildDocumentIndexUncached)(input.document, {
       documentStyleSettings: input.documentStyleSettings,
@@ -146,6 +166,9 @@ export async function benchmark(size: number, useCache: boolean, samples = 15) {
   return {
     size,
     useCache,
+    mode,
+    setupMs,
+    warmupMs,
     indexMs: stats(indexes),
     sceneMs: stats(scenes),
     paintMs: stats(paints),
