@@ -3,10 +3,16 @@ import { getFaceMetrics, getPaintFontFamily } from '../../../lib/textMetrics';
 import {
   getAtomLabelBaselineOffset,
   getNodeLabelVerticalOffset,
+  getStackedLabelBaselines,
   resolveDocumentLabelTextStyle,
 } from '../../../lib/chemdrawMetrics';
 import { getAtomLeadElement } from '../../../lib/atomIdentity';
-import { getAtomDisplayText, getAtomHydrogenCount } from '../../../lib/atomLabels';
+import {
+  getAtomDisplayText,
+  getAtomHydrogenCount,
+  resolveStackedHydrogenSide,
+  splitHydrogenLabel,
+} from '../../../lib/atomLabels';
 import { VALENCIES } from '../../../lib/elements';
 import {
   getAtomLabelBoxWidth,
@@ -48,12 +54,25 @@ export const NODE_MODULE: ObjectModule = {
       scene.showHydrogens && canShowImplicitHydrogens && knownValence !== null
         ? getAtomHydrogenCount(atom, scene.legacy.bonds, knownValence)
         : 0;
-    const labelText = getAtomDisplayText(
-      atom,
-      scene.legacy.atoms,
-      scene.legacy.bonds,
-      hydrogenCount,
-    ).text;
+    const display = getAtomDisplayText(atom, scene.legacy.atoms, scene.legacy.bonds, hydrogenCount);
+    const labelText = display.text;
+    // A label read from a file arrives as text ("NH") with an above/below alignment rather than
+    // as a computed hydrogen count, so it is split from the text.
+    const explicitStack = object.labelAlignment === 'above' || object.labelAlignment === 'below';
+    const stackParts =
+      display.parts ?? (labelVisible && explicitStack ? splitHydrogenLabel(labelText) : null);
+    const stackSide =
+      !labelVisible || !stackParts
+        ? null
+        : explicitStack && !display.parts
+          ? (object.labelAlignment as 'above' | 'below')
+          : resolveStackedHydrogenSide(
+              atom,
+              scene.legacy.atoms,
+              scene.legacy.bonds,
+              hydrogenCount,
+              object.labelAlignment,
+            );
     const isSelected = scene.selectedAtomIds.has(atom.id);
     const isHovered = scene.hoveredAtomId === atom.id;
     const suppressSelectionAdornment =
@@ -103,7 +122,11 @@ export const NODE_MODULE: ObjectModule = {
       labelVisible ? width : 0,
       scene.documentStyleSettings,
     );
-    const verticalOffset = getNodeLabelVerticalOffset(object.labelAlignment, labelFontSize);
+    // A stacked label is laid out line by line below; the single-line shift is for labels that
+    // carry an explicit above/below alignment but have no hydrogen run to stack.
+    const verticalOffset = stackSide
+      ? 0
+      : getNodeLabelVerticalOffset(object.labelAlignment, labelFontSize);
 
     if (object.query && labelVisible) {
       ctx.save();
@@ -138,7 +161,64 @@ export const NODE_MODULE: ObjectModule = {
       ctx.restore();
     }
 
-    if (labelVisible) {
+    // Where the end of the hydrogen line is, for the charge of a stacked label.
+    let stackedCharge: { x: number; y: number } | null = null;
+    if (labelVisible && stackSide && stackParts) {
+      const splitAt = stackParts.lead.length;
+      const leadRuns: typeof displayRuns = [];
+      const hydrogenRuns: typeof displayRuns = [];
+      let cursor = 0;
+      for (const run of displayRuns) {
+        const end = cursor + run.text.length;
+        if (end <= splitAt) leadRuns.push(run);
+        else if (cursor >= splitAt) hydrogenRuns.push(run);
+        else {
+          leadRuns.push({ ...run, text: run.text.slice(0, splitAt - cursor) });
+          hydrogenRuns.push({ ...run, text: run.text.slice(splitAt - cursor) });
+        }
+        cursor = end;
+      }
+      const widthOf = (runs: typeof displayRuns) =>
+        runs.reduce((sum, run) => sum + measureRunWidth(run, labelFontSize, labelFontFamily), 0);
+      const baselines = getStackedLabelBaselines(
+        labelFontSize,
+        stackSide,
+        /[0-9\u2080-\u2089]/.test(stackParts.hydrogens),
+      );
+      const ascent = getFaceMetrics({ family: labelFontFamily, sizePx: labelFontSize }).ascent;
+      // Both lines start where the first letter of the lead element starts, which ChemDraw
+      // centres on the atom: p.x was 3.61 left of the atom for N and 3.33 for Si and Se at 10pt,
+      // half of the first letter's width, not of the whole element symbol.
+      const firstLetter = leadRuns[0]
+        ? { ...leadRuns[0], text: leadRuns[0].text.slice(0, 1) }
+        : null;
+      const startX =
+        atom.x -
+        (firstLetter ? measureRunWidth(firstLetter, labelFontSize, labelFontFamily) : 0) / 2;
+      const drawLine = (runs: typeof displayRuns, baseline: number) => {
+        let x = startX;
+        for (const run of runs) {
+          drawRunText(
+            ctx,
+            run,
+            x,
+            atom.y + baseline - ascent,
+            labelFontSize,
+            labelFontFamily,
+            error || isSelected
+              ? resolvedColor
+              : adaptColor(run.color ?? resolvedColor, scene.isDarkMode),
+          );
+          x += measureRunWidth(run, labelFontSize, labelFontFamily);
+        }
+      };
+      drawLine(leadRuns, baselines.lead);
+      drawLine(hydrogenRuns, baselines.hydrogens);
+      stackedCharge = {
+        x: startX + widthOf(hydrogenRuns),
+        y: baselines.hydrogens - baselines.lead,
+      };
+    } else if (labelVisible) {
       const textStartX = atom.x - offset + padding;
       let cursorX = textStartX;
       // drawRunText takes the top of the line, so back off by the ascent to land the baseline
@@ -183,10 +263,13 @@ export const NODE_MODULE: ObjectModule = {
       ctx.font = `bold ${labelLayout.chargeFontSize}px ${getPaintFontFamily(labelFontFamily)}`;
       ctx.fillStyle = resolvedColor;
       ctx.textBaseline = 'top';
-      const chargeX = labelVisible
-        ? atom.x - offset + width - labelLayout.chargeOffsetX
-        : atom.x + 5;
-      const chargeY = atom.y - labelLayout.chargeOffsetY + verticalOffset;
+      // On a stacked label the charge follows the hydrogen run, at the end of the second line.
+      const chargeX = stackedCharge
+        ? stackedCharge.x - labelLayout.chargeOffsetX
+        : labelVisible
+          ? atom.x - offset + width - labelLayout.chargeOffsetX
+          : atom.x + 5;
+      const chargeY = atom.y - labelLayout.chargeOffsetY + verticalOffset + (stackedCharge?.y ?? 0);
       ctx.fillText(chargeText, chargeX, chargeY);
     }
 

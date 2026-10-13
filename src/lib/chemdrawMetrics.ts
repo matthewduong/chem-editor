@@ -303,6 +303,35 @@ const ATOM_LABEL_BASELINE_CAP_FRACTION = 0.5293;
 export const AUTO_LINE_HEIGHT_RATIO = 1.084;
 
 /**
+ * Baselines of a stacked atom label (`N` over `H`, or `H` over `N`), as offsets from the atom's
+ * y, y down.
+ *
+ * Measured on ChemDraw 26.1.0.6801 (2026-10-13) at 8, 10, 12, 16 and 24pt by saving a document
+ * whose heteroatoms had no label and reading the baseline (`p`) and `BoundingBox` ChemDraw wrote:
+ * the lead element's baseline is half a cap height below the atom (0.358 em, 3.58 at 10pt); the
+ * second line is 0.835 em from it (8.35 at 10pt, 20.04 at 24pt). When the hydrogens are above and
+ * carry a subscript count (`H2`) the pitch grows by the subscript's drop, 0.218-0.224 em
+ * (NH 8.35, SiH2 10.53 at 10pt). Charge adds a further 0.05 em at most, which is not modelled.
+ */
+export function getStackedLabelBaselines(
+  fontSize: number,
+  side: 'above' | 'below',
+  hydrogensHaveSubscript: boolean,
+): { lead: number; hydrogens: number } {
+  if (!isFinitePositiveNumber(fontSize)) return { lead: 0, hydrogens: 0 };
+  const lead = fontSize * STACKED_LABEL_LEAD_BASELINE_EM;
+  const pitch = fontSize * STACKED_LABEL_LINE_PITCH_EM;
+  if (side === 'below') return { lead, hydrogens: lead + pitch };
+  const drop = hydrogensHaveSubscript ? fontSize * STACKED_LABEL_SUBSCRIPT_DROP_EM : 0;
+  return { lead, hydrogens: lead - pitch - drop };
+}
+
+/** Half of Arial's 0.716 em cap height; measured with Arial only. */
+const STACKED_LABEL_LEAD_BASELINE_EM = 0.358;
+const STACKED_LABEL_LINE_PITCH_EM = 0.835;
+const STACKED_LABEL_SUBSCRIPT_DROP_EM = 0.22;
+
+/**
  * Distance from an atom's centre down to its label's baseline.
  *
  * Cap height rather than point size because that is what tracks the face: across Arial, a serif and

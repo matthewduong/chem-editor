@@ -4,6 +4,7 @@ import { resolveAliasChemistry } from './aliasChemistry';
 import { isElementSymbol } from './elements';
 import { bondsOfAtom, findAtomById } from './graphLookup';
 import { chemDrawImplicitHydrogens } from './chemistry/displayHydrogens';
+import { resolveGeneratedLabelSide } from './labelPlacement';
 import { SHORTHAND_DATA } from './shorthand';
 
 const SUBSCRIPT_DIGITS = ['₀', '₁', '₂', '₃', '₄', '₅', '₆', '₇', '₈', '₉'];
@@ -39,6 +40,14 @@ function resolveAutoOrientation(
 ): 'label-first' | 'hydrogen-first' {
   const connections = bondsOfAtom(atom.id, bonds);
   if (connections.length === 0) return 'label-first';
+
+  // A generated label (no shorthand alias) follows ChemDraw's own placement rule, which was
+  // measured rather than inferred; see labelPlacement.ts. Shorthand groups keep the heuristic
+  // below, since their reversed forms (MeO, AcNH) were not part of that measurement.
+  if (!getAtomAlias(atom)) {
+    const side = resolveGeneratedLabelSide(atom, atoms, bonds, { hasHydrogens: true });
+    if (side) return side === 'right' ? 'hydrogen-first' : 'label-first';
+  }
 
   let horizontalBias = 0;
   for (const bond of connections) {
@@ -116,7 +125,12 @@ export function getAtomDisplayText(
   atoms: Atom[],
   bonds: Bond[],
   hydrogenCount: number,
-): { text: string; orientation: 'label-first' | 'hydrogen-first' } {
+): {
+  text: string;
+  orientation: 'label-first' | 'hydrogen-first';
+  /** The label split into its atom text and the hydrogen run, for a label-first layout. */
+  parts: { lead: string; hydrogens: string } | null;
+} {
   const key = getAtomNodeText(atom);
   const entry = SHORTHAND_DATA[key];
   const orientation = resolveAtomLabelOrientation(atom, atoms, bonds);
@@ -138,7 +152,7 @@ export function getAtomDisplayText(
   }
 
   const hydrogenText = formatHydrogenLabel(hydrogenCount);
-  if (!hydrogenText) return { text: baseText, orientation };
+  if (!hydrogenText) return { text: baseText, orientation, parts: null };
 
   return {
     text:
@@ -146,7 +160,43 @@ export function getAtomDisplayText(
         ? `${hydrogenText}${baseText}`
         : `${baseText}${hydrogenText}`,
     orientation,
+    parts: orientation === 'hydrogen-first' ? null : { lead: baseText, hydrogens: hydrogenText },
   };
+}
+
+/**
+ * Splits label text that is an element followed by its hydrogens (`NH`, `SiH2`, `OH`).
+ *
+ * ChemDraw stores a stacked label as that single string with `LabelAlignment` above or below, and
+ * the importer reads it as an alias, so the split has to come from the text.
+ */
+export function splitHydrogenLabel(text: string): { lead: string; hydrogens: string } | null {
+  const match = /^([A-Z][a-z]?)(H[0-9\u2080-\u2089]*)$/.exec(text);
+  if (!match || !isElementSymbol(match[1]!) || match[1] === 'H') return null;
+  return { lead: match[1]!, hydrogens: match[2]! };
+}
+
+/**
+ * Whether the hydrogens of a generated label sit on a second line, and on which side.
+ *
+ * ChemDraw stacks `NH` as N over H (or H over N) when the atom's bonds leave it one-sided, and
+ * `labelPlacement.ts` holds the measured rule. An explicit `above`/`below` alignment from the
+ * file wins; an explicit left, right or centre alignment, or a user-chosen orientation, keeps the
+ * label on one line. Shorthand groups and atoms without hydrogens never stack.
+ */
+export function resolveStackedHydrogenSide(
+  atom: Atom,
+  atoms: Atom[],
+  bonds: Bond[],
+  hydrogenCount: number,
+  explicitAlignment?: 'left' | 'center' | 'right' | 'above' | 'below',
+): 'above' | 'below' | null {
+  if (hydrogenCount <= 0 || getAtomAlias(atom)) return null;
+  if (explicitAlignment === 'above' || explicitAlignment === 'below') return explicitAlignment;
+  if (explicitAlignment) return null;
+  if (atom.labelOrientation && atom.labelOrientation !== 'auto') return null;
+  const side = resolveGeneratedLabelSide(atom, atoms, bonds, { hasHydrogens: true });
+  return side === 'above' || side === 'below' ? side : null;
 }
 
 export interface AtomDisplaySegment {

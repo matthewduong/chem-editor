@@ -53,6 +53,7 @@ import { canvasStateToChemDrawDocument, chemDrawDocumentToCanvasState } from '..
 import {
   getAtomDisplayText,
   getAtomHydrogenCount,
+  resolveStackedHydrogenSide,
   inferAtomLabelFromDisplayedText,
   normalizeAtomDisplayText,
 } from '../lib/atomLabels';
@@ -1447,6 +1448,7 @@ function chemDrawDocumentToCDXMLInternal(document: ChemDrawDocument): string {
           : node.query?.type === 'alias'
             ? (node.query.label ?? node.query.genericName ?? node.alias)
             : (node.alias ?? node.text?.runs.map((run) => run.text).join(''));
+      let generatedStackSide: 'above' | 'below' | null = null;
       if (!node.query && !nodeLabel) {
         const atom = atomById.get(node.id);
         if (atom) {
@@ -1460,7 +1462,19 @@ function chemDrawDocumentToCDXMLInternal(document: ChemDrawDocument): string {
             const hydrogenCount = canShowImplicitHydrogens
               ? getAtomHydrogenCount(atom, canvasBonds, knownValence)
               : 0;
-            nodeLabel = getAtomDisplayText(atom, canvasAtoms, canvasBonds, hydrogenCount).text;
+            const display = getAtomDisplayText(atom, canvasAtoms, canvasBonds, hydrogenCount);
+            nodeLabel = display.text;
+            // A generated NH-style label that ChemDraw would stack says so, so that it opens
+            // stacked rather than being laid out inline.
+            if (display.parts) {
+              generatedStackSide = resolveStackedHydrogenSide(
+                atom,
+                canvasAtoms,
+                canvasBonds,
+                hydrogenCount,
+                node.labelAlignment,
+              );
+            }
           }
         }
       }
@@ -1476,8 +1490,8 @@ function chemDrawDocumentToCDXMLInternal(document: ChemDrawDocument): string {
             node.style?.fontFamily ?? documentStyleSettings.nativeMetrics.labelFontFamily,
           ),
           face: documentStyleSettings.nativeMetrics.labelFace,
-          justification: node.text?.justification,
-          labelAlignment: node.labelAlignment,
+          justification: node.text?.justification ?? (generatedStackSide ? 'left' : undefined),
+          labelAlignment: node.labelAlignment ?? generatedStackSide ?? undefined,
         });
         content += emitObjectTags(
           node.objectTags,
