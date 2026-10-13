@@ -3,7 +3,7 @@ import { chemDrawDocumentToCanvasState } from '../chemdrawModel';
 import { getConnectedComponents, graphToMolblock } from '../graph';
 import { CHAIR_ATTACHMENT_DEDUPE_DISTANCE_FRACTION } from '../ringTemplates';
 import type { ChemistryDiagnostic, ChemistryService } from './service';
-import { checkValence } from './valence';
+import { allowedValences, checkValence } from './valence';
 
 export async function checkStructure(
   document: ChemDrawDocument,
@@ -88,40 +88,17 @@ export async function checkStructure(
     }
   }
   for (const component of getConnectedComponents(atoms, bonds)) {
-    const unsupported =
-      objects.some(
-        (o) =>
-          component.has(o.id) &&
-          o.type === 'node' &&
-          (o.alias || o.query || (o.preservation?.capability ?? 'editable') !== 'editable'),
-      ) ||
-      objects.some(
-        (o) =>
-          o.type === 'bond' &&
-          component.has(o.beginNodeId) &&
-          (o.query ||
-            o.display === 'dative' ||
-            (o.preservation?.capability ?? 'editable') !== 'editable'),
-      );
-    if (unsupported) continue;
     const a = atoms.filter((a) => component.has(a.id));
     const b = bonds.filter((b) => component.has(b.from) && component.has(b.to));
-    for (const atom of a) {
-      const sum = b
-        .filter((b) => b.from === atom.id || b.to === atom.id)
-        .reduce((sum, b) => sum + b.order, 0);
-      const result = checkValence(atom.element, atom.charge ?? 0, atom.radicalElectrons ?? 0, sum);
-      if (!result.ok)
-        add(
-          'invalid-valence',
-          'error',
-          `${atom.element} has bond order ${sum}, exceeding its supported valence ${result.allowed[result.allowed.length - 1]}.`,
-          [atom.id],
-        );
-    }
     // A wedge or hash is drawn from the stereocenter (narrow end). These are drawing errors
     // that the molfile route silently turns into wrong chemistry, so they are reported; the
     // document is never changed.
+    //
+    // This runs before the unsupported-component skip below. The rule reads only the wedge's own
+    // atoms and bonds, and the skip would otherwise exempt every component of a ChemDraw file:
+    // the importer marks each node and bond that carries ChemDraw-only metadata (z-order, AtomID)
+    // round-trip-only, and a nickname such as Boc anywhere in a molecule excludes all of it. Over
+    // 912 wedges in 121 real documents the rule never ran.
     for (const o of objects) {
       if (o.type !== 'bond' || !component.has(o.beginNodeId)) continue;
       const display = o.display;
@@ -136,7 +113,13 @@ export async function checkStructure(
       const narrow = a.find((atom) => atom.id === narrowId);
       if (!narrow) continue;
       const touching = b.filter((bond) => bond.from === narrowId || bond.to === narrowId);
+      const wideId = narrowId === o.beginNodeId ? o.endNodeId : o.beginNodeId;
+      const wide = a.find((atom) => atom.id === wideId);
+      // A wedge between a ligand and a metal centre conveys perspective in the coordination
+      // sphere, in either direction. It is not a tetrahedral stereocenter and is not an error.
+      const wideIsCoordinationCentre = wide !== undefined && allowedValences(wide.element) === null;
       if (touching.length === 1) {
+        if (wideIsCoordinationCentre) continue;
         add(
           'stereo-bond-terminal-center',
           'warning',
@@ -154,6 +137,36 @@ export async function checkStructure(
           [o.id, narrowId],
         );
       }
+    }
+    const unsupported =
+      objects.some(
+        (o) =>
+          component.has(o.id) &&
+          o.type === 'node' &&
+          (o.alias || o.query || (o.preservation?.capability ?? 'editable') !== 'editable'),
+      ) ||
+      objects.some(
+        (o) =>
+          o.type === 'bond' &&
+          component.has(o.beginNodeId) &&
+          (o.query ||
+            o.display === 'dative' ||
+            (o.preservation?.capability ?? 'editable') !== 'editable'),
+      );
+    if (unsupported) continue;
+    if (unsupported) continue;
+    for (const atom of a) {
+      const sum = b
+        .filter((b) => b.from === atom.id || b.to === atom.id)
+        .reduce((sum, b) => sum + b.order, 0);
+      const result = checkValence(atom.element, atom.charge ?? 0, atom.radicalElectrons ?? 0, sum);
+      if (!result.ok)
+        add(
+          'invalid-valence',
+          'error',
+          `${atom.element} has bond order ${sum}, exceeding its supported valence ${result.allowed[result.allowed.length - 1]}.`,
+          [atom.id],
+        );
     }
     if (a.length > 999) {
       add(

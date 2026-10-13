@@ -172,3 +172,50 @@ test('the stereo check does not edit the document', async () => {
   await checkStructure(source, service);
   assert.equal(JSON.stringify(source), before);
 });
+
+// Measured over a private corpus of 121 real ChemDraw documents: 912 wedge and hash bonds, none
+// reached by the stereo rules because the importer marks every node that carries ChemDraw-only
+// metadata round-trip-only and a nickname excludes its whole component. Un-skipping them flagged 7.
+test('stereo rules still run in a component that holds a round-trip-only node and a nickname', async () => {
+  const preserved = { capability: 'round-trip-only', rawAttributes: { Z: '3' }, reasons: [] };
+  const source = doc([
+    node('oh', 0, { element: 'O', preservation: preserved }),
+    node('c', 50, { preservation: preserved }),
+    node('d', 100),
+    node('boc', 150, { alias: 'Boc', aliasResolution: { selectedCandidateId: 'boc' } }),
+    wedge('w', 'oh', 'c', 'hash-begin'), // narrow end on the terminal OH, wide end on the carbon
+    bond('x', 'c', 'd'),
+    bond('y', 'd', 'boc'),
+  ]);
+  const issue = (await checkStructure(source, service)).find(
+    (i) => i.code === 'stereo-bond-terminal-center',
+  );
+  assert.deepEqual(issue.objectIds, ['w', 'oh']);
+});
+
+test('a wedge between a ligand and a metal centre is perspective, not a stereocenter', async () => {
+  for (const display of ['wedge-begin', 'wedge-end']) {
+    const source = doc([
+      node('co', 0, { element: 'Co' }),
+      node('l', 50),
+      node('m', -50, { element: 'Co' }),
+      // narrow end on the terminal ligand carbon, wide end on cobalt: seen in a real Co2(CO)6 scheme
+      display === 'wedge-begin' ? wedge('w', 'l', 'co', display) : wedge('w', 'co', 'l', display),
+      bond('x', 'co', 'm'),
+    ]);
+    const found = codes(await checkStructure(source, service));
+    assert.equal(found.includes('stereo-bond-terminal-center'), false, display);
+  }
+});
+
+test('a wedge from a lone atom into a p-block centre is still reported', async () => {
+  const source = doc([
+    node('a', 0),
+    node('s', 50, { element: 'S' }),
+    wedge('w', 'a', 's', 'wedge-begin'),
+  ]);
+  assert.equal(
+    codes(await checkStructure(source, service)).includes('stereo-bond-terminal-center'),
+    true,
+  );
+});
