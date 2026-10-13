@@ -155,6 +155,85 @@ for (const scale of [1, 2]) {
       for (let i = 1; i < turns.length; i++)
         expect(Math.sign(turns[i])).toBe(-Math.sign(turns[i - 1]));
     });
+    test('ring press commits one undo entry; Escape and tool switch create none', async ({
+      page,
+    }) => {
+      await openEditor(page);
+      await page.getByTitle('6-Membered Ring', { exact: true }).click();
+      const before = await observe(page);
+      const a = await point(page, 600, 450);
+      await page.mouse.move(a.x, a.y);
+      await page.mouse.down();
+      await page.mouse.move(a.x + 40, a.y + 10, { steps: 4 });
+      await page.keyboard.press('Escape');
+      await page.mouse.up();
+      expect((await observe(page)).atoms).toHaveLength(0);
+      expect((await observe(page)).historyIndex).toBe(before.historyIndex);
+      await page.mouse.move(a.x, a.y + 100);
+      await page.mouse.down();
+      await page.mouse.move(a.x + 30, a.y + 100, { steps: 3 });
+      await tool(page, 'Select');
+      await page.mouse.up();
+      expect((await observe(page)).atoms).toHaveLength(0);
+      await page.getByTitle('6-Membered Ring', { exact: true }).click();
+      await page.mouse.click(a.x, a.y);
+      const drawn = await observe(page);
+      expect(drawn.atoms).toHaveLength(6);
+      expect(drawn.bonds).toHaveLength(6);
+      expect(drawn.historyIndex).toBe(before.historyIndex + 1);
+      await page.keyboard.press('Control+z');
+      expect((await observe(page)).atoms).toHaveLength(0);
+    });
+    test('text box: click edits it, drag moves it as one entry, Escape discards the drag', async ({
+      page,
+    }) => {
+      await openEditor(page);
+      await tool(page, 'Text');
+      const at = await point(page, 600, 450);
+      await page.mouse.click(at.x, at.y);
+      const editor = page.locator('[contenteditable="true"]');
+      await expect(editor).toBeFocused();
+      await page.keyboard.type('abc');
+      await expect(editor).toHaveText('abc');
+      await page.keyboard.press('Escape');
+      const boxes = async () =>
+        page.evaluate(async () => {
+          const { useStore } = (await import(
+            String('/src/store/index.ts')
+          )) as typeof import('../../src/store');
+          return useStore.getState().textBoxes ?? [];
+        });
+      await expect.poll(async () => (await boxes()).length).toBe(1);
+      const placed = (await boxes())[0]!;
+      const history = (await observe(page)).historyIndex;
+      const where = await documentPoint(page, placed.x + 4, placed.y + 4);
+      // Escape mid-drag: the box stays where it was and no history entry is added
+      await page.mouse.move(where.x, where.y);
+      await page.mouse.down();
+      await page.mouse.move(where.x + 80, where.y + 40, { steps: 5 });
+      await page.keyboard.press('Escape');
+      await page.mouse.up();
+      expect((await boxes())[0]!.x).toBeCloseTo(placed.x, 5);
+      expect((await observe(page)).historyIndex).toBe(history);
+      // A real drag moves it and adds exactly one entry. Wait out the double-click window so
+      // the second press at this spot is not read as a double-click, which opens the editor.
+      await page.waitForTimeout(600);
+      await page.mouse.move(where.x, where.y);
+      await page.mouse.down();
+      await page.mouse.move(where.x + 80, where.y + 40, { steps: 5 });
+      await page.mouse.up();
+      const moved = (await boxes())[0]!;
+      expect(moved.x).toBeGreaterThan(placed.x + 1);
+      expect((await observe(page)).historyIndex).toBe(history + 1);
+      await page.keyboard.press('Control+z');
+      expect((await boxes())[0]!.x).toBeCloseTo(placed.x, 5);
+      // A short click, with no movement, opens the box for editing rather than moving it
+      await page.waitForTimeout(600);
+      const back = await documentPoint(page, placed.x + 4, placed.y + 4);
+      await page.mouse.click(back.x, back.y);
+      await expect(page.locator('[contenteditable="true"]')).toBeFocused();
+      expect((await boxes())[0]!.x).toBeCloseTo(placed.x, 5);
+    });
     test('arrow drag commits one undo entry; click, Escape and tool switch create none', async ({
       page,
     }) => {

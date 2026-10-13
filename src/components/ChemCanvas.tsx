@@ -1,6 +1,9 @@
 import { placeTemplate, type UserTemplate } from '../lib/templates';
 import { ToolLifecycle } from '../editor/toolLifecycle';
 import { useArrowTool } from '../tools/useArrowTool';
+import { useRingTool } from '../tools/useRingTool';
+import { useTextDragTool } from '../tools/useTextDragTool';
+import { applyRingPlacement, type RingPlacementPreview } from '../lib/ringGesture';
 import { useChainTool } from '../tools/useChainTool';
 import { prepareCleanupCommand } from '../editor/commands/cleanup';
 import { createRDKitChemistryService } from '../lib/chemistry/rdkit';
@@ -101,11 +104,7 @@ import {
   getPreferredAttachmentAngle,
   getRegularRingGeometry,
   isRingTemplatePreset,
-  materializeResolvedRingTemplatePlacement,
-  materializeRingGeometry,
   resolveRingTemplatePlacement,
-  type ResolvedRingTemplatePlacement,
-  type RingGeometry,
 } from '../lib/ringTemplates';
 import { getPageSetupDimensionsPx, resolveAtomLabelColor, resolveBondColor } from '../lib/settings';
 import {
@@ -213,10 +212,6 @@ function reorderBondStack(bonds: Bond[], bondId: string, direction: 'front' | 'b
   return nextBonds;
 }
 
-type RingPlacementPreview =
-  | { kind: 'polygon'; geometry: RingGeometry }
-  | { kind: 'template'; placement: ResolvedRingTemplatePlacement };
-
 const LEGACY_DEFAULT_VISUAL_BOND_LENGTH = 45;
 const DEFAULT_STAGE_SCALE = LEGACY_DEFAULT_VISUAL_BOND_LENGTH / DEFAULT_CANVAS_BOND_LENGTH;
 
@@ -274,7 +269,6 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
     setHoveredCanvasAtomId,
     setHoveredCanvasBondId,
     setEditableSmiles,
-    setTextFormat,
     setSelectionPreviewTransform,
   } = getCanvasEditorState();
 
@@ -355,7 +349,6 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
     [],
   );
 
-  const [ringPreview, setRingPreview] = useState<RingPlacementPreview | null>(null);
   const activeChemDrawDocument = previewChemDrawDocument ?? chemDrawDocument;
   const sceneCanvasState = useMemo<ChemistryCanvasState>(() => {
     if (!previewChemDrawDocument) {
@@ -455,6 +448,7 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
     [getAtomElectronVisuals, sceneAtoms, selectedAtomIds],
   );
   const arrowTool = useArrowTool();
+  const textDragTool = useTextDragTool();
   const arrowPreview = arrowTool.preview;
 
   const [editingArrowLabels, setEditingArrowLabels] = useState<{
@@ -511,12 +505,6 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
   const [editingTextBoxId, setEditingTextBoxId] = useState<string | null>(null);
   const editOverlayRef = useRef<HTMLDivElement>(null);
   const ignoreNextBlurRef = useRef(false);
-  const textToolDragRef = useRef<{
-    textBoxId: string;
-    startPos: { x: number; y: number };
-    lastPos: { x: number; y: number };
-    hasMoved: boolean;
-  } | null>(null);
   useEffect(() => {
     if (!editingTextBoxId || !editOverlayRef.current) return;
     const el = editOverlayRef.current;
@@ -837,7 +825,6 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
     new ToolLifecycle<ReturnType<typeof getCanvasHitAt>, typeof chemDrawDocument>(),
   );
   const chainTool = useChainTool();
-  const pendingRing = useRef<RingPlacementPreview | null>(null);
   const bondTool = useBondTool();
   const selectTool = useSelectTool();
   const atomTool = useAtomTool();
@@ -849,13 +836,12 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
       gestureLifecycle.current.cancel();
       chainTool.cancel();
       templatePlacement.current = null;
-      pendingRing.current = null;
+      ringTool.cancel();
       bondTool.cleanup();
       selectTool.cleanup();
       atomTool.cleanup();
-      textToolDragRef.current = null;
+      textDragTool.cancel();
       arrowTool.cancel();
-      setRingPreview(null);
       getCanvasEditorState().clearPreviewChemDrawDocument();
       getCanvasEditorState().clearSelectionPreviewTransform();
       selectionDragRef.current = {
@@ -2202,11 +2188,13 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
     [bondLength, ringPreset, ringRotationSteps, ringSize],
   );
 
+  const ringTool = useRingTool(resolveRingGeometryAtPointer);
+
   useCanvasKeyboard({
     cancelSelectionDrag: () => {
       gestureLifecycle.current.cancel();
       templatePlacement.current = null;
-      pendingRing.current = null;
+      ringTool.cancel();
       chainTool.cancel();
       selectionDragRef.current.isDragging = false;
       selectionDragRef.current.sourceDocument = null;
@@ -2228,9 +2216,9 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
     hoveredTextBoxId,
     bondTool,
     selectTool,
-    textToolDragRef,
+    cancelTextDrag: textDragTool.cancel,
     cancelArrow: arrowTool.cancel,
-    setRingPreview,
+    cancelRing: ringTool.cancel,
     setEditingArrowLabels,
     setEditingTextBoxId,
     setEditingAtomLabel,
@@ -2370,12 +2358,7 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
       }
       if (hitTB) {
         // Don't enter edit mode immediately — wait to distinguish click from drag
-        textToolDragRef.current = {
-          textBoxId: hitTB.id,
-          startPos: { x: pos.x, y: pos.y },
-          lastPos: { x: pos.x, y: pos.y },
-          hasMoved: false,
-        };
+        textDragTool.begin(hitTB.id, { x: pos.x, y: pos.y });
         setSelectedTextBoxIds(new Set([hitTB.id]));
         setSelectedAtomIds(new Set());
         setSelectedArrowIds(new Set());
@@ -2502,8 +2485,7 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
       return;
     }
     if (tool === 'ring') {
-      pendingRing.current = resolveRingGeometryAtPointer(pos, hitA, hitB);
-      setRingPreview(pendingRing.current);
+      ringTool.begin(pos, hitA, hitB);
       return;
     }
     if (tool === 'bond') {
@@ -2630,9 +2612,7 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
     }
     setHoveredScaleCorner(null);
     if (tool === 'ring') {
-      const placement = resolveRingGeometryAtPointer(pos, hitA, hitB);
-      if (pendingRing.current) pendingRing.current = placement;
-      setRingPreview(placement);
+      ringTool.hover(pos, hitA, hitB);
       return;
     }
     if (tool === 'bond') {
@@ -2643,14 +2623,9 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
       atomTool.onMouseMove(pos, hitA);
       return;
     }
-    if (tool === 'text' && textToolDragRef.current) {
-      const drag = textToolDragRef.current;
-      const totalDist = Math.hypot(pos.x - drag.startPos.x, pos.y - drag.startPos.y);
-      if (totalDist > 4 / stageScale) {
-        const dx = pos.x - drag.lastPos.x;
-        const dy = pos.y - drag.lastPos.y;
-        drag.hasMoved = true;
-        drag.lastPos = { x: pos.x, y: pos.y };
+    if (tool === 'text' && textDragTool.isActive()) {
+      const step = textDragTool.update({ x: pos.x, y: pos.y }, stageScale);
+      if (step) {
         const {
           atoms: ka,
           bonds: kb,
@@ -2664,7 +2639,7 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
           arrows: karr,
           groups: kg ?? [],
           textBoxes: (ktb ?? []).map((t) =>
-            t.id === drag.textBoxId ? { ...t, x: t.x + dx, y: t.y + dy } : t,
+            t.id === step.textBoxId ? { ...t, x: t.x + step.dx, y: t.y + step.dy } : t,
           ),
         });
       }
@@ -2702,26 +2677,14 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
       chainTool.commit();
       return;
     }
-    if (tool === 'ring' && pendingRing.current) {
+    if (tool === 'ring' && ringTool.isActive()) {
+      const placement = ringTool.commit();
+      if (!placement) return;
       const { atoms: ka, bonds: kb, groups: kg, textBoxes: ktb } = getCanvasEditorState();
-      const previewPlacement = pendingRing.current;
-      pendingRing.current = null;
-      setRingPreview(null);
-      const { atoms: nextAtoms, bonds: nextBonds } =
-        previewPlacement.kind === 'template'
-          ? materializeResolvedRingTemplatePlacement(previewPlacement.placement, ka, kb)
-          : (() => {
-              const { atoms: rAtoms, bonds: rBonds } = materializeRingGeometry(
-                previewPlacement.geometry,
-              );
-              return {
-                atoms: [...ka, ...rAtoms],
-                bonds: [...kb, ...rBonds],
-              };
-            })();
+      const next = applyRingPlacement(placement, ka, kb);
       commitCanvasEdit({
-        atoms: nextAtoms,
-        bonds: nextBonds,
+        atoms: next.atoms,
+        bonds: next.bonds,
         arrows,
         groups: kg ?? [],
         textBoxes: ktb ?? [],
@@ -2799,16 +2762,16 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
       atomTool.onMouseUp();
       return;
     }
-    if (tool === 'text' && textToolDragRef.current) {
-      const drag = textToolDragRef.current;
-      textToolDragRef.current = null;
-      if (!drag.hasMoved) {
+    if (tool === 'text' && textDragTool.isActive()) {
+      const drag = textDragTool.commit();
+      if (!drag) return;
+      if (drag.kind === 'click') {
         // Short click → enter edit mode
         ignoreNextBlurRef.current = true;
         setEditingTextBoxId(drag.textBoxId);
         const hitTB = textBoxes.find((t) => t.id === drag.textBoxId);
         if (hitTB) {
-          setTextFormat({
+          useStore.getState().syncTextFormat({
             fontFamily: hitTB.fontFamily,
             fontSize: hitTB.fontSize,
             color: hitTB.color,
@@ -2840,14 +2803,13 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
     gestureLifecycle.current.cancel();
     chainTool.cancel();
     templatePlacement.current = null;
-    pendingRing.current = null;
+    ringTool.cancel();
     bondTool.cleanup();
     atomTool.cleanup();
     selectTool.cleanup();
-    textToolDragRef.current = null;
+    textDragTool.cancel();
     selectionDragRef.current.isDragging = false;
     arrowTool.cancel();
-    setRingPreview(null);
     useStore.getState().clearPreviewChemDrawDocument();
     useStore.getState().clearSelectionPreviewTransform();
   };
@@ -3403,7 +3365,7 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
       buildPreviewScene(contentDocumentScene, activeChemDrawDocument, {
         transform: selectionPreviewTransform,
         arrow: arrowPreview,
-        ring: tool === 'ring' ? ringPreview : null,
+        ring: tool === 'ring' ? ringTool.preview : null,
         line:
           (tool === 'atom' || tool === 'bond') && activeDragPreview && activeAtomId
             ? {
@@ -3422,7 +3384,7 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
       selectionPreviewTransform,
       arrowPreview,
       tool,
-      ringPreview,
+      ringTool.preview,
       activeDragPreview,
       activeAtomId,
     ],

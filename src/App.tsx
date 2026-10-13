@@ -1559,14 +1559,14 @@ function App() {
       const firstId = Array.from(selectedTextBoxIds)[0];
       const tb = textBoxes.find((t) => t.id === firstId);
       if (tb)
-        setTextFormat({
+        useStore.getState().syncTextFormat({
           fontFamily: tb.fontFamily,
           fontSize: tb.fontSize,
           color: tb.color,
           textAlign: tb.textAlign ?? 'center',
         });
     }
-  }, [selectedTextBoxIds, textBoxes, setTextFormat]);
+  }, [selectedTextBoxIds, textBoxes]);
 
   // Viewer mode reset position
   useEffect(() => {

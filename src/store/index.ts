@@ -512,6 +512,12 @@ export interface AppState {
   toggleSection: (name: string) => void;
   setLicensesText: (text: string) => void;
   setTextFormat: (fmt: Partial<TextFormat>) => void;
+  /**
+   * Show a selected text box's format in the toolbar. UI state only: unlike `setTextFormat` it
+   * does not rewrite the document's style settings, so it never adds a history entry, and it
+   * does nothing when the values already match (so it cannot feed back into an effect).
+   */
+  syncTextFormat: (fmt: Partial<TextFormat>) => void;
   closeAllMenus: () => void;
 
   // ── Toasts ───────────────────────────────────────────────────────────────────
@@ -1419,6 +1425,15 @@ export const useStore = create<AppState>((set, get) => ({
         ),
         appPreferences,
       };
+    }),
+
+  syncTextFormat: (fmt) =>
+    set((s) => {
+      const next = { ...s.textFormat, ...fmt };
+      const same = (Object.keys(next) as Array<keyof TextFormat>).every(
+        (key) => next[key] === s.textFormat[key],
+      );
+      return same ? s : { textFormat: next };
     }),
 
   groupSelected: () => {

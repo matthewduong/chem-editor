@@ -1,6 +1,5 @@
 import { useEffect } from 'react';
 import { createDeleteSelectionCommand } from '../editor/commands';
-import type { ScenePreview } from '../editor/scene/preview';
 import { resolveAliasChemistry } from '../lib/aliasChemistry';
 import { getAtomNodeText } from '../lib/atomIdentity';
 import { getAtomFreeValence } from '../lib/canvasChemistry';
@@ -27,7 +26,6 @@ import type {
   Bond,
   BondDisplayStyle,
 } from '../types/chemistry';
-type RingPlacementPreview = NonNullable<ScenePreview['ring']>;
 
 interface CanvasKeyboardBindings {
   cancelSelectionDrag: () => void;
@@ -86,16 +84,9 @@ interface CanvasKeyboardBindings {
     import('../tools/useBondTool').BondToolActions;
   selectTool: import('../tools/useSelectTool').SelectToolOverlay &
     import('../tools/useSelectTool').SelectToolActions;
-  textToolDragRef: import('react').RefObject<{
-    textBoxId: string;
-    startPos: { x: number; y: number };
-    lastPos: { x: number; y: number };
-    hasMoved: boolean;
-  } | null>;
+  cancelTextDrag: () => void;
   cancelArrow: () => void;
-  setRingPreview: import('react').Dispatch<
-    import('react').SetStateAction<RingPlacementPreview | null>
-  >;
+  cancelRing: () => void;
   setEditingArrowLabels: import('react').Dispatch<
     import('react').SetStateAction<{
       id: string;
@@ -180,9 +171,9 @@ export function useCanvasKeyboard({
   hoveredTextBoxId,
   bondTool,
   selectTool,
-  textToolDragRef,
+  cancelTextDrag,
   cancelArrow,
-  setRingPreview,
+  cancelRing,
   setEditingArrowLabels,
   setEditingTextBoxId,
   setEditingAtomLabel,
@@ -319,9 +310,9 @@ export function useCanvasKeyboard({
         bondTool.cleanup();
         atomTool.cleanup();
         selectTool.cleanup();
-        textToolDragRef.current = null;
+        cancelTextDrag();
         cancelArrow();
-        setRingPreview(null);
+        cancelRing();
         useStore.getState().clearPreviewChemDrawDocument();
         useStore.getState().clearSelectionPreviewTransform();
         setEditingArrowLabels(null);
