@@ -179,10 +179,12 @@ export const GRAPHIC_MODULE: ObjectModule = {
             object.style?.color ?? (scene.isDarkMode ? '#ffffff' : '#333333'),
             scene.isDarkMode,
           );
-    const strokeWidth =
-      object.style?.lineWidth != null
-        ? convertNativeToCanvas(object.style.lineWidth, scene.documentStyleSettings)
-        : 1.5;
+    // A graphic without its own LineWidth takes the document's, as in ChemDraw; a fixed pixel
+    // width drew every shape heavier than the bonds beside it.
+    const strokeWidth = convertNativeToCanvas(
+      object.style?.lineWidth ?? scene.documentStyleSettings.nativeMetrics.lineWidth,
+      scene.documentStyleSettings,
+    );
     const graphicDash = [6, 4];
     const dash = object.style?.lineType === 'dashed' ? graphicDash : undefined;
     const boldWidth = convertNativeToCanvas(
@@ -392,6 +394,8 @@ export const GRAPHIC_MODULE: ObjectModule = {
       const radius = size / 2;
       const arm = radius * 0.48;
       const symbolType = object.symbolType ?? '';
+      // Electron dots keep the size they had when graphics drew at a fixed 1.5px: 2.5 line widths.
+      const dotRadius = strokeWidth * 2.5;
       if (symbolType === 'CirclePlus' || symbolType === 'CircleMinus') {
         drawCircle(ctx, cx, cy, radius, { stroke: color, lineWidth: strokeWidth });
         drawLine(ctx, cx - arm, cy, cx + arm, cy, color, strokeWidth);
@@ -416,16 +420,16 @@ export const GRAPHIC_MODULE: ObjectModule = {
           drawLine(ctx, cx - radius * 0.5, cy, cx + radius * 0.5, cy, color, strokeWidth);
           return;
         }
-        drawCircle(ctx, cx - radius * 0.28, cy, strokeWidth * 0.95, { fill: color });
-        drawCircle(ctx, cx + radius * 0.28, cy, strokeWidth * 0.95, { fill: color });
+        drawCircle(ctx, cx - radius * 0.28, cy, dotRadius * 0.95, { fill: color });
+        drawCircle(ctx, cx + radius * 0.28, cy, dotRadius * 0.95, { fill: color });
         return;
       }
       if (symbolType === 'Electron') {
-        drawCircle(ctx, cx, cy, strokeWidth, { fill: color });
+        drawCircle(ctx, cx, cy, dotRadius, { fill: color });
         return;
       }
       if (symbolType === 'RadicalCation' || symbolType === 'RadicalAnion') {
-        drawCircle(ctx, cx - radius * 0.45, cy, strokeWidth, { fill: color });
+        drawCircle(ctx, cx - radius * 0.45, cy, dotRadius, { fill: color });
         const sx = cx + radius * 0.35;
         const reach = radius * 0.4;
         drawLine(ctx, sx - reach, cy, sx + reach, cy, color, strokeWidth);

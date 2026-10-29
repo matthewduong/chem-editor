@@ -83,7 +83,7 @@
   {
     "op": "set",
     "prop": "lineWidth",
-    "value": 1.5
+    "value": 0.6
   },
   {
     "op": "set",
@@ -193,7 +193,7 @@
   {
     "op": "set",
     "prop": "lineWidth",
-    "value": 1.5
+    "value": 0.6
   },
   {
     "op": "set",
@@ -305,7 +305,7 @@
   {
     "op": "set",
     "prop": "lineWidth",
-    "value": 1.5
+    "value": 0.6
   },
   {
     "op": "set",
@@ -469,7 +469,7 @@
   {
     "op": "set",
     "prop": "lineWidth",
-    "value": 1.5
+    "value": 0.6
   },
   {
     "op": "set",
@@ -552,7 +552,7 @@
   {
     "op": "set",
     "prop": "lineWidth",
-    "value": 1.5
+    "value": 0.6
   },
   {
     "op": "set",
@@ -589,7 +589,7 @@
   {
     "op": "set",
     "prop": "lineWidth",
-    "value": 1.5
+    "value": 0.6
   },
   {
     "op": "set",
