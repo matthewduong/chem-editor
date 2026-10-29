@@ -483,11 +483,34 @@ export const GRAPHIC_MODULE: ObjectModule = {
       ctx.save();
       setStroke(ctx, color, strokeWidth);
       ctx.beginPath();
-      if ((object.bracketType ?? '').toLowerCase() === 'square') {
+      const bracketKind = (object.bracketType ?? '').toLowerCase();
+      if (bracketKind === 'square') {
         ctx.moveTo(start.x + px * lip, start.y + py * lip);
         ctx.lineTo(start.x, start.y);
         ctx.lineTo(end.x, end.y);
         ctx.lineTo(end.x + px * lip, end.y + py * lip);
+      } else if (bracketKind === 'curly') {
+        // A brace: each end curls in from its lip to the spine, and the middle comes to a point
+        // the same distance out on the other side. It used to draw as a parenthesis.
+        const ux = dx / length;
+        const uy = dy / length;
+        const along = (from: { x: number; y: number }, distance: number) => ({
+          x: from.x + ux * distance,
+          y: from.y + uy * distance,
+        });
+        const half = lip / 2;
+        const tip = { x: midX - px * half, y: midY - py * half };
+        const startIn = along(start, half);
+        const beforeTip = along({ x: midX, y: midY }, -half);
+        const afterTip = along({ x: midX, y: midY }, half);
+        const endIn = along(end, -half);
+        ctx.moveTo(start.x + px * half, start.y + py * half);
+        ctx.quadraticCurveTo(start.x, start.y, startIn.x, startIn.y);
+        ctx.lineTo(beforeTip.x, beforeTip.y);
+        ctx.quadraticCurveTo(midX, midY, tip.x, tip.y);
+        ctx.quadraticCurveTo(midX, midY, afterTip.x, afterTip.y);
+        ctx.lineTo(endIn.x, endIn.y);
+        ctx.quadraticCurveTo(end.x, end.y, end.x + px * half, end.y + py * half);
       } else {
         ctx.moveTo(start.x + px * lip, start.y + py * lip);
         ctx.quadraticCurveTo(start.x, start.y, midX, midY);

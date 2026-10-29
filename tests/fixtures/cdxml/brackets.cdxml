@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  Bracket shapes. The renderer currently draws square lip brackets for every BracketType and
-  ignores repeat counts, so this fixture pins that limitation rather than the desired output.
+  Bracket shapes: square, round and curly single brackets, and a polymer bracketed group. Repeat
+  counts are not drawn yet.
 -->
 <CDXML BondLength="14.4" LineWidth="0.6">
   <page id="page-1">
