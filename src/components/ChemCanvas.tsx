@@ -2375,7 +2375,7 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
     }
 
     if (tool === 'shape') {
-      shapeTool.begin(shapeKind, pos);
+      shapeTool.begin(shapeKind, pos, { symbolSize: bondLength * 0.5 });
       return;
     }
 
@@ -2706,13 +2706,11 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
       return;
     }
     if (shapeTool.isActive()) {
-      const shape = shapeTool.commit();
-      if (shape) {
+      const shapes = shapeTool.commit();
+      if (shapes) {
         useStore
           .getState()
-          .dispatchEditorCommand(
-            createUpsertObjectsCommand([shape], { description: 'draw-shape' }),
-          );
+          .dispatchEditorCommand(createUpsertObjectsCommand(shapes, { description: 'draw-shape' }));
       }
       return;
     }
@@ -3369,7 +3367,7 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
       buildPreviewScene(contentDocumentScene, activeChemDrawDocument, {
         transform: selectionPreviewTransform,
         arrow: arrowPreview,
-        objects: shapePreview ? [shapePreview] : null,
+        objects: shapePreview,
         ring: tool === 'ring' ? ringTool.preview : null,
         line:
           (tool === 'atom' || tool === 'bond') && activeDragPreview && activeAtomId

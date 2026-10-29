@@ -333,6 +333,54 @@ export function ShapeIcon({ kind, size = 22 }: { kind: ShapeKind; size?: number 
           <path d="M4 19L20 5" strokeWidth={3.4} />
         </Frame>
       );
+    case 'bracket-square':
+      return (
+        <Frame size={size}>
+          <path d="M14 4H9V20H14" />
+        </Frame>
+      );
+    case 'bracket-round':
+      return (
+        <Frame size={size}>
+          <path d="M14 4C8 8 8 16 14 20" />
+        </Frame>
+      );
+    case 'bracket-curly':
+      return (
+        <Frame size={size}>
+          <path d="M15 4C11 4 12 8 12 10C12 11.5 11 12 9 12C11 12 12 12.5 12 14C12 16 11 20 15 20" />
+        </Frame>
+      );
+    case 'pair-square':
+      return (
+        <Frame size={size}>
+          <path d="M8 4H4V20H8M16 4H20V20H16" />
+        </Frame>
+      );
+    case 'pair-round':
+      return (
+        <Frame size={size}>
+          <path d="M8 4C3 8 3 16 8 20M16 4C21 8 21 16 16 20" />
+        </Frame>
+      );
+    case 'pair-curly':
+      return (
+        <Frame size={size}>
+          <path d="M8 4C5 4 6 8 6 10C6 11.5 5 12 3 12C5 12 6 12.5 6 14C6 16 5 20 8 20M16 4C19 4 18 8 18 10C18 11.5 19 12 21 12C19 12 18 12.5 18 14C18 16 19 20 16 20" />
+        </Frame>
+      );
+    case 'dagger':
+      return (
+        <Frame size={size}>
+          <path d="M12 4V20M7.5 9H16.5" />
+        </Frame>
+      );
+    case 'double-dagger':
+      return (
+        <Frame size={size}>
+          <path d="M12 4V20M7.5 8H16.5M7.5 16H16.5" />
+        </Frame>
+      );
     default: {
       // Arcs: the sweep drawn on a circle of radius 8 about the centre, bulging upward.
       const degrees = Number(kind.slice(4));

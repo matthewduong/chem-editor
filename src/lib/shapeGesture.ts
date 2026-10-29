@@ -11,9 +11,35 @@ export type BoxShapeKind = 'rectangle' | 'rounded-rectangle' | 'oval' | 'circle'
 
 export type LineShapeKind = 'line' | 'dashed-line' | 'bold-line';
 export type ArcShapeKind = 'arc-90' | 'arc-120' | 'arc-180' | 'arc-270';
+export type BracketStyle = 'Square' | 'Round' | 'Curly';
+/** A single bracket drawn end to end in any orientation. */
+export type BracketShapeKind = 'bracket-square' | 'bracket-round' | 'bracket-curly';
+/** A facing pair placed by dragging a box; drawn upright, as in ChemDraw. */
+export type BracketPairShapeKind = 'pair-square' | 'pair-round' | 'pair-curly';
+/** Placed with a click. */
+export type SymbolShapeKind = 'dagger' | 'double-dagger';
 
 /** Every kind the shape tool draws. */
-export type ShapeKind = BoxShapeKind | LineShapeKind | ArcShapeKind;
+export type ShapeKind =
+  | BoxShapeKind
+  | LineShapeKind
+  | ArcShapeKind
+  | BracketShapeKind
+  | BracketPairShapeKind
+  | SymbolShapeKind;
+
+const BRACKET_STYLE: Record<BracketShapeKind | BracketPairShapeKind, BracketStyle> = {
+  'bracket-square': 'Square',
+  'bracket-round': 'Round',
+  'bracket-curly': 'Curly',
+  'pair-square': 'Square',
+  'pair-round': 'Round',
+  'pair-curly': 'Curly',
+};
+
+export function isClickPlacedShape(kind: ShapeKind): kind is SymbolShapeKind {
+  return kind === 'dagger' || kind === 'double-dagger';
+}
 
 export const ARC_DEGREES: Record<ArcShapeKind, number> = {
   'arc-90': 90,
@@ -193,7 +219,35 @@ export function shapeForDrag(
   start: ChemDrawPoint,
   pointer: ChemDrawPoint,
   constrain = false,
-): { object: ChemDrawObject; bigEnough: boolean } {
+  options: { symbolSize?: number } = {},
+): { object: ChemDrawObject; bigEnough: boolean; extra?: ChemDrawObject[] } {
+  if (isClickPlacedShape(kind)) {
+    return {
+      object: createSymbolGraphic(
+        id,
+        kind === 'dagger' ? 'Dagger' : 'DoubleDagger',
+        start,
+        options.symbolSize ?? 7.2,
+      ),
+      bigEnough: true,
+    };
+  }
+  if (kind.startsWith('pair-')) {
+    const geometry = boxShapeGeometry('rectangle', start, pointer, constrain);
+    const [left, right] = createBracketPair(
+      id,
+      BRACKET_STYLE[kind as BracketPairShapeKind],
+      boundsOf(geometry),
+    );
+    return { object: left, extra: [right], bigEnough: isShapeBigEnough(geometry) };
+  }
+  if (kind.startsWith('bracket-')) {
+    const end = lineEnd(start, pointer, constrain);
+    return {
+      object: createBracketGraphic(id, BRACKET_STYLE[kind as BracketShapeKind], start, end),
+      bigEnough: Math.hypot(end.x - start.x, end.y - start.y) >= MIN_SHAPE_SIZE,
+    };
+  }
   if (isBoxKind(kind)) {
     const geometry = boxShapeGeometry(kind, start, pointer, constrain);
     return {
@@ -215,4 +269,110 @@ export function shapeForDrag(
     };
   }
   return { object: createLineArrow(id, kind as LineShapeKind, start, end), bigEnough };
+}
+
+function boundsOf(geometry: { center: ChemDrawPoint; halfWidth: number; halfHeight: number }) {
+  return {
+    left: geometry.center.x - geometry.halfWidth,
+    top: geometry.center.y - geometry.halfHeight,
+    right: geometry.center.x + geometry.halfWidth,
+    bottom: geometry.center.y + geometry.halfHeight,
+  };
+}
+
+/**
+ * A single bracket from `start` to `end`, as ChemDraw writes one: a Bracket graphic whose
+ * BoundingBox is its two ends, with the lips on the right of that direction (the pair in
+ * ChemDraw's templates runs bottom-to-top on the left and top-to-bottom on the right, lips
+ * inward). LipSize 60 is ChemDraw's default.
+ */
+export function createBracketGraphic(
+  id: string,
+  style: BracketStyle,
+  start: ChemDrawPoint,
+  end: ChemDrawPoint,
+): ChemDrawGraphic {
+  return {
+    id,
+    type: 'graphic',
+    graphicType: 'bracket',
+    points: [{ ...start }, { ...end }],
+    bracketType: style,
+    lipSize: 10,
+    preservation: { capability: 'editable' },
+  };
+}
+
+/** A facing pair enclosing `bounds`, lips inward: the left one first. */
+export function createBracketPair(
+  id: string,
+  style: BracketStyle,
+  bounds: { left: number; top: number; right: number; bottom: number },
+): [ChemDrawGraphic, ChemDrawGraphic] {
+  return [
+    createBracketGraphic(
+      id,
+      style,
+      { x: bounds.left, y: bounds.bottom },
+      { x: bounds.left, y: bounds.top },
+    ),
+    createBracketGraphic(
+      `${id}-r`,
+      style,
+      { x: bounds.right, y: bounds.top },
+      { x: bounds.right, y: bounds.bottom },
+    ),
+  ];
+}
+
+/**
+ * A symbol placed at `at`, written like ChemDraw's: a Symbol graphic whose BoundingBox is the
+ * position and a second point `size` away (see the scene's symbol drawing).
+ */
+export function createSymbolGraphic(
+  id: string,
+  symbolType: string,
+  at: ChemDrawPoint,
+  size: number,
+): ChemDrawGraphic {
+  return {
+    id,
+    type: 'graphic',
+    graphicType: 'symbol',
+    symbolType,
+    points: [{ ...at }, { x: at.x, y: at.y + size }],
+    preservation: { capability: 'editable' },
+  };
+}
+
+export type FrameKind = 'rectangle' | 'square' | 'round' | 'curly';
+
+/**
+ * Object > Add Frame: a rectangle or a facing pair of brackets around `bounds`, `margin` clear of
+ * it on every side (ChemDraw 17.1 guide, "Framing Objects").
+ */
+export function createFrameObjects(
+  idFor: (index: number) => string,
+  kind: FrameKind,
+  bounds: { left: number; top: number; right: number; bottom: number },
+  margin: number,
+): ChemDrawObject[] {
+  const padded = {
+    left: bounds.left - margin,
+    top: bounds.top - margin,
+    right: bounds.right + margin,
+    bottom: bounds.bottom + margin,
+  };
+  if (kind === 'rectangle') {
+    return [
+      createBoxShapeGraphic(idFor(0), 'rectangle', {
+        center: { x: (padded.left + padded.right) / 2, y: (padded.top + padded.bottom) / 2 },
+        halfWidth: (padded.right - padded.left) / 2,
+        halfHeight: (padded.bottom - padded.top) / 2,
+      }),
+    ];
+  }
+  const style: BracketStyle = kind === 'square' ? 'Square' : kind === 'round' ? 'Round' : 'Curly';
+  const [left, right] = createBracketPair(idFor(0), style, padded);
+  return [left, { ...right, id: idFor(1) }];
 }

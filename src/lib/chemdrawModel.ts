@@ -1444,6 +1444,41 @@ export function moveSelectedObjects(
   return commitObjects(document, nextObjects);
 }
 
+/**
+ * The box the given objects occupy, in document coordinates: nodes, bonds, arrows, text and
+ * graphics by id (a fragment counts through its members). Null when none of them has extent.
+ */
+export function getObjectsBounds(
+  document: ChemDrawDocument,
+  ids: Iterable<string>,
+  documentStyleSettings: DocumentStyleSettings = DEFAULT_DOCUMENT_STYLE_SETTINGS,
+): ChemDrawBounds | null {
+  const objects = document.pages[0]?.objects ?? [];
+  const objectMap = new Map(objects.map((object) => [object.id, object]));
+  const wanted = new Set(ids);
+  for (const object of objects) {
+    if (object.type === 'fragment' && wanted.has(object.id)) {
+      object.nodeIds.forEach((id) => wanted.add(id));
+    }
+  }
+  let union: ChemDrawBounds | null = null;
+  for (const id of wanted) {
+    const object = objectMap.get(id);
+    if (!object || object.type === 'fragment') continue;
+    const bounds = objectBounds(object, objectMap, documentStyleSettings);
+    if (!bounds) continue;
+    union = union
+      ? {
+          left: Math.min(union.left, bounds.left),
+          top: Math.min(union.top, bounds.top),
+          right: Math.max(union.right, bounds.right),
+          bottom: Math.max(union.bottom, bounds.bottom),
+        }
+      : { ...bounds };
+  }
+  return union;
+}
+
 export function rotateSelectedObjects(
   document: ChemDrawDocument,
   selectedObjectIds: Set<string>,

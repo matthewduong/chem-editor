@@ -4,6 +4,8 @@ import assert from 'node:assert/strict';
 import {
   boxShapeGeometry,
   createBoxShapeGraphic,
+  createBracketPair,
+  createFrameObjects,
   isShapeBigEnough,
   lineEnd,
   shapeForDrag,
@@ -136,4 +138,72 @@ test('a drawn arc round-trips as a headless arrow carrying AngularSize', () => {
   const reread = cdxmlToChemDrawDocument(out).document.pages[0].objects[0];
   assert.equal(reread.headEnd, 'none');
   assert.equal(reread.angularSize, -120);
+});
+
+test('a bracket pair faces inward: left runs up, right runs down, lips on the right of travel', () => {
+  const [left, right] = createBracketPair('5', 'Square', {
+    left: 0,
+    top: 0,
+    right: 50,
+    bottom: 30,
+  });
+  assert.deepEqual(left.points, [
+    { x: 0, y: 30 },
+    { x: 0, y: 0 },
+  ]);
+  assert.deepEqual(right.points, [
+    { x: 50, y: 0 },
+    { x: 50, y: 30 },
+  ]);
+  // The scene puts the lips on (-dy, dx): +x for the left bracket, -x for the right.
+  const lipSide = ([a, b]) => Math.sign(-(b.y - a.y));
+  assert.equal(lipSide(left.points), 1);
+  assert.equal(lipSide(right.points), -1);
+});
+
+test('Add Frame pads the selection and writes ChemDraw brackets', () => {
+  let n = 0;
+  const frame = createFrameObjects(
+    () => String(20 + n++),
+    'curly',
+    {
+      left: 10,
+      top: 10,
+      right: 60,
+      bottom: 40,
+    },
+    5,
+  );
+  assert.equal(frame.length, 2);
+  assert.deepEqual(frame[0].points[0], { x: 5, y: 45 });
+  const rect = createFrameObjects(
+    () => '30',
+    'rectangle',
+    { left: 0, top: 0, right: 10, bottom: 10 },
+    2,
+  );
+  assert.deepEqual(rect[0].bounds, { left: -2, top: -2, right: 12, bottom: 12 });
+  const { document } = cdxmlToChemDrawDocument(
+    '<?xml version="1.0"?><CDXML BondLength="14.4"><page id="100"/></CDXML>',
+  );
+  const out = chemDrawDocumentToCDXML({
+    ...document,
+    pages: [{ ...document.pages[0], objects: frame }],
+  });
+  assert.match(
+    out,
+    /<graphic id="20" BoundingBox="5 45 5 5"[^>]*GraphicType="Bracket" BracketType="Curly" LipSize="60"/,
+  );
+  assert.match(out, /<graphic id="21" BoundingBox="65 5 65 45"/);
+});
+
+test('a dagger is a Symbol graphic at the click with its size point below', () => {
+  const { object } = shapeForDrag('double-dagger', '9', { x: 30, y: 40 }, { x: 99, y: 99 }, false, {
+    symbolSize: 7,
+  });
+  assert.equal(object.symbolType, 'DoubleDagger');
+  assert.deepEqual(object.points, [
+    { x: 30, y: 40 },
+    { x: 30, y: 47 },
+  ]);
 });

@@ -14,7 +14,8 @@ import type { ShapeKind } from './lib/shapeGesture';
 import { StructureDiagnostics } from './components/StructureDiagnostics';
 import { useDocumentLifecycle } from './hooks/useDocumentLifecycle';
 import { molblockToState, parseMolblockGeometry } from './lib/graph';
-import { canvasStateToChemDrawDocument } from './lib/chemdrawModel';
+import { canvasStateToChemDrawDocument, getObjectsBounds } from './lib/chemdrawModel';
+import { createFrameObjects, type FrameKind } from './lib/shapeGesture';
 import {
   extractDocumentSelection,
   forgetDocumentCopy,
@@ -56,6 +57,7 @@ import {
   createDeleteSelectionCommand,
   createRotateSelectionCommand,
   createScaleSelectionCommand,
+  createUpsertObjectsCommand,
 } from './editor/commands';
 import {
   getChemDrawObjectCapability,
@@ -397,6 +399,14 @@ const DRAWING_ELEMENT_OPTIONS: Array<{ kind: ShapeKind; title: string }> = [
   { kind: 'arc-120', title: '120° Arc' },
   { kind: 'arc-180', title: '180° Arc' },
   { kind: 'arc-270', title: '270° Arc' },
+  { kind: 'bracket-square', title: 'Square Bracket' },
+  { kind: 'bracket-round', title: 'Parenthesis' },
+  { kind: 'bracket-curly', title: 'Brace' },
+  { kind: 'pair-square', title: 'Square Brackets (Pair)' },
+  { kind: 'pair-round', title: 'Parentheses (Pair)' },
+  { kind: 'pair-curly', title: 'Braces (Pair)' },
+  { kind: 'dagger', title: 'Dagger' },
+  { kind: 'double-dagger', title: 'Double Dagger' },
 ];
 
 const ELEMENT_SHORTCUTS = ['C', 'N', 'O', 'S', 'P', 'F', 'Cl', 'Br', 'H', 'D'];
@@ -510,6 +520,7 @@ function App() {
   const isExportSubmenuOpen = useStore((s) => s.isExportSubmenuOpen);
   const isEditDropdownOpen = useStore((s) => s.isEditDropdownOpen);
   const isAlignSubmenuOpen = useStore((s) => s.isAlignSubmenuOpen);
+  const [isFrameSubmenuOpen, setIsFrameSubmenuOpen] = useState(false);
   const isSettingsDropdownOpen = useStore((s) => s.isSettingsDropdownOpen);
   const isPreferencesPanelOpen = useStore((s) => s.isPreferencesPanelOpen);
   const isPeriodicTableOpen = useStore((s) => s.isPeriodicTableOpen);
@@ -1143,6 +1154,33 @@ function App() {
       offPageNoticeShownRef.current = false;
     }
   }, [offPageContent, pageSetup.mode, showToast]);
+
+  /** Object > Add Frame: a rectangle or bracket pair round the selection. */
+  const addFrame = useCallback((kind: FrameKind) => {
+    const state = useStore.getState();
+    const document = state.chemDrawDocument;
+    if (!document) return;
+    const bounds = getObjectsBounds(
+      document,
+      [
+        ...state.selectedObjectIds,
+        ...state.selectedAtomIds,
+        ...state.selectedBondIds,
+        ...state.selectedArrowIds,
+        ...state.selectedTextBoxIds,
+      ],
+      state.documentStyleSettings,
+    );
+    if (!bounds) return;
+    // Half a bond length clears atom labels at the edge of the selection.
+    const objects = createFrameObjects(
+      () => crypto.randomUUID(),
+      kind,
+      bounds,
+      state.documentStyleSettings.bondLength * 0.5,
+    );
+    state.dispatchEditorCommand(createUpsertObjectsCommand(objects, { description: 'add-frame' }));
+  }, []);
 
   const handleRotate = useCallback(() => {
     const degrees = parseFloat(rotateInput);
@@ -3486,6 +3524,38 @@ function App() {
                   Ungroup
                 </MenuItem>
                 <MenuSeparator />
+                <div
+                  className="ui-menu-submenu"
+                  onMouseEnter={() => setIsFrameSubmenuOpen(true)}
+                  onMouseLeave={() => setIsFrameSubmenuOpen(false)}
+                >
+                  <MenuItem trailing={<span className="ui-menu-shortcut">▸</span>}>
+                    Add Frame
+                  </MenuItem>
+                  {isFrameSubmenuOpen && (
+                    <MenuContent width={200}>
+                      <MenuSectionLabel>Add Frame</MenuSectionLabel>
+                      {(
+                        [
+                          ['rectangle', 'Rectangle'],
+                          ['square', 'Brackets'],
+                          ['round', 'Parentheses'],
+                          ['curly', 'Braces'],
+                        ] as const
+                      ).map(([kind, label]) => (
+                        <MenuItem
+                          key={kind}
+                          onClick={() => {
+                            addFrame(kind);
+                            setIsEditDropdownOpen(false);
+                          }}
+                        >
+                          {label}
+                        </MenuItem>
+                      ))}
+                    </MenuContent>
+                  )}
+                </div>
                 <div
                   className="ui-menu-submenu"
                   onMouseEnter={() => setIsAlignSubmenuOpen(true)}
