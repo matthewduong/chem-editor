@@ -56,6 +56,7 @@ import {
 import { createEditorSessionState } from '../editor/session';
 import type { EditorCommand, EditorSessionState, EditorTransaction } from '../editor/types';
 import { sanitizeRingTemplateState, type RingPreset } from '../lib/ringTemplates';
+import type { ShapeKind } from '../lib/shapeGesture';
 export type { AlignOp };
 export type { TextFormat };
 
@@ -70,7 +71,8 @@ export type Tool =
   | 'pan'
   | 'text'
   | 'ring'
-  | 'chain';
+  | 'chain'
+  | 'shape';
 export type ViewerMode = 'pinned' | 'floating' | 'split';
 export type PreviewMode = '2D' | '3D';
 export type DocumentFileFormat = 'cdxml';
@@ -227,6 +229,8 @@ export interface AppState {
   bondOrder: number;
   stereo: number;
   arrowType: ArrowType;
+  /** The drawing element the shape tool draws. */
+  shapeKind: ShapeKind;
   currentCharge: number;
   electronToolMode: ElectronToolMode;
   selectedFragment: string;
@@ -373,6 +377,7 @@ export interface AppState {
   setBondOrder: (order: number) => void;
   setStereo: (stereo: number) => void;
   setArrowType: (type: ArrowType) => void;
+  setShapeKind: (kind: ShapeKind) => void;
   setCurrentCharge: (charge: number) => void;
   setElectronToolMode: (mode: ElectronToolMode) => void;
   setSelectedFragment: (smiles: string) => void;
@@ -534,6 +539,7 @@ export const useStore = create<AppState>((set, get) => ({
   bondOrder: 1,
   stereo: 0,
   arrowType: 'reaction',
+  shapeKind: 'rectangle',
   currentCharge: 0,
   electronToolMode: 'charge-positive',
   selectedFragment: '',
@@ -679,6 +685,7 @@ export const useStore = create<AppState>((set, get) => ({
   setBondOrder: (bondOrder) => set({ bondOrder }),
   setStereo: (stereo) => set({ stereo }),
   setArrowType: (arrowType) => set({ arrowType }),
+  setShapeKind: (shapeKind) => set({ shapeKind }),
   setCurrentCharge: (currentCharge) => set({ currentCharge }),
   setElectronToolMode: (electronToolMode) => set({ electronToolMode }),
   setSelectedFragment: (selectedFragment) => set({ selectedFragment }),

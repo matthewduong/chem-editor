@@ -1,7 +1,7 @@
 import { DEFAULT_DOUBLE_BOND_MODE } from '../../lib/renderGeometry';
 import { setAliasAtomValue } from '../../lib/atomIdentity';
 import type { Arrow } from '../../types/chemistry';
-import type { ChemDrawDocument } from '../../types/chemdraw';
+import type { ChemDrawDocument, ChemDrawObject } from '../../types/chemdraw';
 import type { SelectionPreviewTransform } from '../types';
 import type { DocumentSceneState } from './types';
 import { buildDocumentSceneState } from './buildScene';
@@ -10,6 +10,7 @@ import { createProjectionEditCommand } from '../commands/projectionEdit';
 import {
   createEditorCommandContext,
   createMoveSelectionCommand,
+  createUpsertObjectsCommand,
   createRotateSelectionCommand,
   createScaleSelectionCommand,
 } from '../commands';
@@ -37,6 +38,8 @@ export interface ScenePreview {
     order: number;
     stereo: number;
   } | null;
+  /** Native objects a tool is drawing (shapes, brackets, curves), added as the commit adds them. */
+  objects?: ChemDrawObject[] | null;
 }
 
 /** Preview and commit use identical document commands and identical drawing modules. */
@@ -45,7 +48,14 @@ export function buildPreviewScene(
   source: ChemDrawDocument | null,
   preview: ScenePreview,
 ): DocumentSceneState {
-  if (!source || (!preview.transform && !preview.arrow && !preview.ring && !preview.line))
+  if (
+    !source ||
+    (!preview.transform &&
+      !preview.arrow &&
+      !preview.ring &&
+      !preview.line &&
+      !preview.objects?.length)
+  )
     return scene;
   const context = createEditorCommandContext({
     activePageId: source.pages[0]?.id ?? null,
@@ -133,6 +143,9 @@ export function buildPreviewScene(
     }
   }
   document = createProjectionEditCommand(document, state).apply(document, context).document;
+  if (preview.objects?.length) {
+    document = createUpsertObjectsCommand(preview.objects).apply(document, context).document;
+  }
   const next = buildDocumentSceneState({
     document,
     canvasState: { ...state, groups: state.groups ?? [], textBoxes: state.textBoxes ?? [] },

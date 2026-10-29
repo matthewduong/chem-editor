@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import type { ArrowType } from '../types/chemistry';
+import type { ShapeKind } from '../lib/shapeGesture';
 
 /**
  * Toolbar glyphs on one 24-unit grid with one stroke weight, so the sidebar reads as a set.
@@ -285,4 +286,34 @@ export function EraserIcon({ size = 22 }: { size?: number }) {
       <path d="M8.8 12.3L13.3 16.8" />
     </Frame>
   );
+}
+
+/** Drawing-element tools: shapes, lines, arcs, brackets and symbols. */
+export function ShapeIcon({ kind, size = 22 }: { kind: ShapeKind; size?: number }) {
+  switch (kind) {
+    case 'rectangle':
+      return (
+        <Frame size={size}>
+          <rect x={4} y={6} width={16} height={12} />
+        </Frame>
+      );
+    case 'rounded-rectangle':
+      return (
+        <Frame size={size}>
+          <rect x={4} y={6} width={16} height={12} rx={3.5} />
+        </Frame>
+      );
+    case 'oval':
+      return (
+        <Frame size={size}>
+          <ellipse cx={12} cy={12} rx={8.5} ry={6} />
+        </Frame>
+      );
+    case 'circle':
+      return (
+        <Frame size={size}>
+          <circle cx={12} cy={12} r={7.5} />
+        </Frame>
+      );
+  }
 }

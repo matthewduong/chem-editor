@@ -5,10 +5,12 @@ import {
   PanIcon,
   ReactionArrowIcon,
   SelectIcon,
+  ShapeIcon,
   StructureFragmentIcon,
   TextToolIcon,
 } from './components/ToolIcons';
 import { TemplatesPanel } from './components/TemplatesPanel';
+import type { ShapeKind } from './lib/shapeGesture';
 import { StructureDiagnostics } from './components/StructureDiagnostics';
 import { useDocumentLifecycle } from './hooks/useDocumentLifecycle';
 import { molblockToState, parseMolblockGeometry } from './lib/graph';
@@ -353,6 +355,10 @@ const PALETTE_META: Record<ToolPaletteId, { label: string; description: string }
     label: 'Reaction',
     description: 'Reaction arrows and electron-flow tools.',
   },
+  drawing: {
+    label: 'Drawing',
+    description: 'Shapes, lines, arcs, brackets and symbols.',
+  },
   text: {
     label: 'Text',
     description: 'Annotation, chemistry text, and structure input tools.',
@@ -377,6 +383,13 @@ const REACTION_ARROW_OPTIONS: Array<{ type: ArrowType; title: string }> = [
   { type: 'fat', title: 'Filled / Fat Arrow' },
   { type: 'curved', title: 'Curved Arrow' },
   { type: 'half-curved', title: 'Hook Arrow' },
+];
+
+const DRAWING_ELEMENT_OPTIONS: Array<{ kind: ShapeKind; title: string }> = [
+  { kind: 'rectangle', title: 'Rectangle' },
+  { kind: 'rounded-rectangle', title: 'Rounded Rectangle' },
+  { kind: 'oval', title: 'Oval' },
+  { kind: 'circle', title: 'Circle' },
 ];
 
 const ELEMENT_SHORTCUTS = ['C', 'N', 'O', 'S', 'P', 'F', 'Cl', 'Br', 'H', 'D'];
@@ -468,6 +481,7 @@ function App() {
   const bondOrder = useStore((s) => s.bondOrder);
   const stereo = useStore((s) => s.stereo);
   const arrowType = useStore((s) => s.arrowType);
+  const shapeKind = useStore((s) => s.shapeKind);
   const electronToolMode = useStore((s) => s.electronToolMode);
   const selectedFragment = useStore((s) => s.selectedFragment);
   const ringSize = useStore((s) => s.ringSize);
@@ -814,6 +828,7 @@ function App() {
     setBondOrder,
     setStereo,
     setArrowType,
+    setShapeKind,
     setCurrentCharge,
     setElectronToolMode,
     setSelectedFragment,
@@ -2688,6 +2703,28 @@ function App() {
                 style={toolButtonStyle}
               >
                 <ReactionArrowIcon type={type} size={24 * buttonScale} />
+              </PaletteButton>
+            ))}
+          </>
+        );
+      case 'drawing':
+        return (
+          <>
+            {DRAWING_ELEMENT_OPTIONS.map(({ kind, title }) => (
+              <PaletteButton
+                key={kind}
+                variant="tool"
+                active={tool === 'shape' && shapeKind === kind}
+                label={title}
+                title={title}
+                onClick={() => {
+                  setTool('shape');
+                  setShapeKind(kind);
+                  setShowBondMenu(false);
+                }}
+                style={toolButtonStyle}
+              >
+                <ShapeIcon kind={kind} size={24 * buttonScale} />
               </PaletteButton>
             ))}
           </>

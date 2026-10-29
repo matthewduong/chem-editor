@@ -1,6 +1,7 @@
 import type { UserTemplate } from '../lib/templates';
 import { cancelGestures, ToolLifecycle } from '../editor/toolLifecycle';
 import { useArrowTool } from '../tools/useArrowTool';
+import { useShapeTool } from '../tools/useShapeTool';
 import { useRingTool } from '../tools/useRingTool';
 import { useTemplatePlacementTool } from '../tools/useTemplatePlacementTool';
 import { useTextDragTool } from '../tools/useTextDragTool';
@@ -227,6 +228,7 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
   const textBoxes = useStore((s) => s.textBoxes ?? []);
   const tool = useStore((s) => s.tool);
   const arrowType = useStore((s) => s.arrowType);
+  const shapeKind = useStore((s) => s.shapeKind);
   const electronToolMode = useStore((s) => s.electronToolMode);
   const selectedFragment = useStore((s) => s.selectedFragment);
   const showHydrogens = useStore((s) => s.showHydrogens);
@@ -449,8 +451,10 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
     [getAtomElectronVisuals, sceneAtoms, selectedAtomIds],
   );
   const arrowTool = useArrowTool();
+  const shapeTool = useShapeTool();
   const textDragTool = useTextDragTool();
   const arrowPreview = arrowTool.preview;
+  const shapePreview = shapeTool.preview;
 
   const [editingArrowLabels, setEditingArrowLabels] = useState<{
     id: string;
@@ -2205,6 +2209,7 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
       chainTool,
       ringTool,
       arrowTool,
+      shapeTool,
       textDragTool,
       bondTool,
       atomTool,
@@ -2366,6 +2371,11 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
         return;
       }
       arrowTool.begin(arrowType, pos);
+      return;
+    }
+
+    if (tool === 'shape') {
+      shapeTool.begin(shapeKind, pos);
       return;
     }
 
@@ -2557,6 +2567,10 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
       arrowTool.update(pos);
       return;
     }
+    if (shapeTool.isActive()) {
+      shapeTool.update(pos, e.evt.shiftKey);
+      return;
+    }
 
     // Cross-tool selection drag
     if (selectionDragRef.current.isDragging && selectionDragRef.current.startPos) {
@@ -2689,6 +2703,17 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
         groups: kg ?? [],
         textBoxes: ktb ?? [],
       });
+      return;
+    }
+    if (shapeTool.isActive()) {
+      const shape = shapeTool.commit();
+      if (shape) {
+        useStore
+          .getState()
+          .dispatchEditorCommand(
+            createUpsertObjectsCommand([shape], { description: 'draw-shape' }),
+          );
+      }
       return;
     }
     if (arrowPreview) {
@@ -3344,6 +3369,7 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
       buildPreviewScene(contentDocumentScene, activeChemDrawDocument, {
         transform: selectionPreviewTransform,
         arrow: arrowPreview,
+        objects: shapePreview ? [shapePreview] : null,
         ring: tool === 'ring' ? ringTool.preview : null,
         line:
           (tool === 'atom' || tool === 'bond') && activeDragPreview && activeAtomId
@@ -3362,6 +3388,7 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
       activeChemDrawDocument,
       selectionPreviewTransform,
       arrowPreview,
+      shapePreview,
       tool,
       ringTool.preview,
       activeDragPreview,

@@ -84,7 +84,7 @@ export interface RecentFileEntry {
   openedAt: number;
 }
 
-export type ToolPaletteId = 'tools' | 'ring' | 'arrow' | 'text' | 'atom' | 'charge';
+export type ToolPaletteId = 'tools' | 'ring' | 'arrow' | 'drawing' | 'text' | 'atom' | 'charge';
 
 export interface ToolPaletteState {
   docked: boolean;

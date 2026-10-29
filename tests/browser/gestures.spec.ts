@@ -269,6 +269,42 @@ for (const scale of [1, 2]) {
       await page.keyboard.press('Control+z');
       expect(arrows(await observe(page))).toHaveLength(0);
     });
+    test('shape drag commits one rectangle; click, Escape and tool switch create none', async ({
+      page,
+    }) => {
+      await openEditor(page);
+      await page.getByRole('button', { name: 'Expand Drawing', exact: true }).click();
+      await tool(page, 'Rectangle');
+      const before = await observe(page);
+      const shapes = (o: Awaited<ReturnType<typeof observe>>) =>
+        o.document!.pages[0].objects.filter((x) => x.type === 'graphic');
+      expect(shapes(before)).toHaveLength(0);
+      const a = await point(page, 500, 400);
+      await page.mouse.move(a.x, a.y);
+      await page.mouse.down();
+      await page.mouse.up();
+      expect((await observe(page)).historyIndex).toBe(before.historyIndex);
+      await page.mouse.move(a.x, a.y + 60);
+      await page.mouse.down();
+      await page.mouse.move(a.x + 120, a.y + 120, { steps: 6 });
+      await page.keyboard.press('Escape');
+      await page.mouse.up();
+      expect((await observe(page)).historyIndex).toBe(before.historyIndex);
+      await page.mouse.move(a.x, a.y + 120);
+      await page.mouse.down();
+      await page.mouse.move(a.x + 60, a.y + 160, { steps: 4 });
+      await tool(page, 'Select');
+      await page.mouse.up();
+      expect(shapes(await observe(page))).toHaveLength(0);
+      await tool(page, 'Rectangle');
+      await drag(page, { x: 500, y: 400 }, { x: 640, y: 480 });
+      const drawn = await observe(page);
+      expect(shapes(drawn)).toHaveLength(1);
+      expect(shapes(drawn)[0]).toMatchObject({ graphicType: 'rectangle' });
+      expect(drawn.historyIndex).toBe(before.historyIndex + 1);
+      await page.keyboard.press('Control+z');
+      expect(shapes(await observe(page))).toHaveLength(0);
+    });
     test('chain preview commits once and cancellation creates no history', async ({ page }) => {
       await openEditor(page);
       await tool(page, 'Chain');

@@ -163,11 +163,14 @@ test('toolbar preferences backfill the text palette for older saved layouts', ()
     'tools',
     'ring',
     'arrow',
+    'drawing',
     'text',
     'atom',
     'charge',
   ]);
-  assert.equal(normalized.toolPalettes.order.at(-1), 'text');
+  // Palettes a saved layout predates are appended, in default order.
+  assert.deepEqual(normalized.toolPalettes.order.slice(-2), ['drawing', 'text']);
+  assert.equal(normalized.toolPalettes.items.drawing.docked, true);
   assert.equal(normalized.toolPalettes.items.text.docked, true);
   assert.equal(normalized.toolPalettes.items.text.collapsed, true);
   assert.equal(normalized.toolPalettes.items.text.position.x, 88);
