@@ -254,3 +254,41 @@ test('reversing a one-ended arrow carries its head; retyping it drops the record
   assert.equal(retyped.headEnd, undefined);
   assert.equal(retyped.tailEnd, undefined);
 });
+
+test('an open <curve> keeps its element, control points and arrowheads', () => {
+  // Read as an unknown graphic, an open curve used to come back as <graphic Points> with its
+  // CurvePoints, CurveType and heads gone.
+  const source = `<?xml version="1.0"?><CDXML><page id="100">
+    <curve id="12" LineType="Dashed" CurveType="26" ArrowheadHead="Full" ArrowheadTail="Full" ArrowheadType="Solid" CurvePoints="109.29 114.88 109.29 106.46 109.29 98.04 121.92 86.81 129.87 89.62 134.08 90.55 139.7 92.89 144.38 93.83 149.05 94.76"/>
+    <curve id="11" CurveType="1" CurvePoints="29.22 41.6 39.55 39.41 49.92 37.18 57.79 32.63 57.11 29.27 56.33 25.81 47.28 24.81 36.95 27.04 26.58 29.22 18.76 33.77 19.49 37.23 20.21 40.64"/>
+  </page></CDXML>`;
+  const { document } = cdxmlToChemDrawDocument(source);
+  const [open, closed] = ['12', '11'].map((id) =>
+    document.pages[0].objects.find((o) => o.id === id),
+  );
+  assert.equal(open.graphicType, 'curve');
+  assert.equal(open.points.length, 9);
+  assert.equal(open.headEnd, 'full');
+  assert.equal(open.tailEnd, 'full');
+  // A smooth closed curve is not one of our tripled-vertex polygons and keeps its control points.
+  assert.equal(closed.graphicType, 'curve');
+  assert.equal(closed.points.length, 12);
+  const out = exportXml(source);
+  const curve12 = /<curve id="12"[^>]*>/.exec(out)?.[0] ?? '';
+  assert.match(curve12, /CurveType="26"/);
+  assert.match(curve12, /ArrowheadHead="Full" ArrowheadTail="Full" ArrowheadType="Solid"/);
+  assert.match(curve12, /CurvePoints="109.29 114.88 109.29 106.46/);
+  assert.doesNotMatch(out, /<graphic id="12"/);
+  assert.match(/<curve id="11"[^>]*>/.exec(out)?.[0] ?? '', /CurveType="1"/);
+  assert.equal(exportXml(out), out);
+});
+
+test('a graphic of an unknown type is written back attribute for attribute', () => {
+  const out = exportXml(`<?xml version="1.0"?><CDXML><page id="100">
+    <graphic id="7" GraphicType="Fancy" BoundingBox="0 0 40 30" Mystery="1"/>
+  </page></CDXML>`);
+  const graphic = /<graphic id="7"[^>]*>/.exec(out)?.[0] ?? '';
+  assert.match(graphic, /GraphicType="Fancy"/);
+  assert.match(graphic, /Mystery="1"/);
+  assert.equal((graphic.match(/BoundingBox=/g) ?? []).length, 1);
+});

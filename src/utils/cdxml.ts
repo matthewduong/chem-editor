@@ -8,6 +8,7 @@ import {
   type XmlElement as Element,
 } from '../lib/xml';
 import { assertFiniteNumbers, validateCdxmlInput } from '../lib/cdxmlValidation';
+import { CURVE_TYPE } from '../lib/curveGeometry';
 /**
  * cdxml.ts — ChemDraw CDXML import/export
  *
@@ -1936,6 +1937,31 @@ function chemDrawDocumentToCDXMLInternal(document: ChemDrawDocument): string {
         xml += rawChildren
           ? `    <graphic id="${object.id}"${boundsAttr}${colorAttr}${fillColorAttr}${fillTypeAttr}${lineWidthAttr}${lineTypeAttr}${zIndexAttr}${visibleAttr} GraphicType="Rectangle"${rectangleTypeAttr}${cornerRadiusAttr}${shadowSizeAttr}${rawAttributesAttr}>\n${rawChildren}    </graphic>\n`
           : `    <graphic id="${object.id}"${boundsAttr}${colorAttr}${fillColorAttr}${fillTypeAttr}${lineWidthAttr}${lineTypeAttr}${zIndexAttr}${visibleAttr} GraphicType="Rectangle"${rectangleTypeAttr}${cornerRadiusAttr}${shadowSizeAttr}${rawAttributesAttr}/>\n`;
+      } else if (object.graphicType === 'curve') {
+        const curvePointsAttr = object.points?.length
+          ? ` CurvePoints="${object.points
+              .map(
+                (point) =>
+                  `${formatCdxmlNumber(point.x * exportScaleFactor)} ${formatCdxmlNumber(point.y * exportScaleFactor)}`,
+              )
+              .join(' ')}"`
+          : '';
+        const curveBoundsAttr = object.bounds
+          ? ` BoundingBox="${boundsToCdxml(object.bounds, exportScaleFactor)}"`
+          : '';
+        const closedAttr = object.closed ? ' Closed="yes"' : '';
+        const curveTypeAttr = object.curveType != null ? ` CurveType="${object.curveType}"` : '';
+        const headAttr = object.headEnd ? arrowEndToCdxml(object.headEnd) : null;
+        const tailAttr = object.tailEnd ? arrowEndToCdxml(object.tailEnd) : null;
+        const curveHeadsAttr = `${headAttr ? ` ArrowheadHead="${headAttr}"` : ''}${tailAttr ? ` ArrowheadTail="${tailAttr}"` : ''}${object.headType ? ` ArrowheadType="${arrowHeadTypeToCdxml(object.headType)}"` : ''}`;
+        const curveAttrs = `${curveBoundsAttr}${zIndexAttr}${colorAttr}${fillColorAttr}${fillTypeAttr}${lineWidthAttr}${lineTypeAttr}${visibleAttr}${closedAttr}${curveTypeAttr}${curveHeadsAttr}${curvePointsAttr}${rawAttributesAttr}`;
+        xml += rawChildren
+          ? `    <curve id="${object.id}"${curveAttrs}>\n${rawChildren}    </curve>\n`
+          : `    <curve id="${object.id}"${curveAttrs}/>\n`;
+      } else if (object.graphicType === 'unknown') {
+        xml += rawChildren
+          ? `    <${tag} id="${object.id}"${rawAttributesAttr}>\n${rawChildren}    </${tag}>\n`
+          : `    <${tag} id="${object.id}"${rawAttributesAttr}/>\n`;
       } else if (object.graphicType === 'polygon') {
         // CDXML has no <polygon> element (confirmed against the real DTD and real ChemDraw: a
         // bare <polygon> isn't an error, it's just silently dropped on open). A closed polygon is
@@ -3423,6 +3449,21 @@ export function cdxmlToChemDrawDocument(xmlString: string): ChemDrawConversionRe
         normalizedTag === 'rectangle' ||
         (normalizedTag === 'graphic' && graphicTypeAttr === 'rectangle');
       const isRounded = isRect && rectType.includes('round');
+      const curveTypeRaw = parseInt(el.getAttribute('CurveType') ?? '', 10);
+      const curveType = Number.isFinite(curveTypeRaw) ? curveTypeRaw : undefined;
+      const closedAttr = el.getAttribute('Closed')?.toLowerCase() === 'yes';
+      // Our own writer stores a sharp-cornered polygon as a closed curve with every vertex written
+      // three times; anything else is a real Bezier curve and must keep its control points.
+      const isTripledPolygon =
+        normalizedTag === 'curve' &&
+        (closedAttr || ((curveType ?? 0) & CURVE_TYPE.closed) !== 0) &&
+        explicitPoints != null &&
+        explicitPoints.length >= 9 &&
+        explicitPoints.length % 3 === 0 &&
+        explicitPoints.every((point, index) => {
+          const first = explicitPoints[index - (index % 3)]!;
+          return point.x === first.x && point.y === first.y;
+        });
       const graphicType: ChemDrawGraphic['graphicType'] =
         normalizedTag === 'line'
           ? 'line'
@@ -3444,10 +3485,13 @@ export function cdxmlToChemDrawDocument(xmlString: string): ChemDrawConversionRe
                         ? 'ellipse'
                         : normalizedTag === 'polygon' ||
                             (normalizedTag === 'graphic' && graphicTypeAttr === 'polygon') ||
-                            (normalizedTag === 'curve' &&
-                              el.getAttribute('Closed')?.toLowerCase() === 'yes')
+                            isTripledPolygon
                           ? 'polygon'
-                          : 'unknown';
+                          : normalizedTag === 'curve' &&
+                              explicitPoints &&
+                              explicitPoints.length >= 2
+                            ? 'curve'
+                            : 'unknown';
       // A closed <curve> draws a smoothed Bezier through its CurvePoints; our own writer forces
       // sharp corners by repeating each vertex three times (coincident control points). Collapse
       // consecutive duplicates back to one vertex each so the in-app model is a plain polygon
@@ -3510,6 +3554,14 @@ export function cdxmlToChemDrawDocument(xmlString: string): ChemDrawConversionRe
       const center = parsePoint3D(el.getAttribute('Center3D'), importScaleFactor);
       const majorAxisEnd = parsePoint3D(el.getAttribute('MajorAxisEnd3D'), importScaleFactor);
       const minorAxisEnd = parsePoint3D(el.getAttribute('MinorAxisEnd3D'), importScaleFactor);
+      const curveHeadEnd =
+        graphicType === 'curve' ? parseArrowEnd(el.getAttribute('ArrowheadHead') ?? '') : undefined;
+      const curveTailEnd =
+        graphicType === 'curve' ? parseArrowEnd(el.getAttribute('ArrowheadTail') ?? '') : undefined;
+      const curveHeadType =
+        graphicType === 'curve' && el.getAttribute('ArrowheadType')
+          ? parseChemDrawArrowHeadType(el.getAttribute('ArrowheadType') ?? '')
+          : undefined;
       const objectTags = parseObjectTags(el);
       const bracketLabel =
         extractGraphicObjectTagText(el, 'parameterizedBracketLabel') ??
@@ -3540,6 +3592,15 @@ export function cdxmlToChemDrawDocument(xmlString: string): ChemDrawConversionRe
         ...(center ? { center } : {}),
         ...(majorAxisEnd ? { majorAxisEnd } : {}),
         ...(minorAxisEnd ? { minorAxisEnd } : {}),
+        ...(graphicType === 'curve'
+          ? {
+              ...(closedAttr ? { closed: true } : {}),
+              ...(curveType != null ? { curveType } : {}),
+              ...(curveHeadEnd ? { headEnd: curveHeadEnd } : {}),
+              ...(curveTailEnd ? { tailEnd: curveTailEnd } : {}),
+              ...(curveHeadType ? { headType: curveHeadType } : {}),
+            }
+          : {}),
         ...(graphicColor ||
         graphicFillColor ||
         graphicLineWidth != null ||
@@ -3572,34 +3633,41 @@ export function cdxmlToChemDrawDocument(xmlString: string): ChemDrawConversionRe
       };
       const graphicPreservation = buildPreservationMetadata({
         el,
-        handledAttributeNames: [
-          'id',
-          'BoundingBox',
-          'CurvePoints',
-          'Points',
-          'Closed',
-          'GraphicType',
-          'color',
-          'Color',
-          'FillColor',
-          'Visible',
-          'Z',
-          'LineWidth',
-          'LineType',
-          'RectangleType',
-          'CornerRadius',
-          'ShadowSize',
-          'SymbolType',
-          'BracketType',
-          'BracketUsage',
-          'LipSize',
-          'OrbitalType',
-          'OvalType',
-          'Center3D',
-          'MajorAxisEnd3D',
-          'MinorAxisEnd3D',
-          'SupersededBy',
-        ],
+        // An unrecognised graphic is written back attribute for attribute, GraphicType included.
+        handledAttributeNames:
+          graphicType === 'unknown'
+            ? ['id']
+            : [
+                'id',
+                'BoundingBox',
+                'CurvePoints',
+                'Points',
+                'Closed',
+                'GraphicType',
+                'color',
+                'Color',
+                'FillColor',
+                'Visible',
+                'Z',
+                'LineWidth',
+                'LineType',
+                'RectangleType',
+                'CornerRadius',
+                'ShadowSize',
+                'SymbolType',
+                'BracketType',
+                'BracketUsage',
+                'LipSize',
+                'OrbitalType',
+                'OvalType',
+                'Center3D',
+                'MajorAxisEnd3D',
+                'MinorAxisEnd3D',
+                'SupersededBy',
+                ...(graphicType === 'curve'
+                  ? ['CurveType', 'ArrowheadHead', 'ArrowheadTail', 'ArrowheadType']
+                  : []),
+              ],
         preserveChild: (child) => {
           if (child.tagName === 'represent') return false;
           if (child.tagName === 'objecttag') {

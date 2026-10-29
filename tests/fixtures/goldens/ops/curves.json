@@ -1,0 +1,646 @@
+[
+  {
+    "op": "call",
+    "name": "save",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "translate",
+    "args": [
+      0,
+      0
+    ]
+  },
+  {
+    "op": "call",
+    "name": "scale",
+    "args": [
+      1,
+      1
+    ]
+  },
+  {
+    "op": "call",
+    "name": "save",
+    "args": []
+  },
+  {
+    "op": "set",
+    "prop": "strokeStyle",
+    "value": "#333333"
+  },
+  {
+    "op": "set",
+    "prop": "lineWidth",
+    "value": 0.6
+  },
+  {
+    "op": "set",
+    "prop": "lineCap",
+    "value": "round"
+  },
+  {
+    "op": "set",
+    "prop": "lineJoin",
+    "value": "round"
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "set",
+    "prop": "lineCap",
+    "value": "butt"
+  },
+  {
+    "op": "call",
+    "name": "beginPath",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "moveTo",
+    "args": [
+      39.55,
+      39.41
+    ]
+  },
+  {
+    "op": "call",
+    "name": "bezierCurveTo",
+    "args": [
+      49.92,
+      37.18,
+      57.79,
+      32.63,
+      57.11,
+      29.27
+    ]
+  },
+  {
+    "op": "call",
+    "name": "bezierCurveTo",
+    "args": [
+      56.33,
+      25.81,
+      47.28,
+      24.81,
+      36.95,
+      27.04
+    ]
+  },
+  {
+    "op": "call",
+    "name": "bezierCurveTo",
+    "args": [
+      26.58,
+      29.22,
+      18.76,
+      33.77,
+      19.49,
+      37.23
+    ]
+  },
+  {
+    "op": "call",
+    "name": "bezierCurveTo",
+    "args": [
+      20.21,
+      40.64,
+      29.22,
+      41.6,
+      39.55,
+      39.41
+    ]
+  },
+  {
+    "op": "call",
+    "name": "closePath",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "stroke",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "call",
+    "name": "restore",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "save",
+    "args": []
+  },
+  {
+    "op": "set",
+    "prop": "strokeStyle",
+    "value": "#333333"
+  },
+  {
+    "op": "set",
+    "prop": "lineWidth",
+    "value": 0.6
+  },
+  {
+    "op": "set",
+    "prop": "lineCap",
+    "value": "round"
+  },
+  {
+    "op": "set",
+    "prop": "lineJoin",
+    "value": "round"
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      [
+        2.5,
+        2.5
+      ]
+    ]
+  },
+  {
+    "op": "set",
+    "prop": "lineCap",
+    "value": "butt"
+  },
+  {
+    "op": "call",
+    "name": "beginPath",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "moveTo",
+    "args": [
+      110.5643,
+      101.4185
+    ]
+  },
+  {
+    "op": "call",
+    "name": "bezierCurveTo",
+    "args": [
+      113.9674,
+      94.2452,
+      123.4464,
+      87.3495,
+      129.87,
+      89.62
+    ]
+  },
+  {
+    "op": "call",
+    "name": "bezierCurveTo",
+    "args": [
+      132.6438,
+      90.2327,
+      136.0296,
+      91.4575,
+      139.3554,
+      92.4907
+    ]
+  },
+  {
+    "op": "call",
+    "name": "stroke",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "set",
+    "prop": "lineJoin",
+    "value": "miter"
+  },
+  {
+    "op": "call",
+    "name": "beginPath",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "moveTo",
+    "args": [
+      144.38,
+      93.83
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      138.1923,
+      94.1681
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      139.2328,
+      92.7962
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      138.8027,
+      91.1288
+    ]
+  },
+  {
+    "op": "call",
+    "name": "closePath",
+    "args": []
+  },
+  {
+    "op": "set",
+    "prop": "fillStyle",
+    "value": "#333333"
+  },
+  {
+    "op": "call",
+    "name": "fill",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "beginPath",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "moveTo",
+    "args": [
+      109.29,
+      106.46
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      107.74,
+      100.46
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      109.29,
+      101.21
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      110.84,
+      100.46
+    ]
+  },
+  {
+    "op": "call",
+    "name": "closePath",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "fill",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "restore",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "save",
+    "args": []
+  },
+  {
+    "op": "set",
+    "prop": "strokeStyle",
+    "value": "#333333"
+  },
+  {
+    "op": "set",
+    "prop": "lineWidth",
+    "value": 0.6
+  },
+  {
+    "op": "set",
+    "prop": "lineCap",
+    "value": "round"
+  },
+  {
+    "op": "set",
+    "prop": "lineJoin",
+    "value": "round"
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "set",
+    "prop": "lineCap",
+    "value": "butt"
+  },
+  {
+    "op": "call",
+    "name": "beginPath",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "moveTo",
+    "args": [
+      78.65,
+      118.67
+    ]
+  },
+  {
+    "op": "call",
+    "name": "bezierCurveTo",
+    "args": [
+      75.45,
+      113.22,
+      72.08,
+      104.61,
+      66.79,
+      101.49
+    ]
+  },
+  {
+    "op": "call",
+    "name": "bezierCurveTo",
+    "args": [
+      62.98,
+      99.15,
+      53.42,
+      99.82,
+      52.34,
+      104.07
+    ]
+  },
+  {
+    "op": "call",
+    "name": "bezierCurveTo",
+    "args": [
+      51.8395,
+      105.6761,
+      52.8516,
+      107.5907,
+      54.3214,
+      109.2765
+    ]
+  },
+  {
+    "op": "call",
+    "name": "stroke",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "set",
+    "prop": "lineJoin",
+    "value": "miter"
+  },
+  {
+    "op": "call",
+    "name": "beginPath",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "moveTo",
+    "args": [
+      58.1103,
+      112.9139
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      53.6665,
+      110.1184
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      54.0167,
+      108.1531
+    ]
+  },
+  {
+    "op": "call",
+    "name": "closePath",
+    "args": []
+  },
+  {
+    "op": "set",
+    "prop": "fillStyle",
+    "value": "#333333"
+  },
+  {
+    "op": "call",
+    "name": "fill",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "restore",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "save",
+    "args": []
+  },
+  {
+    "op": "set",
+    "prop": "strokeStyle",
+    "value": "#333333"
+  },
+  {
+    "op": "set",
+    "prop": "lineWidth",
+    "value": 0.6
+  },
+  {
+    "op": "set",
+    "prop": "lineCap",
+    "value": "round"
+  },
+  {
+    "op": "set",
+    "prop": "lineJoin",
+    "value": "round"
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "set",
+    "prop": "lineCap",
+    "value": "butt"
+  },
+  {
+    "op": "call",
+    "name": "beginPath",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "moveTo",
+    "args": [
+      80.81,
+      194.52
+    ]
+  },
+  {
+    "op": "call",
+    "name": "bezierCurveTo",
+    "args": [
+      67.78,
+      191.34,
+      43.58,
+      196.65,
+      39.23,
+      206.76
+    ]
+  },
+  {
+    "op": "call",
+    "name": "bezierCurveTo",
+    "args": [
+      37.9245,
+      209.0061,
+      42.7329,
+      210.725,
+      47.2199,
+      211.9203
+    ]
+  },
+  {
+    "op": "call",
+    "name": "stroke",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "set",
+    "prop": "lineJoin",
+    "value": "miter"
+  },
+  {
+    "op": "call",
+    "name": "beginPath",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "moveTo",
+    "args": [
+      52.27,
+      213.16
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      46.0734,
+      213.232
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      47.172,
+      211.906
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      46.8139,
+      210.2217
+    ]
+  },
+  {
+    "op": "call",
+    "name": "closePath",
+    "args": []
+  },
+  {
+    "op": "set",
+    "prop": "fillStyle",
+    "value": "#333333"
+  },
+  {
+    "op": "call",
+    "name": "fill",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "restore",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "restore",
+    "args": []
+  }
+]

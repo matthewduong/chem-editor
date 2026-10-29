@@ -270,6 +270,7 @@ export interface ChemDrawGraphic {
     | 'rounded-rectangle'
     | 'ellipse'
     | 'polygon'
+    | 'curve'
     | 'symbol'
     | 'bracket'
     | 'orbital'
@@ -291,6 +292,14 @@ export interface ChemDrawGraphic {
   center?: ChemDrawPoint;
   majorAxisEnd?: ChemDrawPoint;
   minorAxisEnd?: ChemDrawPoint;
+  /** Curve: `Closed="yes"` was given (ChemDraw itself sets bit 1 of CurveType instead). */
+  closed?: boolean;
+  /** Curve: the CurveType bit set (see `CURVE_TYPE` in `lib/curveGeometry.ts`), kept as written. */
+  curveType?: number;
+  /** Curve: arrowheads, as on an arrow. */
+  headEnd?: ChemDrawArrowEnd;
+  tailEnd?: ChemDrawArrowEnd;
+  headType?: ChemDrawArrowHeadType;
   style?: ChemDrawStyle;
   objectTags?: ChemDrawObjectTag[];
   preservation?: ChemDrawPreservationMetadata;

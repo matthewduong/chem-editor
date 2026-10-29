@@ -15,6 +15,7 @@ const METHODS = new Set([
   'arc',
   'arcTo',
   'beginPath',
+  'bezierCurveTo',
   'clearRect',
   'closePath',
   'drawImage',

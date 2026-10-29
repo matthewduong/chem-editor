@@ -1,3 +1,4 @@
+import { CURVE_TYPE, curveSegments, sampleCurve } from '../../lib/curveGeometry';
 import type {
   ChemDrawBounds,
   ChemDrawDocument,
@@ -142,13 +143,23 @@ function getTextBounds(
 }
 
 function getGraphicBounds(graphic: ChemDrawGraphic): ChemDrawBounds | null {
-  if (graphic.bounds) return graphic.bounds;
-  if (!graphic.points?.length) return null;
+  // A curve's control points lie off the drawn path, so measure the path itself.
+  const points =
+    graphic.graphicType === 'curve' && graphic.points?.length
+      ? sampleCurve(
+          curveSegments(
+            graphic.points,
+            graphic.closed === true || ((graphic.curveType ?? 0) & CURVE_TYPE.closed) !== 0,
+          ),
+        )
+      : graphic.points;
+  if (graphic.bounds && graphic.graphicType !== 'curve') return graphic.bounds;
+  if (!points?.length) return graphic.bounds ?? null;
   return {
-    left: Math.min(...graphic.points.map((point) => point.x)),
-    top: Math.min(...graphic.points.map((point) => point.y)),
-    right: Math.max(...graphic.points.map((point) => point.x)),
-    bottom: Math.max(...graphic.points.map((point) => point.y)),
+    left: Math.min(...points.map((point) => point.x)),
+    top: Math.min(...points.map((point) => point.y)),
+    right: Math.max(...points.map((point) => point.x)),
+    bottom: Math.max(...points.map((point) => point.y)),
   };
 }
 

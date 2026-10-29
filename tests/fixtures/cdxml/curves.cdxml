@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- <curve> elements copied from ChemDraw's own files (Ti-sandwich.cdxml and the chemdraw_template
+     set in RDKit's test data), moved into view: a closed Cp ellipse (CurveType 1), a dashed curve
+     with heads at both ends (26), a half-headed curve (32) and a full-headed one (8). -->
+<CDXML BondLength="14.4" LineWidth="0.6">
+  <page id="100">
+    <curve id="11" CurveType="1" CurvePoints="29.22 41.6 39.55 39.41 49.92 37.18 57.79 32.63 57.11 29.27 56.33 25.81 47.28 24.81 36.95 27.04 26.58 29.22 18.76 33.77 19.49 37.23 20.21 40.64"/>
+    <curve id="12" LineType="Dashed" CurveType="26" ArrowheadHead="Full" ArrowheadTail="Full" ArrowheadType="Solid" CurvePoints="109.29 114.88 109.29 106.46 109.29 98.04 121.92 86.81 129.87 89.62 134.08 90.55 139.7 92.89 144.38 93.83 149.05 94.76"/>
+    <curve id="13" CurveType="32" ArrowheadHead="HalfLeft" ArrowheadType="Solid" CurvePoints="81.84 124.12 78.65 118.67 75.45 113.22 72.08 104.61 66.79 101.49 62.98 99.15 53.42 99.82 52.34 104.07 51.43 106.99 55.52 110.93 58.27 112.66 61.02 114.38"/>
+    <curve id="14" CurveType="8" ArrowheadHead="Full" ArrowheadType="Solid" CurvePoints="93.85 197.72 80.81 194.52 67.78 191.34 43.58 196.65 39.23 206.76 37.37 209.96 47.92 212.09 52.27 213.16 56.62 214.22"/>
+  </page>
+</CDXML>

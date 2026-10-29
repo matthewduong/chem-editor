@@ -33,7 +33,10 @@ test('throws on an unmodelled context member rather than dropping it', () => {
   const ctx = createRecordingContext();
   // A module reaching for a feature the recorder does not model must fail the suite, not
   // silently weaken every golden that covers it.
-  assert.throws(() => ctx.bezierCurveTo(1, 2, 3, 4, 5, 6), /unmodelled read of ctx\.bezierCurveTo/);
+  assert.throws(
+    () => ctx.createLinearGradient(0, 0, 1, 1),
+    /unmodelled read of ctx\.createLinearGradient/,
+  );
   assert.throws(() => {
     ctx.miterLimit = 4;
   }, /unmodelled write to ctx\.miterLimit/);

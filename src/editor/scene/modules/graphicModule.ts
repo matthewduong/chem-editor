@@ -1,6 +1,18 @@
-import { convertNativeToCanvas } from '../../../lib/chemdrawMetrics';
+import { ARROW_SHAFT_NOTCH_GAP_PT, convertNativeToCanvas } from '../../../lib/chemdrawMetrics';
+import {
+  CURVE_TYPE,
+  cubicTangentAt,
+  curveSegments,
+  sampleCurve,
+  trimCubic,
+  type CubicSegment,
+} from '../../../lib/curveGeometry';
+import { getArrowGeometryMetrics } from '../../../lib/renderGeometry';
+import type { ChemDrawArrowEnd, ChemDrawGraphic } from '../../../types/chemdraw';
+import type { DocumentStyleSettings } from '../../../types/settings';
 import { adaptColor, drawCircle, drawLine, drawPolyline, setStroke } from '../drawPrimitives';
-import { pointInExpandedBounds } from '../geometry';
+import { distanceToSegment, pointInExpandedBounds } from '../geometry';
+import { drawArrowHead } from './arrowModule';
 import { drawObjectTags } from './objectTagHelpers';
 import type { ObjectModule } from '../types';
 import { getPaintFontFamily } from '../../../lib/textMetrics';
@@ -9,6 +21,128 @@ import { getPaintFontFamily } from '../../../lib/textMetrics';
 const DEFAULT_LIP = 10;
 /** Bracket bulge as a fraction of the bracket's own length, measured against ChemDraw. */
 const LIP_FRACTION_AT_DEFAULT = 0.16;
+
+/**
+ * A ChemDraw <curve>: cubic segments through its anchor triples, optionally closed, filled or
+ * shaded, with arrowheads at either end (ChemDraw writes freehand curved arrows this way).
+ */
+function drawCurve(
+  ctx: CanvasRenderingContext2D,
+  object: ChemDrawGraphic,
+  color: string,
+  fill: string | undefined,
+  settings: DocumentStyleSettings,
+): void {
+  const points = object.points ?? [];
+  const bits = object.curveType ?? 0;
+  const closed = object.closed === true || (bits & CURVE_TYPE.closed) !== 0;
+  let segments = curveSegments(points, closed);
+  if (segments.length === 0) return;
+  const metrics = getArrowGeometryMetrics({ type: 'reaction' }, settings, {
+    style: object.style,
+  });
+  const bold = object.style?.lineType === 'bold' || (bits & CURVE_TYPE.bold) !== 0;
+  const dashed = object.style?.lineType === 'dashed' || (bits & CURVE_TYPE.dashed) !== 0;
+  const width = bold
+    ? convertNativeToCanvas(settings.nativeMetrics.boldWidth, settings)
+    : metrics.baseLineWidth;
+  // ChemDraw dashes 2.5pt on, 2.5pt off, as on an arrow shaft.
+  const dashLength = convertNativeToCanvas(2.5, settings);
+
+  const filled = fill != null || (bits & (CURVE_TYPE.filled | CURVE_TYPE.shaded)) !== 0;
+  if (closed && filled) {
+    ctx.save();
+    ctx.beginPath();
+    traceSegments(ctx, segments);
+    ctx.closePath();
+    ctx.fillStyle = fill ?? color;
+    if (fill == null && (bits & CURVE_TYPE.shaded) !== 0) ctx.globalAlpha = 0.3;
+    ctx.fill();
+    ctx.restore();
+  }
+
+  const headEnd = closed ? 'none' : (object.headEnd ?? 'none');
+  const tailEnd = closed ? 'none' : (object.tailEnd ?? 'none');
+  const headKind =
+    object.headType === 'angle' ? 'angle' : object.headType === 'hollow' ? 'hollow' : 'solid';
+  const notchGap = convertNativeToCanvas(ARROW_SHAFT_NOTCH_GAP_PT, settings);
+  const inset = headKind === 'angle' ? 0 : Math.max(0, metrics.headCenterSize - notchGap);
+  const first = segments[0]!;
+  const last = segments[segments.length - 1]!;
+  if (tailEnd !== 'none' || headEnd !== 'none') {
+    segments = segments.slice();
+    if (headEnd !== 'none') segments[segments.length - 1] = trimCubic(last, true, inset);
+    if (tailEnd !== 'none') segments[0] = trimCubic(segments[0]!, false, inset);
+  }
+  ctx.save();
+  setStroke(ctx, color, width, dashed ? [dashLength, dashLength] : undefined);
+  ctx.lineCap = 'butt';
+  ctx.lineJoin = 'round';
+  ctx.beginPath();
+  traceSegments(ctx, segments);
+  if (closed) ctx.closePath();
+  ctx.stroke();
+  ctx.setLineDash([]);
+  const half = (end: ChemDrawArrowEnd): -1 | 0 | 1 =>
+    end === 'half-left' ? -1 : end === 'half-right' ? 1 : 0;
+  if (headEnd !== 'none') {
+    const direction = cubicTangentAt(last, 1);
+    drawArrowHead(
+      ctx,
+      color,
+      metrics,
+      last.p3.x,
+      last.p3.y,
+      Math.atan2(direction.y, direction.x),
+      headKind,
+      half(headEnd),
+    );
+  }
+  if (tailEnd !== 'none') {
+    const direction = cubicTangentAt(first, 0);
+    drawArrowHead(
+      ctx,
+      color,
+      metrics,
+      first.p0.x,
+      first.p0.y,
+      Math.atan2(direction.y, direction.x) + Math.PI,
+      headKind,
+      half(tailEnd),
+    );
+  }
+  ctx.restore();
+}
+
+function traceSegments(ctx: CanvasRenderingContext2D, segments: readonly CubicSegment[]): void {
+  ctx.moveTo(segments[0]!.p0.x, segments[0]!.p0.y);
+  for (const segment of segments) {
+    ctx.bezierCurveTo(
+      segment.c1.x,
+      segment.c1.y,
+      segment.c2.x,
+      segment.c2.y,
+      segment.p3.x,
+      segment.p3.y,
+    );
+  }
+}
+
+/** Whether `point` lies within `tolerance` of a curve's stroke (or inside it, when filled). */
+function hitTestCurve(
+  object: ChemDrawGraphic,
+  point: { x: number; y: number },
+  tolerance: number,
+): boolean {
+  const closed = object.closed === true || ((object.curveType ?? 0) & CURVE_TYPE.closed) !== 0;
+  const samples = sampleCurve(curveSegments(object.points ?? [], closed));
+  for (let index = 1; index < samples.length; index += 1) {
+    const a = samples[index - 1]!;
+    const b = samples[index]!;
+    if (distanceToSegment(point, a, b) <= tolerance) return true;
+  }
+  return false;
+}
 
 export const GRAPHIC_MODULE: ObjectModule = {
   type: 'graphic',
@@ -35,6 +169,16 @@ export const GRAPHIC_MODULE: ObjectModule = {
 
     if (object.graphicType === 'line' && object.points && object.points.length >= 2) {
       drawPolyline(ctx, object.points, color, strokeWidth, { dash });
+      return;
+    }
+    if (object.graphicType === 'curve' && object.points && object.points.length >= 2) {
+      drawCurve(
+        ctx,
+        object,
+        color,
+        object.style?.fillColor ? adaptColor(object.style.fillColor, scene.isDarkMode) : undefined,
+        scene.documentStyleSettings,
+      );
       return;
     }
     if (object.graphicType === 'polygon' && object.points && object.points.length >= 3) {
@@ -286,6 +430,7 @@ export const GRAPHIC_MODULE: ObjectModule = {
   },
   hitTest(object, point, context, options) {
     if (object.type !== 'graphic') return false;
+    if (object.graphicType === 'curve') return hitTestCurve(object, point, 6 / options.stageScale);
     const bounds = context.scene.index.boundsById.get(object.id);
     return bounds ? pointInExpandedBounds(bounds, point, 8 / options.stageScale) : false;
   },

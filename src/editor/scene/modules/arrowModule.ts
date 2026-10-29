@@ -90,6 +90,79 @@ function trimPath(
   };
 }
 
+/** The head metrics `drawArrowHead` reads, in canvas px. */
+export interface ArrowHeadMetrics {
+  headSize: number;
+  headCenterSize: number;
+  headWidth: number;
+  baseLineWidth: number;
+}
+
+/**
+ * A head at (x, y) pointing along `angle`: the filled notched polygon for Solid, the same
+ * polygon outlined for Hollow, two strokes for Angle. `half` -1 is ChemDraw's HalfLeft (one
+ * barb, on the left of the direction of travel, the polygon standing on the shaft's edge) and
+ * 1 is HalfRight.
+ */
+export function drawArrowHead(
+  ctx: CanvasRenderingContext2D,
+  color: string,
+  geometry: ArrowHeadMetrics,
+  x: number,
+  y: number,
+  angle: number,
+  kind: 'solid' | 'hollow' | 'angle',
+  half: -1 | 0 | 1 = 0,
+): void {
+  const ux = Math.cos(angle);
+  const uy = Math.sin(angle);
+  const nx = -uy;
+  const ny = ux;
+  const point = (back: number, side: number) => ({
+    x: x - ux * back + nx * side,
+    y: y - uy * back + ny * side,
+  });
+  const L = geometry.headSize;
+  const C = geometry.headCenterSize;
+  const W = geometry.headWidth;
+  const base = half === 0 ? 0 : (-half * geometry.baseLineWidth) / 2;
+  const tip = point(0, base);
+  const notch = point(C, base);
+  const barbs = half === 0 ? [point(L, W), point(L, -W)] : [point(L, half * W)];
+  ctx.lineJoin = 'miter';
+  ctx.lineCap = 'butt';
+  if (kind === 'angle') {
+    setStroke(ctx, color, geometry.baseLineWidth);
+    ctx.lineCap = 'butt';
+    ctx.beginPath();
+    for (const barb of barbs) {
+      ctx.moveTo(barb.x, barb.y);
+      ctx.lineTo(tip.x, tip.y);
+    }
+    ctx.stroke();
+    return;
+  }
+  ctx.beginPath();
+  ctx.moveTo(tip.x, tip.y);
+  if (half === 0) {
+    ctx.lineTo(barbs[0]!.x, barbs[0]!.y);
+    ctx.lineTo(notch.x, notch.y);
+    ctx.lineTo(barbs[1]!.x, barbs[1]!.y);
+  } else {
+    ctx.lineTo(notch.x, notch.y);
+    ctx.lineTo(barbs[0]!.x, barbs[0]!.y);
+  }
+  ctx.closePath();
+  if (kind === 'solid') {
+    ctx.fillStyle = color;
+    ctx.fill();
+  } else {
+    setStroke(ctx, color, geometry.baseLineWidth);
+    ctx.lineJoin = 'miter';
+    ctx.stroke();
+  }
+}
+
 function drawArrowShape(
   ctx: CanvasRenderingContext2D,
   arrow: Pick<
@@ -144,67 +217,13 @@ function drawArrowShape(
     ctx.setLineDash([]);
   };
 
-  /**
-   * A head at (x, y) pointing along `angle`: the filled notched polygon for Solid, the same
-   * polygon outlined for Hollow, two strokes for Angle. `half` -1 is ChemDraw's HalfLeft (one
-   * barb, on the left of the direction of travel, the polygon standing on the shaft's edge) and
-   * 1 is HalfRight.
-   */
   const drawHead = (
     x: number,
     y: number,
     angle: number,
     kind: 'solid' | 'hollow' | 'angle',
     half: -1 | 0 | 1 = 0,
-  ) => {
-    const ux = Math.cos(angle);
-    const uy = Math.sin(angle);
-    const nx = -uy;
-    const ny = ux;
-    const point = (back: number, side: number) => ({
-      x: x - ux * back + nx * side,
-      y: y - uy * back + ny * side,
-    });
-    const L = geometry.headSize;
-    const C = geometry.headCenterSize;
-    const W = geometry.headWidth;
-    const base = half === 0 ? 0 : (-half * geometry.baseLineWidth) / 2;
-    const tip = point(0, base);
-    const notch = point(C, base);
-    const barbs = half === 0 ? [point(L, W), point(L, -W)] : [point(L, half * W)];
-    ctx.lineJoin = 'miter';
-    ctx.lineCap = 'butt';
-    if (kind === 'angle') {
-      setStroke(ctx, color, geometry.baseLineWidth);
-      ctx.lineCap = 'butt';
-      ctx.beginPath();
-      for (const barb of barbs) {
-        ctx.moveTo(barb.x, barb.y);
-        ctx.lineTo(tip.x, tip.y);
-      }
-      ctx.stroke();
-      return;
-    }
-    ctx.beginPath();
-    ctx.moveTo(tip.x, tip.y);
-    if (half === 0) {
-      ctx.lineTo(barbs[0]!.x, barbs[0]!.y);
-      ctx.lineTo(notch.x, notch.y);
-      ctx.lineTo(barbs[1]!.x, barbs[1]!.y);
-    } else {
-      ctx.lineTo(notch.x, notch.y);
-      ctx.lineTo(barbs[0]!.x, barbs[0]!.y);
-    }
-    ctx.closePath();
-    if (kind === 'solid') {
-      ctx.fillStyle = color;
-      ctx.fill();
-    } else {
-      setStroke(ctx, color, geometry.baseLineWidth);
-      ctx.lineJoin = 'miter';
-      ctx.stroke();
-    }
-  };
+  ) => drawArrowHead(ctx, color, geometry, x, y, angle, kind, half);
 
   const drawNoGoCross = (cx: number, cy: number, angle: number) => {
     // ChemDraw's no-go cross: two diagonals, 5 line widths either side of the shaft's midpoint,
