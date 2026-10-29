@@ -377,11 +377,14 @@ export function useSelectTool(): SelectToolOverlay & SelectToolActions {
           setSelectedObjectIds(next);
         } else {
           if (!selectedObjectIds.has(hitObjectId)) {
-            setSelectedObjectIds(new Set([hitObjectId]));
+            // The flat setters rebuild selectedObjectIds from atoms, bonds, arrows and text, so
+            // they go first: set last, the graphic's id survives. (Set first, every click on a
+            // graphic, bracket or embedded object selected nothing.)
             setSelectedAtomIds(new Set());
             setSelectedBondIds(new Set());
             setSelectedArrowIds(new Set());
             setSelectedTextBoxIds(new Set());
+            setSelectedObjectIds(new Set([hitObjectId]));
           }
         }
         setDragging(true);

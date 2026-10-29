@@ -305,6 +305,24 @@ for (const scale of [1, 2]) {
       await page.keyboard.press('Control+z');
       expect(shapes(await observe(page))).toHaveLength(0);
     });
+    test('clicking a drawn shape with Select selects it', async ({ page }) => {
+      // Selecting a graphic used to be undone by the flat selection setters run after it.
+      await openEditor(page);
+      await page.getByRole('button', { name: 'Expand Drawing', exact: true }).click();
+      await tool(page, 'Rectangle');
+      await drag(page, { x: 500, y: 400 }, { x: 640, y: 480 });
+      await tool(page, 'Select');
+      const edge = await point(page, 500, 440);
+      await page.mouse.click(edge.x, edge.y);
+      const selected = await page.evaluate(async () => {
+        const { useStore } = await import(String('/src/store/index.ts'));
+        return [...useStore.getState().selectedObjectIds];
+      });
+      const shapes = (await observe(page)).document!.pages[0].objects.filter(
+        (x) => x.type === 'graphic',
+      );
+      expect(selected).toEqual([shapes[0]!.id]);
+    });
     test('chain preview commits once and cancellation creates no history', async ({ page }) => {
       await openEditor(page);
       await tool(page, 'Chain');
