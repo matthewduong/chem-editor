@@ -1,3 +1,4 @@
+import type { ShapeKind } from './shapeGesture';
 import type { KeybindingPreferences, ShortcutBinding } from '../types/settings';
 
 export type ShortcutCategory =
@@ -354,8 +355,19 @@ export const ATOM_FRAGMENT_OPTIONS: Record<string, Array<{ minFV: number; smiles
 };
 
 export type CanvasToolShortcut = ShortcutDefinition & {
-  tool: 'select' | 'pan' | 'bond' | 'ring' | 'text' | 'arrow' | 'eraser' | 'fragment' | 'chain';
+  tool:
+    | 'select'
+    | 'pan'
+    | 'bond'
+    | 'ring'
+    | 'text'
+    | 'arrow'
+    | 'eraser'
+    | 'fragment'
+    | 'chain'
+    | 'shape';
   selectedFragment?: string;
+  shapeKind?: ShapeKind;
 };
 
 export const CANVAS_TOOL_SHORTCUTS: CanvasToolShortcut[] = [
@@ -461,6 +473,16 @@ export const CANVAS_TOOL_SHORTCUTS: CanvasToolShortcut[] = [
     category: 'Tools',
     context: 'canvas',
     defaultBinding: { key: 'u', shift: true },
+  },
+  {
+    id: 'canvas.tools.pen',
+    tool: 'shape',
+    shapeKind: 'curve',
+    label: 'Switch to pen tool',
+    description: 'Draw freehand curves. ChemDraw uses L for its Pen tools.',
+    category: 'Tools',
+    context: 'canvas',
+    defaultBinding: { key: 'l' },
   },
   {
     id: 'canvas.tools.eraser',

@@ -1,3 +1,4 @@
+import { createFreehandCurve } from './curveGesture';
 import { SNAP_ANGLE } from './graph';
 import type {
   ChemDrawArrow,
@@ -18,6 +19,8 @@ export type BracketShapeKind = 'bracket-square' | 'bracket-round' | 'bracket-cur
 export type BracketPairShapeKind = 'pair-square' | 'pair-round' | 'pair-curly';
 /** Placed with a click. */
 export type SymbolShapeKind = 'dagger' | 'double-dagger';
+/** The pen: a freehand drag fitted with Bezier curves (`curveGesture.ts`), and its editor. */
+export type CurveShapeKind = 'curve' | 'edit-curve';
 
 /** Every kind the shape tool draws. */
 export type ShapeKind =
@@ -26,7 +29,8 @@ export type ShapeKind =
   | ArcShapeKind
   | BracketShapeKind
   | BracketPairShapeKind
-  | SymbolShapeKind;
+  | SymbolShapeKind
+  | CurveShapeKind;
 
 const BRACKET_STYLE: Record<BracketShapeKind | BracketPairShapeKind, BracketStyle> = {
   'bracket-square': 'Square',
@@ -221,6 +225,13 @@ export function shapeForDrag(
   constrain = false,
   options: { symbolSize?: number } = {},
 ): { object: ChemDrawObject; bigEnough: boolean; extra?: ChemDrawObject[] } {
+  if (kind === 'curve' || kind === 'edit-curve') {
+    // The pen fits the whole pointer path (`useShapeTool`); from two points it is a straight curve.
+    const curve = createFreehandCurve(id, [start, pointer]);
+    return curve
+      ? { object: curve, bigEnough: true }
+      : { object: createLineArrow(id, 'line', start, pointer), bigEnough: false };
+  }
   if (isClickPlacedShape(kind)) {
     return {
       object: createSymbolGraphic(

@@ -472,6 +472,9 @@ export function useCanvasKeyboard({
         if (toolShortcut.selectedFragment) {
           getCanvasEditorState().setSelectedFragment(toolShortcut.selectedFragment);
         }
+        if (toolShortcut.shapeKind) {
+          getCanvasEditorState().setShapeKind(toolShortcut.shapeKind);
+        }
         return;
       }
 

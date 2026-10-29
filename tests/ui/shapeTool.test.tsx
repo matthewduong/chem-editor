@@ -84,3 +84,40 @@ it('a bracket pair commits both brackets; a dagger commits on a click', () => {
     },
   ]);
 });
+
+it('Edit Curve drags a handle of an existing curve and commits it under the same id', () => {
+  const curve = {
+    id: 'c1',
+    type: 'graphic' as const,
+    graphicType: 'curve' as const,
+    points: [
+      { x: -5, y: 0 },
+      { x: 0, y: 0 },
+      { x: 5, y: 0 },
+      { x: 35, y: 0 },
+      { x: 40, y: 0 },
+      { x: 45, y: 0 },
+    ],
+    preservation: { capability: 'editable' as const },
+  };
+  act(() =>
+    useStore.setState({
+      chemDrawDocument: {
+        ...useStore.getState().chemDrawDocument!,
+        pages: [{ id: 'page', objects: [curve] }],
+      },
+    }),
+  );
+  const { result } = renderHook(() => useShapeTool());
+  act(() => result.current.begin('edit-curve', { x: 40, y: 1 }, { handleTolerance: 3 }));
+  act(() => result.current.update({ x: 40, y: 20 }));
+  let edited: ReturnType<typeof result.current.commit> = null;
+  act(() => {
+    edited = result.current.commit();
+  });
+  expect(edited).toHaveLength(1);
+  expect(edited![0].id).toBe('c1');
+  expect(edited![0]).toMatchObject({
+    points: [{}, {}, {}, { x: 35, y: 20 }, { x: 40, y: 20 }, {}],
+  });
+});

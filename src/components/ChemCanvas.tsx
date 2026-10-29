@@ -2375,7 +2375,10 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
     }
 
     if (tool === 'shape') {
-      shapeTool.begin(shapeKind, pos, { symbolSize: bondLength * 0.5 });
+      shapeTool.begin(shapeKind, pos, {
+        symbolSize: bondLength * 0.5,
+        handleTolerance: 8 / stageScale,
+      });
       return;
     }
 
@@ -3208,6 +3211,67 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
     ],
   );
 
+  /**
+   * Edit Curve's handles on the curve being edited (the one under the pointer's drag, else the
+   * selected one): square anchors, round direction-line ends, and the lines joining them.
+   */
+  const renderEditCurveHandles = () => {
+    if (tool !== 'shape' || shapeKind !== 'edit-curve') return null;
+    const previewCurve = shapePreview?.find(
+      (object) => object.type === 'graphic' && object.graphicType === 'curve',
+    );
+    const curve =
+      previewCurve ??
+      chemDrawDocument?.pages[0]?.objects.find(
+        (object) =>
+          object.type === 'graphic' &&
+          object.graphicType === 'curve' &&
+          selectedObjectIds.has(object.id),
+      );
+    if (curve?.type !== 'graphic' || !curve.points) return null;
+    const size = 6 / stageScale;
+    const stroke = 1 / stageScale;
+    return (
+      <Group>
+        {curve.points.map((point, index) => {
+          if (index % 3 !== 1) return null;
+          const incoming = curve.points![index - 1];
+          const outgoing = curve.points![index + 1];
+          return (
+            <Group key={`curve-handle-${index}`}>
+              {[incoming, outgoing].map((control, side) =>
+                control ? (
+                  <Group key={side}>
+                    <Line
+                      points={[point.x, point.y, control.x, control.y]}
+                      stroke="#2196F3"
+                      strokeWidth={stroke}
+                    />
+                    <Circle
+                      x={control.x}
+                      y={control.y}
+                      radius={size / 2}
+                      fill="#fff"
+                      stroke="#2196F3"
+                      strokeWidth={stroke}
+                    />
+                  </Group>
+                ) : null,
+              )}
+              <Rect
+                x={point.x - size / 2}
+                y={point.y - size / 2}
+                width={size}
+                height={size}
+                fill="#2196F3"
+              />
+            </Group>
+          );
+        })}
+      </Group>
+    );
+  };
+
   const renderArrowControlHandle = (a: Arrow) => (
     <Star
       key={`${a.id}-control`}
@@ -3716,6 +3780,7 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
               .filter((arrow) => selectedArrowIds.has(arrow.id) && arrowUsesControlPoint(arrow))
               .map(renderArrowControlHandle)}
         </Layer>
+        <Layer listening={false}>{renderEditCurveHandles()}</Layer>
       </Stage>
 
       <CanvasTextEditors

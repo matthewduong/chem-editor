@@ -16,6 +16,7 @@ import { useDocumentLifecycle } from './hooks/useDocumentLifecycle';
 import { molblockToState, parseMolblockGeometry } from './lib/graph';
 import { canvasStateToChemDrawDocument, getObjectsBounds } from './lib/chemdrawModel';
 import { createFrameObjects, type FrameKind } from './lib/shapeGesture';
+import { toggleCurveProperty, type CurveProperty } from './lib/curveGesture';
 import {
   extractDocumentSelection,
   forgetDocumentCopy,
@@ -405,6 +406,8 @@ const DRAWING_ELEMENT_OPTIONS: Array<{ kind: ShapeKind; title: string }> = [
   { kind: 'pair-square', title: 'Square Brackets (Pair)' },
   { kind: 'pair-round', title: 'Parentheses (Pair)' },
   { kind: 'pair-curly', title: 'Braces (Pair)' },
+  { kind: 'curve', title: 'Pen (Draw Curve)' },
+  { kind: 'edit-curve', title: 'Edit Curve' },
   { kind: 'dagger', title: 'Dagger' },
   { kind: 'double-dagger', title: 'Double Dagger' },
 ];
@@ -521,6 +524,7 @@ function App() {
   const isEditDropdownOpen = useStore((s) => s.isEditDropdownOpen);
   const isAlignSubmenuOpen = useStore((s) => s.isAlignSubmenuOpen);
   const [isFrameSubmenuOpen, setIsFrameSubmenuOpen] = useState(false);
+  const [isCurveSubmenuOpen, setIsCurveSubmenuOpen] = useState(false);
   const isSettingsDropdownOpen = useStore((s) => s.isSettingsDropdownOpen);
   const isPreferencesPanelOpen = useStore((s) => s.isPreferencesPanelOpen);
   const isPeriodicTableOpen = useStore((s) => s.isPeriodicTableOpen);
@@ -1154,6 +1158,25 @@ function App() {
       offPageNoticeShownRef.current = false;
     }
   }, [offPageContent, pageSetup.mode, showToast]);
+
+  /** Curve properties (ChemDraw's Curves menu), toggled on every selected curve. */
+  const applyCurveProperty = useCallback((property: CurveProperty) => {
+    const state = useStore.getState();
+    const objects = state.chemDrawDocument?.pages[0]?.objects ?? [];
+    const curves = objects.filter(
+      (object): object is Extract<typeof object, { type: 'graphic' }> =>
+        object.type === 'graphic' &&
+        object.graphicType === 'curve' &&
+        state.selectedObjectIds.has(object.id),
+    );
+    if (curves.length === 0) return;
+    state.dispatchEditorCommand(
+      createUpsertObjectsCommand(
+        curves.map((curve) => toggleCurveProperty(curve, property)),
+        { description: `curve-${property}` },
+      ),
+    );
+  }, []);
 
   /** Object > Add Frame: a rectangle or bracket pair round the selection. */
   const addFrame = useCallback((kind: FrameKind) => {
@@ -3524,6 +3547,37 @@ function App() {
                   Ungroup
                 </MenuItem>
                 <MenuSeparator />
+                <div
+                  className="ui-menu-submenu"
+                  onMouseEnter={() => setIsCurveSubmenuOpen(true)}
+                  onMouseLeave={() => setIsCurveSubmenuOpen(false)}
+                >
+                  <MenuItem trailing={<span className="ui-menu-shortcut">▸</span>}>Curve</MenuItem>
+                  {isCurveSubmenuOpen && (
+                    <MenuContent width={200}>
+                      <MenuSectionLabel>Selected curves</MenuSectionLabel>
+                      {(
+                        [
+                          ['closed', 'Closed'],
+                          ['filled', 'Filled'],
+                          ['shaded', 'Shaded'],
+                          ['arrow-end', 'Arrow at End'],
+                          ['arrow-start', 'Arrow at Start'],
+                        ] as const
+                      ).map(([property, label]) => (
+                        <MenuItem
+                          key={property}
+                          onClick={() => {
+                            applyCurveProperty(property);
+                            setIsEditDropdownOpen(false);
+                          }}
+                        >
+                          {label}
+                        </MenuItem>
+                      ))}
+                    </MenuContent>
+                  )}
+                </div>
                 <div
                   className="ui-menu-submenu"
                   onMouseEnter={() => setIsFrameSubmenuOpen(true)}

@@ -369,6 +369,20 @@ export function ShapeIcon({ kind, size = 22 }: { kind: ShapeKind; size?: number 
           <path d="M8 4C5 4 6 8 6 10C6 11.5 5 12 3 12C5 12 6 12.5 6 14C6 16 5 20 8 20M16 4C19 4 18 8 18 10C18 11.5 19 12 21 12C19 12 18 12.5 18 14C18 16 19 20 16 20" />
         </Frame>
       );
+    case 'curve':
+      return (
+        <Frame size={size}>
+          <path d="M3 17C7 4 11 4 12 12S17 20 21 7" />
+        </Frame>
+      );
+    case 'edit-curve':
+      return (
+        <Frame size={size}>
+          <path d="M3 17C7 4 11 4 12 12S17 20 21 7" />
+          <path d="M8 6.5L16 17.5" strokeWidth={1} />
+          <rect x={10.5} y={10.5} width={3} height={3} fill="currentColor" strokeWidth={0} />
+        </Frame>
+      );
     case 'dagger':
       return (
         <Frame size={size}>

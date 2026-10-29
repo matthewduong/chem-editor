@@ -38,6 +38,7 @@ test('canvas tool shortcuts cover the primary drawing tools', () => {
       ['canvas.tools.cyclopentadiene', 'fragment'],
       ['canvas.tools.cyclohexane', 'fragment'],
       ['canvas.tools.cyclopentane', 'fragment'],
+      ['canvas.tools.pen', 'shape'],
       ['canvas.tools.eraser', 'eraser'],
     ],
   );
