@@ -145,6 +145,8 @@ export function buildPreviewScene(
   document = createProjectionEditCommand(document, state).apply(document, context).document;
   if (preview.objects?.length) {
     document = createUpsertObjectsCommand(preview.objects).apply(document, context).document;
+    // Arrows (a drawn line or arc is one) are drawn through the flat projection.
+    state = chemDrawDocumentToCanvasState(document).state;
   }
   const next = buildDocumentSceneState({
     document,

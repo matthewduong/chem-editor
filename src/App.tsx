@@ -390,6 +390,13 @@ const DRAWING_ELEMENT_OPTIONS: Array<{ kind: ShapeKind; title: string }> = [
   { kind: 'rounded-rectangle', title: 'Rounded Rectangle' },
   { kind: 'oval', title: 'Oval' },
   { kind: 'circle', title: 'Circle' },
+  { kind: 'line', title: 'Line' },
+  { kind: 'dashed-line', title: 'Dashed Line' },
+  { kind: 'bold-line', title: 'Bold Line' },
+  { kind: 'arc-90', title: '90° Arc' },
+  { kind: 'arc-120', title: '120° Arc' },
+  { kind: 'arc-180', title: '180° Arc' },
+  { kind: 'arc-270', title: '270° Arc' },
 ];
 
 const ELEMENT_SHORTCUTS = ['C', 'N', 'O', 'S', 'P', 'F', 'Cl', 'Br', 'H', 'D'];

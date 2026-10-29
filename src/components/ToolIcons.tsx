@@ -315,5 +315,40 @@ export function ShapeIcon({ kind, size = 22 }: { kind: ShapeKind; size?: number 
           <circle cx={12} cy={12} r={7.5} />
         </Frame>
       );
+    case 'line':
+      return (
+        <Frame size={size}>
+          <path d="M4 19L20 5" />
+        </Frame>
+      );
+    case 'dashed-line':
+      return (
+        <Frame size={size}>
+          <path d="M4 19L20 5" strokeDasharray="2.6 2.4" strokeLinecap="butt" />
+        </Frame>
+      );
+    case 'bold-line':
+      return (
+        <Frame size={size}>
+          <path d="M4 19L20 5" strokeWidth={3.4} />
+        </Frame>
+      );
+    default: {
+      // Arcs: the sweep drawn on a circle of radius 8 about the centre, bulging upward.
+      const degrees = Number(kind.slice(4));
+      const half = (degrees * Math.PI) / 360;
+      const r = 8;
+      const cy = 12 + r * Math.cos(half) * (degrees > 180 ? 0.4 : 0.6);
+      const x1 = 12 - r * Math.sin(half);
+      const x2 = 12 + r * Math.sin(half);
+      const y = cy - r * Math.cos(half);
+      return (
+        <Frame size={size}>
+          <path
+            d={`M${x1.toFixed(2)} ${y.toFixed(2)}A${r} ${r} 0 ${degrees > 180 ? 1 : 0} 1 ${x2.toFixed(2)} ${y.toFixed(2)}`}
+          />
+        </Frame>
+      );
+    }
   }
 }
