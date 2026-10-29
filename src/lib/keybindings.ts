@@ -241,10 +241,17 @@ export const APP_SHORTCUT_DEFINITIONS: ShortcutDefinition[] = [
   },
 ];
 
+/**
+ * Atom label hotkeys, following the ChemDraw 17.1 User Guide ("Atom Hotkeys", ch. 5). An
+ * uppercase key is bound with Shift. ChemDraw's `k` (K) is left out because `k` sprouts a
+ * mesyl group here, and `a` stays Ph where ChemDraw sprouts a phenyl ring.
+ */
 export const ATOM_HOTKEY_VALUES: Record<string, string> = {
   c: 'C',
   n: 'N',
+  w: 'N',
   o: 'O',
+  q: 'O',
   f: 'F',
   s: 'S',
   p: 'P',
@@ -256,7 +263,19 @@ export const ATOM_HOTKEY_VALUES: Record<string, string> = {
   e: 'Et',
   a: 'Ph',
   d: 'D',
+  r: 'R',
+  x: 'X',
+  A: 'Ac',
+  B: 'B',
+  C: 'Cl',
+  E: 'COOCH3',
+  N: 'Na',
+  P: 'Ph',
+  S: 'Si',
 };
+
+/** Hotkey labels that spell an element symbol but mean a shorthand group. */
+export const ATOM_HOTKEY_ALIAS_LABELS: ReadonlySet<string> = new Set(['Ac']);
 
 export const BOND_HOTKEY_VALUES: Record<
   string,
@@ -316,9 +335,12 @@ export const ATOM_FRAGMENT_OPTIONS: Record<string, Array<{ minFV: number; smiles
     { minFV: 3, smiles: 'C#CC' },
     { minFV: 1, smiles: 'CC#CC' },
   ],
+  // ChemDraw: acetyl on a primary carbon, C=O on a secondary one, and on a tertiary or
+  // aromatic carbon a C–C bond carrying an acetyl.
   '2': [
     { minFV: 3, smiles: 'C(=O)C' },
     { minFV: 2, smiles: 'C=O' },
+    { minFV: 1, smiles: 'CC(=O)C' },
   ],
   K: [
     { minFV: 3, smiles: 'C(C)(C)C' },

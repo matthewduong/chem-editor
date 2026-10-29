@@ -1362,11 +1362,18 @@ function snapToGrid(angle: number): number {
   return Math.round(angle / SNAP_ANGLE) * SNAP_ANGLE;
 }
 
+/**
+ * Direction to sprout new bonds from `hitAtom`. `newBondCount` is how many bonds the
+ * attachment adds at the atom: one bond continues a zigzag (60° off the extension of a lone
+ * existing bond), while several are centred on that extension so they split the open side
+ * evenly (two new bonds on a terminal atom land 120° from the old bond and each other).
+ */
 export function getPreferredAttachmentAngle(
   hitAtom: Atom,
   atoms: Atom[],
   bonds: Bond[],
   preferInterior: boolean,
+  newBondCount = 1,
 ): number {
   const neighbors = bonds.filter((bond) => bond.from === hitAtom.id || bond.to === hitAtom.id);
   if (neighbors.length === 0) return -Math.PI / 6;
@@ -1376,7 +1383,8 @@ export function getPreferredAttachmentAngle(
       (atom) => atom.id === (onlyBond.from === hitAtom.id ? onlyBond.to : onlyBond.from),
     );
     if (!otherAtom) return -Math.PI / 6;
-    return snapToGrid(Math.atan2(hitAtom.y - otherAtom.y, hitAtom.x - otherAtom.x) + Math.PI / 3);
+    const extension = Math.atan2(hitAtom.y - otherAtom.y, hitAtom.x - otherAtom.x);
+    return snapToGrid(newBondCount > 1 ? extension : extension + Math.PI / 3);
   }
 
   const angles = neighbors

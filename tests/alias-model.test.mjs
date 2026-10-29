@@ -665,6 +665,25 @@ test('native node value edits compute alias resolution snapshots automatically',
   assert.equal(roundTrip.aliasResolution?.selectedLabel, 'BocNH');
 });
 
+test('a supplied alias resolution keeps an element-spelled label as an alias', () => {
+  const initialDocument = canvasStateToChemDrawDocument(baseState(baseAtom())).document;
+  const asElement = chemDrawDocumentToCanvasState(applyNodeValueEdit(initialDocument, 'a1', 'Ac'))
+    .state.atoms[0];
+  assert.equal(asElement.element, 'Ac');
+  assert.equal(asElement.alias, undefined);
+
+  const asAcetyl = chemDrawDocumentToCanvasState(
+    applyNodeValueEdit(
+      initialDocument,
+      'a1',
+      'Ac',
+      buildAliasResolutionSnapshot(resolveAliasChemistry('Ac')),
+    ),
+  ).state.atoms[0];
+  assert.equal(asAcetyl.alias, 'Ac');
+  assert.equal(asAcetyl.aliasResolution?.selectedCandidateId, 'Ac::shorthand::covalent::C(=O)(C)');
+});
+
 test('CDXML export preserves custom alias text without inventing chemistry', () => {
   const initialState = baseState(baseAtom({ kind: 'alias', element: 'C', alias: 'MgBr' }));
   const cdxml = stateToCDXML(initialState, { documentStyleSettings });

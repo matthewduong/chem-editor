@@ -32,6 +32,15 @@ test('a terminal atom whose neighbour has no other substituent keeps the +60 deg
   assert.equal(deg(getNewBondAngle(atoms[1], atoms, bonds)), 60);
 });
 
+test('several new bonds on a terminal atom centre on the bond extension', () => {
+  // The "2" hotkey's C(=O)C puts two bonds on the atom; a +60 degree turn would lay one of
+  // them straight along the existing bond.
+  const atoms = [atom('a', 0, 0), atom('b', L, 0)];
+  const bonds = [bond('1', 'a', 'b')];
+  assert.equal(deg(getPreferredAttachmentAngle(atoms[1], atoms, bonds, false, 1)), 60);
+  assert.equal(deg(getPreferredAttachmentAngle(atoms[1], atoms, bonds, false, 2)), 0);
+});
+
 test('repeated extension zigzags instead of curling', () => {
   const atoms = [atom('a', 0, 0), atom('b', L, 0)];
   const bonds = [bond('1', 'a', 'b')];

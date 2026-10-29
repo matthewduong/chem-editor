@@ -1076,7 +1076,9 @@ export function applyNodeValueEdit(
       next.text = { ...(next.text ?? { runs: [] }), runs: [{ text: trimmed }] };
       return next;
     }
-    if (isLikelyElementToken(trimmed)) {
+    // A caller-supplied resolution means the label is an alias even when it spells an
+    // element: the Shift+A hotkey's "Ac" is acetyl, not actinium.
+    if (!aliasResolution && isLikelyElementToken(trimmed)) {
       next.element = trimmed;
       next.text = undefined;
       delete next.alias;

@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { createDeleteSelectionCommand } from '../editor/commands';
-import { resolveAliasChemistry } from '../lib/aliasChemistry';
+import { buildAliasResolutionSnapshot, resolveAliasChemistry } from '../lib/aliasChemistry';
 import { getAtomNodeText } from '../lib/atomIdentity';
 import { getAtomFreeValence } from '../lib/canvasChemistry';
 import { applyBondEdit, applyNodeValueEdit, reverseBondDirection } from '../lib/chemdrawModel';
@@ -8,6 +8,7 @@ import { getConnectedComponents } from '../lib/graph';
 import {
   ATOM_FRAGMENT_HOTKEY_VALUES,
   ATOM_FRAGMENT_OPTIONS,
+  ATOM_HOTKEY_ALIAS_LABELS,
   ATOM_HOTKEY_VALUES,
   BOND_HOTKEY_VALUES,
   eventMatchesShortcut,
@@ -383,6 +384,9 @@ export function useCanvasKeyboard({
                 getCanvasEditorState().chemDrawDocument!,
                 hoveredAtomId,
                 hE,
+                ATOM_HOTKEY_ALIAS_LABELS.has(hE)
+                  ? buildAliasResolutionSnapshot(resolveAliasChemistry(hE))
+                  : undefined,
               );
               commitNativeDocument(nextDocument, 'edit-node-value');
             } else {

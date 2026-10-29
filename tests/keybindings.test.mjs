@@ -2,7 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import {
+  ATOM_HOTKEY_VALUES,
   CANVAS_TOOL_SHORTCUTS,
+  eventMatchesShortcut,
   assignShortcutBinding,
   buildDefaultKeybindingPreferences,
   getCanvasToolShortcut,
@@ -110,4 +112,22 @@ test('preferences migration replaces stale non-ChemDraw tool defaults', () => {
   assert.deepEqual(getShortcutBinding(normalized.keybindings, 'canvas.tools.cyclohexane'), {
     key: 'u',
   });
+});
+
+test('ChemDraw atom label hotkeys bind uppercase keys with Shift', () => {
+  const labelFor = (event) =>
+    Object.entries(ATOM_HOTKEY_VALUES).find(([key]) =>
+      eventMatchesShortcut(event, getShortcutBinding(undefined, `canvas.atom.${key}`)),
+    )?.[1];
+  assert.equal(labelFor(keyEvent('C', { shiftKey: true })), 'Cl');
+  assert.equal(labelFor(keyEvent('c')), 'C');
+  assert.equal(labelFor(keyEvent('l')), 'Cl');
+  assert.equal(labelFor(keyEvent('E', { shiftKey: true })), 'COOCH3');
+  assert.equal(labelFor(keyEvent('S', { shiftKey: true })), 'Si');
+  assert.equal(labelFor(keyEvent('N', { shiftKey: true })), 'Na');
+  assert.equal(labelFor(keyEvent('B', { shiftKey: true })), 'B');
+  assert.equal(labelFor(keyEvent('A', { shiftKey: true })), 'Ac');
+  assert.equal(labelFor(keyEvent('P', { shiftKey: true })), 'Ph');
+  assert.equal(labelFor(keyEvent('q')), 'O');
+  assert.equal(labelFor(keyEvent('w')), 'N');
 });

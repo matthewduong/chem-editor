@@ -2076,15 +2076,26 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
         mapAtom0 = 0;
         mapAtom1 = 1;
       } else if (hitAtom) {
-        const bestAngle = getPreferredAttachmentAngle(hitAtom, stAtoms, stBonds, preferInterior);
+        // Orient by the anchor's own bonds, not every fragment atom: the bonds meeting the
+        // hovered atom are what must fill its open side.
+        const anchorNeighbors = fragBonds.flatMap((b) =>
+          b.from === 0 ? [b.to] : b.to === 0 ? [b.from] : [],
+        );
+        const bestAngle = getPreferredAttachmentAngle(
+          hitAtom,
+          stAtoms,
+          stBonds,
+          preferInterior,
+          anchorNeighbors.length,
+        );
         let fSin = 0,
           fCos = 0;
-        for (let i = 1; i < fragAtoms.length; i++) {
+        for (const i of anchorNeighbors) {
           const a = Math.atan2(fragAtoms[i].y - fragAtoms[0].y, fragAtoms[i].x - fragAtoms[0].x);
           fSin += Math.sin(a);
           fCos += Math.cos(a);
         }
-        const fragAngle = fragAtoms.length > 1 ? Math.atan2(fSin, fCos) : 0;
+        const fragAngle = anchorNeighbors.length > 0 ? Math.atan2(fSin, fCos) : 0;
         rotationAngle = bestAngle - fragAngle;
         translation = {
           x:
