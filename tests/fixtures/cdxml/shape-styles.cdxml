@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Rectangles, ovals and symbols in the forms ChemDraw's own templates use: RectangleType style
+     words with Center3D/axis ends (BoundingBox corner-to-corner, right-bottom first), an oval
+     placed by rotated axes, and symbols whose BoundingBox is a position and a size point. -->
+<CDXML BondLength="14.4" LineWidth="0.6" BoldWidth="2">
+  <page id="100">
+    <graphic id="11" BoundingBox="80 50 10 10" GraphicType="Rectangle" RectangleType="Dashed" Center3D="45 30 0" MajorAxisEnd3D="80 30 0" MinorAxisEnd3D="45 50 0"/>
+    <graphic id="12" BoundingBox="170 50 100 10" GraphicType="Rectangle" RectangleType="Filled" Center3D="135 30 0" MajorAxisEnd3D="170 30 0" MinorAxisEnd3D="135 50 0"/>
+    <graphic id="13" BoundingBox="260 50 190 10" GraphicType="Rectangle" RectangleType="Shadow" ShadowSize="400" Center3D="225 30 0" MajorAxisEnd3D="260 30 0" MinorAxisEnd3D="225 50 0"/>
+    <graphic id="14" BoundingBox="10 70 80 110" GraphicType="Rectangle" RectangleType="RoundEdge Bold" CornerRadius="800"/>
+    <graphic id="15" BoundingBox="100 70 170 120" GraphicType="Oval" OvalType="Dashed" Center3D="135 95 0" MajorAxisEnd3D="163.28 66.72 0" MinorAxisEnd3D="149.14 109.14 0"/>
+    <graphic id="16" BoundingBox="190 80 230 120" GraphicType="Oval" OvalType="Circle Shaded" Center3D="210 100 0" MajorAxisEnd3D="230 100 0" MinorAxisEnd3D="210 120 0"/>
+    <graphic id="21" BoundingBox="20 150 12.5 150" GraphicType="Symbol" SymbolType="Plus"/>
+    <graphic id="22" BoundingBox="40 150 32.5 150" GraphicType="Symbol" SymbolType="Minus"/>
+    <graphic id="23" BoundingBox="60 150 60 160" GraphicType="Symbol" SymbolType="CirclePlus"/>
+    <graphic id="24" BoundingBox="80 150 80 160" GraphicType="Symbol" SymbolType="CircleMinus"/>
+    <graphic id="25" BoundingBox="100 150 100 157.5" GraphicType="Symbol" SymbolType="Electron"/>
+    <graphic id="26" BoundingBox="120 150 116.26 150" GraphicType="Symbol" SymbolType="LonePair"/>
+    <graphic id="27" BoundingBox="140 150 140 160" GraphicType="Symbol" SymbolType="RadicalCation"/>
+    <graphic id="28" BoundingBox="160 150 160 160" GraphicType="Symbol" SymbolType="Dagger"/>
+    <graphic id="29" BoundingBox="180 150 180 160" GraphicType="Symbol" SymbolType="DoubleDagger"/>
+  </page>
+</CDXML>

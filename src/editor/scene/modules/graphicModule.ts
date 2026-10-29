@@ -23,6 +23,27 @@ const DEFAULT_LIP = 10;
 const LIP_FRACTION_AT_DEFAULT = 0.16;
 
 /**
+ * The style words ChemDraw writes in RectangleType / OvalType ("Filled Dashed", "Circle Filled",
+ * "Shadow", "RoundEdge"): whether the outline is dashed or bold and how the inside is filled.
+ */
+function shapeFlags(type: string | undefined): {
+  dashed: boolean;
+  bold: boolean;
+  filled: boolean;
+  shaded: boolean;
+  shadow: boolean;
+} {
+  const words = new Set((type ?? '').toLowerCase().split(/\s+/));
+  return {
+    dashed: words.has('dashed'),
+    bold: words.has('bold'),
+    filled: words.has('filled'),
+    shaded: words.has('shaded'),
+    shadow: words.has('shadow') || words.has('shadowed'),
+  };
+}
+
+/**
  * A ChemDraw <curve>: cubic segments through its anchor triples, optionally closed, filled or
  * shaded, with arrowheads at either end (ChemDraw writes freehand curved arrows this way).
  */
@@ -162,7 +183,12 @@ export const GRAPHIC_MODULE: ObjectModule = {
       object.style?.lineWidth != null
         ? convertNativeToCanvas(object.style.lineWidth, scene.documentStyleSettings)
         : 1.5;
-    const dash = object.style?.lineType === 'dashed' ? [6, 4] : undefined;
+    const graphicDash = [6, 4];
+    const dash = object.style?.lineType === 'dashed' ? graphicDash : undefined;
+    const boldWidth = convertNativeToCanvas(
+      scene.documentStyleSettings.nativeMetrics.boldWidth,
+      scene.documentStyleSettings,
+    );
     const orbitalFill = object.style?.fillColor
       ? adaptColor(object.style.fillColor, scene.isDarkMode)
       : color;
@@ -185,111 +211,191 @@ export const GRAPHIC_MODULE: ObjectModule = {
       drawPolyline(ctx, object.points, color, strokeWidth, { dash, closed: true });
       return;
     }
-    if (object.graphicType === 'rounded-rectangle' && object.bounds) {
+    if (
+      (object.graphicType === 'rectangle' || object.graphicType === 'rounded-rectangle') &&
+      object.bounds
+    ) {
+      const flags = shapeFlags(object.rectangleType);
+      // Placed by centre and axis ends when ChemDraw gave them, so a rotated rectangle draws
+      // rotated; otherwise from the BoundingBox.
+      const axes =
+        object.center && object.majorAxisEnd && object.minorAxisEnd
+          ? {
+              halfWidth: Math.hypot(
+                object.majorAxisEnd.x - object.center.x,
+                object.majorAxisEnd.y - object.center.y,
+              ),
+              halfHeight: Math.hypot(
+                object.minorAxisEnd.x - object.center.x,
+                object.minorAxisEnd.y - object.center.y,
+              ),
+              angle: Math.atan2(
+                object.majorAxisEnd.y - object.center.y,
+                object.majorAxisEnd.x - object.center.x,
+              ),
+            }
+          : null;
+      const x = axes ? -axes.halfWidth : object.bounds.left;
+      const y = axes ? -axes.halfHeight : object.bounds.top;
+      const width = axes ? 2 * axes.halfWidth : object.bounds.right - object.bounds.left;
+      const height = axes ? 2 * axes.halfHeight : object.bounds.bottom - object.bounds.top;
+      const radius =
+        object.graphicType === 'rounded-rectangle'
+          ? Math.min(object.cornerRadius ?? 10, width / 2, height / 2)
+          : 0;
       ctx.save();
-      if (object.shadowSize) {
+      if (object.shadowSize || flags.shadow) {
+        const shadow = object.shadowSize ?? 4;
         ctx.shadowColor = 'rgba(0,0,0,0.25)';
-        ctx.shadowBlur = Math.max(2, object.shadowSize * 0.6);
-        ctx.shadowOffsetX = Math.max(1, object.shadowSize * 0.2);
-        ctx.shadowOffsetY = Math.max(1, object.shadowSize * 0.2);
+        ctx.shadowBlur = Math.max(2, shadow * 0.6);
+        ctx.shadowOffsetX = Math.max(1, shadow * 0.2);
+        ctx.shadowOffsetY = Math.max(1, shadow * 0.2);
       }
-      if (object.style?.fillColor) {
-        ctx.fillStyle = adaptColor(object.style.fillColor, scene.isDarkMode);
+      const fill = object.style?.fillColor
+        ? adaptColor(object.style.fillColor, scene.isDarkMode)
+        : flags.filled || flags.shaded
+          ? color
+          : undefined;
+      if (axes && object.center) {
+        ctx.translate(object.center.x, object.center.y);
+        if (Math.abs(axes.angle) > 1e-9) ctx.rotate(axes.angle);
       }
-      setStroke(ctx, color, strokeWidth, dash);
-      const x = object.bounds.left;
-      const y = object.bounds.top;
-      const width = object.bounds.right - object.bounds.left;
-      const height = object.bounds.bottom - object.bounds.top;
-      const radius = object.cornerRadius ?? 10;
       ctx.beginPath();
-      ctx.moveTo(x + radius, y);
-      ctx.arcTo(x + width, y, x + width, y + height, radius);
-      ctx.arcTo(x + width, y + height, x, y + height, radius);
-      ctx.arcTo(x, y + height, x, y, radius);
-      ctx.arcTo(x, y, x + width, y, radius);
-      ctx.closePath();
-      if (object.style?.fillColor) ctx.fill();
-      ctx.stroke();
-      drawObjectTags(ctx, scene, object.objectTags, {
-        fallbackAnchor: {
-          x: object.bounds.left + width / 2,
-          y: object.bounds.top + height / 2,
-        },
-        fallbackColor: color,
-      });
-      ctx.restore();
-      return;
-    }
-    if (object.graphicType === 'rectangle' && object.bounds) {
-      ctx.save();
-      if (object.shadowSize) {
-        ctx.shadowColor = 'rgba(0,0,0,0.25)';
-        ctx.shadowBlur = Math.max(2, object.shadowSize * 0.6);
-        ctx.shadowOffsetX = Math.max(1, object.shadowSize * 0.2);
-        ctx.shadowOffsetY = Math.max(1, object.shadowSize * 0.2);
+      if (radius > 0) {
+        ctx.moveTo(x + radius, y);
+        ctx.arcTo(x + width, y, x + width, y + height, radius);
+        ctx.arcTo(x + width, y + height, x, y + height, radius);
+        ctx.arcTo(x, y + height, x, y, radius);
+        ctx.arcTo(x, y, x + width, y, radius);
+        ctx.closePath();
+      } else {
+        ctx.moveTo(x, y);
+        ctx.lineTo(x + width, y);
+        ctx.lineTo(x + width, y + height);
+        ctx.lineTo(x, y + height);
+        ctx.closePath();
       }
-      if (object.style?.fillColor) {
-        ctx.fillStyle = adaptColor(object.style.fillColor, scene.isDarkMode);
-        ctx.fillRect(
-          object.bounds.left,
-          object.bounds.top,
-          object.bounds.right - object.bounds.left,
-          object.bounds.bottom - object.bounds.top,
-        );
+      if (fill) {
+        ctx.fillStyle = fill;
+        if (flags.shaded && !object.style?.fillColor) ctx.globalAlpha = 0.25;
+        ctx.fill();
+        ctx.globalAlpha = 1;
       }
-      setStroke(ctx, color, strokeWidth, dash);
-      ctx.strokeRect(
-        object.bounds.left,
-        object.bounds.top,
-        object.bounds.right - object.bounds.left,
-        object.bounds.bottom - object.bounds.top,
+      setStroke(
+        ctx,
+        color,
+        flags.bold || object.style?.lineType === 'bold' ? boldWidth : strokeWidth,
+        flags.dashed ? (dash ?? graphicDash) : dash,
       );
+      ctx.stroke();
+      ctx.restore();
       drawObjectTags(ctx, scene, object.objectTags, {
-        fallbackAnchor: {
+        fallbackAnchor: object.center ?? {
           x: (object.bounds.left + object.bounds.right) / 2,
           y: (object.bounds.top + object.bounds.bottom) / 2,
         },
         fallbackColor: color,
       });
-      ctx.restore();
       return;
     }
-    if (object.graphicType === 'ellipse' && object.bounds) {
-      const cx = (object.bounds.left + object.bounds.right) / 2;
-      const cy = (object.bounds.top + object.bounds.bottom) / 2;
-      const radius = Math.max(
-        (object.bounds.right - object.bounds.left) / 2,
-        (object.bounds.bottom - object.bounds.top) / 2,
+    if (object.graphicType === 'ellipse' && (object.bounds || object.center)) {
+      const flags = shapeFlags(object.ovalType);
+      // ChemDraw places an oval by its centre and two axis ends, which can lie at any angle; the
+      // BoundingBox it also writes is only the axis-aligned box.
+      const geometry =
+        object.center && object.majorAxisEnd && object.minorAxisEnd
+          ? {
+              cx: object.center.x,
+              cy: object.center.y,
+              rx: Math.hypot(
+                object.majorAxisEnd.x - object.center.x,
+                object.majorAxisEnd.y - object.center.y,
+              ),
+              ry: Math.hypot(
+                object.minorAxisEnd.x - object.center.x,
+                object.minorAxisEnd.y - object.center.y,
+              ),
+              rotation: Math.atan2(
+                object.majorAxisEnd.y - object.center.y,
+                object.majorAxisEnd.x - object.center.x,
+              ),
+            }
+          : object.bounds
+            ? {
+                cx: (object.bounds.left + object.bounds.right) / 2,
+                cy: (object.bounds.top + object.bounds.bottom) / 2,
+                rx: (object.bounds.right - object.bounds.left) / 2,
+                ry: (object.bounds.bottom - object.bounds.top) / 2,
+                rotation: 0,
+              }
+            : null;
+      if (!geometry) return;
+      const fill = object.style?.fillColor
+        ? adaptColor(object.style.fillColor, scene.isDarkMode)
+        : flags.filled || flags.shaded
+          ? color
+          : undefined;
+      ctx.save();
+      if (flags.shadow) {
+        ctx.shadowColor = 'rgba(0,0,0,0.25)';
+        ctx.shadowBlur = 2.4;
+        ctx.shadowOffsetX = 1;
+        ctx.shadowOffsetY = 1;
+      }
+      ctx.beginPath();
+      ctx.ellipse(
+        geometry.cx,
+        geometry.cy,
+        Math.max(geometry.rx, 0.5),
+        Math.max(geometry.ry, 0.5),
+        geometry.rotation,
+        0,
+        Math.PI * 2,
       );
-      drawCircle(ctx, cx, cy, radius, {
-        stroke: color,
-        fill: object.style?.fillColor
-          ? adaptColor(object.style.fillColor, scene.isDarkMode)
-          : undefined,
-        lineWidth: strokeWidth,
-        dash,
-        scaleY:
-          (object.bounds.bottom - object.bounds.top) /
-          Math.max(object.bounds.right - object.bounds.left, 1),
-      });
+      if (fill) {
+        ctx.fillStyle = fill;
+        if (flags.shaded && !object.style?.fillColor) ctx.globalAlpha = 0.25;
+        ctx.fill();
+        ctx.globalAlpha = 1;
+      }
+      setStroke(
+        ctx,
+        color,
+        flags.bold || object.style?.lineType === 'bold' ? boldWidth : strokeWidth,
+        flags.dashed ? (dash ?? graphicDash) : dash,
+      );
+      ctx.stroke();
+      ctx.restore();
       drawObjectTags(ctx, scene, object.objectTags, {
-        fallbackAnchor: { x: cx, y: cy },
+        fallbackAnchor: { x: geometry.cx, y: geometry.cy },
         fallbackColor: color,
       });
       return;
     }
-    if (object.graphicType === 'symbol' && object.bounds) {
-      const width = Math.abs(object.bounds.right - object.bounds.left);
-      const height = Math.abs(object.bounds.bottom - object.bounds.top);
-      const cx = (object.bounds.left + object.bounds.right) / 2;
-      const cy = (object.bounds.top + object.bounds.bottom) / 2;
-      const radius = Math.max(width, height, 8) / 2;
+    if (object.graphicType === 'symbol' && (object.points?.length || object.bounds)) {
+      // A symbol's BoundingBox is two points: where the symbol sits, and a second point whose
+      // distance gives its size (beside a charged atom in ChemDraw's templates, the first point is
+      // 10-15pt from the atom and the second a fixed 7.5-10.8pt from the first).
+      const [at, toward] =
+        object.points && object.points.length >= 2
+          ? object.points
+          : [
+              {
+                x: (object.bounds!.left + object.bounds!.right) / 2,
+                y: (object.bounds!.top + object.bounds!.bottom) / 2,
+              },
+              { x: object.bounds!.right, y: (object.bounds!.top + object.bounds!.bottom) / 2 },
+            ];
+      const size = Math.max(Math.hypot(toward.x - at.x, toward.y - at.y), 8);
+      const cx = at.x;
+      const cy = at.y;
+      const radius = size / 2;
       const arm = radius * 0.48;
-      if (object.symbolType === 'CirclePlus' || object.symbolType === 'CircleMinus') {
+      const symbolType = object.symbolType ?? '';
+      if (symbolType === 'CirclePlus' || symbolType === 'CircleMinus') {
         drawCircle(ctx, cx, cy, radius, { stroke: color, lineWidth: strokeWidth });
         drawLine(ctx, cx - arm, cy, cx + arm, cy, color, strokeWidth);
-        if (object.symbolType === 'CirclePlus') {
+        if (symbolType === 'CirclePlus') {
           drawLine(ctx, cx, cy - arm, cx, cy + arm, color, strokeWidth);
         }
         drawObjectTags(ctx, scene, object.objectTags, {
@@ -298,13 +404,58 @@ export const GRAPHIC_MODULE: ObjectModule = {
         });
         return;
       }
-      if (object.symbolType === 'LonePair') {
+      if (symbolType === 'Plus' || symbolType === 'Minus') {
+        const reach = radius * 0.7;
+        drawLine(ctx, cx - reach, cy, cx + reach, cy, color, strokeWidth);
+        if (symbolType === 'Plus')
+          drawLine(ctx, cx, cy - reach, cx, cy + reach, color, strokeWidth);
+        return;
+      }
+      if (symbolType === 'LonePair' || symbolType === 'LonePairBar') {
+        if (symbolType === 'LonePairBar') {
+          drawLine(ctx, cx - radius * 0.5, cy, cx + radius * 0.5, cy, color, strokeWidth);
+          return;
+        }
         drawCircle(ctx, cx - radius * 0.28, cy, strokeWidth * 0.95, { fill: color });
         drawCircle(ctx, cx + radius * 0.28, cy, strokeWidth * 0.95, { fill: color });
         return;
       }
-      if (object.symbolType === 'Electron') {
+      if (symbolType === 'Electron') {
         drawCircle(ctx, cx, cy, strokeWidth, { fill: color });
+        return;
+      }
+      if (symbolType === 'RadicalCation' || symbolType === 'RadicalAnion') {
+        drawCircle(ctx, cx - radius * 0.45, cy, strokeWidth, { fill: color });
+        const sx = cx + radius * 0.35;
+        const reach = radius * 0.4;
+        drawLine(ctx, sx - reach, cy, sx + reach, cy, color, strokeWidth);
+        if (symbolType === 'RadicalCation')
+          drawLine(ctx, sx, cy - reach, sx, cy + reach, color, strokeWidth);
+        return;
+      }
+      if (symbolType === 'Dagger' || symbolType === 'DoubleDagger') {
+        // Drawn as a glyph in the caption font, as a printed transition-state mark is.
+        ctx.save();
+        ctx.font = `${Math.max(size, 6)}px ${getPaintFontFamily(scene.documentStyleSettings.nativeMetrics.captionFontFamily)}`;
+        ctx.fillStyle = color;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(symbolType === 'Dagger' ? '\u2020' : '\u2021', cx, cy);
+        ctx.restore();
+        return;
+      }
+      if (symbolType === 'Racemic' || symbolType === 'Absolute' || symbolType === 'Relative') {
+        ctx.save();
+        ctx.font = `${Math.max(size, 6)}px ${getPaintFontFamily(scene.documentStyleSettings.nativeMetrics.captionFontFamily)}`;
+        ctx.fillStyle = color;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(
+          symbolType === 'Racemic' ? 'rac' : symbolType === 'Absolute' ? 'abs' : 'rel',
+          cx,
+          cy,
+        );
+        ctx.restore();
         return;
       }
     }
@@ -431,6 +582,16 @@ export const GRAPHIC_MODULE: ObjectModule = {
   hitTest(object, point, context, options) {
     if (object.type !== 'graphic') return false;
     if (object.graphicType === 'curve') return hitTestCurve(object, point, 6 / options.stageScale);
+    // A line or open polygon is hit on its stroke, not anywhere in its bounding box.
+    if ((object.graphicType === 'line' || object.graphicType === 'polygon') && object.points) {
+      const tolerance = 6 / options.stageScale;
+      const path =
+        object.graphicType === 'polygon' ? [...object.points, object.points[0]!] : object.points;
+      for (let index = 1; index < path.length; index += 1) {
+        if (distanceToSegment(point, path[index - 1]!, path[index]!) <= tolerance) return true;
+      }
+      return false;
+    }
     const bounds = context.scene.index.boundsById.get(object.id);
     return bounds ? pointInExpandedBounds(bounds, point, 8 / options.stageScale) : false;
   },

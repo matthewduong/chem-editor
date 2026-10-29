@@ -9,6 +9,7 @@ import {
   chemDrawDocumentToCanvasState,
   createGroupFromSelection,
   mergeCanvasStateIntoChemDrawDocument,
+  rotateSelectedObjects,
 } from '../.unit-test-dist/src/lib/chemdrawModel.js';
 
 const exportXml = (xml) => chemDrawDocumentToCDXML(cdxmlToChemDrawDocument(xml).document);
@@ -291,4 +292,34 @@ test('a graphic of an unknown type is written back attribute for attribute', () 
   assert.match(graphic, /GraphicType="Fancy"/);
   assert.match(graphic, /Mystery="1"/);
   assert.equal((graphic.match(/BoundingBox=/g) ?? []).length, 1);
+});
+
+test('rectangles and ovals keep their style words and axis ends; symbols keep their two points', () => {
+  const source = `<?xml version="1.0"?><CDXML><page id="100">
+    <graphic id="11" BoundingBox="80 50 10 10" GraphicType="Rectangle" RectangleType="Filled Dashed" Center3D="45 30 0" MajorAxisEnd3D="80 30 0" MinorAxisEnd3D="45 50 0"/>
+    <graphic id="15" BoundingBox="100 70 170 120" GraphicType="Oval" OvalType="Dashed" Center3D="135 95 0" MajorAxisEnd3D="163.28 66.72 0" MinorAxisEnd3D="149.14 109.14 0"/>
+    <graphic id="21" BoundingBox="20 150 12.5 150" GraphicType="Symbol" SymbolType="Plus"/>
+  </page></CDXML>`;
+  const out = exportXml(source);
+  const tag = (id) => new RegExp(`<graphic id="${id}"[^>]*>`).exec(out)?.[0] ?? '';
+  assert.match(tag(11), /RectangleType="Filled Dashed"/);
+  assert.match(tag(11), /Center3D="45 30 0" MajorAxisEnd3D="80 30 0" MinorAxisEnd3D="45 50 0"/);
+  assert.match(tag(15), /OvalType="Dashed"/);
+  assert.match(tag(15), /MajorAxisEnd3D="163.28 66.72 0"/);
+  // The symbol's first point is where it sits; the order must survive.
+  assert.match(tag(21), /BoundingBox="20 150 12.5 150"/);
+  assert.equal(exportXml(out), out);
+});
+
+test('rotating an oval or rectangle turns its axes, not just its bounding box', () => {
+  const { document } = cdxmlToChemDrawDocument(`<?xml version="1.0"?><CDXML><page id="100">
+    <graphic id="15" BoundingBox="0 0 40 20" GraphicType="Oval" Center3D="20 10 0" MajorAxisEnd3D="40 10 0" MinorAxisEnd3D="20 20 0"/>
+  </page></CDXML>`);
+  const scale = document.pages[0].objects[0].majorAxisEnd.x - document.pages[0].objects[0].center.x;
+  const center = document.pages[0].objects[0].center;
+  const rotated = rotateSelectedObjects(document, new Set(['15']), center, Math.PI / 2).pages[0]
+    .objects[0];
+  assert.ok(Math.abs(rotated.majorAxisEnd.x - center.x) < 1e-9);
+  assert.ok(Math.abs(rotated.majorAxisEnd.y - (center.y + scale)) < 1e-9);
+  assert.deepEqual(rotated.center, center);
 });

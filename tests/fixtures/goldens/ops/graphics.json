@@ -26,6 +26,48 @@
     "args": []
   },
   {
+    "op": "call",
+    "name": "beginPath",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "moveTo",
+    "args": [
+      0,
+      0
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      40,
+      0
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      40,
+      30
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      0,
+      30
+    ]
+  },
+  {
+    "op": "call",
+    "name": "closePath",
+    "args": []
+  },
+  {
     "op": "set",
     "prop": "strokeStyle",
     "value": "#333333"
@@ -54,13 +96,8 @@
   },
   {
     "op": "call",
-    "name": "strokeRect",
-    "args": [
-      0,
-      0,
-      40,
-      30
-    ]
+    "name": "stroke",
+    "args": []
   },
   {
     "op": "call",
@@ -71,33 +108,6 @@
     "op": "call",
     "name": "save",
     "args": []
-  },
-  {
-    "op": "set",
-    "prop": "strokeStyle",
-    "value": "#333333"
-  },
-  {
-    "op": "set",
-    "prop": "lineWidth",
-    "value": 1.5
-  },
-  {
-    "op": "set",
-    "prop": "lineCap",
-    "value": "round"
-  },
-  {
-    "op": "set",
-    "prop": "lineJoin",
-    "value": "round"
-  },
-  {
-    "op": "call",
-    "name": "setLineDash",
-    "args": [
-      []
-    ]
   },
   {
     "op": "call",
@@ -162,6 +172,33 @@
     "args": []
   },
   {
+    "op": "set",
+    "prop": "strokeStyle",
+    "value": "#333333"
+  },
+  {
+    "op": "set",
+    "prop": "lineWidth",
+    "value": 1.5
+  },
+  {
+    "op": "set",
+    "prop": "lineCap",
+    "value": "round"
+  },
+  {
+    "op": "set",
+    "prop": "lineJoin",
+    "value": "round"
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
     "op": "call",
     "name": "stroke",
     "args": []
@@ -178,32 +215,18 @@
   },
   {
     "op": "call",
-    "name": "translate",
-    "args": [
-      20,
-      55
-    ]
-  },
-  {
-    "op": "call",
-    "name": "scale",
-    "args": [
-      1,
-      0.75
-    ]
-  },
-  {
-    "op": "call",
     "name": "beginPath",
     "args": []
   },
   {
     "op": "call",
-    "name": "arc",
+    "name": "ellipse",
     "args": [
-      0,
-      0,
       20,
+      55,
+      20,
+      15,
+      0,
       0,
       6.2832
     ]
@@ -239,13 +262,6 @@
     "op": "call",
     "name": "stroke",
     "args": []
-  },
-  {
-    "op": "call",
-    "name": "setLineDash",
-    "args": [
-      []
-    ]
   },
   {
     "op": "call",

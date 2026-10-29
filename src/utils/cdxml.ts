@@ -1844,6 +1844,13 @@ function chemDrawDocumentToCDXMLInternal(document: ChemDrawDocument): string {
             ? ' LineType="Bold"'
             : '';
       const fillTypeAttr = object.style?.fillColor ? ' FillType="Solid"' : '';
+      // ChemDraw places rectangles and ovals by centre and axis ends as well as BoundingBox.
+      const point3D = (point: { x: number; y: number }) =>
+        `${formatCdxmlNumber(point.x * exportScaleFactor)} ${formatCdxmlNumber(point.y * exportScaleFactor)} 0`;
+      const axesAttr =
+        object.center && object.majorAxisEnd && object.minorAxisEnd
+          ? ` Center3D="${point3D(object.center)}" MajorAxisEnd3D="${point3D(object.majorAxisEnd)}" MinorAxisEnd3D="${point3D(object.minorAxisEnd)}"`
+          : '';
       const rawAttributesAttr = emitRawAttributes(object.preservation?.rawAttributes);
       const rawChildren =
         emitObjectTags(object.objectTags, '      ', exportScaleFactor, getColorIndex, getFontId) +
@@ -1922,6 +1929,12 @@ function chemDrawDocumentToCDXMLInternal(document: ChemDrawDocument): string {
         xml += rawChildren
           ? `    <graphic id="${object.id}"${boundsAttr}${colorAttr}${fillColorAttr}${fillTypeAttr}${lineWidthAttr}${lineTypeAttr}${zIndexAttr}${visibleAttr} GraphicType="Orbital"${orbitalTypeAttr}${ovalTypeAttr}${centerAttr}${majorAxisAttr}${minorAxisAttr}${rawAttributesAttr}>\n${rawChildren}    </graphic>\n`
           : `    <graphic id="${object.id}"${boundsAttr}${colorAttr}${fillColorAttr}${fillTypeAttr}${lineWidthAttr}${lineTypeAttr}${zIndexAttr}${visibleAttr} GraphicType="Orbital"${orbitalTypeAttr}${ovalTypeAttr}${centerAttr}${majorAxisAttr}${minorAxisAttr}${rawAttributesAttr}/>\n`;
+      } else if (object.graphicType === 'ellipse') {
+        const ovalTypeAttr = object.ovalType ? ` OvalType="${xmlEscape(object.ovalType)}"` : '';
+        const ovalAttrs = `${boundsAttr}${colorAttr}${fillColorAttr}${fillTypeAttr}${lineWidthAttr}${lineTypeAttr}${zIndexAttr}${visibleAttr} GraphicType="Oval"${ovalTypeAttr}${axesAttr}${rawAttributesAttr}`;
+        xml += rawChildren
+          ? `    <graphic id="${object.id}"${ovalAttrs}>\n${rawChildren}    </graphic>\n`
+          : `    <graphic id="${object.id}"${ovalAttrs}/>\n`;
       } else if (object.graphicType === 'rectangle' || object.graphicType === 'rounded-rectangle') {
         const rectangleTypeAttr = object.rectangleType
           ? ` RectangleType="${xmlEscape(object.rectangleType)}"`
@@ -1935,8 +1948,8 @@ function chemDrawDocumentToCDXMLInternal(document: ChemDrawDocument): string {
             ? ` ShadowSize="${formatCdxmlNumber(object.shadowSize * exportScaleFactor * 100, 0)}"`
             : '';
         xml += rawChildren
-          ? `    <graphic id="${object.id}"${boundsAttr}${colorAttr}${fillColorAttr}${fillTypeAttr}${lineWidthAttr}${lineTypeAttr}${zIndexAttr}${visibleAttr} GraphicType="Rectangle"${rectangleTypeAttr}${cornerRadiusAttr}${shadowSizeAttr}${rawAttributesAttr}>\n${rawChildren}    </graphic>\n`
-          : `    <graphic id="${object.id}"${boundsAttr}${colorAttr}${fillColorAttr}${fillTypeAttr}${lineWidthAttr}${lineTypeAttr}${zIndexAttr}${visibleAttr} GraphicType="Rectangle"${rectangleTypeAttr}${cornerRadiusAttr}${shadowSizeAttr}${rawAttributesAttr}/>\n`;
+          ? `    <graphic id="${object.id}"${boundsAttr}${colorAttr}${fillColorAttr}${fillTypeAttr}${lineWidthAttr}${lineTypeAttr}${zIndexAttr}${visibleAttr} GraphicType="Rectangle"${rectangleTypeAttr}${cornerRadiusAttr}${shadowSizeAttr}${axesAttr}${rawAttributesAttr}>\n${rawChildren}    </graphic>\n`
+          : `    <graphic id="${object.id}"${boundsAttr}${colorAttr}${fillColorAttr}${fillTypeAttr}${lineWidthAttr}${lineTypeAttr}${zIndexAttr}${visibleAttr} GraphicType="Rectangle"${rectangleTypeAttr}${cornerRadiusAttr}${shadowSizeAttr}${axesAttr}${rawAttributesAttr}/>\n`;
       } else if (object.graphicType === 'curve') {
         const curvePointsAttr = object.points?.length
           ? ` CurvePoints="${object.points
@@ -3508,7 +3521,10 @@ export function cdxmlToChemDrawDocument(xmlString: string): ChemDrawConversionRe
       const points =
         dedupedPoints ??
         (bboxEndpoints &&
-        (graphicType === 'line' || graphicType === 'bracket' || graphicType === 'orbital')
+        (graphicType === 'line' ||
+          graphicType === 'bracket' ||
+          graphicType === 'orbital' ||
+          graphicType === 'symbol')
           ? [
               { x: bboxEndpoints[0], y: bboxEndpoints[1] },
               { x: bboxEndpoints[2], y: bboxEndpoints[3] },

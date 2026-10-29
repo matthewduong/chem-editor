@@ -217,6 +217,15 @@ function mapGraphic(
     ...graphic,
     ...(graphic.points ? { points: graphic.points.map((point) => project(point.x, point.y)) } : {}),
     ...(graphic.bounds ? { bounds: mapBounds(graphic.bounds, project) } : {}),
+    // Ovals, rectangles and orbitals are placed by centre and axis ends; mapping them (not just
+    // the axis-aligned BoundingBox) is what lets a rotated shape stay the shape it was.
+    ...(graphic.center ? { center: project(graphic.center.x, graphic.center.y) } : {}),
+    ...(graphic.majorAxisEnd
+      ? { majorAxisEnd: project(graphic.majorAxisEnd.x, graphic.majorAxisEnd.y) }
+      : {}),
+    ...(graphic.minorAxisEnd
+      ? { minorAxisEnd: project(graphic.minorAxisEnd.x, graphic.minorAxisEnd.y) }
+      : {}),
     ...(graphic.objectTags ? { objectTags: mapObjectTags(graphic.objectTags, project) } : {}),
   };
 }
