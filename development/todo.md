@@ -9,13 +9,16 @@ Section references are to the 17.1 guide (chapter: section).
 
 ## Shape tools
 
-- [ ] **Box, rounded rectangle, ellipse and circle tool** — render-only · 6: Objects, Drawing
+Done in Phase I (2026-10-29): Drawing palette, Edit > Add Frame, Edit > Curve. Per-axis reshape
+handles for boxes and arc end/curvature handles moved to Phase II with the other handles.
+
+- [x] **Box, rounded rectangle, ellipse and circle tool** — render-only · 6: Objects, Drawing
       Elements
-- [ ] **Line and arc tools** — render-only; lines also fail to round-trip through ChemDraw
+- [x] **Line and arc tools** — render-only; lines also fail to round-trip through ChemDraw
       (`gaps.md`) · 6: Objects, Lines / Arcs
-- [ ] **Brackets, braces and ‡ daggers** — brackets render-only; braces and daggers absent ·
+- [x] **Brackets, braces and ‡ daggers** — brackets render-only; braces and daggers absent ·
       6: Objects, Brackets / Daggers
-- [ ] **Pen (Bezier) and freehand curves** — curves round-trip but cannot be drawn · 6: Objects,
+- [x] **Pen (Bezier) and freehand curves** — curves round-trip but cannot be drawn · 6: Objects,
       Pen Tools / Freehand Shapes
 
 ## Annotation objects
