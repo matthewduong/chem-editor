@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Arrowhead combinations as ChemDraw writes them (ChemDraw's own templates): a plain line is an
+     arrow with no ArrowheadHead or ArrowheadTail, an arc line adds AngularSize, a one-ended arrow
+     carries only ArrowheadTail, and an equilibrium is HalfLeft at both ends. -->
+<CDXML BondLength="14.4" LineWidth="0.6">
+  <page id="100">
+    <arrow id="11" FillType="None" ArrowheadType="Solid" HeadSize="1000" ArrowheadCenterSize="875" ArrowheadWidth="250" Head3D="80 20 0" Tail3D="10 20 0"/>
+    <arrow id="12" FillType="None" ArrowheadType="Solid" HeadSize="800" ArrowheadCenterSize="700" ArrowheadWidth="200" AngularSize="-90" Head3D="110 70 0" Tail3D="150 30 0" Center3D="110 30 0" MajorAxisEnd3D="150 30 0" MinorAxisEnd3D="110 70 0"/>
+    <arrow id="13" FillType="None" ArrowheadTail="Full" ArrowheadType="Solid" HeadSize="1000" ArrowheadCenterSize="875" ArrowheadWidth="250" Head3D="80 100 0" Tail3D="10 100 0"/>
+    <arrow id="14" FillType="None" ArrowheadHead="HalfLeft" ArrowheadTail="HalfLeft" ArrowheadType="Solid" HeadSize="1000" ArrowheadCenterSize="875" ArrowheadWidth="250" ArrowShaftSpacing="400" Head3D="80 140 0" Tail3D="10 140 0"/>
+    <arrow id="15" FillType="None" LineType="Dashed" ArrowheadType="Solid" HeadSize="1000" ArrowheadCenterSize="875" ArrowheadWidth="250" Head3D="80 180 0" Tail3D="10 180 0"/>
+  </page>
+</CDXML>

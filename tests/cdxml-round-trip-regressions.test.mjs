@@ -5,7 +5,11 @@ import {
   cdxmlToChemDrawDocument,
   chemDrawDocumentToCDXML,
 } from '../.unit-test-dist/src/utils/cdxml.js';
-import { createGroupFromSelection } from '../.unit-test-dist/src/lib/chemdrawModel.js';
+import {
+  chemDrawDocumentToCanvasState,
+  createGroupFromSelection,
+  mergeCanvasStateIntoChemDrawDocument,
+} from '../.unit-test-dist/src/lib/chemdrawModel.js';
 
 const exportXml = (xml) => chemDrawDocumentToCDXML(cdxmlToChemDrawDocument(xml).document);
 // Font and colour tables have their own ID spaces, separate from drawing objects.
@@ -200,4 +204,53 @@ test('formula-face labels are written with plain digits, not pre-subscripted Uni
     <fragment id="2"><n id="3" p="0 0" Element="6"/><n id="4" p="14.4 0" Element="7"/>
     <b id="5" B="3" E="4"/></fragment></page></CDXML>`);
   assert.doesNotMatch(out, /[₀-₉]/);
+});
+
+test('arrowheads are written back as the file gave them, so a plain line gains no head', () => {
+  // ChemDraw draws a line as an <arrow> with neither ArrowheadHead nor ArrowheadTail (59 of 160
+  // arrows in its own templates); exporting each through its type used to add a full head.
+  const out = exportXml(`<?xml version="1.0"?><CDXML><page id="100">
+    <arrow id="11" ArrowheadType="Solid" Head3D="80 20 0" Tail3D="10 20 0"/>
+    <arrow id="12" ArrowheadType="Solid" AngularSize="-90" Head3D="110 70 0" Tail3D="150 30 0" Center3D="110 30 0" MajorAxisEnd3D="150 30 0" MinorAxisEnd3D="110 70 0"/>
+    <arrow id="13" ArrowheadTail="Full" ArrowheadType="Solid" Head3D="80 100 0" Tail3D="10 100 0"/>
+    <arrow id="14" ArrowheadHead="HalfLeft" ArrowheadTail="HalfLeft" ArrowheadType="Solid" Head3D="80 140 0" Tail3D="10 140 0"/>
+  </page></CDXML>`);
+  const arrow = (id) => new RegExp(`<arrow id="${id}"[^>]*>`).exec(out)?.[0] ?? '';
+  assert.doesNotMatch(arrow(11), /ArrowheadHead|ArrowheadTail/);
+  assert.doesNotMatch(arrow(12), /ArrowheadHead|ArrowheadTail/);
+  assert.match(arrow(12), /AngularSize="-90"/);
+  assert.match(arrow(13), /ArrowheadTail="Full"/);
+  assert.doesNotMatch(arrow(13), /ArrowheadHead/);
+  assert.match(arrow(14), /ArrowheadHead="HalfLeft" ArrowheadTail="HalfLeft"/);
+  assert.equal(exportXml(out), out);
+});
+
+test('a plain line is not taken as the reaction arrow when inferring roles', () => {
+  const result = cdxmlToChemDrawDocument(`<?xml version="1.0"?><CDXML><page id="100">
+    <fragment id="2"><n id="3" p="0 0"/></fragment>
+    <arrow id="11" ArrowheadType="Solid" Head3D="80 20 0" Tail3D="10 20 0"/>
+  </page></CDXML>`);
+  assert.ok(!result.warnings.some((w) => /inferred heuristically/.test(w)));
+});
+
+test('reversing a one-ended arrow carries its head; retyping it drops the recorded heads', () => {
+  const { document } = cdxmlToChemDrawDocument(`<?xml version="1.0"?><CDXML><page id="100">
+    <arrow id="13" ArrowheadTail="Full" ArrowheadType="Solid" Head3D="80 100 0" Tail3D="10 100 0"/>
+  </page></CDXML>`);
+  const { state } = chemDrawDocumentToCanvasState(document);
+  const [flat] = state.arrows;
+  const reversed = { ...flat, x1: flat.x2, y1: flat.y2, x2: flat.x1, y2: flat.y1 };
+  const swapped = mergeCanvasStateIntoChemDrawDocument(document, {
+    ...state,
+    arrows: [reversed],
+  }).document.pages[0].objects.find((o) => o.type === 'arrow');
+  assert.equal(swapped.headEnd, 'full');
+  assert.equal(swapped.tailEnd, 'none');
+
+  const retyped = mergeCanvasStateIntoChemDrawDocument(document, {
+    ...state,
+    arrows: [{ ...flat, type: 'equilibrium' }],
+  }).document.pages[0].objects.find((o) => o.type === 'arrow');
+  assert.equal(retyped.headEnd, undefined);
+  assert.equal(retyped.tailEnd, undefined);
 });

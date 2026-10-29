@@ -979,13 +979,27 @@ export function mergeCanvasStateIntoChemDrawDocument(
         style: { ...base.style, ...object.style },
       });
     } else if (object.type === 'arrow' && base?.type === 'arrow') {
-      mergedObjects.push({
+      const merged: ChemDrawArrow = {
         ...base,
         ...object,
         textAbove: object.textAbove ?? base.textAbove,
         textBelow: object.textBelow ?? base.textBelow,
         style: { ...base.style, ...object.style },
-      });
+      };
+      // Heads recorded from a file describe the arrow as it was: a new type brings its own heads,
+      // and reversing the arrow carries each head to the other end.
+      if (object.arrowType !== base.arrowType) {
+        delete merged.headEnd;
+        delete merged.tailEnd;
+      } else if (
+        (base.headEnd !== undefined || base.tailEnd !== undefined) &&
+        Math.hypot(object.tail.x - base.head.x, object.tail.y - base.head.y) < 1e-6 &&
+        Math.hypot(object.head.x - base.tail.x, object.head.y - base.tail.y) < 1e-6
+      ) {
+        merged.headEnd = base.tailEnd;
+        merged.tailEnd = base.headEnd;
+      }
+      mergedObjects.push(merged);
     } else if (object.type === 'text' && base?.type === 'text') {
       mergedObjects.push({
         ...base,

@@ -1,5 +1,5 @@
 import type { Arrow } from '../../../types/chemistry';
-import type { ChemDrawArrow } from '../../../types/chemdraw';
+import type { ChemDrawArrow, ChemDrawArrowEnd } from '../../../types/chemdraw';
 import { getPaintFontFamily } from '../../../lib/textMetrics';
 import {
   arrowUsesControlPoint,
@@ -228,6 +228,24 @@ function drawArrowShape(
   const drawResolvedHead = (x: number, y: number, angle: number, half: -1 | 0 | 1 = 0) =>
     drawHead(x, y, angle, resolvedKind, half);
 
+  // Heads recorded from the file, for the arrow kinds whose heads are just heads (a double-shafted
+  // equilibrium or retrosynthetic arrow draws its own). A ChemDraw line is an arrow with none.
+  const recordedEnds =
+    nativeArrow &&
+    (nativeArrow.headEnd !== undefined || nativeArrow.tailEnd !== undefined) &&
+    arrow.type !== 'equilibrium' &&
+    arrow.type !== 'retrosynthetic' &&
+    arrow.type !== 'fat'
+      ? { head: nativeArrow.headEnd ?? 'none', tail: nativeArrow.tailEnd ?? 'none' }
+      : null;
+  const endHalf = (end: ChemDrawArrowEnd): -1 | 0 | 1 =>
+    end === 'half-left' ? -1 : end === 'half-right' ? 1 : 0;
+  const headAtEnd = recordedEnds ? recordedEnds.head !== 'none' : true;
+  const headAtStart = recordedEnds ? recordedEnds.tail !== 'none' : arrow.type === 'resonance';
+  const halfAtEnd = (fallback: -1 | 0 | 1): -1 | 0 | 1 =>
+    recordedEnds ? endHalf(recordedEnds.head) : fallback;
+  const halfAtStart = recordedEnds ? endHalf(recordedEnds.tail) : 0;
+
   // An arrow ChemDraw describes as an arc is drawn as that arc: a circle or ellipse swept through
   // AngularSize. The quadratic the flat arrow carries cannot hold a half circle.
   const arc = nativeArrow ? resolveArcArrow(nativeArrow) : null;
@@ -240,9 +258,8 @@ function drawArrowShape(
       arrow.type === 'resonance' ||
       arrow.type === 'no-reaction')
   ) {
-    const fromFraction =
-      arrow.type === 'resonance' ? arcFractionAtDistance(arc, headInset, false) : 0;
-    const toFraction = arcFractionAtDistance(arc, headInset, true);
+    const fromFraction = headAtStart ? arcFractionAtDistance(arc, headInset, false) : 0;
+    const toFraction = headAtEnd ? arcFractionAtDistance(arc, headInset, true) : 1;
     const points = sampleArc(arc, fromFraction, Math.max(fromFraction, toFraction));
     setStroke(ctx, color, strokeWidth, dashPattern ?? undefined);
     ctx.lineCap = 'butt';
@@ -254,18 +271,20 @@ function drawArrowShape(
     });
     ctx.stroke();
     ctx.setLineDash([]);
-    const tip = arcPointAt(arc, 1);
-    const end = arcTangentAt(arc, 1);
-    drawResolvedHead(
-      tip.x,
-      tip.y,
-      Math.atan2(end.y, end.x),
-      arrow.type === 'half-curved' ? (nativeArrow?.headSide === 'right' ? 1 : -1) : 0,
-    );
-    if (arrow.type === 'resonance') {
+    if (headAtEnd) {
+      const tip = arcPointAt(arc, 1);
+      const end = arcTangentAt(arc, 1);
+      drawResolvedHead(
+        tip.x,
+        tip.y,
+        Math.atan2(end.y, end.x),
+        halfAtEnd(arrow.type === 'half-curved' ? (nativeArrow?.headSide === 'right' ? 1 : -1) : 0),
+      );
+    }
+    if (headAtStart) {
       const base = arcPointAt(arc, 0);
       const first = arcTangentAt(arc, 0);
-      drawResolvedHead(base.x, base.y, Math.atan2(first.y, first.x) + Math.PI);
+      drawResolvedHead(base.x, base.y, Math.atan2(first.y, first.x) + Math.PI, halfAtStart);
     }
     if (arrow.type === 'no-reaction') {
       const mid = arcPointAt(arc, 0.5);
@@ -334,30 +353,24 @@ function drawArrowShape(
   }
 
   const inset = headInset;
-  const shaft =
-    arrow.type === 'resonance'
-      ? trimPath(
-          trimPath(arrow as CurvePoints, usesControlPoint, true, inset),
-          usesControlPoint,
-          false,
-          inset,
-        )
-      : trimPath(
-          arrow as CurvePoints,
-          usesControlPoint,
-          true,
-          arrow.type === 'half-curved' ? inset : inset,
-        );
+  const trimmedAtEnd = headAtEnd
+    ? trimPath(arrow as CurvePoints, usesControlPoint, true, inset)
+    : (arrow as CurvePoints);
+  const shaft = headAtStart ? trimPath(trimmedAtEnd, usesControlPoint, false, inset) : trimmedAtEnd;
   strokePath(shaft);
 
-  if (arrow.type === 'half-curved') {
-    drawResolvedHead(arrow.x2, arrow.y2, endAngle, -1);
-    return;
+  if (headAtEnd) {
+    drawResolvedHead(
+      arrow.x2,
+      arrow.y2,
+      endAngle,
+      halfAtEnd(arrow.type === 'half-curved' ? -1 : 0),
+    );
   }
-  drawResolvedHead(arrow.x2, arrow.y2, endAngle);
-  if (arrow.type === 'resonance') {
-    drawResolvedHead(arrow.x1, arrow.y1, startAngle + Math.PI);
-  } else if (arrow.type === 'no-reaction') {
+  if (headAtStart) {
+    drawResolvedHead(arrow.x1, arrow.y1, startAngle + Math.PI, halfAtStart);
+  }
+  if (arrow.type === 'no-reaction') {
     const mid = getArrowPointAt(arrow, 0.5);
     const tangent = getArrowTangentAt(arrow, 0.5);
     drawNoGoCross(mid.x, mid.y, Math.atan2(tangent.dy, tangent.dx));

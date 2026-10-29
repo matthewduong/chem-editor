@@ -198,6 +198,9 @@ export interface ChemDrawFragment {
   preservation?: ChemDrawPreservationMetadata;
 }
 
+/** What sits at one end of an arrow: ChemDraw's ArrowheadHead / ArrowheadTail values. */
+export type ChemDrawArrowEnd = 'none' | 'full' | 'half-left' | 'half-right';
+
 export interface ChemDrawArrow {
   id: string;
   type: 'arrow';
@@ -205,6 +208,14 @@ export interface ChemDrawArrow {
   headType?: ChemDrawArrowHeadType;
   /** Which side the barb of a half head is on, from ArrowheadHead HalfLeft / HalfRight. */
   headSide?: 'left' | 'right';
+  /**
+   * The heads exactly as the file gave them. ChemDraw draws a plain line as an arrow with neither
+   * attribute (59 of 160 arrows in ChemDraw's own templates) and a one-ended arrow with only
+   * ArrowheadTail, neither of which `arrowType` can say. When set, these win over the heads the
+   * type implies; an arrow drawn in the editor leaves them unset.
+   */
+  headEnd?: ChemDrawArrowEnd;
+  tailEnd?: ChemDrawArrowEnd;
   tail: ChemDrawPoint;
   head: ChemDrawPoint;
   headSize?: number;

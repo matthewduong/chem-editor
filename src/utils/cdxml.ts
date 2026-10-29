@@ -33,6 +33,7 @@ import {
 import type { DocumentStyleSettings, PagePresetId, PageSetup } from '../types/settings';
 import type {
   ChemDrawArrow,
+  ChemDrawArrowEnd,
   ChemDrawBond,
   ChemDrawBracket,
   ChemDrawBounds,
@@ -91,6 +92,38 @@ const CHEM_EDITOR_TEXT_CONVERSION_STATUS_ATTR = 'ChemEditorTextConversionStatus'
 const CHEM_EDITOR_TEXT_WRAP_WIDTH_ATTR = 'ChemEditorTextWrapWidth';
 const CHEM_EDITOR_DOUBLE_BOND_MODE_ATTR = 'ChemEditorDoubleBondMode';
 const CHEM_EDITOR_ARROW_TYPE_ATTR = 'ChemEditorArrowType';
+
+/** ArrowheadHead / ArrowheadTail as a head kind; an absent attribute is no head. */
+function parseArrowEnd(value: string): ChemDrawArrowEnd | undefined {
+  switch (value) {
+    case '':
+    case 'None':
+    case 'Unspecified':
+      return 'none';
+    case 'Full':
+      return 'full';
+    case 'HalfLeft':
+      return 'half-left';
+    case 'HalfRight':
+      return 'half-right';
+    default:
+      // An unknown value keeps the head the arrow type implies rather than dropping it.
+      return undefined;
+  }
+}
+
+function arrowEndToCdxml(end: ChemDrawArrowEnd): string | null {
+  switch (end) {
+    case 'full':
+      return 'Full';
+    case 'half-left':
+      return 'HalfLeft';
+    case 'half-right':
+      return 'HalfRight';
+    default:
+      return null;
+  }
+}
 const CHEM_EDITOR_ARROW_CURVE_ENABLED_ATTR = 'ChemEditorArrowCurveEnabled';
 const CHEM_EDITOR_ELECTRON_ANGLES_ATTR = 'ChemEditorElectronAngles';
 const CHEM_EDITOR_RING_TEMPLATE_ATOM_MEMBERSHIPS_ATTR = 'ChemEditorRingTemplateAtomMemberships';
@@ -1668,6 +1701,15 @@ function chemDrawDocumentToCDXMLInternal(document: ChemDrawDocument): string {
     const linearGeometryAttr =
       curvedGeometryAttr.length > 0 ? '' : ` Head3D="${hx} ${hy} 0" Tail3D="${tx} ${ty} 0"`;
 
+    // Heads read from a file are written back as they were; an arrow drawn here gets the heads
+    // its type implies.
+    const hasRecordedEnds = arrow.headEnd !== undefined || arrow.tailEnd !== undefined;
+    const endsAttr = (defaultHead: string, defaultTail?: string) => {
+      const head = hasRecordedEnds ? arrowEndToCdxml(arrow.headEnd ?? 'none') : defaultHead;
+      const tail = hasRecordedEnds ? arrowEndToCdxml(arrow.tailEnd ?? 'none') : defaultTail;
+      return `${head ? ` ArrowheadHead="${head}"` : ''}${tail ? ` ArrowheadTail="${tail}"` : ''}`;
+    };
+
     if (arrow.arrowType === 'curved' || arrow.arrowType === 'half-curved') {
       const headStr =
         arrow.arrowType === 'half-curved'
@@ -1680,22 +1722,22 @@ function chemDrawDocumentToCDXMLInternal(document: ChemDrawDocument): string {
           arrow.angularSize != null && Number.isFinite(arrow.angularSize)
             ? ` AngularSize="${arrow.angularSize}"`
             : '';
-        xml += `    <arrow id="${cdxId}"${strokeColorAttr}${lineWidthAttr}${headSizeAttr}${headCenterSizeAttr}${headWidthAttr}${shaftSpacingAttr}${equilibriumRatioAttr}${lineTypeAttr}${editorArrowTypeAttr}${editorCurveAttr} Head3D="${hx} ${hy} 0" Tail3D="${tx} ${ty} 0" Center3D="${formatCdxmlNumber(arrow.arcCenter.x * exportScaleFactor)} ${formatCdxmlNumber(arrow.arcCenter.y * exportScaleFactor)} 0" MajorAxisEnd3D="${formatCdxmlNumber(arrow.majorAxisEnd.x * exportScaleFactor)} ${formatCdxmlNumber(arrow.majorAxisEnd.y * exportScaleFactor)} 0" MinorAxisEnd3D="${formatCdxmlNumber(arrow.minorAxisEnd.x * exportScaleFactor)} ${formatCdxmlNumber(arrow.minorAxisEnd.y * exportScaleFactor)} 0" ArrowheadHead="${headStr}"${arrowheadTypeAttr}${fillTypeAttr}${angularSizeAttr}${rawArrowAttributes}${openTag}${closeTag}`;
+        xml += `    <arrow id="${cdxId}"${strokeColorAttr}${lineWidthAttr}${headSizeAttr}${headCenterSizeAttr}${headWidthAttr}${shaftSpacingAttr}${equilibriumRatioAttr}${lineTypeAttr}${editorArrowTypeAttr}${editorCurveAttr} Head3D="${hx} ${hy} 0" Tail3D="${tx} ${ty} 0" Center3D="${formatCdxmlNumber(arrow.arcCenter.x * exportScaleFactor)} ${formatCdxmlNumber(arrow.arcCenter.y * exportScaleFactor)} 0" MajorAxisEnd3D="${formatCdxmlNumber(arrow.majorAxisEnd.x * exportScaleFactor)} ${formatCdxmlNumber(arrow.majorAxisEnd.y * exportScaleFactor)} 0" MinorAxisEnd3D="${formatCdxmlNumber(arrow.minorAxisEnd.x * exportScaleFactor)} ${formatCdxmlNumber(arrow.minorAxisEnd.y * exportScaleFactor)} 0"${endsAttr(headStr)}${arrowheadTypeAttr}${fillTypeAttr}${angularSizeAttr}${rawArrowAttributes}${openTag}${closeTag}`;
       } else {
-        xml += `    <arrow id="${cdxId}"${strokeColorAttr}${lineWidthAttr}${headSizeAttr}${headCenterSizeAttr}${headWidthAttr}${shaftSpacingAttr}${equilibriumRatioAttr}${lineTypeAttr}${editorArrowTypeAttr}${editorCurveAttr} ArrowheadHead="${headStr}"${arrowheadTypeAttr}${curvedGeometryAttr || linearGeometryAttr}${fillTypeAttr}${rawArrowAttributes}${openTag}${closeTag}`;
+        xml += `    <arrow id="${cdxId}"${strokeColorAttr}${lineWidthAttr}${headSizeAttr}${headCenterSizeAttr}${headWidthAttr}${shaftSpacingAttr}${equilibriumRatioAttr}${lineTypeAttr}${editorArrowTypeAttr}${editorCurveAttr}${endsAttr(headStr)}${arrowheadTypeAttr}${curvedGeometryAttr || linearGeometryAttr}${fillTypeAttr}${rawArrowAttributes}${openTag}${closeTag}`;
       }
     } else if (arrow.arrowType === 'equilibrium') {
-      xml += `    <arrow id="${cdxId}"${strokeColorAttr}${lineWidthAttr}${headSizeAttr}${headCenterSizeAttr}${headWidthAttr}${shaftSpacingAttr}${equilibriumRatioAttr}${lineTypeAttr}${editorArrowTypeAttr}${editorCurveAttr}${curvedGeometryAttr || linearGeometryAttr} ArrowheadHead="HalfRight" ArrowheadTail="HalfLeft"${arrowheadTypeAttr}${fillTypeAttr} NoGo="None"${rawArrowAttributes}${openTag}${closeTag}`;
+      xml += `    <arrow id="${cdxId}"${strokeColorAttr}${lineWidthAttr}${headSizeAttr}${headCenterSizeAttr}${headWidthAttr}${shaftSpacingAttr}${equilibriumRatioAttr}${lineTypeAttr}${editorArrowTypeAttr}${editorCurveAttr}${curvedGeometryAttr || linearGeometryAttr}${endsAttr('HalfLeft', 'HalfLeft')}${arrowheadTypeAttr}${fillTypeAttr} NoGo="None"${rawArrowAttributes}${openTag}${closeTag}`;
     } else if (arrow.arrowType === 'retrosynthetic') {
-      xml += `    <arrow id="${cdxId}"${strokeColorAttr}${lineWidthAttr}${headSizeAttr}${headCenterSizeAttr}${headWidthAttr}${shaftSpacingAttr}${equilibriumRatioAttr}${lineTypeAttr}${editorArrowTypeAttr}${editorCurveAttr}${curvedGeometryAttr || linearGeometryAttr} ArrowheadHead="Full"${arrowheadTypeAttr}${fillTypeAttr}${rawArrowAttributes}${openTag}${closeTag}`;
+      xml += `    <arrow id="${cdxId}"${strokeColorAttr}${lineWidthAttr}${headSizeAttr}${headCenterSizeAttr}${headWidthAttr}${shaftSpacingAttr}${equilibriumRatioAttr}${lineTypeAttr}${editorArrowTypeAttr}${editorCurveAttr}${curvedGeometryAttr || linearGeometryAttr}${endsAttr('Full')}${arrowheadTypeAttr}${fillTypeAttr}${rawArrowAttributes}${openTag}${closeTag}`;
     } else if (arrow.arrowType === 'no-reaction') {
-      xml += `    <arrow id="${cdxId}"${strokeColorAttr}${lineWidthAttr}${headSizeAttr}${headCenterSizeAttr}${headWidthAttr}${shaftSpacingAttr}${equilibriumRatioAttr}${lineTypeAttr}${editorArrowTypeAttr}${editorCurveAttr}${curvedGeometryAttr || linearGeometryAttr} ArrowheadHead="Full"${arrowheadTypeAttr}${fillTypeAttr} NoGo="Cross"${rawArrowAttributes}${openTag}${closeTag}`;
+      xml += `    <arrow id="${cdxId}"${strokeColorAttr}${lineWidthAttr}${headSizeAttr}${headCenterSizeAttr}${headWidthAttr}${shaftSpacingAttr}${equilibriumRatioAttr}${lineTypeAttr}${editorArrowTypeAttr}${editorCurveAttr}${curvedGeometryAttr || linearGeometryAttr}${endsAttr('Full')}${arrowheadTypeAttr}${fillTypeAttr} NoGo="Cross"${rawArrowAttributes}${openTag}${closeTag}`;
     } else if (arrow.arrowType === 'resonance') {
-      xml += `    <arrow id="${cdxId}"${strokeColorAttr}${lineWidthAttr}${headSizeAttr}${headCenterSizeAttr}${headWidthAttr}${shaftSpacingAttr}${equilibriumRatioAttr}${lineTypeAttr}${editorArrowTypeAttr}${editorCurveAttr}${curvedGeometryAttr || linearGeometryAttr} ArrowheadHead="Full" ArrowheadTail="Full"${arrowheadTypeAttr}${fillTypeAttr}${rawArrowAttributes}${openTag}${closeTag}`;
+      xml += `    <arrow id="${cdxId}"${strokeColorAttr}${lineWidthAttr}${headSizeAttr}${headCenterSizeAttr}${headWidthAttr}${shaftSpacingAttr}${equilibriumRatioAttr}${lineTypeAttr}${editorArrowTypeAttr}${editorCurveAttr}${curvedGeometryAttr || linearGeometryAttr}${endsAttr('Full', 'Full')}${arrowheadTypeAttr}${fillTypeAttr}${rawArrowAttributes}${openTag}${closeTag}`;
     } else if (arrow.arrowType === 'fat') {
-      xml += `    <arrow id="${cdxId}"${strokeColorAttr}${lineWidthAttr}${headSizeAttr}${headCenterSizeAttr}${headWidthAttr}${shaftSpacingAttr}${equilibriumRatioAttr}${lineTypeAttr}${editorArrowTypeAttr}${editorCurveAttr}${curvedGeometryAttr || linearGeometryAttr} ArrowheadHead="Full"${arrowheadTypeAttr}${fillTypeAttr}${rawArrowAttributes}${openTag}${closeTag}`;
+      xml += `    <arrow id="${cdxId}"${strokeColorAttr}${lineWidthAttr}${headSizeAttr}${headCenterSizeAttr}${headWidthAttr}${shaftSpacingAttr}${equilibriumRatioAttr}${lineTypeAttr}${editorArrowTypeAttr}${editorCurveAttr}${curvedGeometryAttr || linearGeometryAttr}${endsAttr('Full')}${arrowheadTypeAttr}${fillTypeAttr}${rawArrowAttributes}${openTag}${closeTag}`;
     } else {
-      xml += `    <arrow id="${cdxId}"${strokeColorAttr}${lineWidthAttr}${headSizeAttr}${headCenterSizeAttr}${headWidthAttr}${shaftSpacingAttr}${equilibriumRatioAttr}${lineTypeAttr}${editorArrowTypeAttr}${editorCurveAttr}${curvedGeometryAttr || linearGeometryAttr} ArrowheadHead="Full"${arrowheadTypeAttr}${fillTypeAttr}${rawArrowAttributes}${openTag}${closeTag}`;
+      xml += `    <arrow id="${cdxId}"${strokeColorAttr}${lineWidthAttr}${headSizeAttr}${headCenterSizeAttr}${headWidthAttr}${shaftSpacingAttr}${equilibriumRatioAttr}${lineTypeAttr}${editorArrowTypeAttr}${editorCurveAttr}${curvedGeometryAttr || linearGeometryAttr}${endsAttr('Full')}${arrowheadTypeAttr}${fillTypeAttr}${rawArrowAttributes}${openTag}${closeTag}`;
     }
     redirectIfGrouped(arrow.id, __spanStart);
   }
@@ -2981,6 +3023,8 @@ export function cdxmlToChemDrawDocument(xmlString: string): ChemDrawConversionRe
     }
     const curveEnabled =
       arrowType === 'curved' || arrowType === 'half-curved' || editorCurveEnabled;
+    const headEnd = parseArrowEnd(headStr);
+    const tailEnd = parseArrowEnd(tailStr);
 
     const midY = (tail.y + head.y) / 2;
     let textAbove: ChemDrawArrow['textAbove'];
@@ -3026,6 +3070,8 @@ export function cdxmlToChemDrawDocument(xmlString: string): ChemDrawConversionRe
         : headStr === 'HalfRight'
           ? { headSide: 'right' as const }
           : {}),
+      ...(headEnd ? { headEnd } : {}),
+      ...(tailEnd ? { tailEnd } : {}),
       ...(headSizeAttr != null ? { headSize: headSizeAttr } : {}),
       ...(headCenterSizeAttr != null ? { headCenterSize: headCenterSizeAttr } : {}),
       ...(headWidthAttr != null ? { headWidth: headWidthAttr } : {}),
@@ -3849,6 +3895,8 @@ export function cdxmlToChemDrawDocument(xmlString: string): ChemDrawConversionRe
   const firstReactionArrow = objects.find(
     (object): object is ChemDrawArrow =>
       object.type === 'arrow' &&
+      // A plain line (no heads at either end) points nowhere, so it orders nothing.
+      !(object.headEnd === 'none' && (object.tailEnd ?? 'none') === 'none') &&
       (object.arrowType === 'reaction' ||
         object.arrowType === 'equilibrium' ||
         object.arrowType === 'retrosynthetic'),
