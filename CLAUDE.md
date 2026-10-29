@@ -16,7 +16,20 @@ pnpm lint             # typecheck + eslint + prettier + ruff + clippy
 pnpm test             # every suite: js, ui, python, rust
 pnpm test:js          # node --test over tsc-compiled tests/*.test.mjs
 pnpm test:js:ui       # vitest + jsdom over tests/ui/
+pnpm test:py | test:rust | test:browser   # sidecar pytest, cargo test, Playwright (tests/browser/)
+pnpm fmt              # prettier + ruff format + cargo fmt
+pnpm goldens:record   # re-record tests/fixtures/goldens/ops/ after an intended rendering change
 pnpm clean            # build artifacts;  pnpm clean:deep  also drops src-tauri/target
+```
+
+Single tests. `pnpm test:js` rebuilds `.unit-test-dist/` from scratch on every run, so to iterate
+on one file, build once and call node directly (rebuild after each `src/` edit):
+
+```bash
+pnpm test:js                     # builds .unit-test-dist/ (and its commonjs package.json)
+node --import ./scripts/lib/dom-globals.mjs --test tests/keybindings.test.mjs
+node --import ./scripts/lib/dom-globals.mjs --test --test-name-pattern='Shift' tests/keybindings.test.mjs
+pnpm exec vitest run --config vitest.config.ts tests/ui/App.test.tsx
 ```
 
 ## Architecture
@@ -133,6 +146,7 @@ These come from what has actually gone wrong here (see `development/audit-2026-0
   SVG at once; the Konva overlays in `ChemCanvas.tsx` are the one remaining exception. Claims about
   ChemDraw behaviour need a source: the CDXML DTD, or `pnpm test:chemdraw:mac`.
 - **Progress.** `development/gaps.md` lists known losses and divergences; a change that fixes or
-  finds one updates it. Test allowlists carry a reason string, and removing an entry is progress.
+  finds one updates it. `development/todo.md` lists ChemDraw features not yet built; tick an
+  item when it lands. Test allowlists carry a reason string, and removing an entry is progress.
 - **Commits.** The pre-commit hook runs `tsc` and `eslint src --max-warnings=0` over the whole
   working tree, so unrelated in-progress files can block an unrelated commit.
