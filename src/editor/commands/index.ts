@@ -24,6 +24,7 @@ import {
   getSelectedNodeIds,
 } from '../../lib/chemdrawModel';
 import { buildDocumentIndex, getActivePage } from '../document';
+import { toggleAtomNumbers } from '../../lib/atomNumbers';
 import { bondJoinPairs, joinNodes, overlappingNodePairs } from '../../lib/joinStructures';
 
 function replacePageObjects(
@@ -359,6 +360,24 @@ export function createFlipSelectionCommand(
           { turnOver: options?.turnOver },
         ),
         inversePatch: createReplaceDocumentCommand(document, 'undo:flip-selection'),
+        changedObjectIds: selectionIds,
+      };
+    },
+  };
+}
+
+/** Show Atom Number (`'`) on the selected atoms; see `toggleAtomNumbers`. */
+export function createToggleAtomNumbersCommand(objectIds?: Iterable<string>): EditorCommand {
+  return {
+    type: 'toggle-atom-numbers',
+    description: 'toggle-atom-numbers',
+    apply(document, context) {
+      const selectionIds = resolveSelectionIds(context, objectIds);
+      const next = toggleAtomNumbers(document, selectionIds);
+      if (next === document) return { document, inversePatch: null, changedObjectIds: new Set() };
+      return {
+        document: next,
+        inversePatch: createReplaceDocumentCommand(document, 'undo:toggle-atom-numbers'),
         changedObjectIds: selectionIds,
       };
     },

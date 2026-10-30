@@ -305,6 +305,14 @@ export const APP_SHORTCUT_DEFINITIONS: ShortcutDefinition[] = [
     defaultBinding: { key: 'v', primary: true, shift: true, alt: true },
   },
   {
+    id: 'app.structure.show-atom-number',
+    label: 'Show atom number',
+    description: "Show or hide the selected atoms' numbers. ChemDraw uses ' (single quote).",
+    category: 'Arrange',
+    context: 'global',
+    defaultBinding: { key: "'" },
+  },
+  {
     id: 'app.edit.fixed-lengths',
     label: 'Toggle fixed lengths',
     description: 'Draw bonds one bond length long, or to the pointer. ChemDraw uses Ctrl+L.',

@@ -1130,11 +1130,25 @@ export function applyDocumentViewSettings(
   document: ChemDrawDocument,
   documentViewSettings: DocumentViewSettings,
 ): ChemDrawDocument {
+  // Show Stereochemistry is ChemDraw's document ShowAtomStereo / ShowBondStereo, so a file
+  // saved with it on opens with it on in ChemDraw too.
+  const preserved = document.metadata?.preservedDocumentAttributes;
+  const stereo = documentViewSettings.showStereochemistry === true;
+  const wasStereo = preserved?.ShowAtomStereo === 'yes' || preserved?.ShowBondStereo === 'yes';
+  const preservedDocumentAttributes =
+    stereo === wasStereo
+      ? preserved
+      : {
+          ...preserved,
+          ShowAtomStereo: stereo ? 'yes' : 'no',
+          ShowBondStereo: stereo ? 'yes' : 'no',
+        };
   return {
     ...document,
     metadata: {
       ...document.metadata,
       documentViewSettings,
+      ...(preservedDocumentAttributes ? { preservedDocumentAttributes } : {}),
     },
   };
 }
@@ -1159,9 +1173,14 @@ export function resolveDocumentViewSettings(
   document: ChemDrawDocument | null | undefined,
   appPreferences: AppPreferences,
 ): DocumentViewSettings {
-  return (
-    loadDocumentViewSettings(document) ?? normalizeDocumentViewSettings(appPreferences.documentView)
-  );
+  const settings =
+    loadDocumentViewSettings(document) ??
+    normalizeDocumentViewSettings(appPreferences.documentView);
+  const preserved = document?.metadata?.preservedDocumentAttributes;
+  if (preserved?.ShowAtomStereo === 'yes' || preserved?.ShowBondStereo === 'yes') {
+    return { ...settings, showStereochemistry: true };
+  }
+  return settings;
 }
 
 export function buildTextFormatFromDocumentSettings(settings: DocumentStyleSettings): TextFormat {

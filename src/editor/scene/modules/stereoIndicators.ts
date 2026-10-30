@@ -49,20 +49,26 @@ const angleGap = (a: number, b: number) => {
   return d;
 };
 
-export function drawAtomStereoIndicator(
+/**
+ * Text beside an atom (its number, its CIP label) on the side clearest of its bonds; `avoid`
+ * directions already taken count as bonds. Returns the direction used.
+ */
+export function drawAtomIndicator(
   ctx: CanvasRenderingContext2D,
   scene: DocumentSceneState,
   atomId: string,
+  label: string,
   color: string,
-) {
-  const label = scene.stereoLabels?.atoms.get(atomId);
+  avoid: readonly number[] = [],
+): number | null {
   const atom = scene.legacy.atomById.get(atomId);
-  if (!label || !atom) return;
+  if (!atom) return null;
   const bondAngles = scene.legacy.bonds
     .filter((bond) => bond.from === atomId || bond.to === atomId)
     .map((bond) => scene.legacy.atomById.get(bond.from === atomId ? bond.to : bond.from))
     .filter((other) => other !== undefined)
-    .map((other) => Math.atan2(other.y - atom.y, other.x - atom.x));
+    .map((other) => Math.atan2(other.y - atom.y, other.x - atom.x))
+    .concat(avoid);
   let best = -Math.PI / 2;
   let bestGap = -1;
   for (let i = 0; i < 24; i += 1) {
@@ -81,6 +87,7 @@ export function drawAtomStereoIndicator(
     scene.documentStyleSettings.bondLength * 0.35,
     color,
   );
+  return best;
 }
 
 export function drawBondStereoIndicator(

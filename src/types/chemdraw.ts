@@ -159,6 +159,10 @@ export interface ChemDrawNode {
   aliasResolution?: AtomAliasResolution;
   geometry?: RingTemplateAtomGeometry;
   atomStereo?: RingTemplateAtomStereo;
+  /** CDXML `AtomNumber`: the number shown beside the atom (Show Atom Number). */
+  atomNumber?: string;
+  /** CDXML `ShowAtomNumber` on the node, when the file or the user set it. */
+  showAtomNumber?: boolean;
   bondOrdering?: Array<string | 0>;
   ringTemplateMemberships?: RingTemplateAtomMembership[];
   objectTags?: ChemDrawObjectTag[];

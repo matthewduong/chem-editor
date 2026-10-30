@@ -30,7 +30,7 @@ import { measureRunWidth } from '../../../lib/textRunPresentation';
 import { SHORTHAND_DATA } from '../../../lib/shorthand';
 import { adaptColor, drawCircle, drawRunText, setStroke } from '../drawPrimitives';
 import { drawObjectTags } from './objectTagHelpers';
-import { drawAtomStereoIndicator, hasStereoTag } from './stereoIndicators';
+import { drawAtomIndicator, hasStereoTag } from './stereoIndicators';
 import type { ObjectModule } from '../types';
 
 export const NODE_MODULE: ObjectModule = {
@@ -320,8 +320,25 @@ export const NODE_MODULE: ObjectModule = {
       fallbackAnchor: { x: atom.x, y: atom.y },
       fallbackColor: resolvedColor,
     });
-    if (scene.documentViewSettings.showStereochemistry && !hasStereoTag(object.objectTags)) {
-      drawAtomStereoIndicator(ctx, scene, atom.id, resolvedColor);
+    // Show Atom Number takes the clearest side; a stereo label the next clearest.
+    const numberAngle =
+      object.showAtomNumber && object.atomNumber
+        ? drawAtomIndicator(ctx, scene, atom.id, object.atomNumber, resolvedColor)
+        : null;
+    const stereoLabel = scene.stereoLabels?.atoms.get(atom.id);
+    if (
+      stereoLabel &&
+      scene.documentViewSettings.showStereochemistry &&
+      !hasStereoTag(object.objectTags)
+    ) {
+      drawAtomIndicator(
+        ctx,
+        scene,
+        atom.id,
+        stereoLabel,
+        resolvedColor,
+        numberAngle == null ? [] : [numberAngle],
+      );
     }
   },
   hitTest(object, point, context, options) {

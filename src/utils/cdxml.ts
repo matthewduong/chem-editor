@@ -1484,6 +1484,10 @@ function chemDrawDocumentToCDXMLInternal(document: ChemDrawDocument): string {
       if (node.atomStereo) {
         attrs += ` AS="${node.atomStereo}"`;
       }
+      if (node.atomNumber != null) attrs += ` AtomNumber="${xmlEscape(node.atomNumber)}"`;
+      if (node.showAtomNumber != null) {
+        attrs += ` ShowAtomNumber="${node.showAtomNumber ? 'yes' : 'no'}"`;
+      }
       if (node.bondOrdering?.length) {
         const exportedBondOrdering = node.bondOrdering
           .map((bondId) => (bondId === 0 ? '0' : (idMap.get(bondId) ?? bondId)))
@@ -2539,6 +2543,10 @@ export function cdxmlToChemDrawDocument(xmlString: string): ChemDrawConversionRe
           atomStereoAttr === 'N' || atomStereoAttr === 'r' || atomStereoAttr === 's'
             ? atomStereoAttr
             : undefined;
+        const atomNumber = child.getAttribute('AtomNumber') ?? undefined;
+        const showAtomNumberAttr = child.getAttribute('ShowAtomNumber');
+        const showAtomNumber =
+          showAtomNumberAttr === 'yes' ? true : showAtomNumberAttr === 'no' ? false : undefined;
         const bondOrdering = parseRingTemplateBondOrdering(child.getAttribute('BondOrdering'));
         let ringTemplateMemberships: ChemDrawNode['ringTemplateMemberships'];
         const ringTemplateMembershipsAttr = child.getAttribute(
@@ -2732,6 +2740,8 @@ export function cdxmlToChemDrawDocument(xmlString: string): ChemDrawConversionRe
           position: { x, y },
           ...(geometry ? { geometry } : {}),
           ...(atomStereo ? { atomStereo } : {}),
+          ...(atomNumber != null ? { atomNumber } : {}),
+          ...(showAtomNumber != null ? { showAtomNumber } : {}),
           ...(bondOrdering?.length ? { bondOrdering } : {}),
           ...(sourceNodeType ? { sourceNodeType } : {}),
           ...(element ? { element } : {}),
@@ -2766,6 +2776,8 @@ export function cdxmlToChemDrawDocument(xmlString: string): ChemDrawConversionRe
             'Isotope',
             'Geometry',
             'AS',
+            'AtomNumber',
+            'ShowAtomNumber',
             'BondOrdering',
             'NodeType',
             'ElementList',

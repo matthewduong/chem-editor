@@ -67,3 +67,21 @@ test('an SVG export draws the indicators when the view shows stereochemistry', a
   assert.ok(svg(true).includes('(R)'));
   assert.ok(!svg(false).includes('(R)'));
 });
+
+test("Show Stereochemistry is the file's ShowAtomStereo / ShowBondStereo", async () => {
+  const { cdxmlToChemDrawDocument, chemDrawDocumentToCDXML } =
+    await import('../.unit-test-dist/src/utils/cdxml.js');
+  const { applyDocumentViewSettings, resolveDocumentViewSettings, DEFAULT_APP_PREFERENCES } =
+    await import('../.unit-test-dist/src/lib/settings.js');
+  const source = (flag) =>
+    `<?xml version="1.0"?><CDXML ShowAtomStereo="${flag}" ShowBondStereo="${flag}"><page id="1"><fragment id="2"><n id="3" p="0 0"/></fragment></page></CDXML>`;
+  const on = cdxmlToChemDrawDocument(source('yes')).document;
+  assert.equal(resolveDocumentViewSettings(on, DEFAULT_APP_PREFERENCES).showStereochemistry, true);
+  const off = cdxmlToChemDrawDocument(source('no')).document;
+  const view = resolveDocumentViewSettings(off, DEFAULT_APP_PREFERENCES);
+  assert.notEqual(view.showStereochemistry, true);
+  const toggled = applyDocumentViewSettings(off, { ...view, showStereochemistry: true });
+  const xml = chemDrawDocumentToCDXML(toggled);
+  assert.match(xml, /ShowAtomStereo="yes"/);
+  assert.match(xml, /ShowBondStereo="yes"/);
+});

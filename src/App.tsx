@@ -72,6 +72,7 @@ import {
   createMoveSelectionCommand,
   createReorderSelectionCommand,
   createFlipSelectionCommand,
+  createToggleAtomNumbersCommand,
   createJoinSelectionCommand,
 } from './editor/commands';
 import {
@@ -2145,6 +2146,17 @@ function App() {
       if (matches('app.arrange.flip-v')) {
         e.preventDefault();
         flipSelection('vertical');
+      }
+      if (matches('app.structure.show-atom-number')) {
+        const state = useStore.getState();
+        if (state.selectedObjectIds.size || state.selectedAtomIds.size) {
+          e.preventDefault();
+          state.dispatchEditorCommand(
+            createToggleAtomNumbersCommand(
+              new Set([...state.selectedObjectIds, ...state.selectedAtomIds]),
+            ),
+          );
+        }
       }
       if (matches('app.arrange.rotate-180-h')) {
         e.preventDefault();

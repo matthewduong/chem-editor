@@ -643,6 +643,36 @@ for (const scale of [1, 2]) {
         )
         .toBe('(R)');
     });
+    test("' shows atom numbers, and they survive a later edit", async ({ page }) => {
+      await openEditor(page);
+      await tool(page, 'Chain');
+      const a = await point(page, 300, 300);
+      await page.mouse.click(a.x, a.y);
+      await page.getByPlaceholder('Carbons').fill('3');
+      await page.getByPlaceholder('Carbons').press('Enter');
+      await tool(page, 'Select');
+      const shown = () =>
+        page.evaluate(async () => {
+          const { useStore } = await import(String('/src/store/index.ts'));
+          const objects = useStore.getState().chemDrawDocument?.pages[0]?.objects ?? [];
+          return (objects as Array<{ type: string; showAtomNumber?: boolean; atomNumber?: string }>)
+            .filter((o) => o.type === 'node' && o.showAtomNumber)
+            .map((o) => o.atomNumber);
+        });
+      await page.evaluate(async () => {
+        const { useStore } = await import(String('/src/store/index.ts'));
+        const state = useStore.getState();
+        state.setSelectedAtomIds(new Set(state.atoms.map((atom: { id: string }) => atom.id)));
+      });
+      await page.keyboard.press("'");
+      expect(await shown()).toEqual(['1', '2', '3']);
+      await tool(page, 'Chain');
+      const b = await point(page, 300, 450);
+      await page.mouse.click(b.x, b.y);
+      await page.getByPlaceholder('Carbons').fill('2');
+      await page.getByPlaceholder('Carbons').press('Enter');
+      expect(await shown()).toEqual(['1', '2', '3']);
+    });
     test('chain preview commits once and cancellation creates no history', async ({ page }) => {
       await openEditor(page);
       await tool(page, 'Chain');

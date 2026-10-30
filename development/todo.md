@@ -75,7 +75,7 @@ Done in Phase II (2026-10-30), with ChemDraw's keys (preferences version 11).
       Stereochemistry, Stereochemistry Indicators
 - [ ] **Enhanced stereo flags (abs/AND/OR, chiral flag)** — absent in CDXML and V3000 · 17:
       Stereochemical Flags
-- [ ] **2D atom numbering** — only in the 3D viewer, or tags imported from CDXML · 10: Atom
+- [x] **2D atom numbering** — only in the 3D viewer, or tags imported from CDXML · 10: Atom
       Numbering
 - [ ] **Structure perspective** — absent · 10: Structure Perspective
 
