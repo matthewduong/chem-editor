@@ -21,8 +21,10 @@ import {
   scaleSelectedObjects,
   reorderSelectedObjects,
   flipSelectedObjects,
+  getSelectedNodeIds,
 } from '../../lib/chemdrawModel';
 import { buildDocumentIndex, getActivePage } from '../document';
+import { bondJoinPairs, joinNodes, overlappingNodePairs } from '../../lib/joinStructures';
 
 function replacePageObjects(
   document: ChemDrawDocument,
@@ -357,6 +359,77 @@ export function createFlipSelectionCommand(
         ),
         inversePatch: createReplaceDocumentCommand(document, 'undo:flip-selection'),
         changedObjectIds: selectionIds,
+      };
+    },
+  };
+}
+
+/**
+ * Object > Join (Ctrl+J): two selected bonds fuse into one shared bond, or two selected atoms
+ * into one atom. Anything else is left alone.
+ */
+export function createJoinSelectionCommand(options?: {
+  objectIds?: Iterable<string>;
+  description?: string;
+}): EditorCommand {
+  return {
+    type: 'join-selection',
+    description: options?.description ?? 'join',
+    apply(document, context) {
+      const ids = resolveSelectionIds(context, options?.objectIds);
+      const objects = document.pages[0]?.objects ?? [];
+      const bonds = objects.filter((object) => object.type === 'bond' && ids.has(object.id));
+      const nodes = objects.filter((object) => object.type === 'node' && ids.has(object.id));
+      const pairs =
+        bonds.length === 2
+          ? bondJoinPairs(document, bonds[0]!.id, bonds[1]!.id)
+          : nodes.length === 2
+            ? [[nodes[0]!.id, nodes[1]!.id] as [string, string]]
+            : [];
+      const next = pairs.length ? joinNodes(document, pairs) : document;
+      if (next === document) return { document, inversePatch: null, changedObjectIds: new Set() };
+      return {
+        document: next,
+        inversePatch: createReplaceDocumentCommand(document, 'undo:join'),
+        changedObjectIds: ids,
+      };
+    },
+  };
+}
+
+/**
+ * A selection drag that ends with an atom on another one: the move, snapped so the atom lands
+ * exactly, and the join, as one undo step.
+ */
+export function createMoveAndJoinCommand(
+  delta: { dx: number; dy: number },
+  tolerance: number,
+  options?: { objectIds?: Iterable<string> },
+): EditorCommand {
+  return {
+    type: 'move-and-join',
+    description: 'move-and-join',
+    apply(document, context) {
+      const ids = resolveSelectionIds(context, options?.objectIds);
+      if (ids.size === 0) return { document, inversePatch: null, changedObjectIds: new Set() };
+      let next = moveSelectedObjects(document, ids, delta.dx, delta.dy);
+      const moved = getSelectedNodeIds(next.pages[0]?.objects ?? [], ids);
+      const pairs = overlappingNodePairs(next, moved, tolerance);
+      if (pairs.length) {
+        const position = (id: string) => {
+          const node = next.pages[0]?.objects.find((object) => object.id === id);
+          return node?.type === 'node' ? node.position : null;
+        };
+        const [target, dropped] = pairs[0]!.map(position);
+        if (target && dropped) {
+          next = moveSelectedObjects(next, ids, target.x - dropped.x, target.y - dropped.y);
+        }
+        next = joinNodes(next, pairs);
+      }
+      return {
+        document: next,
+        inversePatch: createReplaceDocumentCommand(document, 'undo:move-and-join'),
+        changedObjectIds: ids,
       };
     },
   };

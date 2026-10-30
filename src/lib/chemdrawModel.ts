@@ -143,7 +143,7 @@ function clonePageObjects(document: ChemDrawDocument): ChemDrawObject[] | null {
   return [...page.objects];
 }
 
-function getSelectedNodeIds(
+export function getSelectedNodeIds(
   objects: ChemDrawObject[],
   selectedObjectIds: Set<string>,
 ): Set<string> {

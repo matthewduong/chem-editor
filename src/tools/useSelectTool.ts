@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState } from 'react';
 import {
-  createMoveSelectionCommand,
+  createMoveAndJoinCommand,
   createRotateSelectionCommand,
   createScaleSelectionCommand,
 } from '../editor/commands';
@@ -979,13 +979,12 @@ export function useSelectTool(): SelectToolOverlay & SelectToolActions {
       if (moveData?.sourceDocument && moveData.selectedObjectIds.size > 0) {
         clearSelectionPreviewTransform();
         if (Math.abs(moveData.totalDx) > 0.0001 || Math.abs(moveData.totalDy) > 0.0001) {
+          // An atom dropped on another joins it, the move and the join one undo step.
           dispatchEditorCommand(
-            createMoveSelectionCommand(
+            createMoveAndJoinCommand(
               { dx: moveData.totalDx, dy: moveData.totalDy },
-              {
-                objectIds: moveData.selectedObjectIds,
-                description: 'move-selection',
-              },
+              getCanvasEditorState().documentStyleSettings.bondLength * 0.2,
+              { objectIds: moveData.selectedObjectIds },
             ),
           );
         }

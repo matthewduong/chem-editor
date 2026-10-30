@@ -67,6 +67,7 @@ import {
   createMoveSelectionCommand,
   createReorderSelectionCommand,
   createFlipSelectionCommand,
+  createJoinSelectionCommand,
 } from './editor/commands';
 import {
   getChemDrawObjectCapability,
@@ -1169,6 +1170,13 @@ function App() {
     }
   }, [offPageContent, pageSetup.mode, showToast]);
 
+  /** Object > Join: two selected atoms or bonds fuse into one. */
+  const joinSelection = useCallback(() => {
+    const state = useStore.getState();
+    if (!state.chemDrawDocument || state.selectedObjectIds.size < 2) return;
+    state.dispatchEditorCommand(createJoinSelectionCommand({ objectIds: state.selectedObjectIds }));
+  }, []);
+
   /** Bring to Front / Send to Back for the selection. */
   const reorderSelection = useCallback((direction: 'front' | 'back') => {
     const state = useStore.getState();
@@ -2058,6 +2066,10 @@ function App() {
         e.preventDefault();
         groupSelected();
       }
+      if (matches('app.arrange.join')) {
+        e.preventDefault();
+        joinSelection();
+      }
       if (matches('app.arrange.bring-to-front')) {
         e.preventDefault();
         reorderSelection('front');
@@ -2114,6 +2126,7 @@ function App() {
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
   }, [
+    joinSelection,
     centerSelectionOnPage,
     reorderSelection,
     handleNewDocument,
@@ -3645,6 +3658,15 @@ function App() {
                   shortcut="Ctrl+Shift+G"
                 >
                   Ungroup
+                </MenuItem>
+                <MenuItem
+                  onClick={() => {
+                    joinSelection();
+                    setIsEditDropdownOpen(false);
+                  }}
+                  shortcut="Ctrl+J"
+                >
+                  Join
                 </MenuItem>
                 <MenuItem
                   onClick={() => {

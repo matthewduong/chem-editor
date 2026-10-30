@@ -233,6 +233,14 @@ export const APP_SHORTCUT_DEFINITIONS: ShortcutDefinition[] = [
     defaultBinding: { key: 'e', primary: true, shift: true },
   },
   {
+    id: 'app.arrange.join',
+    label: 'Join',
+    description: 'Fuse two selected atoms, or two selected bonds, into one. ChemDraw uses Ctrl+J.',
+    category: 'Arrange',
+    context: 'global',
+    defaultBinding: { key: 'j', primary: true },
+  },
+  {
     id: 'app.arrange.bring-to-front',
     label: 'Bring to front',
     description: 'Draw the selection in front of everything else. ChemDraw uses F2.',
