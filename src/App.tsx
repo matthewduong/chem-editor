@@ -2075,6 +2075,22 @@ function App() {
         e.preventDefault();
         useStore.getState().setFixedAngles(!useStore.getState().fixedAngles);
       }
+      if (matches('app.view.zoom-in')) {
+        e.preventDefault();
+        canvasRef.current?.zoomIn();
+      }
+      if (matches('app.view.zoom-out')) {
+        e.preventDefault();
+        canvasRef.current?.zoomOut();
+      }
+      if (matches('app.view.actual-size')) {
+        e.preventDefault();
+        canvasRef.current?.actualSize();
+      }
+      if (matches('app.view.fit-window')) {
+        e.preventDefault();
+        canvasRef.current?.fitToScreen();
+      }
       if (matches('app.arrange.join')) {
         e.preventDefault();
         joinSelection();

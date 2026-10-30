@@ -340,6 +340,26 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
     setStagePos({ x: 0, y: 0 });
   }, []);
 
+  /**
+   * Zoom so that `focus` (document coordinates; the middle of the view by default) stays where it
+   * is on screen. The +/- buttons used to scale about the stage origin, so the view drifted off.
+   */
+  const zoomTo = useCallback(
+    (nextScale: number, focus?: { x: number; y: number }) => {
+      const clamped = Math.min(10, Math.max(0.1, nextScale));
+      const screen = focus
+        ? { x: focus.x * stageScale + stagePos.x, y: focus.y * stageScale + stagePos.y }
+        : { x: width / 2, y: height / 2 };
+      const anchor = focus ?? {
+        x: (width / 2 - stagePos.x) / stageScale,
+        y: (height / 2 - stagePos.y) / stageScale,
+      };
+      setStageScale(clamped);
+      setStagePos({ x: screen.x - anchor.x * clamped, y: screen.y - anchor.y * clamped });
+    },
+    [height, stagePos, stageScale, width],
+  );
+
   // Modifier keyup can be missed when focus shifts through toolbar/input UI, so keep
   // the canvas state synced to the latest real browser event instead of trusting local
   // state alone.
@@ -1364,6 +1384,13 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
       y: pts.reduce((s, p) => s + p.y, 0) / pts.length,
     };
   };
+
+  /** Magnify / Reduce keep the selection in view (ChemDraw 17.1 guide, "Magnify"). */
+  const zoomBy = (factor: number) => zoomTo(stageScale * factor, getSelectionCenter() ?? undefined);
+  const zoomPercent = Math.round((stageScale / DEFAULT_STAGE_SCALE) * 100);
+  // The imperative handle is built once; these read the current view when called.
+  const zoomActionsRef = useRef({ zoomBy, zoomTo, getSelectionCenter });
+  zoomActionsRef.current = { zoomBy, zoomTo, getSelectionCenter };
 
   const SCALE_PAD =
     selectedAtomIds.size > 0 || selectedBondIds.size > 0 || selectedArrowIds.size > 0 ? 20 : 2;
@@ -3101,6 +3128,13 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
           document.execCommand(cmd, false, value);
         }
       },
+      zoomIn: () => zoomActionsRef.current.zoomBy(1.25),
+      zoomOut: () => zoomActionsRef.current.zoomBy(1 / 1.25),
+      actualSize: () =>
+        zoomActionsRef.current.zoomTo(
+          DEFAULT_STAGE_SCALE,
+          zoomActionsRef.current.getSelectionCenter() ?? undefined,
+        ),
       fitToScreen: () => {
         const {
           atoms,
@@ -3890,7 +3924,8 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
         }}
       >
         <button
-          onClick={() => setStageScale((s) => Math.min(s * 1.2, 10))}
+          title="Magnify (F7)"
+          onClick={() => zoomBy(1.25)}
           style={{
             width: '28px',
             height: '28px',
@@ -3903,8 +3938,39 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
         >
           +
         </button>
+        <input
+          aria-label="Magnification"
+          title="Magnification (1-999%)"
+          key={zoomPercent}
+          defaultValue={`${zoomPercent}%`}
+          onFocus={() => getCanvasEditorState().setIsInputFocused(true)}
+          onBlur={(e) => {
+            getCanvasEditorState().setIsInputFocused(false);
+            e.target.value = `${zoomPercent}%`;
+          }}
+          onKeyDown={(e) => {
+            if (e.key !== 'Enter') return;
+            const percent = Number.parseFloat(e.currentTarget.value);
+            if (Number.isFinite(percent) && percent >= 1 && percent <= 999) {
+              zoomTo((percent / 100) * DEFAULT_STAGE_SCALE);
+            }
+            e.currentTarget.blur();
+          }}
+          style={{
+            width: '44px',
+            height: '22px',
+            fontSize: '11px',
+            textAlign: 'center',
+            background: isDarkMode ? '#333' : '#fff',
+            border: '1px solid #ccc',
+            borderRadius: '4px',
+            color: isDarkMode ? '#fff' : '#000',
+            padding: 0,
+          }}
+        />
         <button
-          onClick={() => setStageScale((s) => Math.max(s / 1.2, 0.1))}
+          title="Reduce (F8)"
+          onClick={() => zoomBy(1 / 1.25)}
           style={{
             width: '28px',
             height: '28px',

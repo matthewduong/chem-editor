@@ -425,6 +425,23 @@ for (const scale of [1, 2]) {
       await page.keyboard.up('Alt');
       expect((await observe(page)).atoms).toHaveLength(8);
     });
+    test('F7, F8 and F5 zoom about the view and the readout takes a percentage', async ({
+      page,
+    }) => {
+      await openEditor(page);
+      const readout = page.getByLabel('Magnification');
+      await expect(readout).toHaveValue('100%');
+      await page.keyboard.press('F7');
+      await expect(readout).toHaveValue('125%');
+      await page.keyboard.press('F8');
+      await expect(readout).toHaveValue('100%');
+      await page.keyboard.press('F7');
+      await page.keyboard.press('F5');
+      await expect(readout).toHaveValue('100%');
+      await readout.fill('250');
+      await readout.press('Enter');
+      await expect(readout).toHaveValue('250%');
+    });
     test('chain preview commits once and cancellation creates no history', async ({ page }) => {
       await openEditor(page);
       await tool(page, 'Chain');

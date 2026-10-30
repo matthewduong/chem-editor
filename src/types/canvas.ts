@@ -29,6 +29,10 @@ export interface ChemCanvasRef {
   addFromSmiles: (input: string) => void;
   applyTextFormat: (cmd: string, value?: string) => void;
   fitToScreen: () => void;
+  /** View > Magnify, Reduce and Actual Size (ChemDraw F7, F8, F5). */
+  zoomIn: () => void;
+  zoomOut: () => void;
+  actualSize: () => void;
   moveContentIntoPage: () => void;
   centerPageInView: () => void;
 }
