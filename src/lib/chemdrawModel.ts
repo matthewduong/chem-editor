@@ -1,4 +1,9 @@
-import type { AtomLabelOrientation, CanvasState, DoubleBondMode } from '../types/chemistry';
+import type {
+  AtomLabelOrientation,
+  CanvasState,
+  DoubleBondMode,
+  TextBox,
+} from '../types/chemistry';
 import type {
   CanvasConversionResult,
   ChemDrawArrow,
@@ -28,6 +33,7 @@ import {
 } from './chemdrawMetrics';
 import { getAtomElectronAnnotations } from './electronAnnotations';
 import { getConnectedComponents } from './graph';
+import { getTextBoxRenderLines, getTextLineAdvance, measureRunWidth } from './textRunPresentation';
 import {
   atomLabelOrientationToJustification,
   justificationToAtomLabelOrientation,
@@ -158,6 +164,39 @@ export function getSelectedNodeIds(
   return nodeIds;
 }
 
+/** The flat text box a native text projects to; the scene lays text out from it. */
+export function nativeTextToTextBox(
+  text: ChemDrawText,
+  documentStyleSettings: DocumentStyleSettings,
+): TextBox {
+  return {
+    id: text.id,
+    x: text.anchor.x,
+    y: text.anchor.y,
+    runs: text.text.runs,
+    fontSize:
+      text.style?.fontSize != null
+        ? convertNativeToCanvas(text.style.fontSize, documentStyleSettings)
+        : getDocumentCaptionFontSize(documentStyleSettings),
+    fontFamily: text.style?.fontFamily ?? documentStyleSettings.nativeMetrics.captionFontFamily,
+    color: text.style?.color ?? '#000000',
+    textAlign: text.text.justification ?? 'center',
+    ...(text.text.width != null ? { width: text.text.width } : {}),
+    ...(text.style?.rotation != null ? { rotation: text.style.rotation } : {}),
+    ...(text.lineHeight != null
+      ? {
+          lineHeight:
+            text.lineHeight === 'variable'
+              ? ('variable' as const)
+              : convertNativeToCanvas(text.lineHeight, documentStyleSettings),
+        }
+      : {}),
+    ...(text.semanticMode ? { semanticMode: text.semanticMode } : {}),
+    ...(text.conversionStatus ? { conversionStatus: text.conversionStatus } : {}),
+    ...(text.chemicalMetadata ? { chemicalMetadata: text.chemicalMetadata } : {}),
+  };
+}
+
 function mapBounds(
   bounds: ChemDrawBounds,
   project: (x: number, y: number) => { x: number; y: number },
@@ -235,7 +274,7 @@ function mapGraphic(
  * An arrow under a transform. An arc arrow's centre and axis ends move with it: left behind, the
  * arc no longer fits its ends and was drawn and exported from stale axes.
  */
-function mapArrow(
+export function mapArrow(
   arrow: ChemDrawArrow,
   project: (x: number, y: number) => { x: number; y: number },
 ): ChemDrawArrow {
@@ -344,22 +383,27 @@ function objectBounds(
     };
   }
   if (object.type === 'text') {
-    const fontSize =
-      object.style?.fontSize != null
-        ? convertNativeToCanvas(object.style.fontSize, documentStyleSettings)
-        : 14;
-    const width =
-      object.text.width ??
-      Math.max(
-        object.text.runs.reduce((sum, run) => sum + run.text.length, 0) * fontSize * 0.6,
-        fontSize,
-      );
-    const height = fontSize;
+    // The ink of the laid-out lines, placed as the scene draws them: the anchor is the first
+    // line's top, and the lines are justified about it.
+    const box = nativeTextToTextBox(object, documentStyleSettings);
+    const lines = getTextBoxRenderLines(box);
+    const width = Math.max(
+      0,
+      ...lines.map((line) =>
+        line.reduce((sum, run) => sum + measureRunWidth(run, box.fontSize, box.fontFamily), 0),
+      ),
+    );
+    const left =
+      box.textAlign === 'center'
+        ? box.x - width / 2
+        : box.textAlign === 'right'
+          ? box.x - width
+          : box.x;
     return {
-      left: object.anchor.x - width / 2,
-      top: object.anchor.y - height / 2,
-      right: object.anchor.x + width / 2,
-      bottom: object.anchor.y + height / 2,
+      left,
+      top: box.y,
+      right: left + width,
+      bottom: box.y + lines.length * getTextLineAdvance(box),
     };
   }
   if (object.type === 'bracket') return object.bounds;
@@ -859,32 +903,7 @@ export function chemDrawDocumentToCanvasState(document: ChemDrawDocument): Canva
 
   const textBoxes = page.objects
     .filter((object): object is ChemDrawText => object.type === 'text')
-    .map((text) => ({
-      id: text.id,
-      x: text.anchor.x,
-      y: text.anchor.y,
-      runs: text.text.runs,
-      fontSize:
-        text.style?.fontSize != null
-          ? convertNativeToCanvas(text.style.fontSize, documentStyleSettings)
-          : getDocumentCaptionFontSize(documentStyleSettings),
-      fontFamily: text.style?.fontFamily ?? documentStyleSettings.nativeMetrics.captionFontFamily,
-      color: text.style?.color ?? '#000000',
-      textAlign: text.text.justification ?? 'center',
-      ...(text.text.width != null ? { width: text.text.width } : {}),
-      ...(text.style?.rotation != null ? { rotation: text.style.rotation } : {}),
-      ...(text.lineHeight != null
-        ? {
-            lineHeight:
-              text.lineHeight === 'variable'
-                ? ('variable' as const)
-                : convertNativeToCanvas(text.lineHeight, documentStyleSettings),
-          }
-        : {}),
-      ...(text.semanticMode ? { semanticMode: text.semanticMode } : {}),
-      ...(text.conversionStatus ? { conversionStatus: text.conversionStatus } : {}),
-      ...(text.chemicalMetadata ? { chemicalMetadata: text.chemicalMetadata } : {}),
-    }));
+    .map((text) => nativeTextToTextBox(text, documentStyleSettings));
 
   const queryNodes = page.objects.filter(
     (object): object is ChemDrawNode => object.type === 'node' && object.query != null,

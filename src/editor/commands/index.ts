@@ -26,6 +26,7 @@ import {
 import { buildDocumentIndex, getActivePage } from '../document';
 import { toggleAtomNumbers } from '../../lib/atomNumbers';
 import { assignReactionRole, type StepRole } from '../../lib/reactionRoles';
+import { cleanUpReaction } from '../../lib/reactionCleanup';
 import { setEnhancedStereo, type EnhancedStereoType } from '../../lib/enhancedStereo';
 import { perspectiveSelectedObjects } from '../../lib/structurePerspective';
 import { bondJoinPairs, joinNodes, overlappingNodePairs } from '../../lib/joinStructures';
@@ -387,6 +388,23 @@ export function createPerspectiveSelectionCommand(
         document: next,
         inversePatch: createReplaceDocumentCommand(document, 'undo:structure-perspective'),
         changedObjectIds: selectionIds,
+      };
+    },
+  };
+}
+
+/** Structure > Clean Up Reaction; see `cleanUpReaction`. */
+export function createCleanUpReactionCommand(): EditorCommand {
+  return {
+    type: 'clean-up-reaction',
+    description: 'clean-up-reaction',
+    apply(document, context) {
+      const next = cleanUpReaction(document, context.documentStyleSettings);
+      if (next === document) return { document, inversePatch: null, changedObjectIds: new Set() };
+      return {
+        document: next,
+        inversePatch: createReplaceDocumentCommand(document, 'undo:clean-up-reaction'),
+        changedObjectIds: new Set(),
       };
     },
   };

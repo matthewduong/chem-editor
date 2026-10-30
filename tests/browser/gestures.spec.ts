@@ -730,6 +730,34 @@ for (const scale of [1, 2]) {
       await page.keyboard.press('ControlOrMeta+z');
       expect((await step())?.aboveArrow).toEqual(['21']);
     });
+    test('Clean Up Reaction lays out the step as one undo step', async ({ page }) => {
+      await openEditor(page);
+      const source = readFileSync('tests/fixtures/cdxml/reaction-step.cdxml', 'utf8').replace(
+        '<t id="21" p="52 10">',
+        '<t id="21" p="-60 90">',
+      );
+      await page.evaluate(async (xml) => {
+        const { useStore } = await import(String('/src/store/index.ts'));
+        const api = await import(String('/src/lib/chemdrawDocumentCommands.ts'));
+        useStore.getState().replaceDocument(api.loadChemDrawDocumentForCanvas(xml).document);
+      }, source);
+      const textY = () =>
+        page.evaluate(async () => {
+          const { useStore } = await import(String('/src/store/index.ts'));
+          const text = useStore
+            .getState()
+            .chemDrawDocument?.pages[0]?.objects.find((o: { id: string }) => o.id === '21') as
+            | { anchor: { y: number } }
+            | undefined;
+          return text?.anchor.y ?? null;
+        });
+      const before = await textY();
+      await page.getByText('Edit', { exact: true }).click();
+      await page.getByText('Clean Up Reaction', { exact: true }).click();
+      expect(await textY()).toBeLessThan(before!);
+      await page.keyboard.press('ControlOrMeta+z');
+      expect(await textY()).toBe(before);
+    });
     test('chain preview commits once and cancellation creates no history', async ({ page }) => {
       await openEditor(page);
       await tool(page, 'Chain');

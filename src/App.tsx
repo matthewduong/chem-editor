@@ -76,6 +76,7 @@ import {
   createToggleAtomNumbersCommand,
   createEnhancedStereoCommand,
   createReactionRoleCommand,
+  createCleanUpReactionCommand,
   createJoinSelectionCommand,
 } from './editor/commands';
 import {
@@ -3909,6 +3910,19 @@ function App() {
                   }}
                 >
                   Enhanced Stereo: None
+                </MenuItem>
+                <MenuItem
+                  onClick={() => {
+                    const state = useStore.getState();
+                    if (!state.chemDrawDocument?.pages[0]?.schemes?.length) {
+                      state.showToast('Set reaction roles first (Edit > Reaction).', 'info');
+                    } else {
+                      state.dispatchEditorCommand(createCleanUpReactionCommand());
+                    }
+                    setIsEditDropdownOpen(false);
+                  }}
+                >
+                  Clean Up Reaction
                 </MenuItem>
                 <MenuItem
                   onClick={() => {

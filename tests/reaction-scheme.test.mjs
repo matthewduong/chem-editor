@@ -148,3 +148,42 @@ test('Show Reaction Interpretation outlines each role on screen only', async () 
   assert.deepEqual((await labels(true)).sort(), ['Above arrow', 'Arrow', 'Product', 'Reactant']);
   assert.deepEqual(await labels(false), []);
 });
+
+test('Clean Up Reaction lays the step out along its arrow', async () => {
+  const { cleanUpReaction } = await import('../.unit-test-dist/src/lib/reactionCleanup.js');
+  const { getObjectsBounds } = await import('../.unit-test-dist/src/lib/chemdrawModel.js');
+  const { DEFAULT_DOCUMENT_STYLE_SETTINGS: settings } =
+    await import('../.unit-test-dist/src/lib/settings.js');
+  // Scatter the fixture: the product far below, the reagent off to one side.
+  const { document } = cdxmlToChemDrawDocument(source);
+  const page = document.pages[0];
+  const shifted = {
+    ...document,
+    pages: [
+      {
+        ...page,
+        objects: page.objects.map((o) =>
+          o.type === 'node' && ['31', '32', '33'].includes(o.id)
+            ? { ...o, position: { x: o.position.x + 40, y: o.position.y + 90 } }
+            : o.type === 'text' && o.id === '21'
+              ? { ...o, anchor: { x: o.anchor.x - 70, y: o.anchor.y + 50 } }
+              : o,
+        ),
+      },
+    ],
+  };
+  const clean = cleanUpReaction(shifted, settings);
+  const arrow = clean.pages[0].objects.find((o) => o.id === '20');
+  const box = (id) => getObjectsBounds(clean, [id], settings);
+  const midY = (b) => (b.top + b.bottom) / 2;
+  const gap = settings.bondLength;
+  assert.ok(Math.abs(box('10').right - (arrow.tail.x - gap)) < 1e-6);
+  assert.ok(Math.abs(box('30').left - (arrow.head.x + gap)) < 1e-6);
+  assert.ok(Math.abs(midY(box('10')) - arrow.tail.y) < 1e-6);
+  assert.ok(Math.abs(midY(box('30')) - arrow.tail.y) < 1e-6);
+  const reagent = box('21');
+  assert.ok(reagent.bottom < arrow.tail.y);
+  assert.ok(
+    Math.abs((reagent.left + reagent.right) / 2 - (arrow.tail.x + arrow.head.x) / 2) < 1e-6,
+  );
+});
