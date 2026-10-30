@@ -1,4 +1,4 @@
-import { DEFAULT_DOUBLE_BOND_MODE } from '../../lib/renderGeometry';
+import { DEFAULT_DOUBLE_BOND_MODE, nextBondOrder } from '../../lib/renderGeometry';
 import { setAliasAtomValue } from '../../lib/atomIdentity';
 import type { Arrow } from '../../types/chemistry';
 import type { ChemDrawDocument, ChemDrawObject } from '../../types/chemdraw';
@@ -117,10 +117,10 @@ export function buildPreviewScene(
               bond.id === existing.id
                 ? {
                     ...bond,
-                    order: (bond.order % 3) + 1,
+                    order: nextBondOrder(bond.order),
                     stereo: 0,
                     doubleBondMode:
-                      (bond.order % 3) + 1 === 2
+                      nextBondOrder(bond.order) === 2
                         ? (bond.doubleBondMode ?? DEFAULT_DOUBLE_BOND_MODE)
                         : undefined,
                   }

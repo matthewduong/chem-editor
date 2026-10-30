@@ -4,7 +4,11 @@ import { createReplaceDocumentCommand } from '../editor/commands';
 import { ToolLifecycle } from '../editor/toolLifecycle';
 import type { ChemDrawDocument } from '../types/chemdraw';
 import { applyBondEdit, reverseBondDirection } from '../lib/chemdrawModel';
-import { DEFAULT_DOUBLE_BOND_MODE, getNextDoubleBondToolMode } from '../lib/renderGeometry';
+import {
+  DEFAULT_DOUBLE_BOND_MODE,
+  getNextDoubleBondToolMode,
+  nextBondOrder,
+} from '../lib/renderGeometry';
 import { getNewBondAngle } from '../lib/newBondAngle';
 import { resolveChairAttachmentSnapping } from '../lib/ringTemplates';
 import { commitCanvasEdit, getCanvasEditorState, previewCanvasEdit, useStore } from '../store';
@@ -287,10 +291,10 @@ export function useBondTool(): BondToolOverlay & BondToolActions {
           b.id === existing.id
             ? {
                 ...b,
-                order: (b.order % 3) + 1,
+                order: nextBondOrder(b.order),
                 stereo: 0,
                 doubleBondMode:
-                  (b.order % 3) + 1 === 2
+                  nextBondOrder(b.order) === 2
                     ? (b.doubleBondMode ?? DEFAULT_DOUBLE_BOND_MODE)
                     : undefined,
               }

@@ -34,3 +34,13 @@ test('a typed chain zigzags 30° either side of its axis', () => {
   assert.ok(points[1].y > 0 && points[2].y < points[1].y);
   assert.ok(Math.abs(points[2].y) < 1e-9);
 });
+
+test('dragging along a bond cycles single, double, triple, quadruple, single', async () => {
+  const { nextBondOrder } = await import('../.unit-test-dist/src/lib/renderGeometry.js');
+  assert.deepEqual([1, 2, 3, 4].map(nextBondOrder), [2, 3, 4, 1]);
+});
+
+test('V2000 bond types: aromatic is 4, a quadruple bond goes out single', async () => {
+  const { molfileBondType } = await import('../.unit-test-dist/src/lib/graph.js');
+  assert.deepEqual([1, 2, 3, 1.5, 4].map(molfileBondType), [1, 2, 3, 4, 1]);
+});

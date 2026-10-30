@@ -346,6 +346,17 @@ export function normalizeMolblockBondLength(
   };
 }
 
+/**
+ * The V2000 bond type for a bond order. V2000 has types 1-3 and 4 for aromatic only: an aromatic
+ * 1.5 is 4, and a quadruple (or higher) bond, which V2000 cannot say, goes out single rather
+ * than as an aromatic bond. Written raw, 1.5 broke the line and 4 turned quadruple into aromatic.
+ */
+export function molfileBondType(order: number): number {
+  if (order === 1.5) return 4;
+  if (order === 2 || order === 3) return order;
+  return 1;
+}
+
 /** Convert canvas graph to V2000 Molblock string */
 export function graphToMolblock(
   atoms: Atom[],
@@ -394,7 +405,7 @@ export function graphToMolblock(
     const fi = atomIndexById.get(bond.from) ?? 0;
     const ti = atomIndexById.get(bond.to) ?? 0;
     if (fi <= 0 || ti <= 0) continue;
-    bondBlock += `${fi.toString().padStart(3)}${ti.toString().padStart(3)}${bond.order.toString().padStart(3)}${(bond.stereo ?? 0).toString().padStart(3)}  0  0  0\n`;
+    bondBlock += `${fi.toString().padStart(3)}${ti.toString().padStart(3)}${molfileBondType(bond.order).toString().padStart(3)}${(bond.stereo ?? 0).toString().padStart(3)}  0  0  0\n`;
   }
   const charged = atoms.filter((a) => a.charge);
   let chgBlock = '';

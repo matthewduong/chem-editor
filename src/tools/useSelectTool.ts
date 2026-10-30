@@ -6,7 +6,7 @@ import {
 } from '../editor/commands';
 import { ToolLifecycle } from '../editor/toolLifecycle';
 import { SNAP_ANGLE } from '../lib/graph';
-import { getArrowSelectionPoints } from '../lib/renderGeometry';
+import { getArrowSelectionPoints, nextBondOrder } from '../lib/renderGeometry';
 import { commitCanvasEdit, getCanvasEditorState, previewCanvasEdit } from '../store';
 import type { ChemDrawDocument } from '../types/chemdraw';
 import type { Arrow, Atom, Bond, TextBox } from '../types/chemistry';
@@ -319,7 +319,7 @@ export function useSelectTool(): SelectToolOverlay & SelectToolActions {
             commitCanvasEdit({
               atoms,
               bonds: bonds.map((b) =>
-                b.id === hitBond.id ? { ...b, order: (b.order % 3) + 1, stereo: 0 } : b,
+                b.id === hitBond.id ? { ...b, order: nextBondOrder(b.order), stereo: 0 } : b,
               ),
               arrows,
               groups: groups ?? [],

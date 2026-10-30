@@ -1,3 +1,4 @@
+import { nextBondOrder } from '../lib/renderGeometry';
 import { bondDragEnd } from '../lib/newBondAngle';
 import { useCallback, useRef, useState } from 'react';
 import { createReplaceDocumentCommand } from '../editor/commands';
@@ -268,7 +269,7 @@ export function useAtomTool(): AtomToolOverlay & AtomToolActions {
       );
       const newBonds = existing
         ? bonds.map((b) =>
-            b.id === existing.id ? { ...b, order: (b.order % 3) + 1, stereo: 0 } : b,
+            b.id === existing.id ? { ...b, order: nextBondOrder(b.order), stereo: 0 } : b,
           )
         : [...bonds, { id: crypto.randomUUID(), from: aid, to: targetId, order: 1, stereo: 0 }];
       commitCanvasEdit({

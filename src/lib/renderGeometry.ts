@@ -1414,3 +1414,12 @@ export function computeAllBondVisibleIntervals(
   });
   return intervals;
 }
+
+/**
+ * The order a bond takes when a bond tool is dragged along it again: single, double, triple,
+ * then quadruple ("drag from one end of an existing triple bond to the other end", ChemDraw 17.1
+ * guide, "Quadruple Bonds"), then back to single.
+ */
+export function nextBondOrder(order: number): number {
+  return order === 1 ? 2 : order === 2 ? 3 : order === 3 ? 4 : 1;
+}

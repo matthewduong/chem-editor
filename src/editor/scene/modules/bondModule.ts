@@ -343,6 +343,23 @@ export const BOND_MODULE: ObjectModule = {
       return;
     }
 
+    if (bond.order === 4) {
+      // Four evenly spaced lines, the double bond's spacing apart; the outer two are trimmed at
+      // the ends as a triple bond's are.
+      for (const k of [-1.5, -0.5, 0.5, 1.5]) {
+        const offset = k * visual.parallelOffset;
+        const inset = Math.abs(k) > 1 ? visual.tripleInlineInset : 0;
+        drawSegmentedLine(
+          startX + normalX * offset + unitX * inset,
+          startY + normalY * offset + unitY * inset,
+          endX + normalX * offset - unitX * inset,
+          endY + normalY * offset - unitY * inset,
+        );
+      }
+      ctx.restore();
+      return;
+    }
+
     if (object.query?.allowedOrders?.length) {
       drawSegmentedLine(startX, startY, endX, endY, lineWidth, [5, 5]);
       ctx.font = `10px ${getPaintFontFamily(context.scene.documentStyleSettings.nativeMetrics.captionFontFamily)}`;

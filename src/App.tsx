@@ -5362,6 +5362,7 @@ function App() {
             { label: '⎯', order: 1, stereo: 0 },
             { label: '═', order: 2, stereo: 0 },
             { label: '≡', order: 3, stereo: 0 },
+            { label: '≣', order: 4, stereo: 0 },
             { label: '▲', order: 1, stereo: 1 },
             { label: '▤', order: 1, stereo: 6 },
           ].map(({ label, order, stereo: s }) => (
