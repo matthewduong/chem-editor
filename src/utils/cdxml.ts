@@ -45,6 +45,9 @@ import type {
   ChemDrawGraphic,
   ChemDrawGroup,
   ChemDrawNode,
+  ChemDrawReactionRole,
+  ChemDrawReactionScheme,
+  ChemDrawReactionStep,
   ChemDrawObject,
   ChemDrawObjectTag,
   ChemDrawPreservationMetadata,
@@ -1121,6 +1124,66 @@ function emitObjectTags(
  * objects that keep their original ID (fragments, arrows, graphics, preserved XML) would otherwise
  * collide with the freshly numbered nodes and bonds.
  */
+const STEP_LISTS = [
+  ['reactants', 'ReactionStepReactants'],
+  ['products', 'ReactionStepProducts'],
+  ['arrows', 'ReactionStepArrows'],
+  ['aboveArrow', 'ReactionStepObjectsAboveArrow'],
+  ['belowArrow', 'ReactionStepObjectsBelowArrow'],
+] as const;
+
+/**
+ * A `<scheme>` whose children are all `<step>`s, as ChemDraw writes one; anything else in it
+ * leaves the whole scheme to the raw-preservation path.
+ */
+function parseReactionScheme(schemeEl: Element): ChemDrawReactionScheme | null {
+  const children = Array.from(elementChildren(schemeEl));
+  if (children.some((child) => child.tagName !== 'step')) return null;
+  const steps = children.map((stepEl): ChemDrawReactionStep => {
+    const list = (name: string) =>
+      (stepEl.getAttribute(name) ?? '').split(/\s+/).filter((id) => id.length > 0);
+    const rawAttributes = collectUnhandledAttributes(stepEl, [
+      'id',
+      ...STEP_LISTS.map(([, attribute]) => attribute),
+    ]);
+    return {
+      ...(stepEl.getAttribute('id') ? { id: stepEl.getAttribute('id')! } : {}),
+      reactants: list('ReactionStepReactants'),
+      products: list('ReactionStepProducts'),
+      arrows: list('ReactionStepArrows'),
+      aboveArrow: list('ReactionStepObjectsAboveArrow'),
+      belowArrow: list('ReactionStepObjectsBelowArrow'),
+      ...(rawAttributes ? { rawAttributes } : {}),
+    };
+  });
+  const rawAttributes = collectUnhandledAttributes(schemeEl, ['id']);
+  return {
+    ...(schemeEl.getAttribute('id') ? { id: schemeEl.getAttribute('id')! } : {}),
+    steps,
+    ...(rawAttributes ? { rawAttributes } : {}),
+  };
+}
+
+/** The page's schemes, each step naming only objects still on the page. */
+function emitReactionSchemes(page: ChemDrawDocument['pages'][number]): string {
+  if (!page.schemes?.length) return '';
+  const present = new Set(page.objects.map((object) => object.id));
+  let xml = '';
+  for (const scheme of page.schemes) {
+    xml += `    <scheme${scheme.id ? ` id="${xmlEscape(scheme.id)}"` : ''}${emitRawAttributes(scheme.rawAttributes)}>\n`;
+    for (const step of scheme.steps) {
+      let attrs = step.id ? ` id="${xmlEscape(step.id)}"` : '';
+      for (const [key, attribute] of STEP_LISTS) {
+        const ids = step[key].filter((id) => present.has(id));
+        if (ids.length) attrs += ` ${attribute}="${ids.map(xmlEscape).join(' ')}"`;
+      }
+      xml += `      <step${attrs}${emitRawAttributes(step.rawAttributes)}/>\n`;
+    }
+    xml += `    </scheme>\n`;
+  }
+  return xml;
+}
+
 function makeIdGen(reserved: ReadonlySet<string> = new Set()) {
   let n = 1;
   return () => {
@@ -2160,6 +2223,8 @@ function chemDrawDocumentToCDXMLInternal(document: ChemDrawDocument): string {
     xml += emitGroupXml(group);
   }
 
+  xml += emitReactionSchemes(page);
+
   for (const preservedChild of page.preservedPageChildren ?? []) {
     xml += `    ${preservedChild.xml.endsWith('\n') ? preservedChild.xml : `${preservedChild.xml}\n`}`;
   }
@@ -2218,6 +2283,7 @@ export function cdxmlToChemDrawDocument(xmlString: string): ChemDrawConversionRe
   const preservedPageChildren: NonNullable<
     ChemDrawDocument['pages'][number]['preservedPageChildren']
   > = [];
+  const schemes: ChemDrawReactionScheme[] = [];
   const preservedDocumentAttributes = collectUnhandledAttributes(root, [
     'BondSpacing',
     'BondSpacingAbs',
@@ -4004,6 +4070,13 @@ export function cdxmlToChemDrawDocument(xmlString: string): ChemDrawConversionRe
         objects.push(importGroupElement(child));
         continue;
       }
+      if (tag === 'scheme') {
+        const scheme = parseReactionScheme(child);
+        if (scheme) {
+          schemes.push(scheme);
+          continue;
+        }
+      }
       if (tag === 'scheme' || tag === 'step') {
         const hasModeledDescendants = Boolean(
           allElements(child).find((el) =>
@@ -4050,15 +4123,33 @@ export function cdxmlToChemDrawDocument(xmlString: string): ChemDrawConversionRe
     }
   }
 
-  const firstReactionArrow = objects.find(
-    (object): object is ChemDrawArrow =>
-      object.type === 'arrow' &&
-      // A plain line (no heads at either end) points nowhere, so it orders nothing.
-      !(object.headEnd === 'none' && (object.tailEnd ?? 'none') === 'none') &&
-      (object.arrowType === 'reaction' ||
-        object.arrowType === 'equilibrium' ||
-        object.arrowType === 'retrosynthetic'),
-  );
+  // A step says what each object is; only without one are roles guessed from an arrow.
+  const stepRoles = new Map<string, ChemDrawReactionRole>();
+  for (const step of schemes.flatMap((scheme) => scheme.steps)) {
+    for (const id of step.reactants) stepRoles.set(id, 'reactant');
+    for (const id of step.products) stepRoles.set(id, 'product');
+    for (const id of [...step.aboveArrow, ...step.belowArrow]) {
+      if (!stepRoles.has(id)) stepRoles.set(id, 'agent');
+    }
+  }
+  if (stepRoles.size > 0) {
+    for (const object of objects) {
+      const role = stepRoles.get(object.id);
+      if (role && object.type === 'fragment') object.role = role;
+    }
+  }
+  const firstReactionArrow =
+    stepRoles.size > 0
+      ? undefined
+      : objects.find(
+          (object): object is ChemDrawArrow =>
+            object.type === 'arrow' &&
+            // A plain line (no heads at either end) points nowhere, so it orders nothing.
+            !(object.headEnd === 'none' && (object.tailEnd ?? 'none') === 'none') &&
+            (object.arrowType === 'reaction' ||
+              object.arrowType === 'equilibrium' ||
+              object.arrowType === 'retrosynthetic'),
+        );
   if (firstReactionArrow) {
     const dx = firstReactionArrow.head.x - firstReactionArrow.tail.x;
     const dy = firstReactionArrow.head.y - firstReactionArrow.tail.y;
@@ -4251,6 +4342,7 @@ export function cdxmlToChemDrawDocument(xmlString: string): ChemDrawConversionRe
           ...(pageBounds ? { bounds: pageBounds } : {}),
           objects,
           ...(preservedPageChildren.length ? { preservedPageChildren } : {}),
+          ...(schemes.length ? { schemes } : {}),
         },
       ],
       metadata: {

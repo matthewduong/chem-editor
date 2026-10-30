@@ -372,10 +372,33 @@ export type ChemDrawObject =
   | ChemDrawTable
   | ChemDrawGroup;
 
+/**
+ * One step of a reaction (CDXML `<step>`): ids of the objects in each role, as ChemDraw's
+ * reaction interpretation reads them.
+ */
+export interface ChemDrawReactionStep {
+  id?: string;
+  reactants: string[];
+  products: string[];
+  arrows: string[];
+  aboveArrow: string[];
+  belowArrow: string[];
+  rawAttributes?: Record<string, string>;
+}
+
+/** A reaction scheme (CDXML `<scheme>`): its steps in order. */
+export interface ChemDrawReactionScheme {
+  id?: string;
+  steps: ChemDrawReactionStep[];
+  rawAttributes?: Record<string, string>;
+}
+
 export interface ChemDrawPage {
   id: string;
   bounds?: ChemDrawBounds;
   objects: ChemDrawObject[];
+  /** Reaction schemes; drawn by nothing, read by reaction tools and written back. */
+  schemes?: ChemDrawReactionScheme[];
   preservedPageChildren?: Array<{
     tagName: string;
     xml: string;
