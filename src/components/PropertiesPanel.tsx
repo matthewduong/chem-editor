@@ -5,6 +5,55 @@ import { FloatingPanel } from './FloatingPanel';
 import type { MoleculeProperties } from '../types/chemistry';
 import type { PanelTheme } from '../types/panelTheme';
 import { invokeTauri } from '../lib/tauri';
+import { commitCanvasEdit } from '../store';
+import { resolveDocumentCaptionTextStyle } from '../lib/chemdrawMetrics';
+import {
+  formatElementalAnalysis,
+  formatMassPeaks,
+  isotopePeaks,
+  parseFormula,
+} from '../lib/massAnalysis';
+import type { TextRun } from '../types/chemistry';
+
+/**
+ * Analysis > Paste (ChemDraw 17.1 guide, "Structure Analysis"): the chosen values as one caption
+ * under the structure analysed (the selection, or else everything), one undo step.
+ */
+function pasteAnalysisCaption(lines: Array<{ label: string; value: string; formula?: boolean }>) {
+  const state = useStore.getState();
+  const atoms = state.selectedAtomIds.size
+    ? state.atoms.filter((atom) => state.selectedAtomIds.has(atom.id))
+    : state.atoms;
+  if (atoms.length === 0 || lines.length === 0) return;
+  const xs = atoms.map((atom) => atom.x);
+  const bottom = Math.max(...atoms.map((atom) => atom.y));
+  const style = resolveDocumentCaptionTextStyle(state.documentStyleSettings);
+  const runs: TextRun[] = lines.flatMap((line, index) => [
+    { text: `${index > 0 ? '\n' : ''}${line.label}: ` },
+    { text: line.value, ...(line.formula ? { formula: true } : {}) },
+  ]);
+  commitCanvasEdit({
+    atoms: state.atoms,
+    bonds: state.bonds,
+    arrows: state.arrows,
+    groups: state.groups ?? [],
+    textBoxes: [
+      ...(state.textBoxes ?? []),
+      {
+        id: crypto.randomUUID(),
+        x: (Math.min(...xs) + Math.max(...xs)) / 2,
+        y: bottom + state.documentStyleSettings.bondLength,
+        runs,
+        fontSize: style.fontSize,
+        fontFamily: style.fontFamily,
+        color: state.textFormat.color,
+        textAlign: 'center',
+        semanticMode: 'plain',
+        conversionStatus: 'plain',
+      },
+    ],
+  });
+}
 
 interface Props {
   theme: PanelTheme;
@@ -56,11 +105,29 @@ export function PropertiesPanel({ theme, isDarkMode, viewerSmiles }: Props) {
   });
 
   const p = state.data;
+  const parsed = p ? parseFormula(p.formula) : null;
+  // The Analysis window's values, under the labels ChemDraw pastes them with.
+  const analysis = p
+    ? [
+        { label: 'Chemical Formula', value: p.formula, formula: true },
+        { label: 'Exact Mass', value: p.exact_mass.toFixed(2) },
+        { label: 'Molecular Weight', value: p.mw.toFixed(2) },
+        ...(parsed
+          ? [
+              { label: 'm/z', value: formatMassPeaks(isotopePeaks(parsed)) },
+              { label: 'Elemental Analysis', value: formatElementalAnalysis(parsed.counts) },
+            ]
+          : []),
+      ]
+    : [];
   const rows: [string, string][] = p
     ? [
         ['Formula', p.formula],
         ['MW', `${p.mw.toFixed(2)} g/mol`],
         ['Exact Mass', `${p.exact_mass.toFixed(4)} Da`],
+        ...analysis
+          .filter((line) => line.label === 'm/z' || line.label === 'Elemental Analysis')
+          .map((line): [string, string] => [line.label, line.value]),
         ['LogP', p.logp.toFixed(2)],
         ['TPSA', `${p.tpsa.toFixed(1)} Å²`],
         ['H-Bond Donors', String(p.hbd)],
@@ -72,6 +139,23 @@ export function PropertiesPanel({ theme, isDarkMode, viewerSmiles }: Props) {
         ['Heavy Atoms', String(p.heavy_atoms)],
       ]
     : [];
+
+  const analysisLineFor = (rowLabel: string) =>
+    analysis.find(
+      (line) =>
+        line.label === rowLabel ||
+        (rowLabel === 'Formula' && line.label === 'Chemical Formula') ||
+        (rowLabel === 'MW' && line.label === 'Molecular Weight'),
+    );
+  const pasteButtonStyle = {
+    border: 'none',
+    background: 'transparent',
+    color: theme.text,
+    cursor: 'pointer',
+    fontSize: 11,
+    padding: 0,
+    opacity: 0.7,
+  };
 
   return (
     <FloatingPanel
@@ -119,6 +203,19 @@ export function PropertiesPanel({ theme, isDarkMode, viewerSmiles }: Props) {
             <tbody>
               {rows.map(([label, value]) => (
                 <tr key={label} style={{ borderBottom: `1px solid ${theme.border}` }}>
+                  <td style={{ width: 18, padding: 0 }}>
+                    {analysisLineFor(label) && (
+                      <button
+                        type="button"
+                        title={`Paste ${label} as a caption`}
+                        aria-label={`Paste ${label} as a caption`}
+                        onClick={() => pasteAnalysisCaption([analysisLineFor(label)!])}
+                        style={pasteButtonStyle}
+                      >
+                        ⤓
+                      </button>
+                    )}
+                  </td>
                   <td style={{ padding: '4px 6px', color: '#888', whiteSpace: 'nowrap' }}>
                     {label}
                   </td>
@@ -136,6 +233,15 @@ export function PropertiesPanel({ theme, isDarkMode, viewerSmiles }: Props) {
               ))}
             </tbody>
           </table>
+        )}
+        {state.status === 'success' && p && (
+          <button
+            type="button"
+            onClick={() => pasteAnalysisCaption(analysis)}
+            style={{ marginTop: 8, fontSize: 11, width: '100%' }}
+          >
+            Paste analysis as caption
+          </button>
         )}
       </div>
     </FloatingPanel>

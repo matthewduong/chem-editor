@@ -66,7 +66,7 @@ Done in Phase II (2026-10-30), with ChemDraw's keys (preferences version 11).
       10: The Reaction Interpreter
 - [ ] **Arrows attached to objects** — arrows are free endpoints · 6: Arrows, Connecting Arrows
 - [ ] **Mass fragmentation tool** — absent · 10: Mass Fragmentation
-- [ ] **Insert analysis as a caption** — Properties panel has no insert action · 12: Structure
+- [x] **Insert analysis as a caption** — Properties panel has no insert action · 12: Structure
       Analysis
 
 ## Stereochemistry and numbering
@@ -83,7 +83,7 @@ Done in Phase II (2026-10-30), with ChemDraw's keys (preferences version 11).
 
 - [ ] **Struct>Name** — no naming code anywhere · 11: Struct>Name
 - [ ] **Name>Struct, including captions** — only a fixed acronym dictionary · 11: Name>Struct
-- [ ] **m/z and elemental analysis** — Properties shows formula, MW and exact mass only · 12:
+- [x] **m/z and elemental analysis** — Properties shows formula, MW and exact mass only · 12:
       Structure Analysis
 
 ## Query structures
