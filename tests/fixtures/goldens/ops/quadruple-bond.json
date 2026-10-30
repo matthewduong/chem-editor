@@ -255,6 +255,90 @@
   },
   {
     "op": "call",
+    "name": "save",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "beginPath",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "moveTo",
+    "args": [
+      10,
+      10
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      110,
+      10
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      110,
+      70
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      10,
+      70
+    ]
+  },
+  {
+    "op": "call",
+    "name": "closePath",
+    "args": []
+  },
+  {
+    "op": "set",
+    "prop": "strokeStyle",
+    "value": "#333333"
+  },
+  {
+    "op": "set",
+    "prop": "lineWidth",
+    "value": 0.6
+  },
+  {
+    "op": "set",
+    "prop": "lineCap",
+    "value": "round"
+  },
+  {
+    "op": "set",
+    "prop": "lineJoin",
+    "value": "round"
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "call",
+    "name": "stroke",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "restore",
+    "args": []
+  },
+  {
+    "op": "call",
     "name": "restore",
     "args": []
   }

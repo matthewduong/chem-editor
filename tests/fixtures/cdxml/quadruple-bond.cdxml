@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- A Mo-Mo quadruple bond (Order="4"), which used to import as a triple. -->
+<!-- A Mo-Mo quadruple bond (Order="4"), which used to import as a triple, in a frame that keeps
+     the page bounds independent of the atoms. -->
 <CDXML BondLength="14.4" LineWidth="0.6">
   <page id="100">
+    <graphic id="9" GraphicType="Rectangle" BoundingBox="10 10 110 70"/>
     <fragment id="1">
       <n id="2" p="40 40" Element="42"/>
       <n id="3" p="80 40" Element="42"/>
