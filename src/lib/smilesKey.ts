@@ -56,7 +56,19 @@ function parse(smiles: string): Graph {
 }
 
 export function smilesStructureKey(smiles: string): string {
-  const { atoms, bonds } = parse(smiles);
+  return graphStructureKey(parse(smiles));
+}
+
+/**
+ * The same key for a graph given directly: element labels (upper case) and bonds as
+ * [from, to, order], rooted at atom 0. Lets a drawn substructure be compared with a shorthand's
+ * SMILES.
+ */
+export function graphStructureKey(graph: {
+  atoms: string[];
+  bonds: Array<[number, number, number]>;
+}): string {
+  const { atoms, bonds } = graph;
   const neighbours: Array<Array<{ to: number; order: number }>> = atoms.map(() => []);
   // Orders inside rings are dropped, so an aromatic ring and its Kekule spelling share a key;
   // orders on bonds outside rings are kept, which is what tells allyl from propenyl.

@@ -29,6 +29,9 @@ export interface ChemCanvasRef {
   addFromSmiles: (input: string) => void;
   applyTextFormat: (cmd: string, value?: string) => void;
   fitToScreen: () => void;
+  /** Structure > Expand Label / Contract Label for the selection. */
+  expandLabels: () => void;
+  contractLabel: () => void;
   /** View > Magnify, Reduce and Actual Size (ChemDraw F7, F8, F5). */
   zoomIn: () => void;
   zoomOut: () => void;

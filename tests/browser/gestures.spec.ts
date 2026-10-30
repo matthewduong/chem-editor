@@ -530,6 +530,42 @@ for (const scale of [1, 2]) {
       await expect(label).toHaveValue('Cα′');
       await expect(label).toBeFocused();
     });
+    test('Expand Label lays out a nickname and Contract Label folds it back', async ({ page }) => {
+      await openEditor(page);
+      await tool(page, 'Chain');
+      const a = await point(page, 400, 300);
+      await page.mouse.click(a.x, a.y);
+      await page.getByPlaceholder('Carbons').fill('2');
+      await page.getByPlaceholder('Carbons').press('Enter');
+      const end = (await observe(page)).atoms[1]!.id;
+      await tool(page, 'Select');
+      const select = (ids: string[]) =>
+        page.evaluate(async (atomIds) => {
+          const { useStore } = await import(String('/src/store/index.ts'));
+          useStore.getState().setSelectedAtomIds(new Set(atomIds));
+        }, ids);
+      await select([end]);
+      const label = page
+        .getByLabel('Isotope mass number')
+        .locator('xpath=../..')
+        .locator('input')
+        .first();
+      await label.fill('OMe');
+      await label.press('Enter');
+      await select([end]);
+      await page.getByText('Edit', { exact: true }).click();
+      await page.getByText('Expand Label', { exact: true }).click();
+      const expanded = (await observe(page)).atoms;
+      expect(expanded).toHaveLength(3);
+      expect(expanded.find((x) => x.id === end)!.element).toBe('O');
+      const methyl = expanded.find((x) => x.id !== end && x.id !== expanded[0]!.id)!;
+      await select([end, methyl.id]);
+      await page.getByText('Edit', { exact: true }).click();
+      await page.getByText('Contract Label', { exact: true }).click();
+      const contracted = (await observe(page)).atoms;
+      expect(contracted).toHaveLength(2);
+      expect(contracted.find((x) => x.id === end)!.alias).toBe('OMe');
+    });
     test('chain preview commits once and cancellation creates no history', async ({ page }) => {
       await openEditor(page);
       await tool(page, 'Chain');

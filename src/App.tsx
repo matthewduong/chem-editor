@@ -3770,6 +3770,22 @@ function App() {
                 <MenuSeparator />
                 <MenuItem
                   onClick={() => {
+                    canvasRef.current?.expandLabels();
+                    setIsEditDropdownOpen(false);
+                  }}
+                >
+                  Expand Label
+                </MenuItem>
+                <MenuItem
+                  onClick={() => {
+                    canvasRef.current?.contractLabel();
+                    setIsEditDropdownOpen(false);
+                  }}
+                >
+                  Contract Label
+                </MenuItem>
+                <MenuItem
+                  onClick={() => {
                     joinSelection();
                     setIsEditDropdownOpen(false);
                   }}

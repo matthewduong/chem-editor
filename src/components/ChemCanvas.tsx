@@ -28,8 +28,12 @@ import {
   type ClipboardEvent as ReactClipboardEvent,
 } from 'react';
 import { Circle, Group, Layer, Line, Rect, Stage, Star } from 'react-konva';
+import { createProjectionEditCommand } from '../editor/commands/projectionEdit';
+import { contractSelection, findNicknameForSelection } from '../lib/nicknames';
+import { SHORTHAND_DATA } from '../lib/shorthand';
 import {
   createDeleteSelectionCommand,
+  createEditorCommandContext,
   createMoveSelectionCommand,
   createReplaceDocumentCommand,
   createUpsertObjectsCommand,
@@ -76,6 +80,7 @@ import {
   applyArrowStyleEdit,
   applyBondStyleEdit,
   applyNodeLabelStyleEdit,
+  applyNodeValueEdit,
   canvasStateToChemDrawDocument,
   chemDrawDocumentToCanvasState,
   reorderBondObjects,
@@ -1448,6 +1453,80 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
   const zoomActionsRef = useRef({ zoomBy, zoomTo, getSelectionCenter });
   zoomActionsRef.current = { zoomBy, zoomTo, getSelectionCenter };
 
+  /**
+   * Structure > Expand Label: each selected nickname atom becomes its lead element and its
+   * structure is laid out from it, away from the bond it hangs on, as one undo step.
+   */
+  const expandSelectedLabels = () => {
+    const state = getCanvasEditorState();
+    const source = state.chemDrawDocument;
+    if (!source) return;
+    const targets = state.atoms.filter(
+      (atom) =>
+        state.selectedAtomIds.has(atom.id) &&
+        atom.alias &&
+        SHORTHAND_DATA[atom.alias]?.subsSmiles &&
+        SHORTHAND_DATA[atom.alias]?.valency === 1,
+    );
+    if (targets.length === 0) {
+      state.showToast('Select a nickname label to expand.', 'info');
+      return;
+    }
+    let document = source;
+    for (const atom of targets) {
+      document = applyNodeValueEdit(document, atom.id, SHORTHAND_DATA[atom.alias!]!.lead);
+    }
+    let next = chemDrawDocumentToCanvasState(document).state;
+    for (const target of targets) {
+      const atom = next.atoms.find((entry) => entry.id === target.id);
+      if (!atom) continue;
+      next =
+        placeFragmentAt(
+          SHORTHAND_DATA[target.alias!]!.subsSmiles!,
+          { x: atom.x, y: atom.y },
+          atom,
+          undefined,
+          false,
+          { base: next },
+        ) ?? next;
+    }
+    const expanded = createProjectionEditCommand(document, next, 'expand-label').apply(
+      document,
+      createEditorCommandContext({
+        activePageId: document.pages[0]?.id ?? null,
+        documentStyleSettings: state.documentStyleSettings,
+        pageSetup: state.pageSetup,
+      }),
+    ).document;
+    commitNativeDocument(expanded, 'expand-label');
+  };
+
+  /** Structure > Contract Label: the selected group becomes the nickname it is. */
+  const contractSelectedLabel = () => {
+    const state = getCanvasEditorState();
+    const plan = findNicknameForSelection(state.atoms, state.bonds, state.selectedAtomIds);
+    if ('error' in plan) {
+      state.showToast(plan.error, 'info');
+      return;
+    }
+    commitCanvasEdit(
+      contractSelection(
+        {
+          atoms: state.atoms,
+          bonds: state.bonds,
+          arrows: state.arrows,
+          groups: state.groups ?? [],
+          textBoxes: state.textBoxes ?? [],
+        },
+        state.selectedAtomIds,
+        plan,
+      ),
+    );
+    state.setSelectedAtomIds(new Set([plan.rootId]));
+  };
+  const labelActionsRef = useRef({ expandSelectedLabels, contractSelectedLabel });
+  labelActionsRef.current = { expandSelectedLabels, contractSelectedLabel };
+
   const SCALE_PAD =
     selectedAtomIds.size > 0 || selectedBondIds.size > 0 || selectedArrowIds.size > 0 ? 20 : 2;
   const getSelectionBBox = () => {
@@ -2079,7 +2158,9 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
       hitAtom?: Atom,
       hitBond?: Bond,
       preferInterior = false,
-    ) => {
+      /** Lay the fragment out on `base` and hand back the result instead of committing it. */
+      dryRun?: { base: ChemistryCanvasState },
+    ): ChemistryCanvasState | undefined => {
       if (!rdkit) return;
       const mol = rdkit.get_mol(smiles);
       if (!mol) return;
@@ -2102,7 +2183,7 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
         arrows: stArrows,
         groups: stGroups,
         textBoxes: stTextBoxes,
-      } = getCanvasEditorState();
+      } = dryRun?.base ?? getCanvasEditorState();
       let rotationAngle = 0,
         translation = { x: pos.x, y: pos.y },
         mapAtom0 = -1,
@@ -2245,13 +2326,16 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
           stereo,
         });
       }
-      commitCanvasEdit({
+      const next = {
         atoms: [...stAtoms, ...newAtoms],
         bonds: [...stBonds, ...newBonds],
         arrows: stArrows,
         groups: stGroups ?? [],
         textBoxes: stTextBoxes ?? [],
-      });
+      };
+      if (dryRun) return next;
+      commitCanvasEdit(next);
+      return undefined;
     },
     [documentStyleSettings.bondLength, rdkit],
   );
@@ -3263,6 +3347,8 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
           document.execCommand(cmd, false, value);
         }
       },
+      expandLabels: () => labelActionsRef.current.expandSelectedLabels(),
+      contractLabel: () => labelActionsRef.current.contractSelectedLabel(),
       zoomIn: () => zoomActionsRef.current.zoomBy(1.25),
       zoomOut: () => zoomActionsRef.current.zoomBy(1 / 1.25),
       actualSize: () =>
