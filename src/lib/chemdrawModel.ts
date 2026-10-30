@@ -196,7 +196,7 @@ function mapTextBlockBounds<T extends { bounds?: ChemDrawBounds }>(
   };
 }
 
-function mapObjectTags(
+export function mapObjectTags(
   objectTags: ChemDrawObjectTag[] | undefined,
   project: (x: number, y: number) => { x: number; y: number },
 ): ChemDrawObjectTag[] | undefined {

@@ -473,3 +473,14 @@ export function LassoIcon({ size = 22 }: { size?: number }) {
     </Frame>
   );
 }
+
+/** Structure Perspective: a hexagon tilted back, with a curved arrow turning it. */
+export function PerspectiveIcon({ size = 22 }: { size?: number }) {
+  return (
+    <Frame size={size}>
+      <path d="M8 9.5L12 7.5L16.5 9L16.5 13L12.5 15L8 13.5Z" />
+      <path d="M4.5 17.5C8 20 16 20 19.5 17" />
+      <path d="M17.5 15.8L19.6 17L18.4 19.1" />
+    </Frame>
+  );
+}

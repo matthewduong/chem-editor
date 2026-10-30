@@ -673,6 +673,41 @@ for (const scale of [1, 2]) {
       await page.getByPlaceholder('Carbons').press('Enter');
       expect(await shown()).toEqual(['1', '2', '3']);
     });
+    test('Structure Perspective tilts the selection by a drag inside it, as one step', async ({
+      page,
+    }) => {
+      await openEditor(page);
+      await tool(page, 'Chain');
+      const a = await point(page, 300, 300);
+      await page.mouse.click(a.x, a.y);
+      await page.getByPlaceholder('Carbons').fill('4');
+      await page.getByPlaceholder('Carbons').press('Enter');
+      const width = async () => {
+        const xs = (await observe(page)).atoms.map((atom) => atom.x);
+        return Math.max(...xs) - Math.min(...xs);
+      };
+      const before = await width();
+      await page.evaluate(async () => {
+        const { useStore } = await import(String('/src/store/index.ts'));
+        const state = useStore.getState();
+        state.setSelectedAtomIds(new Set(state.atoms.map((atom: { id: string }) => atom.id)));
+      });
+      await page.getByTitle('Structure Perspective').click();
+      const atoms = (await observe(page)).atoms;
+      const cx = (Math.min(...atoms.map((x) => x.x)) + Math.max(...atoms.map((x) => x.x))) / 2;
+      const cy = (Math.min(...atoms.map((x) => x.y)) + Math.max(...atoms.map((x) => x.y))) / 2;
+      const from = await documentPoint(page, cx, cy);
+      const to = await documentPoint(page, cx + 60, cy);
+      await page.mouse.move(from.x, from.y);
+      await page.mouse.down();
+      await page.mouse.move((from.x + to.x) / 2, from.y, { steps: 3 });
+      await page.mouse.move(to.x, to.y, { steps: 3 });
+      await page.mouse.up();
+      const after = await width();
+      expect(after).toBeLessThan(before * 0.95);
+      await page.keyboard.press('ControlOrMeta+z');
+      expect(Math.abs((await width()) - before)).toBeLessThan(1e-6);
+    });
     test('chain preview commits once and cancellation creates no history', async ({ page }) => {
       await openEditor(page);
       await tool(page, 'Chain');

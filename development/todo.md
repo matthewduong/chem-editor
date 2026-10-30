@@ -77,7 +77,7 @@ Done in Phase II (2026-10-30), with ChemDraw's keys (preferences version 11).
       Stereochemical Flags
 - [x] **2D atom numbering** — only in the 3D viewer, or tags imported from CDXML · 10: Atom
       Numbering
-- [ ] **Structure perspective** — absent · 10: Structure Perspective
+- [x] **Structure Perspective** — absent · 10: Structure Perspective
 
 ## Naming and analysis
 

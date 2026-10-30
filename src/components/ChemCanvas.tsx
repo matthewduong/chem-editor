@@ -2541,8 +2541,11 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
       selectedBondIds: selBondIds,
       selectedObjectIds: selObjectIds,
       bonds: selectedBonds,
+      selectMode,
     } = getCanvasEditorState();
-    if (hitA && selIds.has(hitA.id) && !modifiers.shift && tool !== 'eraser') {
+    // Structure Perspective tilts what is pressed inside the selection instead of moving it.
+    const tiltsSelection = tool === 'select' && selectMode === 'perspective';
+    if (hitA && selIds.has(hitA.id) && !modifiers.shift && tool !== 'eraser' && !tiltsSelection) {
       const movedAtomIds = collectPreviewMovedAtomIds(selIds, selBondIds, selectedBonds);
       selectionDragRef.current = {
         isDragging: true,
@@ -2560,7 +2563,8 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
       hitB &&
       (selBondIds.has(hitB.id) || (selIds.has(hitB.from) && selIds.has(hitB.to))) &&
       !modifiers.shift &&
-      tool !== 'eraser'
+      tool !== 'eraser' &&
+      !tiltsSelection
     ) {
       const movedAtomIds = collectPreviewMovedAtomIds(selIds, selBondIds, selectedBonds);
       selectionDragRef.current = {

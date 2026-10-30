@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState } from 'react';
 import {
   createMoveAndJoinCommand,
+  createPerspectiveSelectionCommand,
   createRotateSelectionCommand,
   createScaleSelectionCommand,
 } from '../editor/commands';
@@ -11,6 +12,8 @@ import { commitCanvasEdit, getCanvasEditorState, previewCanvasEdit } from '../st
 import type { ChemDrawDocument } from '../types/chemdraw';
 import type { Arrow, Atom, Bond, TextBox } from '../types/chemistry';
 import { pointInPolygon, selectEnclosed } from '../lib/selectionRegion';
+import { getObjectsBounds } from '../lib/chemdrawModel';
+import { perspectiveSelectedObjects, perspectiveTiltForDrag } from '../lib/structurePerspective';
 
 export interface SelectToolOverlay {
   isDragging: boolean;
@@ -90,6 +93,14 @@ export function useSelectTool(): SelectToolOverlay & SelectToolActions {
   } | null>(null);
 
   const isDraggingRef = useRef(false);
+  /** A Structure Perspective drag: where it began, about what, on which document and atoms. */
+  const perspectiveRef = useRef<{
+    start: { x: number; y: number };
+    center: { x: number; y: number };
+    source: ChemDrawDocument;
+    ids: Set<string>;
+    tilt: { tiltX: number; tiltY: number };
+  } | null>(null);
   const isRotatingRef = useRef(false);
   const isScalingRef = useRef(false);
   const isSelectionBoxRef = useRef(false);
@@ -186,6 +197,31 @@ export function useSelectTool(): SelectToolOverlay & SelectToolActions {
 
       clearPreviewChemDrawDocument();
       clearSelectionPreviewTransform();
+
+      // Structure Perspective: a press inside the selection's rectangle tilts it; anywhere else
+      // selects, as with the marquee.
+      if (getCanvasEditorState().selectMode === 'perspective' && chemDrawDocument) {
+        const ids = new Set([...selectedObjectIds, ...selectedAtomIds]);
+        const bounds = ids.size
+          ? getObjectsBounds(chemDrawDocument, ids, getCanvasEditorState().documentStyleSettings)
+          : null;
+        if (
+          bounds &&
+          pos.x >= bounds.left &&
+          pos.x <= bounds.right &&
+          pos.y >= bounds.top &&
+          pos.y <= bounds.bottom
+        ) {
+          perspectiveRef.current = {
+            start: pos,
+            center: { x: (bounds.left + bounds.right) / 2, y: (bounds.top + bounds.bottom) / 2 },
+            source: chemDrawDocument,
+            ids,
+            tilt: { tiltX: 0, tiltY: 0 },
+          };
+          return;
+        }
+      }
 
       // Check for scale handle
       if (hitScaleHandle) {
@@ -467,6 +503,26 @@ export function useSelectTool(): SelectToolOverlay & SelectToolActions {
 
   const update = useCallback(
     (pos: { x: number; y: number }, _hitAtom: Atom | null, isShiftDown: boolean) => {
+      const perspective = perspectiveRef.current;
+      if (perspective) {
+        const state = getCanvasEditorState();
+        perspective.tilt = perspectiveTiltForDrag(
+          perspective.start,
+          pos,
+          state.documentStyleSettings.bondLength,
+          isShiftDown,
+        );
+        state.setPreviewChemDrawDocument(
+          perspectiveSelectedObjects(
+            perspective.source,
+            perspective.ids,
+            perspective.center,
+            perspective.tilt.tiltX,
+            perspective.tilt.tiltY,
+          ),
+        );
+        return;
+      }
       if (isScalingRef.current && scaleDataRef.current) {
         const {
           atoms,
@@ -877,6 +933,7 @@ export function useSelectTool(): SelectToolOverlay & SelectToolActions {
     setSelectionBoxStart(null);
     setSelectionBoxEnd(null);
     lassoRef.current = null;
+    perspectiveRef.current = null;
     setLassoPath(null);
     dragStartPosRef.current = null;
     moveDataRef.current = null;
@@ -890,6 +947,23 @@ export function useSelectTool(): SelectToolOverlay & SelectToolActions {
     // A press that began on a document that has since been replaced must not edit the new one.
     if (!lifecycle.current.commit(getCanvasEditorState().chemDrawDocument)) {
       cancel();
+      return;
+    }
+    const perspective = perspectiveRef.current;
+    if (perspective) {
+      perspectiveRef.current = null;
+      const state = getCanvasEditorState();
+      state.clearPreviewChemDrawDocument();
+      if (perspective.tilt.tiltX !== 0 || perspective.tilt.tiltY !== 0) {
+        state.dispatchEditorCommand(
+          createPerspectiveSelectionCommand(
+            perspective.center,
+            perspective.tilt.tiltX,
+            perspective.tilt.tiltY,
+            perspective.ids,
+          ),
+        );
+      }
       return;
     }
     if (isScalingRef.current) {
@@ -1007,6 +1081,7 @@ export function useSelectTool(): SelectToolOverlay & SelectToolActions {
     commit,
     cancel,
     isActive: () =>
+      perspectiveRef.current !== null ||
       isDraggingRef.current ||
       isRotatingRef.current ||
       isScalingRef.current ||

@@ -234,7 +234,7 @@ export interface AppState {
   /** Where the selection turns when rotated, once the user has moved it off the centre. */
   rotationPivot: { x: number; y: number } | null;
   /** How the select tool gathers a selection when dragged on empty canvas. */
-  selectMode: 'marquee' | 'lasso';
+  selectMode: 'marquee' | 'lasso' | 'perspective';
   /** Object > Fixed Lengths / Fixed Angles (ChemDraw): bonds snap to the bond length / 15°. */
   fixedLengths: boolean;
   fixedAngles: boolean;
@@ -395,7 +395,7 @@ export interface AppState {
   setArrowType: (type: ArrowType) => void;
   setShapeKind: (kind: ShapeKind) => void;
   setRotationPivot: (pivot: { x: number; y: number } | null) => void;
-  setSelectMode: (mode: 'marquee' | 'lasso') => void;
+  setSelectMode: (mode: 'marquee' | 'lasso' | 'perspective') => void;
   setFixedLengths: (on: boolean) => void;
   setFixedAngles: (on: boolean) => void;
   setChainLengthRequest: (

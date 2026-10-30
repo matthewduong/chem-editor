@@ -159,6 +159,8 @@ export interface ChemDrawNode {
   aliasResolution?: AtomAliasResolution;
   geometry?: RingTemplateAtomGeometry;
   atomStereo?: RingTemplateAtomStereo;
+  /** Depth out of the page from Structure Perspective; kept in session, not written to files. */
+  depth?: number;
   /** CDXML `AtomNumber`: the number shown beside the atom (Show Atom Number). */
   atomNumber?: string;
   /** CDXML `ShowAtomNumber` on the node, when the file or the user set it. */

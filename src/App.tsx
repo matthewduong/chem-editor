@@ -6,6 +6,7 @@ import {
   ReactionArrowIcon,
   SelectIcon,
   LassoIcon,
+  PerspectiveIcon,
   ShapeIcon,
   StructureFragmentIcon,
   TextToolIcon,
@@ -2849,6 +2850,19 @@ function App() {
               style={toolButtonStyle}
             >
               <LassoIcon size={24 * buttonScale} />
+            </PaletteButton>
+            <PaletteButton
+              variant="tool"
+              active={tool === 'select' && selectMode === 'perspective'}
+              title="Structure Perspective"
+              onClick={() => {
+                setTool('select');
+                setSelectMode('perspective');
+                setShowBondMenu(false);
+              }}
+              style={toolButtonStyle}
+            >
+              <PerspectiveIcon size={24 * buttonScale} />
             </PaletteButton>
             <PaletteButton
               variant="tool"

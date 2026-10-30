@@ -25,6 +25,7 @@ import {
 } from '../../lib/chemdrawModel';
 import { buildDocumentIndex, getActivePage } from '../document';
 import { toggleAtomNumbers } from '../../lib/atomNumbers';
+import { perspectiveSelectedObjects } from '../../lib/structurePerspective';
 import { bondJoinPairs, joinNodes, overlappingNodePairs } from '../../lib/joinStructures';
 
 function replacePageObjects(
@@ -360,6 +361,29 @@ export function createFlipSelectionCommand(
           { turnOver: options?.turnOver },
         ),
         inversePatch: createReplaceDocumentCommand(document, 'undo:flip-selection'),
+        changedObjectIds: selectionIds,
+      };
+    },
+  };
+}
+
+/** Structure Perspective: tilt the selected structures; see `perspectiveSelectedObjects`. */
+export function createPerspectiveSelectionCommand(
+  center: { x: number; y: number },
+  tiltX: number,
+  tiltY: number,
+  objectIds?: Iterable<string>,
+): EditorCommand {
+  return {
+    type: 'perspective-selection',
+    description: 'structure-perspective',
+    apply(document, context) {
+      const selectionIds = resolveSelectionIds(context, objectIds);
+      const next = perspectiveSelectedObjects(document, selectionIds, center, tiltX, tiltY);
+      if (next === document) return { document, inversePatch: null, changedObjectIds: new Set() };
+      return {
+        document: next,
+        inversePatch: createReplaceDocumentCommand(document, 'undo:structure-perspective'),
         changedObjectIds: selectionIds,
       };
     },
