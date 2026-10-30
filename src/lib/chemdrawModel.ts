@@ -2,6 +2,7 @@ import type { AtomLabelOrientation, CanvasState, DoubleBondMode } from '../types
 import type {
   CanvasConversionResult,
   ChemDrawArrow,
+  ChemDrawArrowEnd,
   ChemDrawBond,
   ChemDrawBondDisplay,
   ChemDrawBounds,
@@ -1704,6 +1705,136 @@ export function scaleSelectedObjects(
     if (object.type === 'table' && selectedObjectIds.has(object.id)) {
       if (blocksTransform(object)) return object;
       return mapTable(object, scale);
+    }
+    return object;
+  });
+  return commitObjects(document, nextObjects);
+}
+
+const MIRRORED_END: Record<string, ChemDrawArrowEnd> = {
+  'half-left': 'half-right',
+  'half-right': 'half-left',
+};
+
+/**
+ * Object > Flip Horizontal / Flip Vertical (ChemDraw "Mirror Images"): reflect the selection
+ * through a vertical (horizontal) line through `center`. Atoms move and bonds follow, wedges and
+ * hashes stay as drawn (so the flipped structure is the mirror-image stereoisomer, as ChemDraw's
+ * guide uses it), an atom's label stays on the side its bonds now leave free, electron dots and
+ * half arrowheads swap sides, a bracket keeps its lips facing in, and text moves without
+ * mirroring its glyphs.
+ */
+export function flipSelectedObjects(
+  document: ChemDrawDocument,
+  selectedObjectIds: Set<string>,
+  center: { x: number; y: number },
+  axis: 'horizontal' | 'vertical',
+  documentStyleSettings: DocumentStyleSettings = DEFAULT_DOCUMENT_STYLE_SETTINGS,
+): ChemDrawDocument {
+  const objects = clonePageObjects(document);
+  if (!objects || selectedObjectIds.size === 0) return document;
+  const objectMap = new Map(objects.map((object) => [object.id, object]));
+  const selectedNodeIds = getSelectedNodeIds(objects, selectedObjectIds);
+  const horizontal = axis === 'horizontal';
+  const mirror = (x: number, y: number) =>
+    horizontal ? { x: 2 * center.x - x, y } : { x, y: 2 * center.y - y };
+  const mirrorAngle = (degrees: number) =>
+    (((horizontal ? 180 - degrees : -degrees) % 360) + 360) % 360;
+  const swapSide = <T extends string | undefined>(value: T): T =>
+    (horizontal
+      ? value === 'left'
+        ? 'right'
+        : value === 'right'
+          ? 'left'
+          : value
+      : value === 'above'
+        ? 'below'
+        : value === 'below'
+          ? 'above'
+          : value) as T;
+  const nextObjects = objects.map((object): ChemDrawObject => {
+    if (object.type === 'node' && selectedNodeIds.has(object.id)) {
+      if (blocksTransform(object)) return object;
+      return {
+        ...object,
+        position: mirror(object.position.x, object.position.y),
+        ...(object.electronAngles
+          ? { electronAngles: object.electronAngles.map(mirrorAngle) }
+          : {}),
+        ...(object.labelAlignment ? { labelAlignment: swapSide(object.labelAlignment) } : {}),
+        ...(horizontal && object.labelOrientation && object.labelOrientation !== 'auto'
+          ? {
+              labelOrientation:
+                object.labelOrientation === 'label-first' ? 'hydrogen-first' : 'label-first',
+            }
+          : {}),
+      };
+    }
+    if (object.type === 'arrow' && selectedObjectIds.has(object.id)) {
+      if (blocksTransform(object)) return object;
+      const mapped = mapArrow(object, mirror);
+      return {
+        ...mapped,
+        ...(object.headSide
+          ? { headSide: object.headSide === 'left' ? ('right' as const) : ('left' as const) }
+          : {}),
+        ...(object.headEnd ? { headEnd: MIRRORED_END[object.headEnd] ?? object.headEnd } : {}),
+        ...(object.tailEnd ? { tailEnd: MIRRORED_END[object.tailEnd] ?? object.tailEnd } : {}),
+      };
+    }
+    if (object.type === 'text' && selectedObjectIds.has(object.id)) {
+      if (blocksTransform(object)) return object;
+      // Mirror where the text sits, not its anchor: the anchor is at one end of the first line.
+      const box = objectBounds(object, objectMap, documentStyleSettings);
+      const middle = box
+        ? { x: (box.left + box.right) / 2, y: (box.top + box.bottom) / 2 }
+        : object.anchor;
+      const moved = mirror(middle.x, middle.y);
+      const shift = (x: number, y: number) => ({
+        x: x + moved.x - middle.x,
+        y: y + moved.y - middle.y,
+      });
+      return {
+        ...object,
+        anchor: shift(object.anchor.x, object.anchor.y),
+        ...(object.style?.rotation
+          ? { style: { ...object.style, rotation: (360 - object.style.rotation) % 360 } }
+          : {}),
+        ...(object.objectTags ? { objectTags: mapObjectTags(object.objectTags, shift) } : {}),
+      };
+    }
+    if (object.type === 'bracket' && selectedObjectIds.has(object.id)) {
+      if (blocksTransform(object)) return object;
+      return {
+        ...object,
+        bounds: mapBounds(object.bounds, mirror),
+        ...(object.objectTags ? { objectTags: mapObjectTags(object.objectTags, mirror) } : {}),
+      };
+    }
+    if (object.type === 'graphic' && selectedObjectIds.has(object.id)) {
+      if (blocksTransform(object)) return object;
+      const mapped = mapGraphic(object, mirror);
+      // A bracket's lips sit on the right of its start-to-end direction; reflected, that side
+      // would face out, so the ends trade places to keep them facing in.
+      if (object.graphicType === 'bracket' && mapped.points?.length === 2) {
+        return { ...mapped, points: [mapped.points[1]!, mapped.points[0]!] };
+      }
+      if (object.graphicType === 'curve') {
+        return {
+          ...mapped,
+          ...(object.headEnd ? { headEnd: MIRRORED_END[object.headEnd] ?? object.headEnd } : {}),
+          ...(object.tailEnd ? { tailEnd: MIRRORED_END[object.tailEnd] ?? object.tailEnd } : {}),
+        };
+      }
+      return mapped;
+    }
+    if (object.type === 'embedded-object' && selectedObjectIds.has(object.id)) {
+      if (blocksTransform(object)) return object;
+      return mapEmbeddedObject(object, mirror);
+    }
+    if (object.type === 'table' && selectedObjectIds.has(object.id)) {
+      if (blocksTransform(object)) return object;
+      return mapTable(object, mirror);
     }
     return object;
   });

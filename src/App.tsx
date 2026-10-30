@@ -65,6 +65,7 @@ import {
   createUpsertObjectsCommand,
   createMoveSelectionCommand,
   createReorderSelectionCommand,
+  createFlipSelectionCommand,
 } from './editor/commands';
 import {
   getChemDrawObjectCapability,
@@ -1171,6 +1172,25 @@ function App() {
     if (!state.chemDrawDocument || state.selectedObjectIds.size === 0) return;
     state.dispatchEditorCommand(
       createReorderSelectionCommand(direction, { objectIds: state.selectedObjectIds }),
+    );
+  }, []);
+
+  /** Object > Flip Horizontal / Vertical, about the centre of the selection's box. */
+  const flipSelection = useCallback((axis: 'horizontal' | 'vertical') => {
+    const state = useStore.getState();
+    if (!state.chemDrawDocument || state.selectedObjectIds.size === 0) return;
+    const bounds = getObjectsBounds(
+      state.chemDrawDocument,
+      state.selectedObjectIds,
+      state.documentStyleSettings,
+    );
+    if (!bounds) return;
+    state.dispatchEditorCommand(
+      createFlipSelectionCommand(
+        { x: (bounds.left + bounds.right) / 2, y: (bounds.top + bounds.bottom) / 2 },
+        axis,
+        { objectIds: state.selectedObjectIds },
+      ),
     );
   }, []);
 
@@ -3612,6 +3632,22 @@ function App() {
                   shortcut="F3"
                 >
                   Send to Back
+                </MenuItem>
+                <MenuItem
+                  onClick={() => {
+                    flipSelection('horizontal');
+                    setIsEditDropdownOpen(false);
+                  }}
+                >
+                  Flip Horizontal
+                </MenuItem>
+                <MenuItem
+                  onClick={() => {
+                    flipSelection('vertical');
+                    setIsEditDropdownOpen(false);
+                  }}
+                >
+                  Flip Vertical
                 </MenuItem>
                 <MenuItem
                   onClick={() => {

@@ -65,3 +65,22 @@ test('centre on page offsets the selection box to the page centre', () => {
   assert.ok(Math.abs(cy + offset.dy - 400) < 1e-9);
   assert.equal(getCenterOnPageOffset(document, ['nope'], { width: 1, height: 1 }), null);
 });
+
+test('flipping mirrors positions, swaps half heads, keeps brackets facing in', async () => {
+  const { flipSelectedObjects } = await import('../.unit-test-dist/src/lib/chemdrawModel.js');
+  const { document } = cdxmlToChemDrawDocument(`<?xml version="1.0"?><CDXML><page id="100">
+    <fragment id="2"><n id="3" p="0 0"/><n id="4" p="14.4 0"/><b id="5" B="3" E="4" Display="WedgeBegin"/></fragment>
+    <arrow id="7" ArrowheadHead="HalfLeft" ArrowheadType="Solid" Head3D="80 20 0" Tail3D="10 20 0"/>
+    <graphic id="8" GraphicType="Bracket" BracketType="Square" BoundingBox="0 30 0 0"/>
+  </page></CDXML>`);
+  const ids = new Set(['3', '4', '5', '7', '8']);
+  const flipped = flipSelectedObjects(document, ids, { x: 40, y: 0 }, 'horizontal');
+  const get = (id) => flipped.pages[0].objects.find((o) => o.id === id);
+  const original = (id) => document.pages[0].objects.find((o) => o.id === id);
+  assert.ok(Math.abs(get('3').position.x - (80 - original('3').position.x)) < 1e-9);
+  assert.equal(get('5').display, document.pages[0].objects.find((o) => o.id === '5').display);
+  assert.equal(get('7').headEnd, 'half-right');
+  assert.ok(Math.abs(get('7').head.x - (80 - original('7').head.x)) < 1e-9);
+  // Mirrored and reversed: the right-hand bracket runs top to bottom, lips inward.
+  assert.ok(get('8').points[0].y < get('8').points[1].y);
+});

@@ -20,6 +20,7 @@ import {
   rotateSelectedObjects,
   scaleSelectedObjects,
   reorderSelectedObjects,
+  flipSelectedObjects,
 } from '../../lib/chemdrawModel';
 import { buildDocumentIndex, getActivePage } from '../document';
 
@@ -327,6 +328,34 @@ export function createScaleSelectionCommand(
       return {
         document: scaleSelectedObjects(document, selectionIds, center, factor),
         inversePatch: createReplaceDocumentCommand(document, 'undo:scale-selection'),
+        changedObjectIds: selectionIds,
+      };
+    },
+  };
+}
+
+export function createFlipSelectionCommand(
+  center: { x: number; y: number },
+  axis: 'horizontal' | 'vertical',
+  options?: { objectIds?: Iterable<string>; description?: string },
+): EditorCommand {
+  return {
+    type: 'flip-selection',
+    description: options?.description ?? `flip-${axis}`,
+    apply(document, context) {
+      const selectionIds = resolveSelectionIds(context, options?.objectIds);
+      if (selectionIds.size === 0) {
+        return { document, inversePatch: null, changedObjectIds: new Set() };
+      }
+      return {
+        document: flipSelectedObjects(
+          document,
+          selectionIds,
+          center,
+          axis,
+          context.documentStyleSettings,
+        ),
+        inversePatch: createReplaceDocumentCommand(document, 'undo:flip-selection'),
         changedObjectIds: selectionIds,
       };
     },
