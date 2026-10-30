@@ -273,3 +273,15 @@ test('recent files normalize to a newest-first unique list', () => {
   );
   assert.equal(normalized.recentFiles[0].name, 'a.cdxml');
 });
+
+test('saved nicknames keep only well-formed entries', () => {
+  const normalized = normalizeAppPreferences({
+    nicknames: [
+      { name: 'Prx', lead: 'C', subsSmiles: 'CCC' },
+      { name: 'bad name', lead: 'C', subsSmiles: 'C' },
+      { name: 'Prx', lead: 'C', subsSmiles: 'C' },
+      { name: 'Nox', lead: 'N' },
+    ],
+  });
+  assert.deepEqual(normalized.nicknames, [{ name: 'Prx', lead: 'C', subsSmiles: 'CCC' }]);
+});

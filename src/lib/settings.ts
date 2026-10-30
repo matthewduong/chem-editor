@@ -12,6 +12,7 @@ import type {
   PageSetup,
   PageUnit,
   RecentFileEntry,
+  UserNickname,
   TextFormat,
   ToolPaletteId,
   ToolPalettesPreferences,
@@ -416,6 +417,7 @@ export const DEFAULT_APP_PREFERENCES: AppPreferences = {
   toolPalettes: DEFAULT_TOOL_PALETTES,
   keybindings: buildDefaultKeybindingPreferences(),
   recentFiles: [],
+  nicknames: [],
 };
 
 interface PersistedSettingsPayload {
@@ -1090,6 +1092,7 @@ export function normalizeAppPreferences(
     toolPalettes: normalizeToolPalettes(value?.toolPalettes),
     keybindings: normalizeKeybindingPreferences(value?.keybindings, value?.version),
     recentFiles: normalizeRecentFiles(value?.recentFiles),
+    nicknames: normalizeNicknames(value?.nicknames),
   };
 }
 
@@ -1290,4 +1293,29 @@ export function applyDocumentStyleSettingsToCanvas(
     })),
     textBoxes: state.textBoxes,
   };
+}
+
+/** Saved nicknames, keeping only well-formed ones with a plain name and a SMILES. */
+function normalizeNicknames(value: unknown): UserNickname[] {
+  if (!Array.isArray(value)) return [];
+  const seen = new Set<string>();
+  const out: UserNickname[] = [];
+  for (const entry of value) {
+    if (!entry || typeof entry !== 'object') continue;
+    const { name, lead, subsSmiles } = entry as Partial<UserNickname>;
+    if (typeof name !== 'string' || typeof lead !== 'string' || typeof subsSmiles !== 'string') {
+      continue;
+    }
+    const trimmed = name.trim();
+    if (
+      !/^[A-Za-z][A-Za-z0-9'+-]{0,23}$/.test(trimmed) ||
+      !subsSmiles.trim() ||
+      seen.has(trimmed)
+    ) {
+      continue;
+    }
+    seen.add(trimmed);
+    out.push({ name: trimmed, lead, subsSmiles: subsSmiles.trim() });
+  }
+  return out;
 }

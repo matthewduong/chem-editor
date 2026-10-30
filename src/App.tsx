@@ -11,6 +11,8 @@ import {
   TextToolIcon,
 } from './components/ToolIcons';
 import { TemplatesPanel } from './components/TemplatesPanel';
+import { registerUserNicknames } from './lib/aliasChemistry';
+import { selectionToRootedSmiles } from './lib/nicknames';
 import { convertCanvasToNative, convertNativeToCanvas } from './lib/chemdrawMetrics';
 import { CharacterMapPanel } from './components/CharacterMapPanel';
 import { commitChainOfLength } from './tools/useChainTool';
@@ -539,6 +541,18 @@ function App() {
   const showGrid = useStore((s) => s.showGrid);
   const showHydrogens = useStore((s) => s.showHydrogens);
   const appPreferences = useStore((s) => s.appPreferences);
+  // The user's nicknames are labels like the built-in ones everywhere a label is read.
+  useEffect(() => {
+    registerUserNicknames(
+      Object.fromEntries(
+        appPreferences.nicknames.map((nickname) => [
+          nickname.name,
+          { lead: nickname.lead, valency: 1, subsSmiles: nickname.subsSmiles },
+        ]),
+      ),
+    );
+  }, [appPreferences.nicknames]);
+  const [nicknameDraft, setNicknameDraft] = useState<string | null>(null);
   const pageSetup = useStore((s) => s.pageSetup);
   const documentStyleSettings = useStore((s) => s.documentStyleSettings);
   const documentViewSettings = useStore((s) => s.documentViewSettings);
@@ -1090,6 +1104,8 @@ function App() {
       pageSetup: { ...DEFAULT_APP_PREFERENCES.pageSetup },
       viewer: { ...DEFAULT_APP_PREFERENCES.viewer },
       toolPalettes: cloneDefaultToolPalettes(),
+      // Nicknames are the user's own definitions, not preferences to reset.
+      nicknames: useStore.getState().appPreferences.nicknames,
     });
     setPreferencesTab('drawing');
     showToast('Preferences reset to defaults.', 'info');
@@ -1184,6 +1200,44 @@ function App() {
       offPageNoticeShownRef.current = false;
     }
   }, [offPageContent, pageSetup.mode, showToast]);
+
+  /**
+   * Structure > Define Nickname: the selected group, joined to the rest by one bond (its
+   * attachment), saved under a name usable as a label from then on.
+   */
+  const defineNickname = useCallback((name: string) => {
+    const state = useStore.getState();
+    const trimmed = name.trim();
+    if (!/^[A-Za-z][A-Za-z0-9'+-]{0,23}$/.test(trimmed)) {
+      state.showToast('A nickname starts with a letter and has no spaces.', 'error');
+      return false;
+    }
+    const selected = state.selectedAtomIds;
+    const crossing = state.bonds.filter(
+      (bond) => selected.has(bond.from) !== selected.has(bond.to),
+    );
+    if (selected.size === 0 || crossing.length !== 1) {
+      state.showToast(
+        'Select a group joined to the rest by one bond; that bond marks its attachment.',
+        'error',
+      );
+      return false;
+    }
+    const root = selected.has(crossing[0]!.from) ? crossing[0]!.from : crossing[0]!.to;
+    const rootAtom = state.atoms.find((atom) => atom.id === root);
+    if (!rootAtom) return false;
+    const subsSmiles = selectionToRootedSmiles(state.atoms, state.bonds, selected, root);
+    const prefs = state.appPreferences;
+    state.setAppPreferences({
+      ...prefs,
+      nicknames: [
+        ...prefs.nicknames.filter((entry) => entry.name !== trimmed),
+        { name: trimmed, lead: rootAtom.element, subsSmiles },
+      ],
+    });
+    state.showToast(`Nickname ${trimmed} defined as ${subsSmiles}.`, 'info');
+    return true;
+  }, []);
 
   /** Object > Join: two selected atoms or bonds fuse into one. */
   const joinSelection = useCallback(() => {
@@ -3770,6 +3824,14 @@ function App() {
                 <MenuSeparator />
                 <MenuItem
                   onClick={() => {
+                    setNicknameDraft('');
+                    setIsEditDropdownOpen(false);
+                  }}
+                >
+                  Define Nickname…
+                </MenuItem>
+                <MenuItem
+                  onClick={() => {
                     canvasRef.current?.expandLabels();
                     setIsEditDropdownOpen(false);
                   }}
@@ -5820,6 +5882,46 @@ function App() {
         isDarkMode={isDarkMode}
       />
 
+      {nicknameDraft !== null && (
+        <div
+          role="dialog"
+          aria-label="Define Nickname"
+          style={{
+            position: 'fixed',
+            left: '50%',
+            top: '30%',
+            transform: 'translateX(-50%)',
+            zIndex: 3000,
+            padding: 14,
+            borderRadius: 8,
+            background: theme.sidebar,
+            color: theme.text,
+            border: `1px solid ${theme.border}`,
+            boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
+          }}
+        >
+          <label style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            Nickname
+            <input
+              autoFocus
+              placeholder="Nickname"
+              value={nicknameDraft}
+              onFocus={() => useStore.getState().setIsInputFocused(true)}
+              onBlur={() => useStore.getState().setIsInputFocused(false)}
+              onChange={(e) => setNicknameDraft(e.target.value)}
+              onKeyDown={(e) => {
+                const close = () => {
+                  useStore.getState().setIsInputFocused(false);
+                  setNicknameDraft(null);
+                };
+                if (e.key === 'Enter' && defineNickname(nicknameDraft)) close();
+                if (e.key === 'Escape') close();
+              }}
+              style={{ width: 120 }}
+            />
+          </label>
+        </div>
+      )}
       {chainLengthRequest && (
         <div
           role="dialog"

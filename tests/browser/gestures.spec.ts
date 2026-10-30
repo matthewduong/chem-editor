@@ -566,6 +566,50 @@ for (const scale of [1, 2]) {
       expect(contracted).toHaveLength(2);
       expect(contracted.find((x) => x.id === end)!.alias).toBe('OMe');
     });
+    test('a defined nickname labels an atom and expands to the group it was made from', async ({
+      page,
+    }) => {
+      await openEditor(page);
+      await tool(page, 'Chain');
+      const a = await point(page, 300, 300);
+      await page.mouse.click(a.x, a.y);
+      await page.getByPlaceholder('Carbons').fill('4');
+      await page.getByPlaceholder('Carbons').press('Enter');
+      const ids = (await observe(page)).atoms.map((x) => x.id);
+      await tool(page, 'Select');
+      const select = (atomIds: string[]) =>
+        page.evaluate(async (chosen) => {
+          const { useStore } = await import(String('/src/store/index.ts'));
+          useStore.getState().setSelectedAtomIds(new Set(chosen));
+        }, atomIds);
+      // The last three carbons, joined to the first by one bond: a propyl group.
+      await select(ids.slice(1));
+      await page.getByText('Edit', { exact: true }).click();
+      await page.getByText('Define Nickname…', { exact: true }).click();
+      await page.getByPlaceholder('Nickname').fill('Prx');
+      await page.getByPlaceholder('Nickname').press('Enter');
+      // Label a fresh chain end with it and expand it.
+      await tool(page, 'Chain');
+      const b = await point(page, 300, 450);
+      await page.mouse.click(b.x, b.y);
+      await page.getByPlaceholder('Carbons').fill('2');
+      await page.getByPlaceholder('Carbons').press('Enter');
+      const fresh = (await observe(page)).atoms.at(-1)!.id;
+      await tool(page, 'Select');
+      await select([fresh]);
+      const label = page
+        .getByLabel('Isotope mass number')
+        .locator('xpath=../..')
+        .locator('input')
+        .first();
+      await label.fill('Prx');
+      await label.press('Enter');
+      const before = (await observe(page)).atoms.length;
+      await select([fresh]);
+      await page.getByText('Edit', { exact: true }).click();
+      await page.getByText('Expand Label', { exact: true }).click();
+      expect((await observe(page)).atoms.length).toBe(before + 2);
+    });
     test('chain preview commits once and cancellation creates no history', async ({ page }) => {
       await openEditor(page);
       await tool(page, 'Chain');

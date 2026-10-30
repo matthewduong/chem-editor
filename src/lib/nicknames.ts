@@ -73,3 +73,78 @@ export function contractSelection(
     bonds: state.bonds.filter((bond) => !(selected.has(bond.from) && selected.has(bond.to))),
   };
 }
+
+/**
+ * A SMILES for the selected group that starts at its attachment atom, which is what a shorthand's
+ * `subsSmiles` is (its first atom is the one that bonds to the rest). Rings close with digits;
+ * aromatic bonds are written as their Kekule orders as drawn.
+ */
+export function selectionToRootedSmiles(
+  atoms: readonly Atom[],
+  bonds: readonly Bond[],
+  selected: ReadonlySet<string>,
+  rootId: string,
+): string {
+  const byId = new Map(
+    atoms.filter((atom) => selected.has(atom.id)).map((atom) => [atom.id, atom]),
+  );
+  const inner = bonds.filter((bond) => byId.has(bond.from) && byId.has(bond.to));
+  const neighbours = new Map<string, Bond[]>();
+  for (const bond of inner) {
+    for (const id of [bond.from, bond.to])
+      neighbours.set(id, [...(neighbours.get(id) ?? []), bond]);
+  }
+  const symbol = (bond: Bond) =>
+    bond.order === 2 ? '=' : bond.order === 3 ? '#' : bond.order === 4 ? '$' : '';
+  const element = (id: string) => {
+    const lead = getAtomLeadElement(byId.get(id)!);
+    const atom = byId.get(id)!;
+    const charge = atom.charge ?? 0;
+    return charge || atom.isotope
+      ? `[${atom.isotope ?? ''}${lead}${charge > 0 ? '+'.repeat(charge) : '-'.repeat(-charge)}]`
+      : lead;
+  };
+  // First pass: a spanning tree from the root; bonds left over close rings.
+  const visited = new Set<string>();
+  const treeBonds = new Set<string>();
+  const order: string[] = [];
+  const walk = (id: string) => {
+    visited.add(id);
+    order.push(id);
+    for (const bond of neighbours.get(id) ?? []) {
+      const next = bond.from === id ? bond.to : bond.from;
+      if (visited.has(next)) continue;
+      treeBonds.add(bond.id);
+      walk(next);
+    }
+  };
+  walk(rootId);
+  const closures = new Map<string, Array<{ digit: number; bond: Bond }>>();
+  let digit = 1;
+  for (const bond of inner) {
+    if (treeBonds.has(bond.id)) continue;
+    for (const id of [bond.from, bond.to])
+      closures.set(id, [...(closures.get(id) ?? []), { digit, bond }]);
+    digit += 1;
+  }
+  const done = new Set<string>();
+  const emit = (id: string): string => {
+    done.add(id);
+    let out = element(id);
+    for (const { digit: d, bond } of closures.get(id) ?? []) {
+      const opened = [bond.from, bond.to].some((end) => end !== id && done.has(end));
+      out += `${opened ? symbol(bond) : ''}${d > 9 ? `%${d}` : d}`;
+    }
+    const children = (neighbours.get(id) ?? []).filter((bond) => {
+      const next = bond.from === id ? bond.to : bond.from;
+      return treeBonds.has(bond.id) && !done.has(next);
+    });
+    children.forEach((bond, index) => {
+      const next = bond.from === id ? bond.to : bond.from;
+      const branch = `${symbol(bond)}${emit(next)}`;
+      out += index < children.length - 1 ? `(${branch})` : branch;
+    });
+    return out;
+  };
+  return order.length ? emit(rootId) : '';
+}

@@ -39,3 +39,20 @@ test('a group joined by two bonds cannot become a label', () => {
   const ring = [...bonds, bond('b3', 'm', 'r')];
   assert.ok('error' in findNicknameForSelection(atoms, ring, new Set(['o', 'm'])));
 });
+
+test('a selected group is written as a SMILES rooted at its attachment atom', async () => {
+  const { selectionToRootedSmiles } = await import('../.unit-test-dist/src/lib/nicknames.js');
+  const { smilesStructureKey } = await import('../.unit-test-dist/src/lib/smilesKey.js');
+  // Cyclopropylmethyl hung off atom x: root c0, ring c1-c2-c3.
+  const ring = [atom('x', 'O'), atom('c0', 'C'), atom('c1', 'C'), atom('c2', 'C'), atom('c3', 'C')];
+  const ringBonds = [
+    bond('a', 'x', 'c0'),
+    bond('b', 'c0', 'c1'),
+    bond('c', 'c1', 'c2'),
+    bond('d', 'c2', 'c3'),
+    bond('e', 'c3', 'c1', 2),
+  ];
+  const smiles = selectionToRootedSmiles(ring, ringBonds, new Set(['c0', 'c1', 'c2', 'c3']), 'c0');
+  assert.equal(smiles[0], 'C');
+  assert.equal(smilesStructureKey(smiles), smilesStructureKey('CC1CC=1'));
+});

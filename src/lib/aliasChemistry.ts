@@ -138,6 +138,35 @@ for (const [key, entry] of Object.entries(LEGACY_REGISTRY)) {
   }
 }
 
+let userNicknameKeys: string[] = [];
+
+/**
+ * Nicknames the user defined (Structure > Define Nickname), made known everywhere a built-in
+ * shorthand is: the shorthand table the renderer reads and the registries resolution reads. They
+ * never replace a built-in of the same name, and a new list replaces the previous one.
+ */
+export function registerUserNicknames(entries: Record<string, ShorthandEntry>): void {
+  for (const key of userNicknameKeys) {
+    delete SHORTHAND_DATA[key];
+    delete LEGACY_REGISTRY[key];
+    SHORTHAND_VARIANTS.delete(key);
+  }
+  userNicknameKeys = [];
+  for (const [key, entry] of Object.entries(entries)) {
+    if (key in SHORTHAND_DATA || key in COMPOUND_REGISTRY) continue;
+    SHORTHAND_DATA[key] = entry;
+    const registered: AliasRegistryEntry = {
+      key,
+      ...entry,
+      source: 'shorthand',
+      semanticKind: 'covalent',
+    };
+    LEGACY_REGISTRY[key] = registered;
+    SHORTHAND_VARIANTS.set(key, [registered]);
+    userNicknameKeys.push(key);
+  }
+}
+
 const LIGAND_DEFINITIONS: LigandDefinition[] = [
   { key: 'Cp', lead: 'C', valency: 1, donorCount: 1, donorAtoms: ['C'], coordinationMode: 'eta5' },
   { key: 'Cp*', lead: 'C', valency: 1, donorCount: 1, donorAtoms: ['C'], coordinationMode: 'eta5' },

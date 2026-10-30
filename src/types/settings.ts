@@ -167,4 +167,14 @@ export interface AppPreferences {
   toolPalettes: ToolPalettesPreferences;
   keybindings: KeybindingPreferences;
   recentFiles: RecentFileEntry[];
+  /** Nicknames the user defined (Structure > Define Nickname). */
+  nicknames: UserNickname[];
+}
+
+export interface UserNickname {
+  name: string;
+  /** The element the attachment atom is. */
+  lead: string;
+  /** The group as SMILES, starting at the attachment atom. */
+  subsSmiles: string;
 }
