@@ -2455,6 +2455,7 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
         hitTB,
         hitScale,
         hitNative,
+        selCtr,
       );
       return;
     }

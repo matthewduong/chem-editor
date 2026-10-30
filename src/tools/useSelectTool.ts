@@ -36,6 +36,7 @@ export interface SelectToolActions {
     hitTextBox?: TextBox | null,
     hitScaleHandle?: ScaleHandleHit | null,
     hitObjectId?: string | null,
+    rotationPivot?: { x: number; y: number } | null,
   ) => void;
   update: (pos: { x: number; y: number }, hitAtom: Atom | null, isShiftDown: boolean) => void;
   commit: () => void;
@@ -139,6 +140,8 @@ export function useSelectTool(): SelectToolOverlay & SelectToolActions {
       hitTextBox?: TextBox | null,
       hitScaleHandle?: ScaleHandleHit | null,
       hitObjectId?: string | null,
+      /** What the selection turns about; `selectionCenter` is only where the rotate handle is. */
+      rotationPivot?: { x: number; y: number } | null,
     ) => {
       lifecycle.current.begin(getCanvasEditorState().chemDrawDocument, {
         point: pos,
@@ -204,7 +207,9 @@ export function useSelectTool(): SelectToolOverlay & SelectToolActions {
         if (Math.sqrt((pos.x - selectionCenter.x) ** 2 + (pos.y - selectionCenter.y) ** 2) < 15) {
           rotateDataRef.current = {
             sourceDocument: chemDrawDocument,
-            center: selectionCenter,
+            // Turning about the handle itself (30px above the selection) swung the selection
+            // round a point outside it.
+            center: rotationPivot ?? selectionCenter,
             totalRadians: 0,
             selectedObjectIds: new Set(selectedObjectIds),
             movedAtomIds: collectMovedAtomIds(selectedAtomIds, selectedBondIds, bonds),
@@ -539,8 +544,9 @@ export function useSelectTool(): SelectToolOverlay & SelectToolActions {
             return { x: t.x, y: t.y + (numLines * t.fontSize) / 2 };
           }),
         ];
-        if (!pts.length) return;
-        const center = {
+        if (!pts.length && !rotateDataRef.current) return;
+        // Measure the drag angle about the point the commit turns about.
+        const center = rotateDataRef.current?.center ?? {
           x: pts.reduce((s, p) => s + p.x, 0) / pts.length,
           y: pts.reduce((s, p) => s + p.y, 0) / pts.length,
         };
