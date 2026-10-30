@@ -122,3 +122,12 @@ describe('textRunPresentation DOM conversion', () => {
     expect(runsToHTML([{ text: '<C>', color: 'red";font-size:999px' }])).toBe('&lt;C&gt;');
   });
 });
+
+it('formula style survives a trip through the caption editor', () => {
+  const div = document.createElement('div');
+  div.innerHTML = runsToHTML([{ text: 'CH3OH', formula: true }, { text: ' in water' }]);
+  expect(extractRunsFromDOM(div)).toEqual([
+    { text: 'CH3OH', formula: true },
+    { text: ' in water' },
+  ]);
+});

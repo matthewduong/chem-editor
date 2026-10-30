@@ -176,6 +176,8 @@ export interface TextBox {
   textAlign?: 'left' | 'center' | 'right'; // default 'center'; x is the anchor point
   width?: number; // optional fixed width, else auto
   rotation?: number; // degrees, Konva convention (clockwise)
+  /** Line spacing: absent is Automatic, 'variable', or a fixed advance (canvas px; points in export). */
+  lineHeight?: number | 'variable';
   semanticMode?: TextBoxSemanticMode;
   conversionStatus?: TextBoxChemicalConversionStatus;
   chemicalMetadata?: ChemicalTextMetadata;

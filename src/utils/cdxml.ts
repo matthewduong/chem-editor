@@ -960,6 +960,12 @@ function emitTextBoxT(
   const fontId = getFontId(tb.fontFamily ?? 'Arial');
   const rotationAttr =
     tb.rotation != null ? ` RotationAngle="${Math.round(tb.rotation * 65536)}"` : '';
+  const lineHeightAttr =
+    tb.lineHeight === 'variable'
+      ? ' LineHeight="variable"'
+      : tb.lineHeight != null
+        ? ` LineHeight="${formatCdxmlNumber(tb.lineHeight)}"`
+        : '';
   // BoundingBox is what ChemDraw reads; the private attribute is what survives our own round trip,
   // since on import a BoundingBox is treated as a measurement rather than a wrap width.
   const widthAttr =
@@ -978,7 +984,7 @@ function emitTextBoxT(
     : '';
   const rawAttributesAttr = emitRawAttributes(options?.rawAttributes);
 
-  let out = `${indent}<t id="${tb.id}" p="${xs} ${ys}" Justification="${just}"${rotationAttr}${widthAttr}${lineStartsAttr}${chemicalMetadataAttr}${semanticModeAttr}${conversionStatusAttr}${rawAttributesAttr}>\n`;
+  let out = `${indent}<t id="${tb.id}" p="${xs} ${ys}" Justification="${just}"${rotationAttr}${lineHeightAttr}${widthAttr}${lineStartsAttr}${chemicalMetadataAttr}${semanticModeAttr}${conversionStatusAttr}${rawAttributesAttr}>\n`;
   for (const run of tb.runs) {
     let face = 0;
     if (run.bold) face |= 1;
@@ -1771,6 +1777,7 @@ function chemDrawDocumentToCDXMLInternal(document: ChemDrawDocument): string {
       textAlign: text.text.justification ?? 'center',
       ...(text.text.width != null ? { width: text.text.width } : {}),
       ...(text.style?.rotation != null ? { rotation: text.style.rotation } : {}),
+      ...(text.lineHeight != null ? { lineHeight: text.lineHeight } : {}),
       ...(text.semanticMode ? { semanticMode: text.semanticMode } : {}),
       ...(text.conversionStatus ? { conversionStatus: text.conversionStatus } : {}),
       ...(text.chemicalMetadata ? { chemicalMetadata: text.chemicalMetadata } : {}),
@@ -3298,6 +3305,15 @@ export function cdxmlToChemDrawDocument(xmlString: string): ChemDrawConversionRe
       runs[0],
     );
 
+    // LineHeight: "auto" (or absent) is Automatic, "variable", or a fixed advance in points.
+    const lineHeightAttr = (child.getAttribute('LineHeight') ?? '').trim().toLowerCase();
+    const lineHeightPoints = Number.parseFloat(lineHeightAttr);
+    const lineHeight: ChemDrawText['lineHeight'] =
+      lineHeightAttr === 'variable'
+        ? 'variable'
+        : Number.isFinite(lineHeightPoints) && lineHeightPoints > 0
+          ? lineHeightPoints
+          : undefined;
     const textObject: ChemDrawText = {
       id: child.getAttribute('id') ?? fallbackId(),
       type: 'text',
@@ -3314,6 +3330,7 @@ export function cdxmlToChemDrawDocument(xmlString: string): ChemDrawConversionRe
         fontSize,
         ...(rotation != null && !isNaN(rotation) ? { rotation } : {}),
       },
+      ...(lineHeight != null ? { lineHeight } : {}),
       ...(semanticMode ? { semanticMode } : {}),
       ...(conversionStatus ? { conversionStatus } : {}),
       ...(chemicalMetadata ? { chemicalMetadata } : {}),
@@ -3339,6 +3356,7 @@ export function cdxmlToChemDrawDocument(xmlString: string): ChemDrawConversionRe
         CHEM_EDITOR_TEXT_SEMANTIC_MODE_ATTR,
         CHEM_EDITOR_TEXT_CONVERSION_STATUS_ATTR,
         CHEM_EDITOR_TEXT_WRAP_WIDTH_ATTR,
+        'LineHeight',
         // Recomputed on export; preserving the original would re-break the text. See emitTextBoxT.
         'LineStarts',
       ],

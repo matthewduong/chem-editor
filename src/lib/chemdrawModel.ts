@@ -691,6 +691,14 @@ export function canvasStateToChemDrawDocument(
         fontSize: convertCanvasToNative(textBox.fontSize, documentStyleSettings),
         ...(textBox.rotation != null ? { rotation: textBox.rotation } : {}),
       },
+      ...(textBox.lineHeight != null
+        ? {
+            lineHeight:
+              textBox.lineHeight === 'variable'
+                ? 'variable'
+                : convertCanvasToNative(textBox.lineHeight, documentStyleSettings),
+          }
+        : {}),
       ...(textBox.semanticMode ? { semanticMode: textBox.semanticMode } : {}),
       ...(textBox.conversionStatus ? { conversionStatus: textBox.conversionStatus } : {}),
       ...(textBox.chemicalMetadata ? { chemicalMetadata: textBox.chemicalMetadata } : {}),
@@ -865,6 +873,14 @@ export function chemDrawDocumentToCanvasState(document: ChemDrawDocument): Canva
       textAlign: text.text.justification ?? 'center',
       ...(text.text.width != null ? { width: text.text.width } : {}),
       ...(text.style?.rotation != null ? { rotation: text.style.rotation } : {}),
+      ...(text.lineHeight != null
+        ? {
+            lineHeight:
+              text.lineHeight === 'variable'
+                ? ('variable' as const)
+                : convertNativeToCanvas(text.lineHeight, documentStyleSettings),
+          }
+        : {}),
       ...(text.semanticMode ? { semanticMode: text.semanticMode } : {}),
       ...(text.conversionStatus ? { conversionStatus: text.conversionStatus } : {}),
       ...(text.chemicalMetadata ? { chemicalMetadata: text.chemicalMetadata } : {}),
@@ -1032,14 +1048,17 @@ export function mergeCanvasStateIntoChemDrawDocument(
       }
       mergedObjects.push(merged);
     } else if (object.type === 'text' && base?.type === 'text') {
-      mergedObjects.push({
+      const mergedText: ChemDrawText = {
         ...base,
         ...object,
         text: { ...base.text, ...object.text },
         style: { ...base.style, ...object.style },
         semanticMode: object.semanticMode ?? base.semanticMode,
         conversionStatus: object.conversionStatus ?? base.conversionStatus,
-      });
+      };
+      // The projection is the authority on spacing: no lineHeight there is Automatic again.
+      if (object.lineHeight === undefined) delete mergedText.lineHeight;
+      mergedObjects.push(mergedText);
     } else if (object.type === 'fragment' && base?.type === 'fragment') {
       // Component order is arbitrary; keep the source's member order (it is the order nodes
       // and bonds are written in) and append anything new.

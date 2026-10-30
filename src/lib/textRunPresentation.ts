@@ -34,6 +34,7 @@ function buildTextBoxDimensionsCacheKey(textBox: TextBox): string {
     textBox.y,
     textBox.width ?? '',
     textBox.fontSize,
+    textBox.lineHeight ?? '',
     textBox.fontFamily,
     textBox.textAlign ?? 'center',
     textBox.runs
@@ -70,6 +71,7 @@ function samePresentationStyle(left: TextRun, right: TextRun): boolean {
     Boolean(left.italic) === Boolean(right.italic) &&
     Boolean(left.sub) === Boolean(right.sub) &&
     Boolean(left.sup) === Boolean(right.sup) &&
+    Boolean(left.formula) === Boolean(right.formula) &&
     sanitizeInlineColor(left.color) === sanitizeInlineColor(right.color)
   );
 }
@@ -85,6 +87,7 @@ export function normalizePresentationTextRuns(runs: TextRun[]): TextRun[] {
       ...(run.italic ? { italic: true } : {}),
       ...(run.sub ? { sub: true } : {}),
       ...(run.sup ? { sup: true } : {}),
+      ...(run.formula ? { formula: true } : {}),
       ...(color ? { color } : {}),
     };
     const previous = normalized[normalized.length - 1];
@@ -328,7 +331,7 @@ export function getTextBoxDimensions(
   );
   const intrinsicW = Math.max(40, ...lineWidths);
   const textW = Math.max(textBox.width ?? 0, intrinsicW);
-  const textH = lines.length * textBox.fontSize * AUTO_LINE_HEIGHT_RATIO;
+  const textH = lines.length * getTextLineAdvance(textBox);
   const align = textBox.textAlign ?? 'center';
   const startX =
     align === 'center' ? textBox.x - textW / 2 : align === 'right' ? textBox.x - textW : textBox.x;
@@ -347,6 +350,8 @@ export function runsToHTML(runs: TextRun[]): string {
       if (run.sup) html = `<sup>${html}</sup>`;
       if (run.bold) html = `<b>${html}</b>`;
       if (run.italic) html = `<i>${html}</i>`;
+      // Formula style survives editing: the span is read back by extractRunsFromDOM.
+      if (run.formula) html = `<span data-formula="1">${html}</span>`;
       return html;
     })
     .join('');
@@ -401,6 +406,7 @@ export function extractRunsFromDOM(div: HTMLDivElement): TextRun[] {
     let italic = false;
     let sub = false;
     let sup = false;
+    let formula = false;
     let color: string | undefined;
     let el: Node | null = node.parentNode;
     while (el && el !== div) {
@@ -409,11 +415,12 @@ export function extractRunsFromDOM(div: HTMLDivElement): TextRun[] {
       if (tag === 'i' || tag === 'em') italic = true;
       if (tag === 'sub') sub = true;
       if (tag === 'sup') sup = true;
+      if ((el as HTMLElement).dataset?.formula) formula = true;
       const styleColor = sanitizeInlineColor((el as HTMLElement).style?.color);
       if (styleColor && !color) color = styleColor;
       el = el.parentNode;
     }
-    return { bold, italic, sub, sup, color };
+    return { bold, italic, sub, sup, formula, color };
   }
 
   function addBreak(options: { preserveConsecutive?: boolean } = {}) {
@@ -433,6 +440,7 @@ export function extractRunsFromDOM(div: HTMLDivElement): TextRun[] {
         ...(style.italic ? { italic: true } : {}),
         ...(style.sub ? { sub: true } : {}),
         ...(style.sup ? { sup: true } : {}),
+        ...(style.formula ? { formula: true } : {}),
         ...(style.color ? { color: style.color } : {}),
       });
     }
@@ -472,4 +480,18 @@ export function extractRunsFromDOM(div: HTMLDivElement): TextRun[] {
 export function resetTextMeasurementCaches() {
   RUN_WIDTH_CACHE.clear();
   TEXT_BOX_DIMENSIONS_CACHE.clear();
+}
+
+/**
+ * The distance from one line of a caption to the next: its fixed spacing, else Automatic, a
+ * ratio of the font size. Variable (each line fitted to its own tallest character) uses the same
+ * advance while a caption's lines share one font size, which is the only case the editor makes.
+ */
+export function getTextLineAdvance(textBox: {
+  fontSize: number;
+  lineHeight?: number | 'variable';
+}): number {
+  return typeof textBox.lineHeight === 'number'
+    ? textBox.lineHeight
+    : textBox.fontSize * AUTO_LINE_HEIGHT_RATIO;
 }

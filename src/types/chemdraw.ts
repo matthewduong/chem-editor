@@ -242,6 +242,11 @@ export interface ChemDrawText {
   type: 'text';
   anchor: ChemDrawPoint;
   text: ChemDrawTextBlock;
+  /**
+   * Line spacing (ChemDraw's LineHeight): absent is Automatic, 'variable' fits each line to its
+   * own tallest character, a number is Fixed, in points.
+   */
+  lineHeight?: number | 'variable';
   style?: ChemDrawStyle;
   semanticMode?: TextBoxSemanticMode;
   conversionStatus?: TextBoxChemicalConversionStatus;

@@ -11,6 +11,7 @@ import {
   TextToolIcon,
 } from './components/ToolIcons';
 import { TemplatesPanel } from './components/TemplatesPanel';
+import { convertCanvasToNative, convertNativeToCanvas } from './lib/chemdrawMetrics';
 import { CharacterMapPanel } from './components/CharacterMapPanel';
 import { commitChainOfLength } from './tools/useChainTool';
 import type { ShapeKind } from './lib/shapeGesture';
@@ -4490,6 +4491,134 @@ function App() {
                     }}
                   />
                 </div>
+                {/* Line spacing (ChemDraw: Automatic, Variable or Fixed) and formula style */}
+                {(() => {
+                  const selected = textBoxes.filter((t) => selectedTextBoxIds.has(t.id));
+                  const current = selected[0]?.lineHeight;
+                  const mode =
+                    current === undefined ? 'auto' : current === 'variable' ? 'variable' : 'fixed';
+                  const editSelected = (
+                    change: (t: (typeof textBoxes)[number]) => (typeof textBoxes)[number],
+                  ) => {
+                    if (selected.length === 0) return;
+                    const {
+                      atoms: a,
+                      bonds: b,
+                      arrows: arr,
+                      groups: g,
+                      textBoxes: tb,
+                    } = useStore.getState();
+                    commitCanvasEdit({
+                      atoms: a,
+                      bonds: b,
+                      arrows: arr,
+                      groups: g ?? [],
+                      textBoxes: (tb ?? []).map((t) =>
+                        selectedTextBoxIds.has(t.id) ? change(t) : t,
+                      ),
+                    });
+                  };
+                  const setSpacing = (next: 'auto' | 'variable' | number) =>
+                    editSelected((t) => {
+                      const { lineHeight: _old, ...rest } = t;
+                      void _old;
+                      return next === 'auto'
+                        ? rest
+                        : {
+                            ...rest,
+                            lineHeight:
+                              next === 'variable'
+                                ? 'variable'
+                                : convertNativeToCanvas(next, documentStyleSettings),
+                          };
+                    });
+                  const allFormula =
+                    selected.length > 0 &&
+                    selected.every((t) => t.runs.every((run) => run.formula || !run.text.trim()));
+                  return (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <span style={{ fontSize: 11, color: theme.text }}>Spacing</span>
+                      <select
+                        aria-label="Line spacing"
+                        value={mode}
+                        disabled={selected.length === 0}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          setSpacing(
+                            value === 'fixed'
+                              ? Math.round(
+                                  convertCanvasToNative(
+                                    (selected[0]?.fontSize ?? 14) * 1.25,
+                                    documentStyleSettings,
+                                  ),
+                                )
+                              : (value as 'auto' | 'variable'),
+                          );
+                        }}
+                        style={{
+                          fontSize: 11,
+                          background: isDarkMode ? '#333' : '#fff',
+                          color: theme.text,
+                          border: `1px solid ${theme.border}`,
+                          borderRadius: 3,
+                        }}
+                      >
+                        <option value="auto">Automatic</option>
+                        <option value="variable">Variable</option>
+                        <option value="fixed">Fixed</option>
+                      </select>
+                      {typeof current === 'number' && (
+                        <DeferredNumberInput
+                          value={
+                            Math.round(convertCanvasToNative(current, documentStyleSettings) * 10) /
+                            10
+                          }
+                          min={1}
+                          max={200}
+                          step={0.5}
+                          onCommit={(points) => setSpacing(points)}
+                          style={{
+                            width: 44,
+                            fontSize: 11,
+                            padding: '2px 4px',
+                            background: isDarkMode ? '#333' : '#fff',
+                            color: theme.text,
+                            border: `1px solid ${theme.border}`,
+                            borderRadius: 3,
+                            textAlign: 'center',
+                          }}
+                        />
+                      )}
+                      <button
+                        onMouseDown={(e) => e.preventDefault()}
+                        disabled={selected.length === 0}
+                        title="Formula style: digits after an element are subscripts (CH3OH)"
+                        aria-pressed={allFormula}
+                        onClick={() =>
+                          editSelected((t) => ({
+                            ...t,
+                            runs: t.runs.map((run) =>
+                              allFormula
+                                ? { ...run, formula: undefined }
+                                : { ...run, formula: true, sub: undefined, sup: undefined },
+                            ),
+                          }))
+                        }
+                        style={{
+                          fontSize: 11,
+                          padding: '2px 6px',
+                          border: `1px solid ${theme.border}`,
+                          borderRadius: 3,
+                          background: allFormula ? '#2196F3' : isDarkMode ? '#333' : '#fff',
+                          color: allFormula ? '#fff' : theme.text,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        C₂H₆
+                      </button>
+                    </div>
+                  );
+                })()}
                 {/* Bold / Italic */}
                 <div style={{ display: 'flex', gap: 4 }}>
                   <button

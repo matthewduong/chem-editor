@@ -394,3 +394,20 @@ test('a charge symbol follows its atom through export renumbering', async () => 
   );
   assert.equal(removed.pages[0].objects[0].charge, undefined);
 });
+
+test('caption line spacing reads and writes LineHeight', () => {
+  const source = `<?xml version="1.0"?><CDXML BondLength="14.4"><page id="100">
+    <t id="5" p="0 40" LineHeight="18"><s font="3" size="10" face="0">two\nlines</s></t>
+    <t id="6" p="0 90" LineHeight="variable"><s font="3" size="10" face="0">var</s></t>
+    <t id="7" p="0 120" LineHeight="auto"><s font="3" size="10" face="0">auto</s></t>
+  </page></CDXML>`;
+  const { document } = cdxmlToChemDrawDocument(source);
+  const text = (id) => document.pages[0].objects.find((o) => o.id === id);
+  assert.equal(text('5').lineHeight, 18);
+  assert.equal(text('6').lineHeight, 'variable');
+  assert.equal(text('7').lineHeight, undefined);
+  const out = exportXml(source);
+  assert.match(/<t id="5"[^>]*>/.exec(out)?.[0] ?? '', /LineHeight="18"/);
+  assert.match(/<t id="6"[^>]*>/.exec(out)?.[0] ?? '', /LineHeight="variable"/);
+  assert.doesNotMatch(/<t id="7"[^>]*>/.exec(out)?.[0] ?? '', /LineHeight/);
+});
