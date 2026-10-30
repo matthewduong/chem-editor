@@ -12,8 +12,8 @@ ChemDraw's own files (the `chemdraw_template*.cdxml` set in RDKit's test data), 
 | ----- | ----------------------------------- | ---------------------- |
 | I     | Graphics foundation and shape tools | **done 2026-10-29**    |
 | II    | Selection and arrange               | **done 2026-10-30**    |
-| III   | Annotations, bonds and labels       | **ready** (plan below) |
-| IV    | Stereo, numbering and analysis      |                        |
+| III   | Annotations, bonds and labels       | **done 2026-10-30**    |
+| IV    | Stereo, numbering and analysis      | **ready** (plan below) |
 | V     | Reactions                           |                        |
 | VI    | Query structures                    |                        |
 | VII   | Document, output and app shell      |                        |
@@ -184,3 +184,62 @@ and the contentEditable round trip keeping it (a data attribute on formula spans
 
 - Symbol size and placement for circled charges next to atoms; orbital proportions per type;
   how ChemDraw writes a user nickname into a document that uses it.
+
+Phase III done 2026-10-30: every orbital type and orbital tools, circled charges and radical
+ions, character map, quadruple bonds, isotope labels, Expand/Contract Label, user nicknames,
+caption line spacing and formula style.
+
+## Phase IV — stereo, numbering and analysis
+
+ChemDraw (17.1 guide): stereo indicators are shown per structure (Object Settings > Show
+Stereochemistry) and update as the drawing changes; atom numbers are shown on selected atoms
+with the `'` hotkey; Structure Perspective tilts a selection in 3D by dragging (Shift limits it to
+the X or Y axis); the Analysis window gives formula, exact mass, MW, m/z with isotope abundance,
+and elemental analysis, for the selection or else the document; stereochemical flags (Absolute,
+Relative, Racemic) attach to the nearest structure.
+
+### Groundwork landed in III.9
+
+- Atom object tags (stereo labels, numbers) move with their atom under move, rotate, scale and
+  flip; they were left behind.
+- `RdkitMol.get_stereo_tags` / `get_descriptors` typed (RDKit-wasm 2025.3.4 has both).
+
+### Sub-steps
+
+**IV.1 CIP labels.** Per structure, `rdkit.get_mol(molblock)` then `get_stereo_tags()` (the
+molblock's atom i is `atoms[i]`, `graphToMolblock`); map to atom and bond ids as the viewer
+already does (`ChemCanvas.tsx` ~1004-1095, debounced on `hashCanvasState`). Draw as a derived
+overlay in the scene (`stereoLabelsByAtomId/ByBondId` beside `rdkitInvalidAtomIds`): `(R)`/`(S)`
+beside the atom, `(E)`/`(Z)` at the bond's middle, caption font. A Show Stereochemistry toggle
+(document view setting). Bond `<objecttag>`s from files are parsed and drawn too
+(`parseObjectTags` is not called for `<b>` today).
+
+**IV.2 Enhanced stereo and flags.** `ChemDrawNode.enhancedStereo { type: abs|and|or; group }`
+read and written as CDXML `EnhancedStereoType` / `EnhancedStereoGroupNum` (raw today); an Atom
+panel control; V3000 `MDLV30/STEABS|STERAC|STEREL` collections in the molfile writer; the chiral
+flag (molfile counts line field 5). Stereochemical flag symbols (Absolute/Relative/Racemic, already
+drawn as symbols) placeable from the Drawing palette.
+
+**IV.3 2D atom numbering.** Show Atom Numbers on the selection (`'` hotkey, Atom menu), stored as
+ChemDraw does (`ShowAtomNumber`/`AtomNumber` on `<n>`, raw today), drawn beside the atom away
+from its bonds (`labelPlacement.ts`).
+
+**IV.4 Structure perspective.** `perspectiveSelectedObjects(doc, ids, center, tiltX, tiltY)`:
+rotate positions about the X/Y axes through the centre and project back to the page (2D
+coordinates only, as ChemDraw); a perspective tool dragging inside the selection (Shift: one
+axis), as one command like rotate.
+
+**IV.5 Analysis.** Elemental analysis (% by weight from the formula and `ELEMENTS[].weight`) and
+m/z (exact mass less electron mass times charge, over |charge|, with the main isotope peaks from
+`predict_ms`'s isotope spread) in the Properties panel, for the selection or else the document.
+
+**IV.6 Analysis as caption.** A button per row (and "all") inserting the value as a caption under
+the structure's bounds in the document caption style (`resolveDocumentCaptionTextStyle`), one
+undo step.
+
+**IV.7 Ready Phase V.**
+
+### To probe on mac
+
+- How ChemDraw writes computed stereo indicators (objecttag name and placement), and
+  `ShowAtomNumber` / `AtomNumber` placement.

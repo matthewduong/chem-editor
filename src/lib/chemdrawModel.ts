@@ -1430,7 +1430,12 @@ export function moveSelectedObjects(
   const nextObjects = objects.map((object) => {
     if (object.type === 'node' && selectedNodeIds.has(object.id)) {
       if (blocksTransform(object)) return object;
-      return { ...object, position: { x: object.position.x + dx, y: object.position.y + dy } };
+      const shift = (x: number, y: number) => ({ x: x + dx, y: y + dy });
+      return {
+        ...object,
+        position: shift(object.position.x, object.position.y),
+        ...(object.objectTags ? { objectTags: mapObjectTags(object.objectTags, shift) } : {}),
+      };
     }
     if (object.type === 'arrow' && selectedObjectIds.has(object.id)) {
       if (blocksTransform(object)) return object;
@@ -1630,7 +1635,12 @@ export function rotateSelectedObjects(
   const nextObjects = objects.map((object) => {
     if (object.type === 'node' && selectedNodeIds.has(object.id)) {
       if (blocksTransform(object)) return object;
-      return { ...object, position: rotate(object.position.x, object.position.y) };
+      return {
+        ...object,
+        position: rotate(object.position.x, object.position.y),
+        // An atom's tags (stereo labels, numbers) travel with it.
+        ...(object.objectTags ? { objectTags: mapObjectTags(object.objectTags, rotate) } : {}),
+      };
     }
     if (object.type === 'arrow' && selectedObjectIds.has(object.id)) {
       if (blocksTransform(object)) return object;
@@ -1689,7 +1699,11 @@ export function scaleSelectedObjects(
   const nextObjects = objects.map((object) => {
     if (object.type === 'node' && selectedNodeIds.has(object.id)) {
       if (blocksTransform(object)) return object;
-      return { ...object, position: scale(object.position.x, object.position.y) };
+      return {
+        ...object,
+        position: scale(object.position.x, object.position.y),
+        ...(object.objectTags ? { objectTags: mapObjectTags(object.objectTags, scale) } : {}),
+      };
     }
     if (object.type === 'arrow' && selectedObjectIds.has(object.id)) {
       if (blocksTransform(object)) return object;
@@ -1801,6 +1815,7 @@ export function flipSelectedObjects(
       return {
         ...object,
         position: mirror(object.position.x, object.position.y),
+        ...(object.objectTags ? { objectTags: mapObjectTags(object.objectTags, mirror) } : {}),
         ...(object.electronAngles
           ? { electronAngles: object.electronAngles.map(mirrorAngle) }
           : {}),

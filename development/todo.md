@@ -23,11 +23,11 @@ handles for boxes and arc end/curvature handles moved to Phase II with the other
 
 ## Annotation objects
 
-- [ ] **Orbital tool, and every orbital type** — only s and p render today; d and single-lobe
+- [x] **Orbital tool, and every orbital type** — only s and p render today; d and single-lobe
       draw nothing (`gaps.md`) · 12: Chemical Annotations, Orbitals
-- [ ] **Circled charges and radical-cation/anion symbols** — circled charges render-only; radical
+- [x] **Circled charges and radical-cation/anion symbols** — circled charges render-only; radical
       ions only as separate charge + radical · 12: Chemical Annotations, Chemical Symbols
-- [ ] **Character map** — no special-character picker for captions and labels · 6: Atoms,
+- [x] **Character map** — no special-character picker for captions and labels · 6: Atoms,
       Character Map
 
 ## Selection and arrange
@@ -51,11 +51,11 @@ Done in Phase II (2026-10-30), with ChemDraw's keys (preferences version 11).
 
 ## Bonds and labels
 
-- [ ] **Quadruple bond** — no bond order 4 · 6: Bonds, Quadruple Bonds
-- [ ] **Expand / contract nicknames on the canvas** — expansion exists only internally
+- [x] **Quadruple bond** — no bond order 4 · 6: Bonds, Quadruple Bonds
+- [x] **Expand / contract nicknames on the canvas** — expansion exists only internally
       (`aliasGraphExpansion.ts`) · 6: Atoms, Expanding Nicknames; 10: Labels
-- [ ] **User-defined nicknames** — the shorthand library is fixed · 10: Defining Nicknames
-- [ ] **Isotope labels** — stored in molfile/CDXML, but no UI and not drawn · 17: Isotopes and
+- [x] **User-defined nicknames** — the shorthand library is fixed · 10: Defining Nicknames
+- [x] **Isotope labels** — stored in molfile/CDXML, but no UI and not drawn · 17: Isotopes and
       Elements
 
 ## Reactions
@@ -105,7 +105,7 @@ Done in Phase II (2026-10-30), with ChemDraw's keys (preferences version 11).
 
 - [ ] **Full drawing settings UI** — bold width, margin width, hash spacing and bond spacing are
       stored (`nativeMetrics`) but not editable · 4: Document and Object Settings
-- [ ] **Caption line spacing and a Formula style control** — formula face renders on import
+- [x] **Caption line spacing and a Formula style control** — formula face renders on import
       only · 4: Formatting Captions, Specifying Line Spacing
 - [ ] **Document background colour and a saved colour palette** — background fixed by theme;
       native colour pickers only · 4: Working with Color

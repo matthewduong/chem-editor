@@ -6,6 +6,10 @@ export interface RdkitMol {
   get_molblock?(): string;
   get_svg_with_highlights?(details: string): string;
   set_new_coords?(): void;
+  /** CIP labels: JSON `{CIP_atoms: [[index, "(R)"]…], CIP_bonds: [[begin, end, "(E)"]…]}`. */
+  get_stereo_tags?(): string;
+  /** RDKit descriptors as JSON, including `exactmw` and `amw`. */
+  get_descriptors?(): string;
 }
 
 export interface RdkitModule {

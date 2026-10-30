@@ -411,3 +411,20 @@ test('caption line spacing reads and writes LineHeight', () => {
   assert.match(/<t id="6"[^>]*>/.exec(out)?.[0] ?? '', /LineHeight="variable"/);
   assert.doesNotMatch(/<t id="7"[^>]*>/.exec(out)?.[0] ?? '', /LineHeight/);
 });
+
+test('an atom carries its object tags through rotation', () => {
+  const { document } =
+    cdxmlToChemDrawDocument(`<?xml version="1.0"?><CDXML BondLength="14.4"><page id="100">
+    <fragment id="1"><n id="2" p="20 20"><objecttag id="9" TagType="Unknown" Name="stereo"><t id="10" p="30 20"><s font="3" size="8" face="0">(R)</s></t></objecttag></n></fragment>
+  </page></CDXML>`);
+  const node = document.pages[0].objects.find((o) => o.id === '2');
+  const anchor = node.objectTags[0].textAnchor;
+  const turned = rotateSelectedObjects(
+    document,
+    new Set(['2']),
+    node.position,
+    Math.PI,
+  ).pages[0].objects.find((o) => o.id === '2');
+  const moved = turned.objectTags[0].textAnchor;
+  assert.ok(Math.abs(moved.x - (2 * node.position.x - anchor.x)) < 1e-9);
+});
