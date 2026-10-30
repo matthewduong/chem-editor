@@ -81,6 +81,7 @@ import {
   reorderBondObjects,
 } from '../lib/chemdrawModel';
 import { evaluateTextBoxChemicalState } from '../lib/chemicalText';
+import { chargeSymbolPlace, toggleChargeSymbol, type ChargeSymbolType } from '../lib/chargeSymbols';
 import {
   applyElectronToolToAtom,
   getAtomElectronMarkerGeometry,
@@ -142,6 +143,7 @@ import type {
   Bond,
   BondDisplayStyle,
   CanvasState as ChemistryCanvasState,
+  ElectronToolMode,
   TextBox,
 } from '../types/chemistry';
 import { CanvasTextEditors } from './CanvasTextEditors';
@@ -227,6 +229,13 @@ function reorderBondStack(bonds: Bond[], bondId: string, direction: 'front' | 'b
 }
 
 const LEGACY_DEFAULT_VISUAL_BOND_LENGTH = 45;
+const CHARGE_SYMBOL_BY_MODE: Partial<Record<ElectronToolMode, ChargeSymbolType>> = {
+  'charge-positive-circled': 'CirclePlus',
+  'charge-negative-circled': 'CircleMinus',
+  'radical-cation': 'RadicalCation',
+  'radical-anion': 'RadicalAnion',
+};
+
 /** A typed mass number: a positive integer, or null to clear the isotope. */
 function parseIsotopeInput(value: string): number | null {
   const mass = Number.parseInt(value.trim(), 10);
@@ -2584,6 +2593,29 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
     }
     if (tool === 'fragment' && selectedFragment) {
       placeFragmentAt(selectedFragment, pos, hitA ?? undefined, hitB ?? undefined);
+      return;
+    }
+    if (tool === 'charge' && hitA && CHARGE_SYMBOL_BY_MODE[electronToolMode]) {
+      // A circled charge or radical ion: a symbol beside the atom, on its clearest diagonal.
+      const document = getCanvasEditorState().chemDrawDocument;
+      if (!document) return;
+      const neighbours = bonds
+        .filter((bond) => bond.from === hitA.id || bond.to === hitA.id)
+        .map((bond) =>
+          atoms.find((atom) => atom.id === (bond.from === hitA.id ? bond.to : bond.from)),
+        )
+        .filter((atom): atom is Atom => Boolean(atom));
+      commitNativeDocument(
+        toggleChargeSymbol(
+          document,
+          hitA.id,
+          CHARGE_SYMBOL_BY_MODE[electronToolMode]!,
+          chargeSymbolPlace(hitA, neighbours, bondLength),
+          bondLength * 0.55,
+          () => crypto.randomUUID(),
+        ),
+        'charge-symbol',
+      );
       return;
     }
     if (tool === 'charge' && hitA) {

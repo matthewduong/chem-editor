@@ -355,3 +355,42 @@ test('a quadruple bond stays quadruple and formula text keeps face 96', () => {
   assert.match(out, /<b [^>]*Order="4"/);
   assert.match(out, /face="96"[^>]*>CH3OH</);
 });
+
+test('a charge symbol follows its atom through export renumbering', async () => {
+  const { toggleChargeSymbol } = await import('../.unit-test-dist/src/lib/chargeSymbols.js');
+  const { canvasStateToChemDrawDocument } =
+    await import('../.unit-test-dist/src/lib/chemdrawModel.js');
+  const { document } = canvasStateToChemDrawDocument({
+    atoms: [{ id: 'atom-uuid', x: 40, y: 40, kind: 'element', element: 'N' }],
+    bonds: [],
+    arrows: [],
+    groups: [],
+    textBoxes: [],
+  });
+  const withSymbol = toggleChargeSymbol(
+    document,
+    'atom-uuid',
+    'CirclePlus',
+    { x: 50, y: 30 },
+    8,
+    () => 'sym',
+  );
+  const out = chemDrawDocumentToCDXML(withSymbol);
+  const nodeId = /<n id="(\d+)"/.exec(out)?.[1];
+  assert.match(out, new RegExp(`<represent attribute="Charge" object="${nodeId}"/>`));
+  assert.match(out, /<n [^>]*Charge="1"/);
+  // Applying it again removes the symbol and the charge.
+  const removed = toggleChargeSymbol(
+    withSymbol,
+    'atom-uuid',
+    'CirclePlus',
+    { x: 0, y: 0 },
+    8,
+    () => 'x',
+  );
+  assert.equal(
+    removed.pages[0].objects.some((o) => o.type === 'graphic'),
+    false,
+  );
+  assert.equal(removed.pages[0].objects[0].charge, undefined);
+});

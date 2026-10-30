@@ -1890,7 +1890,10 @@ function chemDrawDocumentToCDXMLInternal(document: ChemDrawDocument): string {
                   : ''
               }${
                 object.representedObjectId
-                  ? ` object="${xmlEscape(object.representedObjectId)}"`
+                  ? ` object="${xmlEscape(
+                      // Atoms are renumbered on export; the symbol must follow its atom.
+                      String(idMap.get(object.representedObjectId) ?? object.representedObjectId),
+                    )}"`
                   : ''
               }/>`
             : '';

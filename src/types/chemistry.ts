@@ -17,7 +17,11 @@ export type ElectronToolMode =
   | 'charge-negative'
   | 'radical'
   | 'lone-pair-add'
-  | 'lone-pair-remove';
+  | 'lone-pair-remove'
+  | 'charge-positive-circled'
+  | 'charge-negative-circled'
+  | 'radical-cation'
+  | 'radical-anion';
 export type AtomAliasResolutionStatus =
   | 'resolved'
   | 'ambiguous'

@@ -120,8 +120,12 @@ export const NODE_MODULE: ObjectModule = {
     // A file's own label text can carry the charge already (`CH2+`, `O2-`); it is not added twice.
     const labelCarriesCharge =
       Boolean(atom.alias) && /^[+\-\u2212]|[+\-\u2212]\s*$/.test(atom.alias ?? '');
+    // A charge a symbol shows (a circled +, a radical cation) is not also written in the label.
+    const chargeShownBySymbol = scene.index.chargeSymbolNodeIds.has(atom.id);
     const chargeRuns =
-      labelVisible && !labelCarriesCharge ? buildChargeRuns(charge, resolvedColor) : [];
+      labelVisible && !labelCarriesCharge && !chargeShownBySymbol
+        ? buildChargeRuns(charge, resolvedColor)
+        : [];
     const chargeText = chargeRuns.map((run) => run.text).join('');
     const chargeFirst = !stackSide && display.orientation === 'hydrogen-first';
     const displayRuns = chargeFirst ? [...chargeRuns, ...baseRuns] : [...baseRuns, ...chargeRuns];

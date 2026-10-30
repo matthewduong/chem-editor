@@ -3217,6 +3217,47 @@ function App() {
                 -1
               </PaletteButton>
             </div>
+            <div style={paletteSectionLabelStyle}>Charge Symbols</div>
+            <div
+              style={{
+                width: '100%',
+                display: 'grid',
+                gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+                gap: 4,
+              }}
+            >
+              {(
+                [
+                  ['charge-positive-circled', '⊕', 'Circled plus: a +1 charge shown as a symbol'],
+                  ['charge-negative-circled', '⊖', 'Circled minus: a −1 charge shown as a symbol'],
+                  ['radical-cation', '•+', 'Radical cation symbol'],
+                  ['radical-anion', '•−', 'Radical anion symbol'],
+                ] as const
+              ).map(([mode, glyph, title]) => (
+                <PaletteButton
+                  key={mode}
+                  variant="wide"
+                  active={tool === 'charge' && electronToolMode === mode}
+                  onClick={() => {
+                    if (tool === 'charge' && electronToolMode === mode) {
+                      setTool('select');
+                    } else {
+                      setTool('charge');
+                      setElectronToolMode(mode);
+                      setShowBondMenu(false);
+                    }
+                  }}
+                  style={{
+                    ...paletteWideButtonStyle,
+                    minHeight: `${buttonSize * 0.78}px`,
+                    fontSize: `${12 * buttonScale}px`,
+                  }}
+                  title={title}
+                >
+                  {glyph}
+                </PaletteButton>
+              ))}
+            </div>
             <div
               style={{
                 width: '100%',

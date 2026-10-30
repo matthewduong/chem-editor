@@ -41,6 +41,8 @@ export interface DocumentIndex {
   spatialEntryById: Map<string, SpatialEntry>;
   spatialIndex: DocumentSpatialIndex;
   pageBounds: ChemDrawBounds | null;
+  /** Atoms whose charge a symbol graphic shows (`<represent attribute="Charge">`). */
+  chargeSymbolNodeIds: Set<string>;
 }
 
 const SPATIAL_INDEX_CELL_SIZE = 256;
@@ -331,6 +333,7 @@ export function buildDocumentIndexUncached(
         cells: new Map(),
       },
       pageBounds: null,
+      chargeSymbolNodeIds: new Set(),
     };
   }
 
@@ -369,6 +372,16 @@ export function buildDocumentIndexUncached(
     spatialEntryById,
     spatialIndex,
     pageBounds: activePage.bounds ?? unionBounds(spatialEntries.map((entry) => entry.bounds)),
+    chargeSymbolNodeIds: new Set(
+      activePage.objects.flatMap((object) =>
+        object.type === 'graphic' &&
+        object.graphicType === 'symbol' &&
+        object.representedObjectId &&
+        (object.representedAttribute ?? '').toLowerCase() === 'charge'
+          ? [object.representedObjectId]
+          : [],
+      ),
+    ),
   };
 }
 
