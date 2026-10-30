@@ -373,6 +373,15 @@ function getDirectChildrenByTagName(el: Element, tagName: string): Element[] {
   return Array.from(elementChildren(el)).filter((child) => child.tagName === tagName);
 }
 
+function ancestorWithTag(el: Element, tagName: string): Element | null {
+  let parent = parentElement(el);
+  while (parent) {
+    if (parent.tagName.toLowerCase() === tagName.toLowerCase()) return parent;
+    parent = parentElement(parent);
+  }
+  return null;
+}
+
 function hasAncestorTag(el: Element, tagName: string): boolean {
   let parent = parentElement(el);
   while (parent) {
@@ -1258,8 +1267,16 @@ function chemDrawDocumentToCDXMLInternal(document: ChemDrawDocument): string {
 
   const nodes = page.objects.filter((object): object is ChemDrawNode => object.type === 'node');
   const bonds = page.objects.filter((object): object is ChemDrawBond => object.type === 'bond');
+  // Containers written back raw (an <altgroup>) already hold their members.
+  const rawContainerIds = new Set(
+    (page.preservedPageChildren ?? [])
+      .map((child) => /^<[\w:-]+\b[^>]*?\sid="([^"]+)"/.exec(child.xml.trim())?.[1])
+      .filter((id): id is string => Boolean(id)),
+  );
   const fragments = page.objects.filter(
-    (object): object is ChemDrawFragment => object.type === 'fragment',
+    (object): object is ChemDrawFragment =>
+      object.type === 'fragment' &&
+      !(object.preservation?.ownedBy && rawContainerIds.has(object.preservation.ownedBy)),
   );
   const arrows = page.objects.filter((object): object is ChemDrawArrow => object.type === 'arrow');
   const textObjects = page.objects.filter(
@@ -3099,6 +3116,31 @@ export function cdxmlToChemDrawDocument(xmlString: string): ChemDrawConversionRe
       ];
       fragment.preservation = fragmentPreservation;
     }
+    // A member of an R-group definition is drawn, but the definition (<altgroup>) is written
+    // back as the file had it, members included, so the member itself is not written again.
+    const owner = ancestorWithTag(fragmentEl, 'altgroup');
+    if (owner) {
+      const ownedBy = owner.getAttribute('id') ?? '';
+      fragment.preservation = {
+        ...fragment.preservation,
+        capability: 'render-only',
+        reasons: ['Part of an R-group definition (<altgroup>), which is written back as read.'],
+        ownedBy,
+      };
+      for (const object of objects) {
+        if (
+          (object.type === 'node' && nodeIds.includes(object.id)) ||
+          (object.type === 'bond' && bondIds.includes(object.id))
+        ) {
+          object.preservation = {
+            ...object.preservation,
+            capability: 'render-only',
+            reasons: ['Part of an R-group definition (<altgroup>), which is written back as read.'],
+            ownedBy,
+          };
+        }
+      }
+    }
     objects.push(fragment);
   }
 
@@ -4143,6 +4185,17 @@ export function cdxmlToChemDrawDocument(xmlString: string): ChemDrawConversionRe
             `Top-level <${tag}> container semantics are only partially preserved and may not round-trip fully.`,
           );
         }
+        continue;
+      }
+      if (tag === 'altgroup') {
+        // Its fragments are read for drawing (owned by it, read-only); it is written back whole.
+        preservedPageChildren.push({
+          tagName: tag,
+          xml: serializeXml(child),
+          capability: 'render-only',
+          reason: 'An R-group definition is drawn and written back as read.',
+        });
+        warnings.push('An R-group definition (<altgroup>) is shown read-only and kept as read.');
         continue;
       }
       preservedPageChildren.push({

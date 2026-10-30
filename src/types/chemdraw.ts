@@ -110,6 +110,11 @@ export interface ChemDrawPreservationMetadata {
   reasons?: string[];
   rawAttributes?: Record<string, string>;
   rawChildrenXml?: string[];
+  /**
+   * The id of a preserved container (an `<altgroup>`) whose raw XML already holds this object;
+   * export writes the container and skips the object.
+   */
+  ownedBy?: string;
 }
 
 export interface ChemDrawObjectTag {

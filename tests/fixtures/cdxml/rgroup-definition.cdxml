@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  An R-group definition: a structure with an R1 generic, and an <altgroup> holding R1's two
+  members (OH, NH2), each with the ExternalConnectionPoint that marks where it attaches. Element
+  and attribute names are the CDXML DTD's (development/reference/cdxml); the frame and label
+  geometry is made up, not taken from a ChemDraw file. Saving must not write the members twice.
+-->
+<CDXML BondLength="14.4" LineWidth="0.6" CaptionSize="10">
+  <page id="1">
+    <fonttable>
+      <font id="3" charset="iso-8859-1" name="Arial"/>
+    </fonttable>
+    <fragment id="2">
+      <n id="3" p="0 0"/>
+      <n id="4" p="12.47 -7.2"/>
+      <n id="5" p="24.94 0" NodeType="GenericNickname" GenericNickname="R" NumHydrogens="0"><t p="22 4"><s font="3" size="10" face="96">R1</s></t></n>
+      <b id="6" B="3" E="4"/>
+      <b id="7" B="4" E="5"/>
+    </fragment>
+    <altgroup id="10" GroupFrame="50 -20 150 30" TextFrame="50 -20 75 30" Valence="1">
+      <t id="11" p="55 5"><s font="3" size="10" face="96">R1 =</s></t>
+      <fragment id="12">
+        <n id="13" p="90 0" Element="8"/>
+        <n id="14" p="104 0" NodeType="ExternalConnectionPoint"/>
+        <b id="15" B="13" E="14"/>
+      </fragment>
+      <fragment id="16">
+        <n id="17" p="120 0" Element="7"/>
+        <n id="18" p="134 0" NodeType="ExternalConnectionPoint"/>
+        <b id="19" B="17" E="18"/>
+      </fragment>
+    </altgroup>
+  </page>
+</CDXML>

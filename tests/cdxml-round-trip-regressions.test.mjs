@@ -478,3 +478,19 @@ test('a label typed as a generic is written as ChemDraw writes one', async () =>
   const again = chemDrawDocumentToCDXML(cdxmlToChemDrawDocument(exported('R1')).document);
   assert.equal(again, exported('R1'));
 });
+
+test("an R-group definition's members are drawn but written once", async () => {
+  const { readFileSync } = await import('node:fs');
+  const source = readFileSync(
+    new URL('./fixtures/cdxml/rgroup-definition.cdxml', import.meta.url),
+    'utf8',
+  );
+  const { document } = cdxmlToChemDrawDocument(source);
+  const member = document.pages[0].objects.find((o) => o.id === '12');
+  assert.equal(member.preservation.capability, 'render-only');
+  assert.equal(member.preservation.ownedBy, '10');
+  const once = chemDrawDocumentToCDXML(document);
+  assert.equal((once.match(/<fragment/g) ?? []).length, 3);
+  assert.equal((once.match(/<altgroup/g) ?? []).length, 1);
+  assert.equal(chemDrawDocumentToCDXML(cdxmlToChemDrawDocument(once).document), once);
+});

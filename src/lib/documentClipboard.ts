@@ -79,6 +79,8 @@ export function extractDocumentSelection(
   for (const object of page.objects) {
     if (!included.has(object.id)) continue;
     if (objectHasOpaqueChildren(object)) return null;
+    // Part of a container written back raw (an R-group definition): not separable from it.
+    if (object.preservation?.ownedBy) return null;
     if (
       object.type === 'graphic' &&
       object.representedObjectId &&
