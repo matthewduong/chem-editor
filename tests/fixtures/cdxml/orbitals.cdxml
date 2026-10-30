@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  Orbital graphics. Only s and p have draw code today; the hybrid and d types silently draw
-  nothing, which this fixture pins so implementing them shows up as a golden diff.
+  Orbital graphics given by BoundingBox alone, read as nucleus then lobe tip (the boxes here are
+  diagonal). orbital-types.cdxml has them in ChemDraw's own form.
 -->
 <CDXML BondLength="14.4" LineWidth="0.6">
   <page id="page-1">

@@ -418,6 +418,13 @@ const DRAWING_ELEMENT_OPTIONS: Array<{ kind: ShapeKind; title: string }> = [
   { kind: 'pair-curly', title: 'Braces (Pair)' },
   { kind: 'curve', title: 'Pen (Draw Curve)' },
   { kind: 'edit-curve', title: 'Edit Curve' },
+  { kind: 'orbital-s', title: 's Orbital' },
+  { kind: 'orbital-p', title: 'p Orbital' },
+  { kind: 'orbital-lobe', title: 'Orbital Lobe' },
+  { kind: 'orbital-hybrid', title: 'Hybrid Orbital' },
+  { kind: 'orbital-dz2', title: 'dz² Orbital' },
+  { kind: 'orbital-dxy', title: 'dxy Orbital' },
+  { kind: 'orbital-oval', title: 'σ Orbital' },
   { kind: 'dagger', title: 'Dagger' },
   { kind: 'double-dagger', title: 'Double Dagger' },
 ];

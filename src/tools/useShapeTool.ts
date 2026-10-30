@@ -3,7 +3,12 @@ import { ToolLifecycle } from '../editor/toolLifecycle';
 import { createFreehandCurve } from '../lib/curveGesture';
 import { appendCurveSegment, findCurveHandle, moveCurveHandle } from '../lib/curveEdit';
 import { CURVE_TYPE, curveSegments, sampleCurve } from '../lib/curveGeometry';
-import { isClickPlacedShape, shapeForDrag, type ShapeKind } from '../lib/shapeGesture';
+import {
+  isClickPlacedShape,
+  isOrbitalShape,
+  shapeForDrag,
+  type ShapeKind,
+} from '../lib/shapeGesture';
 import type {
   ChemDrawDocument,
   ChemDrawGraphic,
@@ -18,6 +23,7 @@ interface ShapeDrag {
   objects: ChemDrawObject[];
   bigEnough: boolean;
   symbolSize?: number;
+  orbitalSize?: number;
   /** The pointer path, for the pen. */
   path: ChemDrawPoint[];
   /** Edit Curve: the curve and handle being dragged. Edits keep the curve's id. */
@@ -40,6 +46,7 @@ export function useShapeTool() {
     pointer: ChemDrawPoint,
     shift: boolean,
     symbolSize?: number,
+    orbitalSize?: number,
   ) => {
     const { object, extra, bigEnough } = shapeForDrag(
       kind,
@@ -47,7 +54,7 @@ export function useShapeTool() {
       start,
       pointer,
       shift,
-      { symbolSize },
+      { symbolSize, orbitalSize },
     );
     return { objects: [object, ...(extra ?? [])], bigEnough };
   };
@@ -62,7 +69,7 @@ export function useShapeTool() {
     begin(
       kind: ShapeKind,
       point: ChemDrawPoint,
-      options: { symbolSize?: number; handleTolerance?: number } = {},
+      options: { symbolSize?: number; orbitalSize?: number; handleTolerance?: number } = {},
     ) {
       const state = useStore.getState();
       lifecycle.current.begin(state.chemDrawDocument, {
@@ -126,12 +133,13 @@ export function useShapeTool() {
         kind,
         start: point,
         symbolSize: options.symbolSize,
+        orbitalSize: options.orbitalSize,
         path: [point],
         ...(kind === 'curve'
           ? { objects: [], bigEnough: false }
-          : build(kind, point, point, false, options.symbolSize)),
+          : build(kind, point, point, false, options.symbolSize, options.orbitalSize)),
       };
-      setPreview(isClickPlacedShape(kind) ? latest.current.objects : null);
+      setPreview(isClickPlacedShape(kind) || isOrbitalShape(kind) ? latest.current.objects : null);
     },
     update(point: ChemDrawPoint, shift = false) {
       const current = latest.current;
@@ -156,7 +164,14 @@ export function useShapeTool() {
       } else {
         latest.current = {
           ...current,
-          ...build(current.kind, current.start, point, shift, current.symbolSize),
+          ...build(
+            current.kind,
+            current.start,
+            point,
+            shift,
+            current.symbolSize,
+            current.orbitalSize,
+          ),
         };
       }
       setPreview(latest.current.bigEnough ? latest.current.objects : null);

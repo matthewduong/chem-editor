@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Every orbital shape as ChemDraw writes it: an s orbital by Center3D and axes (OvalType
+     "Circle Filled", as in ChemDraw's templates), the others by a BoundingBox from the nucleus to
+     the tip of the lobe they were dragged out to (the templates' vertical lobeShaded). -->
+<CDXML BondLength="14.4" LineWidth="0.6">
+  <page id="100">
+    <graphic id="11" BoundingBox="38 30 30 30" GraphicType="Orbital" OvalType="Circle Filled" OrbitalType="sFilled" Center3D="30 30 0" MajorAxisEnd3D="38 30 0" MinorAxisEnd3D="30 38 0"/>
+    <graphic id="12" BoundingBox="70 30 70 10" GraphicType="Orbital" OrbitalType="lobeShaded"/>
+    <graphic id="13" BoundingBox="110 30 110 12" GraphicType="Orbital" OrbitalType="pShaded"/>
+    <graphic id="14" BoundingBox="150 30 168 30" GraphicType="Orbital" OrbitalType="hybridPlus"/>
+    <graphic id="15" BoundingBox="30 90 30 72" GraphicType="Orbital" OrbitalType="dz2Plus"/>
+    <graphic id="16" BoundingBox="80 90 98 90" GraphicType="Orbital" OrbitalType="dxyMinus"/>
+    <graphic id="17" BoundingBox="130 90 160 90" GraphicType="Orbital" OrbitalType="ovalShaded"/>
+  </page>
+</CDXML>

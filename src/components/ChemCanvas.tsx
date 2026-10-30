@@ -2485,10 +2485,16 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
     }
 
     if (tool === 'shape') {
-      shapeTool.begin(shapeKind, pos, {
-        symbolSize: bondLength * 0.5,
-        handleTolerance: 8 / stageScale,
-      });
+      // An orbital is centred on the atom it is drawn on.
+      shapeTool.begin(
+        shapeKind,
+        shapeKind.startsWith('orbital-') && hitA ? { x: hitA.x, y: hitA.y } : pos,
+        {
+          symbolSize: bondLength * 0.5,
+          orbitalSize: bondLength * 0.8,
+          handleTolerance: 8 / stageScale,
+        },
+      );
       return;
     }
 

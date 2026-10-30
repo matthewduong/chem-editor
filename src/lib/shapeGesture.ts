@@ -21,6 +21,67 @@ export type BracketPairShapeKind = 'pair-square' | 'pair-round' | 'pair-curly';
 export type SymbolShapeKind = 'dagger' | 'double-dagger';
 /** The pen: a freehand drag fitted with Bezier curves (`curveGesture.ts`), and its editor. */
 export type CurveShapeKind = 'curve' | 'edit-curve';
+/** Orbitals: dragged out from the nucleus (or placed with a click), `orbitalGeometry.ts`. */
+export type OrbitalShapeKind =
+  | 'orbital-s'
+  | 'orbital-p'
+  | 'orbital-lobe'
+  | 'orbital-hybrid'
+  | 'orbital-dz2'
+  | 'orbital-dxy'
+  | 'orbital-oval';
+
+/** The OrbitalType each orbital tool writes: shaded, the ChemDraw palette's usual look. */
+export const ORBITAL_TYPE: Record<OrbitalShapeKind, string> = {
+  'orbital-s': 'sShaded',
+  'orbital-p': 'pShaded',
+  'orbital-lobe': 'lobeShaded',
+  'orbital-hybrid': 'hybridPlusShaded',
+  'orbital-dz2': 'dz2PlusShaded',
+  'orbital-dxy': 'dxyPlusShaded',
+  'orbital-oval': 'ovalShaded',
+};
+
+export function isOrbitalShape(kind: ShapeKind): kind is OrbitalShapeKind {
+  return kind.startsWith('orbital-');
+}
+
+/**
+ * An orbital with its nucleus at `node` and the lobe it was dragged out to ending at `tip`, written
+ * as ChemDraw writes one: an s orbital by Center3D and axes, the others by a nucleus-to-tip
+ * BoundingBox.
+ */
+export function createOrbitalGraphic(
+  id: string,
+  kind: OrbitalShapeKind,
+  node: ChemDrawPoint,
+  tip: ChemDrawPoint,
+): ChemDrawGraphic {
+  const base = {
+    id,
+    type: 'graphic' as const,
+    graphicType: 'orbital' as const,
+    orbitalType: ORBITAL_TYPE[kind],
+    preservation: { capability: 'editable' as const },
+  };
+  if (kind === 'orbital-s') {
+    const radius = Math.hypot(tip.x - node.x, tip.y - node.y);
+    return {
+      ...base,
+      ovalType: 'Circle Shaded',
+      center: { ...node },
+      majorAxisEnd: { x: node.x + radius, y: node.y },
+      minorAxisEnd: { x: node.x, y: node.y + radius },
+      bounds: {
+        left: node.x - radius,
+        top: node.y - radius,
+        right: node.x + radius,
+        bottom: node.y + radius,
+      },
+    };
+  }
+  return { ...base, points: [{ ...node }, { ...tip }] };
+}
 
 /** Every kind the shape tool draws. */
 export type ShapeKind =
@@ -30,7 +91,8 @@ export type ShapeKind =
   | BracketShapeKind
   | BracketPairShapeKind
   | SymbolShapeKind
-  | CurveShapeKind;
+  | CurveShapeKind
+  | OrbitalShapeKind;
 
 const BRACKET_STYLE: Record<BracketShapeKind | BracketPairShapeKind, BracketStyle> = {
   'bracket-square': 'Square',
@@ -224,8 +286,16 @@ export function shapeForDrag(
   start: ChemDrawPoint,
   pointer: ChemDrawPoint,
   constrain = false,
-  options: { symbolSize?: number } = {},
+  options: { symbolSize?: number; orbitalSize?: number } = {},
 ): { object: ChemDrawObject; bigEnough: boolean; extra?: ChemDrawObject[] } {
+  if (isOrbitalShape(kind)) {
+    // A click places a default-sized orbital pointing up; a drag sets its axis and length.
+    const dragged = Math.hypot(pointer.x - start.x, pointer.y - start.y) >= MIN_SHAPE_SIZE;
+    const tip = dragged
+      ? lineEnd(start, pointer, constrain)
+      : { x: start.x, y: start.y - (options.orbitalSize ?? 10) };
+    return { object: createOrbitalGraphic(id, kind, start, tip), bigEnough: true };
+  }
   if (kind === 'curve' || kind === 'edit-curve') {
     // The pen fits the whole pointer path (`useShapeTool`); from two points it is a straight curve.
     const curve = createFreehandCurve(id, [start, pointer]);

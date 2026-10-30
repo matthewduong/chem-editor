@@ -1,4 +1,5 @@
 import { CURVE_TYPE, curveSegments, sampleCurve } from '../../lib/curveGeometry';
+import { orbitalOutlines } from '../../lib/orbitalGeometry';
 import type {
   ChemDrawBounds,
   ChemDrawDocument,
@@ -144,6 +145,18 @@ function getTextBounds(
 
 function getGraphicBounds(graphic: ChemDrawGraphic): ChemDrawBounds | null {
   // A curve's control points lie off the drawn path, so measure the path itself.
+  // An orbital's lobes reach behind its nucleus; measure what is drawn.
+  if (graphic.graphicType === 'orbital') {
+    const drawn = orbitalOutlines(graphic).flatMap((outline) => outline.points);
+    if (drawn.length) {
+      return {
+        left: Math.min(...drawn.map((point) => point.x)),
+        top: Math.min(...drawn.map((point) => point.y)),
+        right: Math.max(...drawn.map((point) => point.x)),
+        bottom: Math.max(...drawn.map((point) => point.y)),
+      };
+    }
+  }
   const points =
     graphic.graphicType === 'curve' && graphic.points?.length
       ? sampleCurve(

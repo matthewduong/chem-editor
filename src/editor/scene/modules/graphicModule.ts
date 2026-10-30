@@ -13,6 +13,7 @@ import type { DocumentStyleSettings } from '../../../types/settings';
 import { adaptColor, drawCircle, drawLine, drawPolyline, setStroke } from '../drawPrimitives';
 import { distanceToSegment, pointInExpandedBounds } from '../geometry';
 import { drawArrowHead } from './arrowModule';
+import { orbitalOutlines } from '../../../lib/orbitalGeometry';
 import { drawObjectTags } from './objectTagHelpers';
 import type { ObjectModule } from '../types';
 import { getPaintFontFamily } from '../../../lib/textMetrics';
@@ -536,74 +537,34 @@ export const GRAPHIC_MODULE: ObjectModule = {
       return;
     }
     if (object.graphicType === 'orbital') {
-      const orbitalType = (object.orbitalType ?? '').toLowerCase();
-      if (
-        orbitalType.startsWith('s') &&
-        object.center &&
-        object.majorAxisEnd &&
-        object.minorAxisEnd
-      ) {
-        const rx = Math.hypot(
-          object.majorAxisEnd.x - object.center.x,
-          object.majorAxisEnd.y - object.center.y,
-        );
-        const ry = Math.hypot(
-          object.minorAxisEnd.x - object.center.x,
-          object.minorAxisEnd.y - object.center.y,
-        );
-        const rotation = Math.atan2(
-          object.majorAxisEnd.y - object.center.y,
-          object.majorAxisEnd.x - object.center.x,
-        );
-        ctx.save();
-        ctx.translate(object.center.x, object.center.y);
-        ctx.rotate(rotation);
+      const outlines = orbitalOutlines(object);
+      if (outlines.length === 0) return;
+      ctx.save();
+      for (const outline of outlines) {
         ctx.beginPath();
-        ctx.ellipse(0, 0, Math.max(rx, 1), Math.max(ry, 1), 0, 0, Math.PI * 2);
-        ctx.globalAlpha = (object.ovalType ?? '').toLowerCase().includes('shaded') ? 0.22 : 0;
-        ctx.fillStyle = orbitalFill;
-        ctx.fill();
-        ctx.globalAlpha = 1;
-        setStroke(ctx, color, strokeWidth);
-        ctx.stroke();
-        ctx.restore();
-        drawObjectTags(ctx, scene, object.objectTags, {
-          fallbackAnchor: object.center,
-          fallbackColor: color,
-        });
-        return;
-      }
-      if (orbitalType === 'p' && object.points && object.points.length >= 2) {
-        const [start, end] = object.points;
-        const dx = end.x - start.x;
-        const dy = end.y - start.y;
-        const length = Math.hypot(dx, dy);
-        if (length < 1) return;
-        const angle = Math.atan2(dy, dx);
-        const midX = (start.x + end.x) / 2;
-        const midY = (start.y + end.y) / 2;
-        const lobeRx = Math.max(length * 0.2, 4);
-        const lobeRy = Math.max(length * 0.11, 3);
-        const lobeOffset = length * 0.26;
-        ctx.save();
-        ctx.translate(midX, midY);
-        ctx.rotate(angle);
-        setStroke(ctx, color, strokeWidth);
-        ctx.fillStyle = orbitalFill;
-        for (const offset of [-lobeOffset, lobeOffset]) {
-          ctx.beginPath();
-          ctx.ellipse(offset, 0, lobeRx, lobeRy, 0, 0, Math.PI * 2);
-          ctx.globalAlpha = 0.18;
+        outline.points.forEach((point, index) =>
+          index === 0 ? ctx.moveTo(point.x, point.y) : ctx.lineTo(point.x, point.y),
+        );
+        if (outline.closed) ctx.closePath();
+        if (outline.fill !== 'open') {
+          ctx.fillStyle = orbitalFill;
+          ctx.globalAlpha = outline.fill === 'shaded' ? 0.3 : 1;
           ctx.fill();
           ctx.globalAlpha = 1;
-          ctx.stroke();
         }
-        ctx.restore();
+        setStroke(ctx, color, strokeWidth);
+        ctx.lineJoin = 'round';
+        ctx.stroke();
+      }
+      ctx.restore();
+      const anchor = object.center ?? object.points?.[0];
+      if (anchor) {
         drawObjectTags(ctx, scene, object.objectTags, {
-          fallbackAnchor: { x: midX, y: midY },
+          fallbackAnchor: anchor,
           fallbackColor: color,
         });
       }
+      return;
     }
   },
   hitTest(object, point, context, options) {

@@ -1,0 +1,6528 @@
+[
+  {
+    "op": "call",
+    "name": "save",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "translate",
+    "args": [
+      0,
+      0
+    ]
+  },
+  {
+    "op": "call",
+    "name": "scale",
+    "args": [
+      1,
+      1
+    ]
+  },
+  {
+    "op": "call",
+    "name": "save",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "beginPath",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "moveTo",
+    "args": [
+      38,
+      30
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      37.9615,
+      30.7841
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      37.8463,
+      31.5607
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      37.6555,
+      32.3223
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      37.391,
+      33.0615
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      37.0554,
+      33.7712
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      36.6518,
+      34.4446
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      36.1841,
+      35.0751
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      35.6569,
+      35.6569
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      35.0751,
+      36.1841
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      34.4446,
+      36.6518
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      33.7712,
+      37.0554
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      33.0615,
+      37.391
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      32.3223,
+      37.6555
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      31.5607,
+      37.8463
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      30.7841,
+      37.9615
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      30,
+      38
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      29.2159,
+      37.9615
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      28.4393,
+      37.8463
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      27.6777,
+      37.6555
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      26.9385,
+      37.391
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      26.2288,
+      37.0554
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      25.5554,
+      36.6518
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      24.9249,
+      36.1841
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      24.3431,
+      35.6569
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      23.8159,
+      35.0751
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      23.3482,
+      34.4446
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      22.9446,
+      33.7712
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      22.609,
+      33.0615
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      22.3445,
+      32.3223
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      22.1537,
+      31.5607
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      22.0385,
+      30.7841
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      22,
+      30
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      22.0385,
+      29.2159
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      22.1537,
+      28.4393
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      22.3445,
+      27.6777
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      22.609,
+      26.9385
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      22.9446,
+      26.2288
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      23.3482,
+      25.5554
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      23.8159,
+      24.9249
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      24.3431,
+      24.3431
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      24.9249,
+      23.8159
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      25.5554,
+      23.3482
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      26.2288,
+      22.9446
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      26.9385,
+      22.609
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      27.6777,
+      22.3445
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      28.4393,
+      22.1537
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      29.2159,
+      22.0385
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      30,
+      22
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      30.7841,
+      22.0385
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      31.5607,
+      22.1537
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      32.3223,
+      22.3445
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      33.0615,
+      22.609
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      33.7712,
+      22.9446
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      34.4446,
+      23.3482
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      35.0751,
+      23.8159
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      35.6569,
+      24.3431
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      36.1841,
+      24.9249
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      36.6518,
+      25.5554
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      37.0554,
+      26.2288
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      37.391,
+      26.9385
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      37.6555,
+      27.6777
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      37.8463,
+      28.4393
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      37.9615,
+      29.2159
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      38,
+      30
+    ]
+  },
+  {
+    "op": "call",
+    "name": "closePath",
+    "args": []
+  },
+  {
+    "op": "set",
+    "prop": "fillStyle",
+    "value": "#333333"
+  },
+  {
+    "op": "set",
+    "prop": "globalAlpha",
+    "value": 1
+  },
+  {
+    "op": "call",
+    "name": "fill",
+    "args": []
+  },
+  {
+    "op": "set",
+    "prop": "strokeStyle",
+    "value": "#333333"
+  },
+  {
+    "op": "set",
+    "prop": "lineWidth",
+    "value": 0.6
+  },
+  {
+    "op": "set",
+    "prop": "lineCap",
+    "value": "round"
+  },
+  {
+    "op": "set",
+    "prop": "lineJoin",
+    "value": "round"
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "call",
+    "name": "stroke",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "restore",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "save",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "beginPath",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "moveTo",
+    "args": [
+      70,
+      30
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      70.0045,
+      29.9144
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      70.0355,
+      29.6593
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      70.1174,
+      29.2388
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      70.27,
+      28.6603
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      70.507,
+      27.9335
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      70.8346,
+      27.0711
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      71.2509,
+      26.0876
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      71.745,
+      25
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      72.2984,
+      23.8268
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      72.8852,
+      22.5882
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      73.474,
+      21.3053
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      74.03,
+      20
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      74.517,
+      18.6947
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      74.9002,
+      17.4118
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      75.1481,
+      16.1732
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      75.2351,
+      15
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      75.1436,
+      13.9124
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      74.8646,
+      12.9289
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      74.3996,
+      12.0665
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      73.76,
+      11.3397
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      72.967,
+      10.7612
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      72.0505,
+      10.3407
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      71.0475,
+      10.0856
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      70,
+      10
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      68.9525,
+      10.0856
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      67.9495,
+      10.3407
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      67.033,
+      10.7612
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      66.24,
+      11.3397
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      65.6004,
+      12.0665
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      65.1354,
+      12.9289
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      64.8564,
+      13.9124
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      64.7649,
+      15
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      64.8519,
+      16.1732
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      65.0998,
+      17.4118
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      65.483,
+      18.6947
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      65.97,
+      20
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      66.526,
+      21.3053
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      67.1148,
+      22.5882
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      67.7016,
+      23.8268
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      68.255,
+      25
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      68.7491,
+      26.0876
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      69.1654,
+      27.0711
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      69.493,
+      27.9335
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      69.73,
+      28.6603
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      69.8826,
+      29.2388
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      69.9645,
+      29.6593
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      69.9955,
+      29.9144
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      70,
+      30
+    ]
+  },
+  {
+    "op": "call",
+    "name": "closePath",
+    "args": []
+  },
+  {
+    "op": "set",
+    "prop": "fillStyle",
+    "value": "#333333"
+  },
+  {
+    "op": "set",
+    "prop": "globalAlpha",
+    "value": 0.3
+  },
+  {
+    "op": "call",
+    "name": "fill",
+    "args": []
+  },
+  {
+    "op": "set",
+    "prop": "globalAlpha",
+    "value": 1
+  },
+  {
+    "op": "set",
+    "prop": "strokeStyle",
+    "value": "#333333"
+  },
+  {
+    "op": "set",
+    "prop": "lineWidth",
+    "value": 0.6
+  },
+  {
+    "op": "set",
+    "prop": "lineCap",
+    "value": "round"
+  },
+  {
+    "op": "set",
+    "prop": "lineJoin",
+    "value": "round"
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "call",
+    "name": "stroke",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "restore",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "save",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "beginPath",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "moveTo",
+    "args": [
+      110,
+      30
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      110.0041,
+      29.923
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      110.032,
+      29.6933
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      110.1057,
+      29.3149
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      110.243,
+      28.7942
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      110.4563,
+      28.1402
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      110.7512,
+      27.364
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      111.1258,
+      26.4789
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      111.5705,
+      25.5
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      112.0686,
+      24.4442
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      112.5967,
+      23.3294
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      113.1266,
+      22.1747
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      113.627,
+      21
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      114.0653,
+      19.8253
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      114.4102,
+      18.6706
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      114.6332,
+      17.5558
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      114.7116,
+      16.5
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      114.6292,
+      15.5211
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      114.3782,
+      14.636
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      113.9597,
+      13.8598
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      113.384,
+      13.2058
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      112.6703,
+      12.6851
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      111.8455,
+      12.3067
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      110.9428,
+      12.077
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      110,
+      12
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      109.0572,
+      12.077
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      108.1545,
+      12.3067
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      107.3297,
+      12.6851
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      106.616,
+      13.2058
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      106.0403,
+      13.8598
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      105.6218,
+      14.636
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      105.3708,
+      15.5211
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      105.2884,
+      16.5
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      105.3668,
+      17.5558
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      105.5898,
+      18.6706
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      105.9347,
+      19.8253
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      106.373,
+      21
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      106.8734,
+      22.1747
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      107.4033,
+      23.3294
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      107.9314,
+      24.4442
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      108.4295,
+      25.5
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      108.8742,
+      26.4789
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      109.2488,
+      27.364
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      109.5437,
+      28.1402
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      109.757,
+      28.7942
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      109.8943,
+      29.3149
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      109.968,
+      29.6933
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      109.9959,
+      29.923
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      110,
+      30
+    ]
+  },
+  {
+    "op": "call",
+    "name": "closePath",
+    "args": []
+  },
+  {
+    "op": "set",
+    "prop": "fillStyle",
+    "value": "#333333"
+  },
+  {
+    "op": "set",
+    "prop": "globalAlpha",
+    "value": 0.3
+  },
+  {
+    "op": "call",
+    "name": "fill",
+    "args": []
+  },
+  {
+    "op": "set",
+    "prop": "globalAlpha",
+    "value": 1
+  },
+  {
+    "op": "set",
+    "prop": "strokeStyle",
+    "value": "#333333"
+  },
+  {
+    "op": "set",
+    "prop": "lineWidth",
+    "value": 0.6
+  },
+  {
+    "op": "set",
+    "prop": "lineCap",
+    "value": "round"
+  },
+  {
+    "op": "set",
+    "prop": "lineJoin",
+    "value": "round"
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "call",
+    "name": "stroke",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "beginPath",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "moveTo",
+    "args": [
+      110,
+      30
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      109.9959,
+      30.077
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      109.968,
+      30.3067
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      109.8943,
+      30.6851
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      109.757,
+      31.2058
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      109.5437,
+      31.8598
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      109.2488,
+      32.636
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      108.8742,
+      33.5211
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      108.4295,
+      34.5
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      107.9314,
+      35.5558
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      107.4033,
+      36.6706
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      106.8734,
+      37.8253
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      106.373,
+      39
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      105.9347,
+      40.1747
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      105.5898,
+      41.3294
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      105.3668,
+      42.4442
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      105.2884,
+      43.5
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      105.3708,
+      44.4789
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      105.6218,
+      45.364
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      106.0403,
+      46.1402
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      106.616,
+      46.7942
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      107.3297,
+      47.3149
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      108.1545,
+      47.6933
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      109.0572,
+      47.923
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      110,
+      48
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      110.9428,
+      47.923
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      111.8455,
+      47.6933
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      112.6703,
+      47.3149
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      113.384,
+      46.7942
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      113.9597,
+      46.1402
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      114.3782,
+      45.364
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      114.6292,
+      44.4789
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      114.7116,
+      43.5
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      114.6332,
+      42.4442
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      114.4102,
+      41.3294
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      114.0653,
+      40.1747
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      113.627,
+      39
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      113.1266,
+      37.8253
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      112.5967,
+      36.6706
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      112.0686,
+      35.5558
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      111.5705,
+      34.5
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      111.1258,
+      33.5211
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      110.7512,
+      32.636
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      110.4563,
+      31.8598
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      110.243,
+      31.2058
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      110.1057,
+      30.6851
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      110.032,
+      30.3067
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      110.0041,
+      30.077
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      110,
+      30
+    ]
+  },
+  {
+    "op": "call",
+    "name": "closePath",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "call",
+    "name": "stroke",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "restore",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "save",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "beginPath",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "moveTo",
+    "args": [
+      150,
+      30
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      150.077,
+      30.0041
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      150.3067,
+      30.032
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      150.6851,
+      30.1057
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      151.2058,
+      30.243
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      151.8598,
+      30.4563
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      152.636,
+      30.7512
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      153.5211,
+      31.1258
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      154.5,
+      31.5705
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      155.5558,
+      32.0686
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      156.6706,
+      32.5967
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      157.8253,
+      33.1266
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      159,
+      33.627
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      160.1747,
+      34.0653
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      161.3294,
+      34.4102
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      162.4442,
+      34.6332
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      163.5,
+      34.7116
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      164.4789,
+      34.6292
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      165.364,
+      34.3782
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      166.1402,
+      33.9597
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      166.7942,
+      33.384
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      167.3149,
+      32.6703
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      167.6933,
+      31.8455
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      167.923,
+      30.9428
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      168,
+      30
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      167.923,
+      29.0572
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      167.6933,
+      28.1545
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      167.3149,
+      27.3297
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      166.7942,
+      26.616
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      166.1402,
+      26.0403
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      165.364,
+      25.6218
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      164.4789,
+      25.3708
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      163.5,
+      25.2884
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      162.4442,
+      25.3668
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      161.3294,
+      25.5898
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      160.1747,
+      25.9347
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      159,
+      26.373
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      157.8253,
+      26.8734
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      156.6706,
+      27.4033
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      155.5558,
+      27.9314
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      154.5,
+      28.4295
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      153.5211,
+      28.8742
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      152.636,
+      29.2488
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      151.8598,
+      29.5437
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      151.2058,
+      29.757
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      150.6851,
+      29.8943
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      150.3067,
+      29.968
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      150.077,
+      29.9959
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      150,
+      30
+    ]
+  },
+  {
+    "op": "call",
+    "name": "closePath",
+    "args": []
+  },
+  {
+    "op": "set",
+    "prop": "strokeStyle",
+    "value": "#333333"
+  },
+  {
+    "op": "set",
+    "prop": "lineWidth",
+    "value": 0.6
+  },
+  {
+    "op": "set",
+    "prop": "lineCap",
+    "value": "round"
+  },
+  {
+    "op": "set",
+    "prop": "lineJoin",
+    "value": "round"
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "call",
+    "name": "stroke",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "beginPath",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "moveTo",
+    "args": [
+      150,
+      30
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      149.9731,
+      29.9982
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      149.8927,
+      29.9856
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      149.7602,
+      29.9523
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      149.578,
+      29.8903
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      149.3491,
+      29.7939
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      149.0774,
+      29.6608
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      148.7676,
+      29.4916
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      148.425,
+      29.2907
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      148.0555,
+      29.0658
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      147.6653,
+      28.8273
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      147.2612,
+      28.588
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      146.85,
+      28.362
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      146.4388,
+      28.164
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      146.0347,
+      28.0083
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      145.6445,
+      27.9076
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      145.275,
+      27.8722
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      144.9324,
+      27.9094
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      144.6226,
+      28.0228
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      144.3509,
+      28.2118
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      144.122,
+      28.4717
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      143.9398,
+      28.794
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      143.8073,
+      29.1666
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      143.7269,
+      29.5742
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      143.7,
+      30
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      143.7269,
+      30.4258
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      143.8073,
+      30.8334
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      143.9398,
+      31.206
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      144.122,
+      31.5283
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      144.3509,
+      31.7882
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      144.6226,
+      31.9772
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      144.9324,
+      32.0906
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      145.275,
+      32.1278
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      145.6445,
+      32.0924
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      146.0347,
+      31.9917
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      146.4388,
+      31.836
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      146.85,
+      31.638
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      147.2612,
+      31.412
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      147.6653,
+      31.1727
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      148.0555,
+      30.9342
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      148.425,
+      30.7093
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      148.7676,
+      30.5084
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      149.0774,
+      30.3392
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      149.3491,
+      30.2061
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      149.578,
+      30.1097
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      149.7602,
+      30.0477
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      149.8927,
+      30.0144
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      149.9731,
+      30.0018
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      150,
+      30
+    ]
+  },
+  {
+    "op": "call",
+    "name": "closePath",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "call",
+    "name": "stroke",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "restore",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "save",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "beginPath",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "moveTo",
+    "args": [
+      30,
+      90
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      30.0041,
+      89.923
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      30.032,
+      89.6933
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      30.1057,
+      89.3149
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      30.243,
+      88.7942
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      30.4563,
+      88.1402
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      30.7512,
+      87.364
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      31.1258,
+      86.4789
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      31.5705,
+      85.5
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      32.0686,
+      84.4442
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      32.5967,
+      83.3294
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      33.1266,
+      82.1747
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      33.627,
+      81
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      34.0653,
+      79.8253
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      34.4102,
+      78.6706
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      34.6332,
+      77.5558
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      34.7116,
+      76.5
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      34.6292,
+      75.5211
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      34.3782,
+      74.636
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      33.9597,
+      73.8598
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      33.384,
+      73.2058
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      32.6703,
+      72.6851
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      31.8455,
+      72.3067
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      30.9428,
+      72.077
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      30,
+      72
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      29.0572,
+      72.077
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      28.1545,
+      72.3067
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      27.3297,
+      72.6851
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      26.616,
+      73.2058
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      26.0403,
+      73.8598
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      25.6218,
+      74.636
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      25.3708,
+      75.5211
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      25.2884,
+      76.5
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      25.3668,
+      77.5558
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      25.5898,
+      78.6706
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      25.9347,
+      79.8253
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      26.373,
+      81
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      26.8734,
+      82.1747
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      27.4033,
+      83.3294
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      27.9314,
+      84.4442
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      28.4295,
+      85.5
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      28.8742,
+      86.4789
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      29.2488,
+      87.364
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      29.5437,
+      88.1402
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      29.757,
+      88.7942
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      29.8943,
+      89.3149
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      29.968,
+      89.6933
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      29.9959,
+      89.923
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      30,
+      90
+    ]
+  },
+  {
+    "op": "call",
+    "name": "closePath",
+    "args": []
+  },
+  {
+    "op": "set",
+    "prop": "strokeStyle",
+    "value": "#333333"
+  },
+  {
+    "op": "set",
+    "prop": "lineWidth",
+    "value": 0.6
+  },
+  {
+    "op": "set",
+    "prop": "lineCap",
+    "value": "round"
+  },
+  {
+    "op": "set",
+    "prop": "lineJoin",
+    "value": "round"
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "call",
+    "name": "stroke",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "beginPath",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "moveTo",
+    "args": [
+      30,
+      90
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      29.9959,
+      90.077
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      29.968,
+      90.3067
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      29.8943,
+      90.6851
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      29.757,
+      91.2058
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      29.5437,
+      91.8598
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      29.2488,
+      92.636
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      28.8742,
+      93.5211
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      28.4295,
+      94.5
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      27.9314,
+      95.5558
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      27.4033,
+      96.6706
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      26.8734,
+      97.8253
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      26.373,
+      99
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      25.9347,
+      100.1747
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      25.5898,
+      101.3294
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      25.3668,
+      102.4442
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      25.2884,
+      103.5
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      25.3708,
+      104.4789
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      25.6218,
+      105.364
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      26.0403,
+      106.1402
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      26.616,
+      106.7942
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      27.3297,
+      107.3149
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      28.1545,
+      107.6933
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      29.0572,
+      107.923
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      30,
+      108
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      30.9428,
+      107.923
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      31.8455,
+      107.6933
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      32.6703,
+      107.3149
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      33.384,
+      106.7942
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      33.9597,
+      106.1402
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      34.3782,
+      105.364
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      34.6292,
+      104.4789
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      34.7116,
+      103.5
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      34.6332,
+      102.4442
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      34.4102,
+      101.3294
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      34.0653,
+      100.1747
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      33.627,
+      99
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      33.1266,
+      97.8253
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      32.5967,
+      96.6706
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      32.0686,
+      95.5558
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      31.5705,
+      94.5
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      31.1258,
+      93.5211
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      30.7512,
+      92.636
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      30.4563,
+      91.8598
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      30.243,
+      91.2058
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      30.1057,
+      90.6851
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      30.032,
+      90.3067
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      30.0041,
+      90.077
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      30,
+      90
+    ]
+  },
+  {
+    "op": "call",
+    "name": "closePath",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "call",
+    "name": "stroke",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "beginPath",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "moveTo",
+    "args": [
+      37.56,
+      90
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      37.5236,
+      89.7177
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      37.4147,
+      89.4381
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      37.2345,
+      89.164
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      36.9845,
+      88.8979
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      36.6673,
+      88.6424
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      36.2859,
+      88.4
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      35.844,
+      88.1729
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      35.3457,
+      87.9635
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      34.796,
+      87.7737
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      34.2001,
+      87.6054
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      33.5638,
+      87.4601
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      32.8931,
+      87.3392
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      32.1946,
+      87.244
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      31.4749,
+      87.1753
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      30.741,
+      87.1339
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      30,
+      87.12
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      29.259,
+      87.1339
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      28.5251,
+      87.1753
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      27.8054,
+      87.244
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      27.1069,
+      87.3392
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      26.4362,
+      87.4601
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      25.7999,
+      87.6054
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      25.204,
+      87.7737
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      24.6543,
+      87.9635
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      24.156,
+      88.1729
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      23.7141,
+      88.4
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      23.3327,
+      88.6424
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      23.0155,
+      88.8979
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      22.7655,
+      89.164
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      22.5853,
+      89.4381
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      22.4764,
+      89.7177
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      22.44,
+      90
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      22.4764,
+      90.2823
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      22.5853,
+      90.5619
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      22.7655,
+      90.836
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      23.0155,
+      91.1021
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      23.3327,
+      91.3576
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      23.7141,
+      91.6
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      24.156,
+      91.8271
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      24.6543,
+      92.0365
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      25.204,
+      92.2263
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      25.7999,
+      92.3946
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      26.4362,
+      92.5399
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      27.1069,
+      92.6608
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      27.8054,
+      92.756
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      28.5251,
+      92.8247
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      29.259,
+      92.8661
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      30,
+      92.88
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      30.741,
+      92.8661
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      31.4749,
+      92.8247
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      32.1946,
+      92.756
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      32.8931,
+      92.6608
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      33.5638,
+      92.5399
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      34.2001,
+      92.3946
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      34.796,
+      92.2263
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      35.3457,
+      92.0365
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      35.844,
+      91.8271
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      36.2859,
+      91.6
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      36.6673,
+      91.3576
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      36.9845,
+      91.1021
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      37.2345,
+      90.836
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      37.4147,
+      90.5619
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      37.5236,
+      90.2823
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      37.56,
+      90
+    ]
+  },
+  {
+    "op": "call",
+    "name": "closePath",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "call",
+    "name": "stroke",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "restore",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "save",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "beginPath",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "moveTo",
+    "args": [
+      80,
+      90
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      80.0441,
+      90.0484
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      80.1673,
+      90.2014
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      80.3554,
+      90.4681
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      80.5952,
+      90.8543
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      80.8746,
+      91.3611
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      81.1839,
+      91.9849
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      81.5161,
+      92.7166
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      81.8673,
+      93.5421
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      82.2364,
+      94.4422
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      82.6248,
+      95.3938
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      83.0363,
+      96.3703
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      83.4755,
+      97.3432
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      83.9479,
+      98.283
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      84.458,
+      99.1608
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      85.0091,
+      99.9498
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      85.6019,
+      100.6262
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      86.2342,
+      101.1706
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      86.9,
+      101.5687
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      87.5897,
+      101.8121
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      88.2897,
+      101.8983
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      88.9832,
+      101.8307
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      89.6504,
+      101.6184
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      90.2698,
+      101.2751
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      90.8187,
+      100.8187
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      91.2751,
+      100.2698
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      91.6184,
+      99.6504
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      91.8307,
+      98.9832
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      91.8983,
+      98.2897
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      91.8121,
+      97.5897
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      91.5687,
+      96.9
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      91.1706,
+      96.2342
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      90.6262,
+      95.6019
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      89.9498,
+      95.0091
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      89.1608,
+      94.458
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      88.283,
+      93.9479
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      87.3432,
+      93.4755
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      86.3703,
+      93.0363
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      85.3938,
+      92.6248
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      84.4422,
+      92.2364
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      83.5421,
+      91.8673
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      82.7166,
+      91.5161
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      81.9849,
+      91.1839
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      81.3611,
+      90.8746
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      80.8543,
+      90.5952
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      80.4681,
+      90.3554
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      80.2014,
+      90.1673
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      80.0484,
+      90.0441
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      80,
+      90
+    ]
+  },
+  {
+    "op": "call",
+    "name": "closePath",
+    "args": []
+  },
+  {
+    "op": "set",
+    "prop": "strokeStyle",
+    "value": "#333333"
+  },
+  {
+    "op": "set",
+    "prop": "lineWidth",
+    "value": 0.6
+  },
+  {
+    "op": "set",
+    "prop": "lineCap",
+    "value": "round"
+  },
+  {
+    "op": "set",
+    "prop": "lineJoin",
+    "value": "round"
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "call",
+    "name": "stroke",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "beginPath",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "moveTo",
+    "args": [
+      80,
+      90
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      79.9516,
+      90.0441
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      79.7986,
+      90.1673
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      79.5319,
+      90.3554
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      79.1457,
+      90.5952
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      78.6389,
+      90.8746
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      78.0151,
+      91.1839
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      77.2834,
+      91.5161
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      76.4579,
+      91.8673
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      75.5578,
+      92.2364
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      74.6062,
+      92.6248
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      73.6297,
+      93.0363
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      72.6568,
+      93.4755
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      71.717,
+      93.9479
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      70.8392,
+      94.458
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      70.0502,
+      95.0091
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      69.3738,
+      95.6019
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      68.8294,
+      96.2342
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      68.4313,
+      96.9
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      68.1879,
+      97.5897
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      68.1017,
+      98.2897
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      68.1693,
+      98.9832
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      68.3816,
+      99.6504
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      68.7249,
+      100.2698
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      69.1813,
+      100.8187
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      69.7302,
+      101.2751
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      70.3496,
+      101.6184
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      71.0168,
+      101.8307
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      71.7103,
+      101.8983
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      72.4103,
+      101.8121
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      73.1,
+      101.5687
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      73.7658,
+      101.1706
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      74.3981,
+      100.6262
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      74.9909,
+      99.9498
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      75.542,
+      99.1608
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      76.0521,
+      98.283
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      76.5245,
+      97.3432
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      76.9637,
+      96.3703
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      77.3752,
+      95.3938
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      77.7636,
+      94.4422
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      78.1327,
+      93.5421
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      78.4839,
+      92.7166
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      78.8161,
+      91.9849
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      79.1254,
+      91.3611
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      79.4048,
+      90.8543
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      79.6446,
+      90.4681
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      79.8327,
+      90.2014
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      79.9559,
+      90.0484
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      80,
+      90
+    ]
+  },
+  {
+    "op": "call",
+    "name": "closePath",
+    "args": []
+  },
+  {
+    "op": "set",
+    "prop": "fillStyle",
+    "value": "#333333"
+  },
+  {
+    "op": "set",
+    "prop": "globalAlpha",
+    "value": 0.3
+  },
+  {
+    "op": "call",
+    "name": "fill",
+    "args": []
+  },
+  {
+    "op": "set",
+    "prop": "globalAlpha",
+    "value": 1
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "call",
+    "name": "stroke",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "beginPath",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "moveTo",
+    "args": [
+      80,
+      90
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      79.9559,
+      89.9516
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      79.8327,
+      89.7986
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      79.6446,
+      89.5319
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      79.4048,
+      89.1457
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      79.1254,
+      88.6389
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      78.8161,
+      88.0151
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      78.4839,
+      87.2834
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      78.1327,
+      86.4579
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      77.7636,
+      85.5578
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      77.3752,
+      84.6062
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      76.9637,
+      83.6297
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      76.5245,
+      82.6568
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      76.0521,
+      81.717
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      75.542,
+      80.8392
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      74.9909,
+      80.0502
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      74.3981,
+      79.3738
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      73.7658,
+      78.8294
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      73.1,
+      78.4313
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      72.4103,
+      78.1879
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      71.7103,
+      78.1017
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      71.0168,
+      78.1693
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      70.3496,
+      78.3816
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      69.7302,
+      78.7249
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      69.1813,
+      79.1813
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      68.7249,
+      79.7302
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      68.3816,
+      80.3496
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      68.1693,
+      81.0168
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      68.1017,
+      81.7103
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      68.1879,
+      82.4103
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      68.4313,
+      83.1
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      68.8294,
+      83.7658
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      69.3738,
+      84.3981
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      70.0502,
+      84.9909
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      70.8392,
+      85.542
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      71.717,
+      86.0521
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      72.6568,
+      86.5245
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      73.6297,
+      86.9637
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      74.6062,
+      87.3752
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      75.5578,
+      87.7636
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      76.4579,
+      88.1327
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      77.2834,
+      88.4839
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      78.0151,
+      88.8161
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      78.6389,
+      89.1254
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      79.1457,
+      89.4048
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      79.5319,
+      89.6446
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      79.7986,
+      89.8327
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      79.9516,
+      89.9559
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      80,
+      90
+    ]
+  },
+  {
+    "op": "call",
+    "name": "closePath",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "call",
+    "name": "stroke",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "beginPath",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "moveTo",
+    "args": [
+      80,
+      90
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      80.0484,
+      89.9559
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      80.2014,
+      89.8327
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      80.4681,
+      89.6446
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      80.8543,
+      89.4048
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      81.3611,
+      89.1254
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      81.9849,
+      88.8161
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      82.7166,
+      88.4839
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      83.5421,
+      88.1327
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      84.4422,
+      87.7636
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      85.3938,
+      87.3752
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      86.3703,
+      86.9637
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      87.3432,
+      86.5245
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      88.283,
+      86.0521
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      89.1608,
+      85.542
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      89.9498,
+      84.9909
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      90.6262,
+      84.3981
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      91.1706,
+      83.7658
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      91.5687,
+      83.1
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      91.8121,
+      82.4103
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      91.8983,
+      81.7103
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      91.8307,
+      81.0168
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      91.6184,
+      80.3496
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      91.2751,
+      79.7302
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      90.8187,
+      79.1813
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      90.2698,
+      78.7249
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      89.6504,
+      78.3816
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      88.9832,
+      78.1693
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      88.2897,
+      78.1017
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      87.5897,
+      78.1879
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      86.9,
+      78.4313
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      86.2342,
+      78.8294
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      85.6019,
+      79.3738
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      85.0091,
+      80.0502
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      84.458,
+      80.8392
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      83.9479,
+      81.717
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      83.4755,
+      82.6568
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      83.0363,
+      83.6297
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      82.6248,
+      84.6062
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      82.2364,
+      85.5578
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      81.8673,
+      86.4579
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      81.5161,
+      87.2834
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      81.1839,
+      88.0151
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      80.8746,
+      88.6389
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      80.5952,
+      89.1457
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      80.3554,
+      89.5319
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      80.1673,
+      89.7986
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      80.0441,
+      89.9516
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      80,
+      90
+    ]
+  },
+  {
+    "op": "call",
+    "name": "closePath",
+    "args": []
+  },
+  {
+    "op": "set",
+    "prop": "globalAlpha",
+    "value": 0.3
+  },
+  {
+    "op": "call",
+    "name": "fill",
+    "args": []
+  },
+  {
+    "op": "set",
+    "prop": "globalAlpha",
+    "value": 1
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "call",
+    "name": "stroke",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "restore",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "save",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "beginPath",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "moveTo",
+    "args": [
+      160,
+      90
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      159.9278,
+      90.7351
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      159.7118,
+      91.4632
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      159.3541,
+      92.1771
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      158.8582,
+      92.8701
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      158.2288,
+      93.5355
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      157.472,
+      94.1668
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      156.5952,
+      94.7579
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      155.6066,
+      95.3033
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      154.5159,
+      95.7976
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      153.3336,
+      96.236
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      152.071,
+      96.6144
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      150.7403,
+      96.9291
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      149.3543,
+      97.1771
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      147.9264,
+      97.3559
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      146.4703,
+      97.4639
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      145,
+      97.5
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      143.5297,
+      97.4639
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      142.0736,
+      97.3559
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      140.6457,
+      97.1771
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      139.2597,
+      96.9291
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      137.929,
+      96.6144
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      136.6664,
+      96.236
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      135.4841,
+      95.7976
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      134.3934,
+      95.3033
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      133.4048,
+      94.7579
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      132.528,
+      94.1668
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      131.7712,
+      93.5355
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      131.1418,
+      92.8701
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      130.6459,
+      92.1771
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      130.2882,
+      91.4632
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      130.0722,
+      90.7351
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      130,
+      90
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      130.0722,
+      89.2649
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      130.2882,
+      88.5368
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      130.6459,
+      87.8229
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      131.1418,
+      87.1299
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      131.7712,
+      86.4645
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      132.528,
+      85.8332
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      133.4048,
+      85.2421
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      134.3934,
+      84.6967
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      135.4841,
+      84.2024
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      136.6664,
+      83.764
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      137.929,
+      83.3856
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      139.2597,
+      83.0709
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      140.6457,
+      82.8229
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      142.0736,
+      82.6441
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      143.5297,
+      82.5361
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      145,
+      82.5
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      146.4703,
+      82.5361
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      147.9264,
+      82.6441
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      149.3543,
+      82.8229
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      150.7403,
+      83.0709
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      152.071,
+      83.3856
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      153.3336,
+      83.764
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      154.5159,
+      84.2024
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      155.6066,
+      84.6967
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      156.5952,
+      85.2421
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      157.472,
+      85.8332
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      158.2288,
+      86.4645
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      158.8582,
+      87.1299
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      159.3541,
+      87.8229
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      159.7118,
+      88.5368
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      159.9278,
+      89.2649
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      160,
+      90
+    ]
+  },
+  {
+    "op": "call",
+    "name": "closePath",
+    "args": []
+  },
+  {
+    "op": "set",
+    "prop": "fillStyle",
+    "value": "#333333"
+  },
+  {
+    "op": "set",
+    "prop": "globalAlpha",
+    "value": 0.3
+  },
+  {
+    "op": "call",
+    "name": "fill",
+    "args": []
+  },
+  {
+    "op": "set",
+    "prop": "globalAlpha",
+    "value": 1
+  },
+  {
+    "op": "set",
+    "prop": "strokeStyle",
+    "value": "#333333"
+  },
+  {
+    "op": "set",
+    "prop": "lineWidth",
+    "value": 0.6
+  },
+  {
+    "op": "set",
+    "prop": "lineCap",
+    "value": "round"
+  },
+  {
+    "op": "set",
+    "prop": "lineJoin",
+    "value": "round"
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "call",
+    "name": "stroke",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "restore",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "restore",
+    "args": []
+  }
+]

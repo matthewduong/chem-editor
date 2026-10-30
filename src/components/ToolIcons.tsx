@@ -383,6 +383,53 @@ export function ShapeIcon({ kind, size = 22 }: { kind: ShapeKind; size?: number 
           <rect x={10.5} y={10.5} width={3} height={3} fill="currentColor" strokeWidth={0} />
         </Frame>
       );
+    case 'orbital-s':
+      return (
+        <Frame size={size}>
+          <circle cx={12} cy={12} r={7} fill="currentColor" fillOpacity={0.3} />
+        </Frame>
+      );
+    case 'orbital-p':
+    case 'orbital-lobe':
+    case 'orbital-hybrid':
+    case 'orbital-dz2':
+    case 'orbital-dxy':
+    case 'orbital-oval': {
+      const lobe = (angle: number, length: number, filled = true) => {
+        const ux = Math.cos(angle);
+        const uy = Math.sin(angle);
+        const tip = { x: 12 + ux * length, y: 12 + uy * length };
+        const side = length * 0.42;
+        const c1 = { x: 12 + ux * length * 0.9 - uy * side, y: 12 + uy * length * 0.9 + ux * side };
+        const c2 = { x: 12 + ux * length * 0.9 + uy * side, y: 12 + uy * length * 0.9 - ux * side };
+        return (
+          <path
+            key={angle}
+            d={`M12 12C${c1.x.toFixed(2)} ${c1.y.toFixed(2)} ${tip.x.toFixed(2)} ${tip.y.toFixed(2)} ${tip.x.toFixed(2)} ${tip.y.toFixed(2)}C${tip.x.toFixed(2)} ${tip.y.toFixed(2)} ${c2.x.toFixed(2)} ${c2.y.toFixed(2)} 12 12Z`}
+            fill={filled ? 'currentColor' : 'none'}
+            fillOpacity={0.3}
+          />
+        );
+      };
+      const up = -Math.PI / 2;
+      return (
+        <Frame size={size}>
+          {kind === 'orbital-oval' ? (
+            <ellipse cx={12} cy={12} rx={9} ry={4.5} fill="currentColor" fillOpacity={0.3} />
+          ) : kind === 'orbital-lobe' ? (
+            lobe(up, 9)
+          ) : kind === 'orbital-p' ? (
+            [lobe(up, 9), lobe(-up, 9, false)]
+          ) : kind === 'orbital-hybrid' ? (
+            [lobe(up, 10), lobe(-up, 4, false)]
+          ) : kind === 'orbital-dz2' ? (
+            [lobe(up, 8), lobe(-up, 8), <ellipse key="ring" cx={12} cy={12} rx={6} ry={2} />]
+          ) : (
+            [0, 1, 2, 3].map((q) => lobe(Math.PI / 4 + (q * Math.PI) / 2, 8, q % 2 === 0))
+          )}
+        </Frame>
+      );
+    }
     case 'dagger':
       return (
         <Frame size={size}>
