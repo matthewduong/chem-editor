@@ -39,3 +39,35 @@ export function arrowDragGeometry(
 export function isArrowLongEnough(arrow: Pick<Arrow, 'x1' | 'y1' | 'x2' | 'y2'>): boolean {
   return Math.hypot(arrow.x2 - arrow.x1, arrow.y2 - arrow.y1) > MIN_ARROW_LENGTH;
 }
+
+/**
+ * Connecting arrows (ChemDraw 17.1 guide, "Connecting Arrows"): with Shift held over an existing
+ * arrow's tail, head or midpoint, a new arrow starts exactly there. The midpoint of a curved
+ * arrow is its curve's, not its chord's.
+ */
+export function arrowConnectionPoint(
+  point: { x: number; y: number },
+  arrows: readonly Pick<Arrow, 'type' | 'x1' | 'y1' | 'x2' | 'y2' | 'cpx' | 'cpy'>[],
+  tolerance: number,
+): { x: number; y: number } | null {
+  let best: { x: number; y: number } | null = null;
+  let bestDistance = tolerance;
+  for (const arrow of arrows) {
+    // A straight arrow's control point is not meaningful; only a curve's is.
+    const mid =
+      isCurved(arrow.type) && arrow.cpx != null && arrow.cpy != null
+        ? {
+            x: 0.25 * arrow.x1 + 0.5 * arrow.cpx + 0.25 * arrow.x2,
+            y: 0.25 * arrow.y1 + 0.5 * arrow.cpy + 0.25 * arrow.y2,
+          }
+        : { x: (arrow.x1 + arrow.x2) / 2, y: (arrow.y1 + arrow.y2) / 2 };
+    for (const candidate of [{ x: arrow.x1, y: arrow.y1 }, { x: arrow.x2, y: arrow.y2 }, mid]) {
+      const distance = Math.hypot(candidate.x - point.x, candidate.y - point.y);
+      if (distance <= bestDistance) {
+        best = candidate;
+        bestDistance = distance;
+      }
+    }
+  }
+  return best;
+}

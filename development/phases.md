@@ -285,9 +285,10 @@ centred on the arrow's line; above/below objects centred over and under the arro
 stretched to fit the widest of them. Spacing from the document's bond length (ChemDraw's exact
 gaps to probe on mac).
 
-**V.4 Arrows attached to objects.** An arrow end dropped on a structure's or text's bounds
-attaches (in session) and follows that object when it moves; written as a ChemEditor-prefixed
-attribute until ChemDraw's encoding is measured (gaps.md).
+**V.4 Connecting arrows.** The guide's "Connecting Arrows" joins arrows to arrows, not to
+objects: Shift over an existing arrow's tail, head or midpoint starts a new arrow exactly there
+(a curved arrow's midpoint on its curve). Geometry only, so nothing new is written to files.
+(Planned first as object-following attachment; corrected on reading the guide.)
 
 **V.5 Mass fragmentation tool.** Drag a line across bonds of a structure: the bonds it crosses
 split the molecule into fragments, each labelled with its formula and m/z (`massAnalysis.ts`)
@@ -297,4 +298,4 @@ as a caption beside it; ChemDraw's fragmentation-line object and caption placeme
 
 ### To probe on mac
 
-- Connecting-arrow storage; Clean Up Reaction spacing; the mass fragmentation line's CDXML.
+- Clean Up Reaction spacing; the mass fragmentation line's CDXML.

@@ -30,6 +30,7 @@ import {
 import { Circle, Group, Layer, Line, Rect, Stage, Star } from 'react-konva';
 import { createProjectionEditCommand } from '../editor/commands/projectionEdit';
 import { contractSelection, findNicknameForSelection } from '../lib/nicknames';
+import { arrowConnectionPoint } from '../lib/arrowGesture';
 import { computeStereoLabels } from '../lib/stereoLabels';
 import { SHORTHAND_DATA } from '../lib/shorthand';
 import {
@@ -2586,6 +2587,14 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
     }
 
     if (tool === 'arrow') {
+      // Shift over an arrow's end or middle starts a connecting arrow there.
+      const connection = modifiers.shift
+        ? arrowConnectionPoint(pos, getCanvasEditorState().arrows, 8 / stageScale)
+        : null;
+      if (connection) {
+        arrowTool.begin(arrowType, connection);
+        return;
+      }
       // Click existing arrow → reverse it (keep cpx/cpy so curved arrows don't flip)
       if (hitArr) {
         const {

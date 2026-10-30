@@ -758,6 +758,38 @@ for (const scale of [1, 2]) {
       await page.keyboard.press('ControlOrMeta+z');
       expect(await textY()).toBe(before);
     });
+    test('Shift over an arrow starts a connecting arrow at its middle', async ({ page }) => {
+      await openEditor(page);
+      await page.getByRole('button', { name: 'Expand Reaction', exact: true }).click();
+      await tool(page, 'Reaction');
+      await dragDocument(page, { x: 200, y: 200 }, { x: 300, y: 200 });
+      const flat = () =>
+        page.evaluate(async () => {
+          const { useStore } = await import(String('/src/store/index.ts'));
+          return useStore
+            .getState()
+            .arrows.map((a: { x1: number; y1: number; x2: number; y2: number }) => ({
+              x1: a.x1,
+              y1: a.y1,
+              x2: a.x2,
+              y2: a.y2,
+            }));
+        });
+      const [first] = await flat();
+      const mid = { x: (first!.x1 + first!.x2) / 2, y: (first!.y1 + first!.y2) / 2 };
+      const from = await documentPoint(page, mid.x + 1, mid.y + 1);
+      const to = await documentPoint(page, mid.x, mid.y + 80);
+      await page.keyboard.down('Shift');
+      await page.mouse.move(from.x, from.y);
+      await page.mouse.down();
+      await page.keyboard.up('Shift');
+      await page.mouse.move(to.x, to.y, { steps: 6 });
+      await page.mouse.up();
+      const arrows = await flat();
+      expect(arrows).toHaveLength(2);
+      expect(Math.abs(arrows[1]!.x1 - mid.x)).toBeLessThan(1e-6);
+      expect(Math.abs(arrows[1]!.y1 - mid.y)).toBeLessThan(1e-6);
+    });
     test('chain preview commits once and cancellation creates no history', async ({ page }) => {
       await openEditor(page);
       await tool(page, 'Chain');
