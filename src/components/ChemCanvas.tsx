@@ -3693,7 +3693,19 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
                 );
               })}
 
+          {selectTool.lassoPath && selectTool.lassoPath.length > 1 && (
+            <Line
+              points={selectTool.lassoPath.flatMap((point) => [point.x, point.y])}
+              closed
+              fill="rgba(33,150,243,0.1)"
+              stroke="#2196F3"
+              strokeWidth={1 / stageScale}
+              dash={[4 / stageScale, 3 / stageScale]}
+              listening={false}
+            />
+          )}
           {selectTool.isSelectionBoxActive &&
+            !selectTool.lassoPath &&
             selectTool.selectionBoxStart &&
             selectTool.selectionBoxEnd && (
               <Rect

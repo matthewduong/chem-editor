@@ -414,3 +414,15 @@ export function ShapeIcon({ kind, size = 22 }: { kind: ShapeKind; size?: number 
     }
   }
 }
+
+export function LassoIcon({ size = 22 }: { size?: number }) {
+  return (
+    <Frame size={size}>
+      <path
+        d="M12 5C6.5 5 3.5 7.6 3.5 10.5S6.5 16 11 16c4.8 0 9.5-2.2 9.5-5.5S17 5 12 5Z"
+        strokeDasharray="2.4 2"
+      />
+      <path d="M8.5 15.5C7.5 17.5 8.5 19.5 10.5 19.5" />
+    </Frame>
+  );
+}

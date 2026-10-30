@@ -380,6 +380,37 @@ for (const scale of [1, 2]) {
       const after = await centreOf();
       expect(Math.hypot(after.x - before.x, after.y - before.y)).toBeGreaterThan(1);
     });
+    test('the lasso selects the shape it loops round and not its neighbour', async ({ page }) => {
+      await openEditor(page);
+      await page.getByRole('button', { name: 'Expand Drawing', exact: true }).click();
+      await tool(page, 'Rectangle');
+      await drag(page, { x: 500, y: 400 }, { x: 560, y: 440 });
+      await drag(page, { x: 620, y: 400 }, { x: 680, y: 440 });
+      await tool(page, 'Lasso');
+      const loop: Array<[number, number]> = [
+        [480, 380],
+        [590, 380],
+        [590, 460],
+        [480, 460],
+        [480, 385],
+      ];
+      const first = await point(page, ...loop[0]!);
+      await page.mouse.move(first.x, first.y);
+      await page.mouse.down();
+      for (const corner of loop.slice(1)) {
+        const p = await point(page, ...corner);
+        await page.mouse.move(p.x, p.y, { steps: 4 });
+      }
+      await page.mouse.up();
+      const shapes = (await observe(page)).document!.pages[0].objects.filter(
+        (x) => x.type === 'graphic',
+      );
+      const selected = await page.evaluate(async () => {
+        const { useStore } = await import(String('/src/store/index.ts'));
+        return [...useStore.getState().selectedObjectIds];
+      });
+      expect(selected).toEqual([shapes[0]!.id]);
+    });
     test('chain preview commits once and cancellation creates no history', async ({ page }) => {
       await openEditor(page);
       await tool(page, 'Chain');

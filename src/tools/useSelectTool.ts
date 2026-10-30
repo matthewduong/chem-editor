@@ -10,6 +10,7 @@ import { getArrowSelectionPoints } from '../lib/renderGeometry';
 import { commitCanvasEdit, getCanvasEditorState, previewCanvasEdit } from '../store';
 import type { ChemDrawDocument } from '../types/chemdraw';
 import type { Arrow, Atom, Bond, TextBox } from '../types/chemistry';
+import { pointInPolygon, selectEnclosed } from '../lib/selectionRegion';
 
 export interface SelectToolOverlay {
   isDragging: boolean;
@@ -18,6 +19,8 @@ export interface SelectToolOverlay {
   isSelectionBoxActive: boolean;
   selectionBoxStart: { x: number; y: number } | null;
   selectionBoxEnd: { x: number; y: number } | null;
+  /** The lasso's outline while one is being drawn. */
+  lassoPath: Array<{ x: number; y: number }> | null;
 }
 
 export interface ScaleHandleHit {
@@ -74,6 +77,17 @@ export function useSelectTool(): SelectToolOverlay & SelectToolActions {
   const [isSelectionBoxActive, setIsSelectionBoxActive] = useState(false);
   const [selectionBoxStart, setSelectionBoxStart] = useState<{ x: number; y: number } | null>(null);
   const [selectionBoxEnd, setSelectionBoxEnd] = useState<{ x: number; y: number } | null>(null);
+  const [lassoPath, setLassoPath] = useState<Array<{ x: number; y: number }> | null>(null);
+  const lassoRef = useRef<{
+    path: Array<{ x: number; y: number }>;
+    base: {
+      atoms: Set<string>;
+      bonds: Set<string>;
+      arrows: Set<string>;
+      textBoxes: Set<string>;
+      objects: Set<string>;
+    };
+  } | null>(null);
 
   const isDraggingRef = useRef(false);
   const isRotatingRef = useRef(false);
@@ -423,6 +437,29 @@ export function useSelectTool(): SelectToolOverlay & SelectToolActions {
         setSelectionBox(true);
         setSelectionBoxStart(pos);
         setSelectionBoxEnd(pos);
+        if (getCanvasEditorState().selectMode === 'lasso') {
+          // Shift adds to what was selected when the lasso began, not to what it caught so far.
+          const state = getCanvasEditorState();
+          lassoRef.current = {
+            path: [pos],
+            base: isShiftDown
+              ? {
+                  atoms: new Set(state.selectedAtomIds),
+                  bonds: new Set(state.selectedBondIds),
+                  arrows: new Set(state.selectedArrowIds),
+                  textBoxes: new Set(state.selectedTextBoxIds),
+                  objects: new Set(state.selectedObjectIds),
+                }
+              : {
+                  atoms: new Set(),
+                  bonds: new Set(),
+                  arrows: new Set(),
+                  textBoxes: new Set(),
+                  objects: new Set(),
+                },
+          };
+          setLassoPath([pos]);
+        }
       }
     },
     [],
@@ -603,6 +640,41 @@ export function useSelectTool(): SelectToolOverlay & SelectToolActions {
             return { ...t, x: tbCenter.x, y: tbCenter.y - textH / 2, rotation: newRotation };
           }),
         });
+        return;
+      }
+
+      if (isSelectionBoxRef.current && lassoRef.current) {
+        const lasso = lassoRef.current;
+        lasso.path = [...lasso.path, pos];
+        setLassoPath(lasso.path);
+        const state = getCanvasEditorState();
+        const caught = selectEnclosed((point) => pointInPolygon(point, lasso.path), {
+          atoms: state.atoms,
+          bonds: state.bonds,
+          arrows: state.arrows,
+          textBoxes: state.textBoxes ?? [],
+          objects: state.chemDrawDocument?.pages[0]?.objects ?? [],
+        });
+        const union = (base: Set<string>, ids: string[]) => new Set([...base, ...ids]);
+        const atomIds = union(lasso.base.atoms, caught.atomIds);
+        const bondIds = union(lasso.base.bonds, caught.bondIds);
+        const arrowIds = union(lasso.base.arrows, caught.arrowIds);
+        const textBoxIds = union(lasso.base.textBoxes, caught.textBoxIds);
+        // The flat setters rebuild the object selection, so it is set last.
+        state.setSelectedAtomIds(atomIds);
+        state.setSelectedBondIds(bondIds);
+        state.setSelectedArrowIds(arrowIds);
+        state.setSelectedTextBoxIds(textBoxIds);
+        state.setSelectedObjectIds(
+          new Set([
+            ...lasso.base.objects,
+            ...atomIds,
+            ...bondIds,
+            ...arrowIds,
+            ...textBoxIds,
+            ...caught.objectIds,
+          ]),
+        );
         return;
       }
 
@@ -804,6 +876,8 @@ export function useSelectTool(): SelectToolOverlay & SelectToolActions {
     setSelectionBox(false);
     setSelectionBoxStart(null);
     setSelectionBoxEnd(null);
+    lassoRef.current = null;
+    setLassoPath(null);
     dragStartPosRef.current = null;
     moveDataRef.current = null;
     rotateDataRef.current = null;
@@ -882,6 +956,8 @@ export function useSelectTool(): SelectToolOverlay & SelectToolActions {
       setSelectionBox(false);
       setSelectionBoxStart(null);
       setSelectionBoxEnd(null);
+      lassoRef.current = null;
+      setLassoPath(null);
       moveDataRef.current = null;
       return;
     }
@@ -926,6 +1002,7 @@ export function useSelectTool(): SelectToolOverlay & SelectToolActions {
     isSelectionBoxActive,
     selectionBoxStart,
     selectionBoxEnd,
+    lassoPath,
     begin,
     update,
     commit,

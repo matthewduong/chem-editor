@@ -5,6 +5,7 @@ import {
   PanIcon,
   ReactionArrowIcon,
   SelectIcon,
+  LassoIcon,
   ShapeIcon,
   StructureFragmentIcon,
   TextToolIcon,
@@ -509,6 +510,7 @@ function App() {
   const stereo = useStore((s) => s.stereo);
   const arrowType = useStore((s) => s.arrowType);
   const shapeKind = useStore((s) => s.shapeKind);
+  const selectMode = useStore((s) => s.selectMode);
   const electronToolMode = useStore((s) => s.electronToolMode);
   const selectedFragment = useStore((s) => s.selectedFragment);
   const ringSize = useStore((s) => s.ringSize);
@@ -858,6 +860,7 @@ function App() {
     setStereo,
     setArrowType,
     setShapeKind,
+    setSelectMode,
     setCurrentCharge,
     setElectronToolMode,
     setSelectedFragment,
@@ -2685,15 +2688,29 @@ function App() {
             </PaletteButton>
             <PaletteButton
               variant="tool"
-              active={tool === 'select'}
+              active={tool === 'select' && selectMode === 'marquee'}
               title="Select"
               onClick={() => {
                 setTool('select');
+                setSelectMode('marquee');
                 setShowBondMenu(false);
               }}
               style={toolButtonStyle}
             >
               <SelectIcon size={24 * buttonScale} />
+            </PaletteButton>
+            <PaletteButton
+              variant="tool"
+              active={tool === 'select' && selectMode === 'lasso'}
+              title="Lasso"
+              onClick={() => {
+                setTool('select');
+                setSelectMode('lasso');
+                setShowBondMenu(false);
+              }}
+              style={toolButtonStyle}
+            >
+              <LassoIcon size={24 * buttonScale} />
             </PaletteButton>
             <PaletteButton
               variant="tool"

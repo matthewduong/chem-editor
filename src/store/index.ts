@@ -233,6 +233,8 @@ export interface AppState {
   shapeKind: ShapeKind;
   /** Where the selection turns when rotated, once the user has moved it off the centre. */
   rotationPivot: { x: number; y: number } | null;
+  /** How the select tool gathers a selection when dragged on empty canvas. */
+  selectMode: 'marquee' | 'lasso';
   currentCharge: number;
   electronToolMode: ElectronToolMode;
   selectedFragment: string;
@@ -381,6 +383,7 @@ export interface AppState {
   setArrowType: (type: ArrowType) => void;
   setShapeKind: (kind: ShapeKind) => void;
   setRotationPivot: (pivot: { x: number; y: number } | null) => void;
+  setSelectMode: (mode: 'marquee' | 'lasso') => void;
   setCurrentCharge: (charge: number) => void;
   setElectronToolMode: (mode: ElectronToolMode) => void;
   setSelectedFragment: (smiles: string) => void;
@@ -544,6 +547,7 @@ export const useStore = create<AppState>((set, get) => ({
   arrowType: 'reaction',
   shapeKind: 'rectangle',
   rotationPivot: null,
+  selectMode: 'marquee',
   currentCharge: 0,
   electronToolMode: 'charge-positive',
   selectedFragment: '',
@@ -691,6 +695,7 @@ export const useStore = create<AppState>((set, get) => ({
   setArrowType: (arrowType) => set({ arrowType }),
   setShapeKind: (shapeKind) => set({ shapeKind }),
   setRotationPivot: (rotationPivot) => set({ rotationPivot }),
+  setSelectMode: (selectMode) => set({ selectMode }),
   setCurrentCharge: (currentCharge) => set({ currentCharge }),
   setElectronToolMode: (electronToolMode) => set({ electronToolMode }),
   setSelectedFragment: (selectedFragment) => set({ selectedFragment }),
