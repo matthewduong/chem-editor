@@ -442,6 +442,47 @@ for (const scale of [1, 2]) {
       await readout.press('Enter');
       await expect(readout).toHaveValue('250%');
     });
+    test('dragging the side handle of a selected rectangle stretches that side only', async ({
+      page,
+    }) => {
+      await openEditor(page);
+      await page.getByRole('button', { name: 'Expand Drawing', exact: true }).click();
+      await tool(page, 'Rectangle');
+      await drag(page, { x: 500, y: 400 }, { x: 600, y: 460 });
+      await tool(page, 'Select');
+      const edge = await point(page, 500, 430);
+      await page.mouse.click(edge.x, edge.y);
+      const bounds = async () =>
+        (
+          (await observe(page)).document!.pages[0].objects.find(
+            (x) => x.type === 'graphic',
+          ) as unknown as { bounds: { left: number; right: number; top: number; bottom: number } }
+        ).bounds;
+      const before = await bounds();
+      const beforeHistory = (await observe(page)).historyIndex;
+      await drag(page, { x: 600, y: 430 }, { x: 660, y: 470 });
+      const after = await bounds();
+      expect(after.left).toBeCloseTo(before.left, 6);
+      expect(after.top).toBeCloseTo(before.top, 6);
+      expect(after.bottom).toBeCloseTo(before.bottom, 6);
+      expect(after.right).toBeGreaterThan(before.right + 1);
+      expect((await observe(page)).historyIndex).toBe(beforeHistory + 1);
+    });
+    test('the middle handle of a selected arc changes its curvature', async ({ page }) => {
+      // Clicking an arc opens its style panel; the handle press must close it and still reshape.
+      await openEditor(page);
+      await page.getByRole('button', { name: 'Expand Drawing', exact: true }).click();
+      await tool(page, '180° Arc');
+      await drag(page, { x: 600, y: 300 }, { x: 720, y: 300 });
+      await tool(page, 'Select');
+      const top = await point(page, 660, 240);
+      await page.mouse.click(top.x, top.y);
+      await drag(page, { x: 660, y: 240 }, { x: 660, y: 275 });
+      const arc = (await observe(page)).document!.pages[0].objects.find(
+        (x) => x.type === 'arrow',
+      ) as unknown as { angularSize: number };
+      expect(Math.abs(arc.angularSize)).toBeLessThan(150);
+    });
     test('chain preview commits once and cancellation creates no history', async ({ page }) => {
       await openEditor(page);
       await tool(page, 'Chain');

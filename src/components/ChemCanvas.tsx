@@ -2,6 +2,12 @@ import type { UserTemplate } from '../lib/templates';
 import { cancelGestures, ToolLifecycle } from '../editor/toolLifecycle';
 import { useArrowTool } from '../tools/useArrowTool';
 import { useShapeTool } from '../tools/useShapeTool';
+import {
+  applyShapeHandle,
+  getShapeHandles,
+  hasShapeHandles,
+  type ShapeHandleId,
+} from '../lib/shapeHandles';
 import { useRingTool } from '../tools/useRingTool';
 import { useTemplatePlacementTool } from '../tools/useTemplatePlacementTool';
 import { useTextDragTool } from '../tools/useTextDragTool';
@@ -121,7 +127,13 @@ import { useAtomTool } from '../tools/useAtomTool';
 import { useBondTool } from '../tools/useBondTool';
 import { useSelectTool } from '../tools/useSelectTool';
 import type { ChemCanvasRef, EditPanelLayout } from '../types/canvas';
-import type { ChemDrawBracket, ChemDrawEmbeddedObject, ChemDrawGraphic } from '../types/chemdraw';
+import type {
+  ChemDrawBracket,
+  ChemDrawDocument,
+  ChemDrawEmbeddedObject,
+  ChemDrawGraphic,
+  ChemDrawObject,
+} from '../types/chemdraw';
 import type {
   Arrow,
   ArrowType,
@@ -379,6 +391,13 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
   );
 
   const activeChemDrawDocument = previewChemDrawDocument ?? chemDrawDocument;
+  /** The one selected shape or arc that shows reshape handles, if any. */
+  const reshapeTarget = useMemo(() => {
+    if (tool !== 'select' || selectedObjectIds.size !== 1) return null;
+    const [id] = selectedObjectIds;
+    const object = chemDrawDocument?.pages[0]?.objects.find((entry) => entry.id === id);
+    return object && hasShapeHandles(object) ? object : null;
+  }, [chemDrawDocument, selectedObjectIds, tool]);
   const sceneCanvasState = useMemo<ChemistryCanvasState>(() => {
     if (!previewChemDrawDocument) {
       return { atoms, bonds, arrows, groups, textBoxes };
@@ -481,6 +500,26 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
   const textDragTool = useTextDragTool();
   const arrowPreview = arrowTool.preview;
   const shapePreview = shapeTool.preview;
+  // Reshaping one selected shape or arc by its handles: a gesture like the tools', previewed
+  // through the scene and committed as one upsert.
+  const reshapeRef = useRef<{
+    source: ChemDrawDocument;
+    object: ChemDrawObject;
+    handle: ShapeHandleId;
+    /** The shape as last dragged; state can lag a fast release by a render. */
+    latest?: ChemDrawObject;
+  } | null>(null);
+  const [reshapePreview, setReshapePreview] = useState<ChemDrawObject | null>(null);
+  const reshapeGesture = useMemo(
+    () => ({
+      isActive: () => reshapeRef.current !== null,
+      cancel: () => {
+        reshapeRef.current = null;
+        setReshapePreview(null);
+      },
+    }),
+    [],
+  );
 
   const [editingArrowLabels, setEditingArrowLabels] = useState<{
     id: string;
@@ -2243,6 +2282,7 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
       ringTool,
       arrowTool,
       shapeTool,
+      reshapeGesture,
       textDragTool,
       bondTool,
       atomTool,
@@ -2302,6 +2342,32 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
       tool === 'pan'
     )
       return;
+    // Reshape handles answer before anything else, even with a style panel open (clicking an
+    // arc opens its panel, and the next press would otherwise only close it).
+    if (reshapeTarget && chemDrawDocument) {
+      const press = getRelativePointerPosition();
+      const handle = getShapeHandles(reshapeTarget).find(
+        (entry) => Math.hypot(press.x - entry.x, press.y - entry.y) < 6 / stageScale,
+      );
+      if (handle) {
+        if (editingArrowStyle) commitArrowStyleEdit();
+        if (editingArrowLabels) commitArrowLabels();
+        // Closing a panel commits its edit, so the gesture starts on the document that leaves.
+        const source = useStore.getState().chemDrawDocument;
+        const object = source?.pages[0]?.objects.find((entry) => entry.id === reshapeTarget.id);
+        if (!source || !object) return;
+        // That change is this gesture's own; the document-change effect must not cancel it.
+        prevDocumentRef.current = source;
+        // Through the shared lifecycle, whose commit gates every pointer-up.
+        gestureLifecycle.current.begin(source, {
+          point: press,
+          hit: getCanvasHitAt(press.x, press.y),
+          modifiers,
+        });
+        reshapeRef.current = { source, object, handle: handle.id };
+        return;
+      }
+    }
     // Close arrow label editor on canvas click
     if (editingArrowLabels) {
       commitArrowLabels();
@@ -2615,6 +2681,12 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
       useStore.getState().setRotationPivot(pos);
       return;
     }
+    if (reshapeRef.current) {
+      const drag = reshapeRef.current;
+      drag.latest = applyShapeHandle(drag.object, drag.handle, pos);
+      setReshapePreview(drag.latest);
+      return;
+    }
     if (shapeTool.isActive()) {
       shapeTool.update(pos, e.evt.shiftKey);
       return;
@@ -2755,6 +2827,20 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
     }
     if (pivotDragRef.current) {
       pivotDragRef.current = false;
+      return;
+    }
+    if (reshapeRef.current) {
+      const drag = reshapeRef.current;
+      const reshaped = drag.latest;
+      reshapeGesture.cancel();
+      // As with the tools: a press on a document since replaced edits nothing.
+      if (reshaped && useStore.getState().chemDrawDocument === drag.source) {
+        useStore
+          .getState()
+          .dispatchEditorCommand(
+            createUpsertObjectsCommand([reshaped], { description: 'reshape' }),
+          );
+      }
       return;
     }
     if (shapeTool.isActive()) {
@@ -3487,7 +3573,10 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
       buildPreviewScene(contentDocumentScene, activeChemDrawDocument, {
         transform: selectionPreviewTransform,
         arrow: arrowPreview,
-        objects: shapePreview,
+        objects:
+          shapePreview || reshapePreview
+            ? [...(shapePreview ?? []), ...(reshapePreview ? [reshapePreview] : [])]
+            : null,
         ring: tool === 'ring' ? ringTool.preview : null,
         line:
           (tool === 'atom' || tool === 'bond') && activeDragPreview && activeAtomId
@@ -3507,6 +3596,7 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
       selectionPreviewTransform,
       arrowPreview,
       shapePreview,
+      reshapePreview,
       tool,
       ringTool.preview,
       activeDragPreview,
@@ -3863,7 +3953,23 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
               .filter((arrow) => selectedArrowIds.has(arrow.id) && arrowUsesControlPoint(arrow))
               .map(renderArrowControlHandle)}
         </Layer>
-        <Layer listening={false}>{renderEditCurveHandles()}</Layer>
+        <Layer listening={false}>
+          {renderEditCurveHandles()}
+          {reshapeTarget &&
+            !selectionPreviewTransform &&
+            getShapeHandles(reshapePreview ?? reshapeTarget).map((handle) => (
+              <Rect
+                key={handle.id}
+                x={handle.x - 3.5 / stageScale}
+                y={handle.y - 3.5 / stageScale}
+                width={7 / stageScale}
+                height={7 / stageScale}
+                fill="#fff"
+                stroke="#2196F3"
+                strokeWidth={1.2 / stageScale}
+              />
+            ))}
+        </Layer>
       </Stage>
 
       <CanvasTextEditors

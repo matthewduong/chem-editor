@@ -184,14 +184,15 @@ export function createArcArrow(
   degrees: number,
   tail: ChemDrawPoint,
   head: ChemDrawPoint,
+  bulgeRight = false,
 ): ChemDrawArrow {
   const chord = Math.hypot(head.x - tail.x, head.y - tail.y);
   const theta = (degrees * Math.PI) / 180;
   const radius = chord / (2 * Math.sin(theta / 2));
   const ux = (head.x - tail.x) / chord;
   const uy = (head.y - tail.y) / chord;
-  // Left of the direction of travel on a y-down page.
-  const left = { x: uy, y: -ux };
+  // Left of the direction of travel on a y-down page (or right, for the other bulge).
+  const left = bulgeRight ? { x: -uy, y: ux } : { x: uy, y: -ux };
   const offset = radius * Math.cos(theta / 2);
   const mid = { x: (tail.x + head.x) / 2, y: (tail.y + head.y) / 2 };
   const center = { x: mid.x - left.x * offset, y: mid.y - left.y * offset };
@@ -206,7 +207,7 @@ export function createArcArrow(
     arcCenter: center,
     majorAxisEnd: { x: center.x + radius, y: center.y },
     minorAxisEnd: { x: center.x, y: center.y + radius },
-    angularSize: -degrees,
+    angularSize: bulgeRight ? degrees : -degrees,
     headEnd: 'none',
     tailEnd: 'none',
     preservation: { capability: 'editable' },
