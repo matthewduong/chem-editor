@@ -84,3 +84,24 @@ test('flipping mirrors positions, swaps half heads, keeps brackets facing in', a
   // Mirrored and reversed: the right-hand bracket runs top to bottom, lips inward.
   assert.ok(get('8').points[0].y < get('8').points[1].y);
 });
+
+test('Rotate 180° keeps the stereochemistry Flip inverts: wedges become hashes', async () => {
+  const { flipSelectedObjects } = await import('../.unit-test-dist/src/lib/chemdrawModel.js');
+  const { document } = cdxmlToChemDrawDocument(`<?xml version="1.0"?><CDXML><page id="100">
+    <fragment id="2"><n id="3" p="0 0"/><n id="4" p="14.4 0"/><b id="5" B="3" E="4" Display="WedgeBegin"/></fragment>
+  </page></CDXML>`);
+  const ids = new Set(['3', '4', '5']);
+  const display = (doc) => doc.pages[0].objects.find((o) => o.id === '5').display;
+  assert.equal(
+    display(flipSelectedObjects(document, ids, { x: 7, y: 0 }, 'horizontal')),
+    'wedge-begin',
+  );
+  assert.equal(
+    display(
+      flipSelectedObjects(document, ids, { x: 7, y: 0 }, 'horizontal', undefined, {
+        turnOver: true,
+      }),
+    ),
+    'hash-begin',
+  );
+});

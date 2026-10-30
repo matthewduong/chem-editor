@@ -1730,10 +1730,20 @@ export function flipSelectedObjects(
   center: { x: number; y: number },
   axis: 'horizontal' | 'vertical',
   documentStyleSettings: DocumentStyleSettings = DEFAULT_DOCUMENT_STYLE_SETTINGS,
+  options: { turnOver?: boolean } = {},
 ): ChemDrawDocument {
   const objects = clonePageObjects(document);
   if (!objects || selectedObjectIds.size === 0) return document;
   const objectMap = new Map(objects.map((object) => [object.id, object]));
+  // Rotate 180° about an axis in the page (ChemDraw's Rotate 180° Horizontal / Vertical) turns
+  // the molecule over rather than mirroring it: the same reflection of the drawing, with every
+  // wedge and hash exchanged so the stereochemistry is kept.
+  const swapStereo: Partial<Record<ChemDrawBondDisplay, ChemDrawBondDisplay>> = {
+    'wedge-begin': 'hash-begin',
+    'hash-begin': 'wedge-begin',
+    'wedge-end': 'hash-end',
+    'hash-end': 'wedge-end',
+  };
   const selectedNodeIds = getSelectedNodeIds(objects, selectedObjectIds);
   const horizontal = axis === 'horizontal';
   const mirror = (x: number, y: number) =>
@@ -1753,6 +1763,16 @@ export function flipSelectedObjects(
           ? 'above'
           : value) as T;
   const nextObjects = objects.map((object): ChemDrawObject => {
+    if (
+      options.turnOver &&
+      object.type === 'bond' &&
+      selectedNodeIds.has(object.beginNodeId) &&
+      selectedNodeIds.has(object.endNodeId) &&
+      object.display &&
+      swapStereo[object.display]
+    ) {
+      return { ...object, display: swapStereo[object.display] };
+    }
     if (object.type === 'node' && selectedNodeIds.has(object.id)) {
       if (blocksTransform(object)) return object;
       return {

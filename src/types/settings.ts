@@ -155,7 +155,7 @@ export interface DocumentStyleSettings {
 }
 
 export interface AppPreferences {
-  version: 7 | 8 | 9 | 10;
+  version: 7 | 8 | 9 | 10 | 11;
   isDarkMode: boolean;
   showGrid: boolean;
   showHydrogens: boolean;

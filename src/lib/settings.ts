@@ -366,7 +366,7 @@ export const DEFAULT_TOOL_PALETTES: ToolPalettesPreferences = {
   },
 };
 
-const APP_PREFERENCES_VERSION = 10;
+const APP_PREFERENCES_VERSION = 11;
 
 export const DEFAULT_APP_PREFERENCES: AppPreferences = {
   version: APP_PREFERENCES_VERSION,
@@ -419,7 +419,7 @@ export const DEFAULT_APP_PREFERENCES: AppPreferences = {
 };
 
 interface PersistedSettingsPayload {
-  version: 7 | 8 | 9 | 10;
+  version: 7 | 8 | 9 | 10 | 11;
   appPreferences: AppPreferences;
 }
 
@@ -857,6 +857,15 @@ function normalizeKeybindingPreferences(
     'canvas.tools.bond': { key: 'b' },
     'canvas.tools.ring': { key: 'r' },
     'canvas.tools.eraser': { key: 'x' },
+    // Version 11 moved these to ChemDraw's keys (17.1 guide, chapter 5): align and center to
+    // Alt+Shift+Ctrl, freeing Shift+Ctrl+H/V for Flip and Ctrl+L for Fixed Lengths.
+    'app.arrange.align-left': { key: 'l', primary: true, shift: true },
+    'app.arrange.align-right': { key: 'r', primary: true, shift: true },
+    'app.arrange.align-top': { key: 't', primary: true, shift: true },
+    'app.arrange.align-bottom': { key: 'b', primary: true, shift: true },
+    'app.arrange.center-h': { key: 'h', primary: true, shift: true },
+    'app.arrange.center-v': { key: 'v', primary: true, shift: true },
+    'app.view.toggle-theme': { key: 'l', primary: true },
   };
   const shouldMigrateLegacyToolDefaults =
     typeof sourceVersion === 'number' && sourceVersion < APP_PREFERENCES_VERSION;

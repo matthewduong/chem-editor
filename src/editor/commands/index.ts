@@ -339,7 +339,7 @@ export function createScaleSelectionCommand(
 export function createFlipSelectionCommand(
   center: { x: number; y: number },
   axis: 'horizontal' | 'vertical',
-  options?: { objectIds?: Iterable<string>; description?: string },
+  options?: { objectIds?: Iterable<string>; description?: string; turnOver?: boolean },
 ): EditorCommand {
   return {
     type: 'flip-selection',
@@ -356,6 +356,7 @@ export function createFlipSelectionCommand(
           center,
           axis,
           context.documentStyleSettings,
+          { turnOver: options?.turnOver },
         ),
         inversePatch: createReplaceDocumentCommand(document, 'undo:flip-selection'),
         changedObjectIds: selectionIds,

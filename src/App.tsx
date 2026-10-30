@@ -1191,8 +1191,11 @@ function App() {
     );
   }, []);
 
-  /** Object > Flip Horizontal / Vertical, about the centre of the selection's box. */
-  const flipSelection = useCallback((axis: 'horizontal' | 'vertical') => {
+  /**
+   * Object > Flip Horizontal / Vertical, about the centre of the selection's box; with `turnOver`,
+   * Rotate 180° Horizontal / Vertical, which keeps the stereochemistry.
+   */
+  const flipSelection = useCallback((axis: 'horizontal' | 'vertical', turnOver = false) => {
     const state = useStore.getState();
     if (!state.chemDrawDocument || state.selectedObjectIds.size === 0) return;
     const bounds = getObjectsBounds(
@@ -1205,7 +1208,7 @@ function App() {
       createFlipSelectionCommand(
         { x: (bounds.left + bounds.right) / 2, y: (bounds.top + bounds.bottom) / 2 },
         axis,
-        { objectIds: state.selectedObjectIds },
+        { objectIds: state.selectedObjectIds, turnOver },
       ),
     );
   }, []);
@@ -2071,6 +2074,26 @@ function App() {
         e.preventDefault();
         groupSelected();
       }
+      if (matches('app.arrange.flip-h')) {
+        e.preventDefault();
+        flipSelection('horizontal');
+      }
+      if (matches('app.arrange.flip-v')) {
+        e.preventDefault();
+        flipSelection('vertical');
+      }
+      if (matches('app.arrange.rotate-180-h')) {
+        e.preventDefault();
+        flipSelection('horizontal', true);
+      }
+      if (matches('app.arrange.rotate-180-v')) {
+        e.preventDefault();
+        flipSelection('vertical', true);
+      }
+      if (matches('app.edit.fixed-lengths')) {
+        e.preventDefault();
+        useStore.getState().setFixedLengths(!useStore.getState().fixedLengths);
+      }
       if (matches('app.edit.fixed-angles')) {
         e.preventDefault();
         useStore.getState().setFixedAngles(!useStore.getState().fixedAngles);
@@ -2151,6 +2174,7 @@ function App() {
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
   }, [
+    flipSelection,
     joinSelection,
     centerSelectionOnPage,
     reorderSelection,
@@ -3716,6 +3740,7 @@ function App() {
                     flipSelection('horizontal');
                     setIsEditDropdownOpen(false);
                   }}
+                  shortcut="Ctrl+Shift+H"
                 >
                   Flip Horizontal
                 </MenuItem>
@@ -3724,8 +3749,25 @@ function App() {
                     flipSelection('vertical');
                     setIsEditDropdownOpen(false);
                   }}
+                  shortcut="Ctrl+Shift+V"
                 >
                   Flip Vertical
+                </MenuItem>
+                <MenuItem
+                  onClick={() => {
+                    flipSelection('horizontal', true);
+                    setIsEditDropdownOpen(false);
+                  }}
+                >
+                  Rotate 180° Horizontal
+                </MenuItem>
+                <MenuItem
+                  onClick={() => {
+                    flipSelection('vertical', true);
+                    setIsEditDropdownOpen(false);
+                  }}
+                >
+                  Rotate 180° Vertical
                 </MenuItem>
                 <MenuItem
                   onClick={() => {
@@ -3814,7 +3856,7 @@ function App() {
                           alignSelection('alignLeft');
                           setIsEditDropdownOpen(false);
                         }}
-                        shortcut="Ctrl+Shift+L"
+                        shortcut="Ctrl+Alt+Shift+L"
                       >
                         Align Left
                       </MenuItem>
@@ -3823,7 +3865,7 @@ function App() {
                           alignSelection('alignRight');
                           setIsEditDropdownOpen(false);
                         }}
-                        shortcut="Ctrl+Shift+R"
+                        shortcut="Ctrl+Alt+Shift+R"
                       >
                         Align Right
                       </MenuItem>
@@ -3832,7 +3874,7 @@ function App() {
                           alignSelection('alignTop');
                           setIsEditDropdownOpen(false);
                         }}
-                        shortcut="Ctrl+Shift+T"
+                        shortcut="Ctrl+Alt+Shift+T"
                       >
                         Align Top
                       </MenuItem>
@@ -3841,7 +3883,7 @@ function App() {
                           alignSelection('alignBottom');
                           setIsEditDropdownOpen(false);
                         }}
-                        shortcut="Ctrl+Shift+B"
+                        shortcut="Ctrl+Alt+Shift+B"
                       >
                         Align Bottom
                       </MenuItem>
@@ -3850,7 +3892,7 @@ function App() {
                           alignSelection('centerH');
                           setIsEditDropdownOpen(false);
                         }}
-                        shortcut="Ctrl+Shift+H"
+                        shortcut="Ctrl+Alt+Shift+C"
                       >
                         Center Horizontally
                       </MenuItem>
@@ -3859,7 +3901,7 @@ function App() {
                           alignSelection('centerV');
                           setIsEditDropdownOpen(false);
                         }}
-                        shortcut="Ctrl+Shift+V"
+                        shortcut="Ctrl+Alt+Shift+M"
                       >
                         Center Vertically
                       </MenuItem>
@@ -3940,7 +3982,7 @@ function App() {
                   onChange={() => setIsDarkMode(!isDarkMode)}
                 />
                 <MenuCheckboxItem
-                  label="Fixed Lengths"
+                  label="Fixed Lengths (Ctrl+L)"
                   checked={fixedLengths}
                   onChange={() => useStore.getState().setFixedLengths(!fixedLengths)}
                 />

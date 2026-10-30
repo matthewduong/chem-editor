@@ -101,7 +101,7 @@ test('preferences migration replaces stale non-ChemDraw tool defaults', () => {
     },
   });
 
-  assert.equal(normalized.version, 10);
+  assert.equal(normalized.version, 11);
   assert.deepEqual(getShortcutBinding(normalized.keybindings, 'canvas.tools.select'), { key: '' });
   assert.deepEqual(getShortcutBinding(normalized.keybindings, 'canvas.tools.pan'), { key: 'p' });
   assert.deepEqual(getShortcutBinding(normalized.keybindings, 'canvas.tools.bond'), { key: 'x' });
@@ -131,4 +131,29 @@ test('ChemDraw atom label hotkeys bind uppercase keys with Shift', () => {
   assert.equal(labelFor(keyEvent('P', { shiftKey: true })), 'Ph');
   assert.equal(labelFor(keyEvent('q')), 'O');
   assert.equal(labelFor(keyEvent('w')), 'N');
+});
+
+test('version 11 moves untouched align bindings to ChemDraw keys, freeing them for Flip', () => {
+  const normalized = normalizeAppPreferences({
+    version: 10,
+    keybindings: {
+      bindings: {
+        'app.arrange.center-h': { key: 'h', primary: true, shift: true },
+        'app.arrange.align-left': { key: 'q' },
+        'app.view.toggle-theme': { key: 'l', primary: true },
+      },
+    },
+  });
+  const binding = (id) => getShortcutBinding(normalized.keybindings, id);
+  assert.deepEqual(binding('app.arrange.center-h'), {
+    key: 'c',
+    primary: true,
+    shift: true,
+    alt: true,
+  });
+  assert.deepEqual(binding('app.arrange.flip-h'), { key: 'h', primary: true, shift: true });
+  assert.deepEqual(binding('app.edit.fixed-lengths'), { key: 'l', primary: true });
+  assert.deepEqual(binding('app.view.toggle-theme'), { key: '' });
+  // A binding the user chose is kept.
+  assert.deepEqual(binding('app.arrange.align-left'), { key: 'q' });
 });

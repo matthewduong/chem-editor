@@ -32,19 +32,21 @@ handles for boxes and arc end/curvature handles moved to Phase II with the other
 
 ## Selection and arrange
 
-- [ ] **Lasso selection** — marquee only · 6: Selecting Objects, The Lasso Tool
-- [ ] **Flip / mirror horizontally and vertically** — absent · 6: Objects, Mirror Images
-- [ ] **Rotation about a movable centre** — always pivots on the selection centre · 6: Objects,
+Done in Phase II (2026-10-30), with ChemDraw's keys (preferences version 11).
+
+- [x] **Lasso selection** — marquee only · 6: Selecting Objects, The Lasso Tool
+- [x] **Flip / mirror horizontally and vertically** — absent · 6: Objects, Mirror Images
+- [x] **Rotation about a movable centre** — always pivots on the selection centre · 6: Objects,
       Moving the Center of Rotation
-- [ ] **Z-order for every object, and centre on page** — bring-to-front/send-to-back covers bonds
+- [x] **Z-order for every object, and centre on page** — bring-to-front/send-to-back covers bonds
       only; Center aligns items to each other, not the page · 6: Objects, Centering Objects; 5:
       Shortcuts (F2/F3)
 
 ## Editing aids
 
-- [ ] **Join structures** — dropping an atom on an atom does not merge; only ring/template
+- [x] **Join structures** — dropping an atom on an atom does not merge; only ring/template
       placement fuses · 6: Objects, Joining Structures
-- [ ] **Typed chain length, and fixed-length/fixed-angle toggles** — chain length is drag-only;
+- [x] **Typed chain length, and fixed-length/fixed-angle toggles** — chain length is drag-only;
       snapping is always on · 6: Chains, Specifying Chain Length; 6: Bonds, Fixed Bonds
 
 ## Bonds and labels
@@ -110,7 +112,7 @@ handles for boxes and arc end/curvature handles moved to Phase II with the other
 
 ## View and document
 
-- [ ] **Zoom commands** — zoom in/out, actual size and a zoom readout; today wheel zoom and Fit
+- [x] **Zoom commands** — zoom in/out, actual size and a zoom readout; today wheel zoom and Fit
       to Screen only · 3: Viewing Drawings, Magnification
 - [ ] **Document properties** — no metadata dialog · 2: Documents, Document Properties
 - [ ] **Autosave to the open file** — only a recovery snapshot is written · 2: Autosave and
