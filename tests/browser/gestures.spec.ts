@@ -345,6 +345,41 @@ for (const scale of [1, 2]) {
       await page.keyboard.press('F3');
       expect(await ids()).toEqual(['rectangle', 'ellipse']);
     });
+    test('Alt-dragging the rotation centre makes rotation turn about it', async ({ page }) => {
+      await openEditor(page);
+      await page.getByRole('button', { name: 'Expand Drawing', exact: true }).click();
+      await tool(page, 'Rectangle');
+      await drag(page, { x: 500, y: 400 }, { x: 600, y: 460 });
+      await tool(page, 'Select');
+      const edge = await point(page, 500, 430);
+      await page.mouse.click(edge.x, edge.y);
+      const centreOf = async () => {
+        const g = (await observe(page)).document!.pages[0].objects.find(
+          (x) => x.type === 'graphic',
+        ) as unknown as { center: { x: number; y: number } };
+        return g.center;
+      };
+      const before = await centreOf();
+      // Move the '+' from the middle of the rectangle to its left edge.
+      const middle = await point(page, 550, 430);
+      await page.keyboard.down('Alt');
+      await page.mouse.move(middle.x, middle.y);
+      await page.mouse.down();
+      await page.mouse.move(edge.x, edge.y, { steps: 5 });
+      await page.mouse.up();
+      await page.keyboard.up('Alt');
+      const pivot = await page.evaluate(async () => {
+        const { useStore } = await import(String('/src/store/index.ts'));
+        return useStore.getState().rotationPivot;
+      });
+      expect(pivot).not.toBeNull();
+      // Turn 90 degrees with Arrange > Rotate (Ctrl+R).
+      await page.keyboard.press('Control+r');
+      await page.getByPlaceholder('Degrees').fill('90');
+      await page.getByPlaceholder('Degrees').press('Enter');
+      const after = await centreOf();
+      expect(Math.hypot(after.x - before.x, after.y - before.y)).toBeGreaterThan(1);
+    });
     test('chain preview commits once and cancellation creates no history', async ({ page }) => {
       await openEditor(page);
       await tool(page, 'Chain');

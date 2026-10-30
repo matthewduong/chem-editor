@@ -229,6 +229,8 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
   const tool = useStore((s) => s.tool);
   const arrowType = useStore((s) => s.arrowType);
   const shapeKind = useStore((s) => s.shapeKind);
+  const rotationPivot = useStore((s) => s.rotationPivot);
+  const pivotDragRef = useRef(false);
   const electronToolMode = useStore((s) => s.electronToolMode);
   const selectedFragment = useStore((s) => s.selectedFragment);
   const showHydrogens = useStore((s) => s.showHydrogens);
@@ -240,6 +242,10 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
   const selectedAtomIds = useStore((s) => s.selectedAtomIds);
   const selectedBondIds = useStore((s) => s.selectedBondIds);
   const selectedObjectIds = useStore((s) => s.selectedObjectIds);
+  // A moved rotation centre belongs to the selection it was moved for.
+  useEffect(() => {
+    useStore.getState().setRotationPivot(null);
+  }, [selectedObjectIds]);
   const selectedArrowIds = useStore((s) => s.selectedArrowIds);
   const selectedTextBoxIds = useStore((s) => s.selectedTextBoxIds);
   const editMenusHidden = useStore((s) => s.editMenusHidden);
@@ -2444,6 +2450,13 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
         if (hit) hitScale = { anchorX: hit.ax, anchorY: hit.ay };
       }
       const selCtr = getSelectionCenter();
+      const pivot = rotationPivot ?? selCtr;
+      // Alt-drag the '+' to move the centre of rotation (ChemDraw 17.1 guide, "Moving the
+      // Center of Rotation").
+      if (e.evt.altKey && pivot && Math.hypot(pos.x - pivot.x, pos.y - pivot.y) < 8 / stageScale) {
+        pivotDragRef.current = true;
+        return;
+      }
       const rotHandlePos = selCtr && bbox ? { x: selCtr.x, y: bbox.minY - 30 } : selCtr;
       selectTool.begin(
         pos,
@@ -2455,7 +2468,7 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
         hitTB,
         hitScale,
         hitNative,
-        selCtr,
+        pivot,
       );
       return;
     }
@@ -2569,6 +2582,10 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
     // Arrow preview update with 15° snapping
     if (arrowPreview) {
       arrowTool.update(pos);
+      return;
+    }
+    if (pivotDragRef.current) {
+      useStore.getState().setRotationPivot(pos);
       return;
     }
     if (shapeTool.isActive()) {
@@ -2707,6 +2724,10 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
         groups: kg ?? [],
         textBoxes: ktb ?? [],
       });
+      return;
+    }
+    if (pivotDragRef.current) {
+      pivotDragRef.current = false;
       return;
     }
     if (shapeTool.isActive()) {
@@ -3689,9 +3710,7 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
 
           {!selectTool.isSelectionBoxActive &&
             !editingTextBoxId &&
-            (selectedAtomIds.size > 0 ||
-              selectedArrowIds.size > 0 ||
-              selectedTextBoxIds.size > 0) &&
+            selectedObjectIds.size > 0 &&
             selCenter &&
             selBBox && (
               <Group>
@@ -3709,15 +3728,32 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
                   stroke="#2196F3"
                   strokeWidth={2}
                 />
+                {(() => {
+                  // The centre of rotation, '+' as in ChemDraw; Alt-drag moves it.
+                  const pivot = rotationPivot ?? selCenter;
+                  const arm = 5 / stageScale;
+                  return (
+                    <Group listening={false}>
+                      <Line
+                        points={[pivot.x - arm, pivot.y, pivot.x + arm, pivot.y]}
+                        stroke="#2196F3"
+                        strokeWidth={1.5 / stageScale}
+                      />
+                      <Line
+                        points={[pivot.x, pivot.y - arm, pivot.x, pivot.y + arm]}
+                        stroke="#2196F3"
+                        strokeWidth={1.5 / stageScale}
+                      />
+                    </Group>
+                  );
+                })()}
               </Group>
             )}
 
           {!selectTool.isSelectionBoxActive &&
             !editingTextBoxId &&
             selBBox &&
-            (selectedAtomIds.size > 0 ||
-              selectedArrowIds.size > 0 ||
-              selectedTextBoxIds.size > 0) &&
+            selectedObjectIds.size > 0 &&
             (() => {
               const { minX, maxX, minY, maxY } = selBBox;
               const corners = [

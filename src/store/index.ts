@@ -231,6 +231,8 @@ export interface AppState {
   arrowType: ArrowType;
   /** The drawing element the shape tool draws. */
   shapeKind: ShapeKind;
+  /** Where the selection turns when rotated, once the user has moved it off the centre. */
+  rotationPivot: { x: number; y: number } | null;
   currentCharge: number;
   electronToolMode: ElectronToolMode;
   selectedFragment: string;
@@ -378,6 +380,7 @@ export interface AppState {
   setStereo: (stereo: number) => void;
   setArrowType: (type: ArrowType) => void;
   setShapeKind: (kind: ShapeKind) => void;
+  setRotationPivot: (pivot: { x: number; y: number } | null) => void;
   setCurrentCharge: (charge: number) => void;
   setElectronToolMode: (mode: ElectronToolMode) => void;
   setSelectedFragment: (smiles: string) => void;
@@ -540,6 +543,7 @@ export const useStore = create<AppState>((set, get) => ({
   stereo: 0,
   arrowType: 'reaction',
   shapeKind: 'rectangle',
+  rotationPivot: null,
   currentCharge: 0,
   electronToolMode: 'charge-positive',
   selectedFragment: '',
@@ -686,6 +690,7 @@ export const useStore = create<AppState>((set, get) => ({
   setStereo: (stereo) => set({ stereo }),
   setArrowType: (arrowType) => set({ arrowType }),
   setShapeKind: (shapeKind) => set({ shapeKind }),
+  setRotationPivot: (rotationPivot) => set({ rotationPivot }),
   setCurrentCharge: (currentCharge) => set({ currentCharge }),
   setElectronToolMode: (electronToolMode) => set({ electronToolMode }),
   setSelectedFragment: (selectedFragment) => set({ selectedFragment }),

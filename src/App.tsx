@@ -1289,9 +1289,23 @@ function App() {
       ...selArrows.flatMap((a) => getArrowSelectionPoints(a)),
       ...selTBs.map((t) => ({ x: t.x, y: t.y })),
     ];
-    if (!pts.length) return;
-    const cx = pts.reduce((s, p) => s + p.x, 0) / pts.length;
-    const cy = pts.reduce((s, p) => s + p.y, 0) / pts.length;
+    // Turn about the moved centre of rotation when there is one; a selection of shapes alone has
+    // no atom, arrow or text points, so its centre is its box's.
+    const pivot =
+      useStore.getState().rotationPivot ??
+      (() => {
+        const state = useStore.getState();
+        if (pts.length || !state.chemDrawDocument) return null;
+        const box = getObjectsBounds(
+          state.chemDrawDocument,
+          state.selectedObjectIds,
+          state.documentStyleSettings,
+        );
+        return box ? { x: (box.left + box.right) / 2, y: (box.top + box.bottom) / 2 } : null;
+      })();
+    if (!pts.length && !pivot) return;
+    const cx = pivot?.x ?? pts.reduce((s, p) => s + p.x, 0) / pts.length;
+    const cy = pivot?.y ?? pts.reduce((s, p) => s + p.y, 0) / pts.length;
     const rot = (x: number, y: number) => ({
       x: cx + (x - cx) * Math.cos(rad) - (y - cy) * Math.sin(rad),
       y: cy + (x - cx) * Math.sin(rad) + (y - cy) * Math.cos(rad),
