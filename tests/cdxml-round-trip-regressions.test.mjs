@@ -323,3 +323,23 @@ test('rotating an oval or rectangle turns its axes, not just its bounding box', 
   assert.ok(Math.abs(rotated.majorAxisEnd.y - (center.y + scale)) < 1e-9);
   assert.deepEqual(rotated.center, center);
 });
+
+test('a transformed arc arrow carries its centre and axes, so it stays the same arc', () => {
+  const { document } = cdxmlToChemDrawDocument(`<?xml version="1.0"?><CDXML><page id="100">
+    <arrow id="12" ArrowheadType="Solid" AngularSize="-90" Head3D="110 70 0" Tail3D="150 30 0" Center3D="110 30 0" MajorAxisEnd3D="150 30 0" MinorAxisEnd3D="110 70 0"/>
+  </page></CDXML>`);
+  const before = document.pages[0].objects[0];
+  const turned = rotateSelectedObjects(document, new Set(['12']), before.arcCenter, Math.PI / 2)
+    .pages[0].objects[0];
+  assert.deepEqual(turned.arcCenter, before.arcCenter);
+  const radius = Math.hypot(
+    turned.majorAxisEnd.x - turned.arcCenter.x,
+    turned.majorAxisEnd.y - turned.arcCenter.y,
+  );
+  assert.ok(
+    Math.abs(
+      Math.hypot(turned.tail.x - turned.arcCenter.x, turned.tail.y - turned.arcCenter.y) - radius,
+    ) < 1e-9,
+  );
+  assert.ok(Math.abs(turned.majorAxisEnd.x - turned.arcCenter.x) < 1e-9);
+});

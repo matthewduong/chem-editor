@@ -230,6 +230,27 @@ function mapGraphic(
   };
 }
 
+/**
+ * An arrow under a transform. An arc arrow's centre and axis ends move with it: left behind, the
+ * arc no longer fits its ends and was drawn and exported from stale axes.
+ */
+function mapArrow(
+  arrow: ChemDrawArrow,
+  project: (x: number, y: number) => { x: number; y: number },
+): ChemDrawArrow {
+  const map = (point: { x: number; y: number } | undefined) =>
+    point ? project(point.x, point.y) : undefined;
+  return {
+    ...arrow,
+    tail: project(arrow.tail.x, arrow.tail.y),
+    head: project(arrow.head.x, arrow.head.y),
+    ...(arrow.controlPoint ? { controlPoint: map(arrow.controlPoint) } : {}),
+    ...(arrow.arcCenter ? { arcCenter: map(arrow.arcCenter) } : {}),
+    ...(arrow.majorAxisEnd ? { majorAxisEnd: map(arrow.majorAxisEnd) } : {}),
+    ...(arrow.minorAxisEnd ? { minorAxisEnd: map(arrow.minorAxisEnd) } : {}),
+  };
+}
+
 function mapEmbeddedObject(
   embeddedObject: ChemDrawEmbeddedObject,
   project: (x: number, y: number) => { x: number; y: number },
@@ -1389,14 +1410,7 @@ export function moveSelectedObjects(
     }
     if (object.type === 'arrow' && selectedObjectIds.has(object.id)) {
       if (blocksTransform(object)) return object;
-      return {
-        ...object,
-        tail: { x: object.tail.x + dx, y: object.tail.y + dy },
-        head: { x: object.head.x + dx, y: object.head.y + dy },
-        ...(object.controlPoint
-          ? { controlPoint: { x: object.controlPoint.x + dx, y: object.controlPoint.y + dy } }
-          : {}),
-      };
+      return mapArrow(object, (x, y) => ({ x: x + dx, y: y + dy }));
     }
     if (object.type === 'text' && selectedObjectIds.has(object.id)) {
       if (blocksTransform(object)) return object;
@@ -1499,14 +1513,7 @@ export function rotateSelectedObjects(
     }
     if (object.type === 'arrow' && selectedObjectIds.has(object.id)) {
       if (blocksTransform(object)) return object;
-      return {
-        ...object,
-        tail: rotate(object.tail.x, object.tail.y),
-        head: rotate(object.head.x, object.head.y),
-        ...(object.controlPoint
-          ? { controlPoint: rotate(object.controlPoint.x, object.controlPoint.y) }
-          : {}),
-      };
+      return mapArrow(object, rotate);
     }
     if (object.type === 'text' && selectedObjectIds.has(object.id)) {
       if (blocksTransform(object)) return object;
@@ -1565,14 +1572,7 @@ export function scaleSelectedObjects(
     }
     if (object.type === 'arrow' && selectedObjectIds.has(object.id)) {
       if (blocksTransform(object)) return object;
-      return {
-        ...object,
-        tail: scale(object.tail.x, object.tail.y),
-        head: scale(object.head.x, object.head.y),
-        ...(object.controlPoint
-          ? { controlPoint: scale(object.controlPoint.x, object.controlPoint.y) }
-          : {}),
-      };
+      return mapArrow(object, scale);
     }
     if (object.type === 'text' && selectedObjectIds.has(object.id)) {
       if (blocksTransform(object)) return object;
