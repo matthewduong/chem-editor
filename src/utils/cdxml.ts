@@ -550,6 +550,10 @@ function parseBondOrder(value: string | null | undefined): {
   if (trimmed === '1') return { order: 1 };
   if (trimmed === '2') return { order: 2 };
   if (trimmed === '3') return { order: 3 };
+  // Higher orders are written as their number too; read as a bit mask, "4" was a triple bond.
+  if (trimmed === '4') return { order: 4 };
+  if (trimmed === '5') return { order: 5 };
+  if (trimmed === '6') return { order: 6 };
   if (trimmed === '1.5') return { order: 1.5, aromatic: true };
   if (trimmed === '0.5') return { order: 0.5 };
   if (trimmed === '2.5') return { order: 2.5 };
@@ -560,6 +564,7 @@ function parseBondOrder(value: string | null | undefined): {
     if (intValue & 0x0001) allowedOrders.push(1);
     if (intValue & 0x0002) allowedOrders.push(2);
     if (intValue & 0x0004) allowedOrders.push(3);
+    if (intValue & 0x0008) allowedOrders.push(4);
     if (intValue & 0x0080) allowedOrders.push(1.5);
     if (allowedOrders.length === 1) {
       return { order: allowedOrders[0], aromatic: allowedOrders[0] === 1.5 };
@@ -577,6 +582,7 @@ function bondOrderToCdxml(bond: ChemDrawBond): string | undefined {
       if (order === 1) mask |= 0x0001;
       else if (order === 2) mask |= 0x0002;
       else if (order === 3) mask |= 0x0004;
+      else if (order === 4) mask |= 0x0008;
       else if (order === 1.5) mask |= 0x0080;
     }
     if (mask) return String(mask);
@@ -977,8 +983,12 @@ function emitTextBoxT(
     let face = 0;
     if (run.bold) face |= 1;
     if (run.italic) face |= 2;
-    if (run.sub) face |= 32;
-    if (run.sup) face |= 64;
+    // Formula (96) is ChemDraw's own face, the sub and sup bits together; it was written as 0.
+    if (run.formula) face |= 96;
+    else {
+      if (run.sub) face |= 32;
+      if (run.sup) face |= 64;
+    }
     const colorIdx = run.color ? getColorIndex(run.color) : defaultColorIdx;
     out += `${indent}  <s font="${fontId}" size="${fontSize}" face="${face}" color="${colorIdx}">${xmlEscape(run.text)}</s>\n`;
   }
@@ -1017,8 +1027,12 @@ function emitTextBlockT(options: {
     let face = 0;
     if (run.bold) face |= 1;
     if (run.italic) face |= 2;
-    if (run.sub) face |= 32;
-    if (run.sup) face |= 64;
+    // Formula (96) is ChemDraw's own face, the sub and sup bits together; it was written as 0.
+    if (run.formula) face |= 96;
+    else {
+      if (run.sub) face |= 32;
+      if (run.sup) face |= 64;
+    }
     const color = run.color ?? options.style?.color;
     const colorAttr = color ? ` color="${options.getColorIndex(color)}"` : '';
     out += `${options.indent}  <s font="${options.getFontId(options.style?.fontFamily ?? 'Arial')}" size="${formatCdxmlNumber(options.style?.fontSize ?? 12, 1)}" face="${face}"${colorAttr}>${xmlEscape(run.text)}</s>\n`;

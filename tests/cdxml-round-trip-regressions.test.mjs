@@ -343,3 +343,15 @@ test('a transformed arc arrow carries its centre and axes, so it stays the same 
   );
   assert.ok(Math.abs(turned.majorAxisEnd.x - turned.arcCenter.x) < 1e-9);
 });
+
+test('a quadruple bond stays quadruple and formula text keeps face 96', () => {
+  const source = `<?xml version="1.0"?><CDXML BondLength="14.4"><page id="100">
+    <fragment id="1"><n id="2" p="0 0" Element="42"/><n id="3" p="14.4 0" Element="42"/><b id="4" B="2" E="3" Order="4"/></fragment>
+    <t id="5" p="0 40"><s font="3" size="10" face="96">CH3OH</s></t>
+  </page></CDXML>`;
+  const { document } = cdxmlToChemDrawDocument(source);
+  assert.equal(document.pages[0].objects.find((o) => o.id === '4').order, 4);
+  const out = exportXml(source);
+  assert.match(out, /<b [^>]*Order="4"/);
+  assert.match(out, /face="96"[^>]*>CH3OH</);
+});
