@@ -13,8 +13,8 @@ ChemDraw's own files (the `chemdraw_template*.cdxml` set in RDKit's test data), 
 | I     | Graphics foundation and shape tools | **done 2026-10-29**    |
 | II    | Selection and arrange               | **done 2026-10-30**    |
 | III   | Annotations, bonds and labels       | **done 2026-10-30**    |
-| IV    | Stereo, numbering and analysis      | **ready** (plan below) |
-| V     | Reactions                           |                        |
+| IV    | Stereo, numbering and analysis      | **done 2026-10-30**    |
+| V     | Reactions                           | **ready** (plan below) |
 | VI    | Query structures                    |                        |
 | VII   | Document, output and app shell      |                        |
 | VIII  | Naming                              |                        |
@@ -243,3 +243,58 @@ undo step.
 
 - How ChemDraw writes computed stereo indicators (objecttag name and placement), and
   `ShowAtomNumber` / `AtomNumber` placement.
+
+Phase IV done 2026-10-30: CIP indicators (Show Stereochemistry, kept as ChemDraw's
+ShowAtomStereo/ShowBondStereo), bond object tags drawn, enhanced stereo groups and flags, atom
+numbers (`'`), Structure Perspective, m/z, elemental analysis and Paste analysis as caption.
+Molfile enhanced stereo waits for the V3000 writer (Phase VII).
+
+## Phase V — reactions
+
+What ChemDraw records, measured from a ChemDraw 23.1 file: a reaction is a page-level
+`<scheme id>` holding `<step>`s, each with id lists `ReactionStepReactants`,
+`ReactionStepProducts`, `ReactionStepArrows`, `ReactionStepObjectsAboveArrow` and
+`ReactionStepObjectsBelowArrow`. Arrows carry no attachment attributes in any file to hand (87
+arrows across RDKit's ChemDraw test data and the user's ChemDraw 23 files), so how ChemDraw
+stores an attached ("connecting") arrow is unknown.
+
+Today a `<scheme>` with no modelled children is preserved as raw page XML, and fragment roles
+are guessed on import from the first arrow (`cdxml.ts`, "inferred heuristically").
+
+### Groundwork landed in IV.7
+
+- `tests/fixtures/cdxml/reaction-step.cdxml`: a one-step reaction (reactant, arrow, reagent
+  text above, product) with ChemDraw's step record; its golden and raw round trip are pinned.
+
+### Sub-steps
+
+**V.1 Model schemes and steps.** `ChemDrawReactionScheme { id, steps: ChemDrawReactionStep[] }`
+on the page, read from `<scheme>/<step>` (ids kept as lists; unknown attributes preserved) and
+written back; ids of deleted objects dropped on export so the step never dangles; when a step
+exists, fragment roles come from it, not the arrow heuristic. Robustness cases (dangling ids,
+empty lists) in `cdxml-robustness`.
+
+**V.2 Reaction roles UI.** Structure > Reaction: "Show Reaction Interpretation" outlines the
+step's reactants, products and above/below objects (an editing affordance, like the valence
+marks, never exported); "Set as Reactant / Product / Above Arrow / Below Arrow" on the selection
+edits the step (creating a scheme and step around the nearest arrow when none exists), one undo
+step.
+
+**V.3 Clean Up Reaction.** From a step: reactants in a row left of the arrow, products right,
+centred on the arrow's line; above/below objects centred over and under the arrow; the arrow
+stretched to fit the widest of them. Spacing from the document's bond length (ChemDraw's exact
+gaps to probe on mac).
+
+**V.4 Arrows attached to objects.** An arrow end dropped on a structure's or text's bounds
+attaches (in session) and follows that object when it moves; written as a ChemEditor-prefixed
+attribute until ChemDraw's encoding is measured (gaps.md).
+
+**V.5 Mass fragmentation tool.** Drag a line across bonds of a structure: the bonds it crosses
+split the molecule into fragments, each labelled with its formula and m/z (`massAnalysis.ts`)
+as a caption beside it; ChemDraw's fragmentation-line object and caption placement are to probe.
+
+**V.6 Ready Phase VI.**
+
+### To probe on mac
+
+- Connecting-arrow storage; Clean Up Reaction spacing; the mass fragmentation line's CDXML.

@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  A one-step reaction with ChemDraw's <scheme>/<step> record, in the form ChemDraw 23 writes it
+  (attribute names measured from a ChemDraw 23.1 file): ethanol to ethanal with a reagent above
+  the arrow. The step is what ChemDraw's reaction interpretation reads; Phase V models it.
+-->
+<CDXML BondLength="14.4" LineWidth="0.6" CaptionSize="10">
+  <page id="1">
+    <fonttable>
+      <font id="3" charset="iso-8859-1" name="Arial"/>
+    </fonttable>
+    <fragment id="10">
+      <n id="11" p="0 20" Element="6"/>
+      <n id="12" p="12.47 12.8" Element="6"/>
+      <n id="13" p="24.94 20" Element="8"/>
+      <b id="14" B="11" E="12"/>
+      <b id="15" B="12" E="13"/>
+    </fragment>
+    <arrow id="20" Head3D="90 16 0" Tail3D="40 16 0" ArrowheadHead="Full" ArrowheadType="Solid" HeadSize="1000" ArrowheadCenterSize="875" ArrowheadWidth="250"/>
+    <t id="21" p="52 10"><s font="3" size="10" face="0">PCC</s></t>
+    <fragment id="30">
+      <n id="31" p="105 20" Element="6"/>
+      <n id="32" p="117.47 12.8" Element="6"/>
+      <n id="33" p="129.94 20" Element="8"/>
+      <b id="34" B="31" E="32"/>
+      <b id="35" B="32" E="33" Order="2"/>
+    </fragment>
+    <scheme id="40">
+      <step id="41" ReactionStepReactants="10" ReactionStepProducts="30" ReactionStepArrows="20" ReactionStepObjectsAboveArrow="21"/>
+    </scheme>
+  </page>
+</CDXML>
