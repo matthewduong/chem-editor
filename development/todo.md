@@ -73,7 +73,7 @@ Done in Phase II (2026-10-30), with ChemDraw's keys (preferences version 11).
 
 - [x] **CIP R/S and E/Z labels on the canvas** — not computed; imported tags are drawn · 12:
       Stereochemistry, Stereochemistry Indicators
-- [ ] **Enhanced stereo flags (abs/AND/OR, chiral flag)** — absent in CDXML and V3000 · 17:
+- [x] **Enhanced stereo flags (abs/AND/OR, chiral flag)** — CDXML done; V3000 collections and the molfile chiral flag wait for the V3000 writer (gaps.md) · 17:
       Stereochemical Flags
 - [x] **2D atom numbering** — only in the 3D viewer, or tags imported from CDXML · 10: Atom
       Numbering

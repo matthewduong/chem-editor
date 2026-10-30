@@ -6,6 +6,7 @@ import {
   createBoxShapeGraphic,
   createBracketPair,
   createFrameObjects,
+  isClickPlacedShape,
   isShapeBigEnough,
   lineEnd,
   shapeForDrag,
@@ -206,4 +207,17 @@ test('a dagger is a Symbol graphic at the click with its size point below', () =
     { x: 30, y: 40 },
     { x: 30, y: 47 },
   ]);
+});
+
+test('a stereochemical flag is placed with a click as the symbol ChemDraw writes', () => {
+  for (const [kind, symbolType] of [
+    ['flag-absolute', 'Absolute'],
+    ['flag-relative', 'Relative'],
+    ['flag-racemic', 'Racemic'],
+  ]) {
+    assert.ok(isClickPlacedShape(kind));
+    const { object } = shapeForDrag(kind, 'f', { x: 10, y: 10 }, { x: 10, y: 10 });
+    assert.equal(object.graphicType, 'symbol');
+    assert.equal(object.symbolType, symbolType);
+  }
 });

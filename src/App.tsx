@@ -74,6 +74,7 @@ import {
   createReorderSelectionCommand,
   createFlipSelectionCommand,
   createToggleAtomNumbersCommand,
+  createEnhancedStereoCommand,
   createJoinSelectionCommand,
 } from './editor/commands';
 import {
@@ -433,6 +434,9 @@ const DRAWING_ELEMENT_OPTIONS: Array<{ kind: ShapeKind; title: string }> = [
   { kind: 'orbital-oval', title: 'σ Orbital' },
   { kind: 'dagger', title: 'Dagger' },
   { kind: 'double-dagger', title: 'Double Dagger' },
+  { kind: 'flag-absolute', title: 'Absolute Stereo Flag' },
+  { kind: 'flag-relative', title: 'Relative Stereo Flag' },
+  { kind: 'flag-racemic', title: 'Racemic Stereo Flag' },
 ];
 
 const ELEMENT_SHORTCUTS = ['C', 'N', 'O', 'S', 'P', 'F', 'Cl', 'Br', 'H', 'D'];
@@ -3848,6 +3852,62 @@ function App() {
                   {isCharacterMapOpen ? 'Hide Character Map' : 'Show Character Map'}
                 </MenuItem>
                 <MenuSeparator />
+                <MenuItem
+                  onClick={() => {
+                    const state = useStore.getState();
+                    state.dispatchEditorCommand(
+                      createEnhancedStereoCommand(
+                        'Absolute',
+                        new Set([...state.selectedObjectIds, ...state.selectedAtomIds]),
+                      ),
+                    );
+                    setIsEditDropdownOpen(false);
+                  }}
+                >
+                  Enhanced Stereo: Absolute
+                </MenuItem>
+                <MenuItem
+                  onClick={() => {
+                    const state = useStore.getState();
+                    state.dispatchEditorCommand(
+                      createEnhancedStereoCommand(
+                        'And',
+                        new Set([...state.selectedObjectIds, ...state.selectedAtomIds]),
+                      ),
+                    );
+                    setIsEditDropdownOpen(false);
+                  }}
+                >
+                  Enhanced Stereo: New AND Group
+                </MenuItem>
+                <MenuItem
+                  onClick={() => {
+                    const state = useStore.getState();
+                    state.dispatchEditorCommand(
+                      createEnhancedStereoCommand(
+                        'Or',
+                        new Set([...state.selectedObjectIds, ...state.selectedAtomIds]),
+                      ),
+                    );
+                    setIsEditDropdownOpen(false);
+                  }}
+                >
+                  Enhanced Stereo: New OR Group
+                </MenuItem>
+                <MenuItem
+                  onClick={() => {
+                    const state = useStore.getState();
+                    state.dispatchEditorCommand(
+                      createEnhancedStereoCommand(
+                        null,
+                        new Set([...state.selectedObjectIds, ...state.selectedAtomIds]),
+                      ),
+                    );
+                    setIsEditDropdownOpen(false);
+                  }}
+                >
+                  Enhanced Stereo: None
+                </MenuItem>
                 <MenuItem
                   onClick={() => {
                     setNicknameDraft('');

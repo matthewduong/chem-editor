@@ -442,6 +442,16 @@ export function ShapeIcon({ kind, size = 22 }: { kind: ShapeKind; size?: number 
           <path d="M12 4V20M7.5 8H16.5M7.5 16H16.5" />
         </Frame>
       );
+    case 'flag-absolute':
+    case 'flag-relative':
+    case 'flag-racemic':
+      return (
+        <Frame size={size}>
+          <text x="12" y="15.5" textAnchor="middle" fontSize="9" stroke="none" fill="currentColor">
+            {kind === 'flag-absolute' ? 'abs' : kind === 'flag-relative' ? 'rel' : 'rac'}
+          </text>
+        </Frame>
+      );
     default: {
       // Arcs: the sweep drawn on a circle of radius 8 about the centre, bulging upward.
       const degrees = Number(kind.slice(4));

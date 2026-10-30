@@ -1,5 +1,6 @@
 import { convertNativeToCanvas } from '../../../lib/chemdrawMetrics';
 import { getObjectTagAnchor, getTextBlockPlainText } from '../../../lib/objectTags';
+import { getFaceMetrics } from '../../../lib/textMetrics';
 import { measureRunWidth } from '../../../lib/textRunPresentation';
 import type { ChemDrawObjectTag, ChemDrawPoint } from '../../../types/chemdraw';
 import type { DocumentSceneState } from '../types';
@@ -53,7 +54,11 @@ export function drawObjectTags(
           ? baseAnchor.x - totalWidth
           : baseAnchor.x - totalWidth / 2;
     let cursorX = startX;
-    const startY = baseAnchor.y - fontSize * 0.45;
+    // A file's `p` is the first line's baseline (CDXML); other anchors are the text's middle.
+    const startY =
+      tag.textAnchor && !tag.positioningOffset
+        ? baseAnchor.y - getFaceMetrics({ family: fontFamily, sizePx: fontSize }).ascent
+        : baseAnchor.y - fontSize * 0.45;
     for (const run of runs) {
       drawRunText(
         ctx,

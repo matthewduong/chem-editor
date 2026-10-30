@@ -1484,6 +1484,12 @@ function chemDrawDocumentToCDXMLInternal(document: ChemDrawDocument): string {
       if (node.atomStereo) {
         attrs += ` AS="${node.atomStereo}"`;
       }
+      if (node.enhancedStereo) {
+        attrs += ` EnhancedStereoType="${node.enhancedStereo.type}"`;
+        if (node.enhancedStereo.group != null) {
+          attrs += ` EnhancedStereoGroupNum="${node.enhancedStereo.group}"`;
+        }
+      }
       if (node.atomNumber != null) attrs += ` AtomNumber="${xmlEscape(node.atomNumber)}"`;
       if (node.showAtomNumber != null) {
         attrs += ` ShowAtomNumber="${node.showAtomNumber ? 'yes' : 'no'}"`;
@@ -2543,6 +2549,20 @@ export function cdxmlToChemDrawDocument(xmlString: string): ChemDrawConversionRe
           atomStereoAttr === 'N' || atomStereoAttr === 'r' || atomStereoAttr === 's'
             ? atomStereoAttr
             : undefined;
+        const enhancedStereoTypeAttr = child.getAttribute('EnhancedStereoType');
+        const enhancedStereoGroup = parseInt(
+          child.getAttribute('EnhancedStereoGroupNum') ?? '',
+          10,
+        );
+        const enhancedStereo: ChemDrawNode['enhancedStereo'] =
+          enhancedStereoTypeAttr === 'Absolute' ||
+          enhancedStereoTypeAttr === 'And' ||
+          enhancedStereoTypeAttr === 'Or'
+            ? {
+                type: enhancedStereoTypeAttr,
+                ...(Number.isFinite(enhancedStereoGroup) ? { group: enhancedStereoGroup } : {}),
+              }
+            : undefined;
         const atomNumber = child.getAttribute('AtomNumber') ?? undefined;
         const showAtomNumberAttr = child.getAttribute('ShowAtomNumber');
         const showAtomNumber =
@@ -2740,6 +2760,7 @@ export function cdxmlToChemDrawDocument(xmlString: string): ChemDrawConversionRe
           position: { x, y },
           ...(geometry ? { geometry } : {}),
           ...(atomStereo ? { atomStereo } : {}),
+          ...(enhancedStereo ? { enhancedStereo } : {}),
           ...(atomNumber != null ? { atomNumber } : {}),
           ...(showAtomNumber != null ? { showAtomNumber } : {}),
           ...(bondOrdering?.length ? { bondOrdering } : {}),
@@ -2778,6 +2799,7 @@ export function cdxmlToChemDrawDocument(xmlString: string): ChemDrawConversionRe
             'AS',
             'AtomNumber',
             'ShowAtomNumber',
+            ...(enhancedStereo ? ['EnhancedStereoType', 'EnhancedStereoGroupNum'] : []),
             'BondOrdering',
             'NodeType',
             'ElementList',

@@ -18,7 +18,21 @@ export type BracketShapeKind = 'bracket-square' | 'bracket-round' | 'bracket-cur
 /** A facing pair placed by dragging a box; drawn upright, as in ChemDraw. */
 export type BracketPairShapeKind = 'pair-square' | 'pair-round' | 'pair-curly';
 /** Placed with a click. */
-export type SymbolShapeKind = 'dagger' | 'double-dagger';
+export type SymbolShapeKind =
+  | 'dagger'
+  | 'double-dagger'
+  /** Stereochemical flags (ChemDraw 17.1 guide, "Stereochemical Flags"). */
+  | 'flag-absolute'
+  | 'flag-relative'
+  | 'flag-racemic';
+
+const SYMBOL_TYPE: Record<SymbolShapeKind, string> = {
+  dagger: 'Dagger',
+  'double-dagger': 'DoubleDagger',
+  'flag-absolute': 'Absolute',
+  'flag-relative': 'Relative',
+  'flag-racemic': 'Racemic',
+};
 /** The pen: a freehand drag fitted with Bezier curves (`curveGesture.ts`), and its editor. */
 export type CurveShapeKind = 'curve' | 'edit-curve';
 /** Orbitals: dragged out from the nucleus (or placed with a click), `orbitalGeometry.ts`. */
@@ -104,7 +118,7 @@ const BRACKET_STYLE: Record<BracketShapeKind | BracketPairShapeKind, BracketStyl
 };
 
 export function isClickPlacedShape(kind: ShapeKind): kind is SymbolShapeKind {
-  return kind === 'dagger' || kind === 'double-dagger';
+  return kind in SYMBOL_TYPE;
 }
 
 export const ARC_DEGREES: Record<ArcShapeKind, number> = {
@@ -305,12 +319,7 @@ export function shapeForDrag(
   }
   if (isClickPlacedShape(kind)) {
     return {
-      object: createSymbolGraphic(
-        id,
-        kind === 'dagger' ? 'Dagger' : 'DoubleDagger',
-        start,
-        options.symbolSize ?? 7.2,
-      ),
+      object: createSymbolGraphic(id, SYMBOL_TYPE[kind], start, options.symbolSize ?? 7.2),
       bigEnough: true,
     };
   }

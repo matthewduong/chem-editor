@@ -25,6 +25,7 @@ import {
 } from '../../lib/chemdrawModel';
 import { buildDocumentIndex, getActivePage } from '../document';
 import { toggleAtomNumbers } from '../../lib/atomNumbers';
+import { setEnhancedStereo, type EnhancedStereoType } from '../../lib/enhancedStereo';
 import { perspectiveSelectedObjects } from '../../lib/structurePerspective';
 import { bondJoinPairs, joinNodes, overlappingNodePairs } from '../../lib/joinStructures';
 
@@ -384,6 +385,27 @@ export function createPerspectiveSelectionCommand(
       return {
         document: next,
         inversePatch: createReplaceDocumentCommand(document, 'undo:structure-perspective'),
+        changedObjectIds: selectionIds,
+      };
+    },
+  };
+}
+
+/** Enhanced stereo on the selected atoms; see `setEnhancedStereo`. */
+export function createEnhancedStereoCommand(
+  type: EnhancedStereoType | null,
+  objectIds?: Iterable<string>,
+): EditorCommand {
+  return {
+    type: 'enhanced-stereo',
+    description: `enhanced-stereo-${type ?? 'none'}`,
+    apply(document, context) {
+      const selectionIds = resolveSelectionIds(context, objectIds);
+      const next = setEnhancedStereo(document, selectionIds, type, context.documentStyleSettings);
+      if (next === document) return { document, inversePatch: null, changedObjectIds: new Set() };
+      return {
+        document: next,
+        inversePatch: createReplaceDocumentCommand(document, 'undo:enhanced-stereo'),
         changedObjectIds: selectionIds,
       };
     },
