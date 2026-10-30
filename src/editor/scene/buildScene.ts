@@ -46,6 +46,7 @@ export interface SceneInteractionState {
   hoveredNativeObjectId: string | null;
   editingTextBoxId: string | null;
   rdkitInvalidAtomIds: Set<string>;
+  stereoLabels?: { atoms: Map<string, string>; bonds: Map<string, string> };
   showValenceErrors: boolean;
   showQueryMarkers: boolean;
 }
@@ -79,6 +80,7 @@ function defaultInteractionState(): SceneInteractionState {
     hoveredNativeObjectId: null,
     editingTextBoxId: null,
     rdkitInvalidAtomIds: new Set(),
+    stereoLabels: undefined,
     showValenceErrors: false,
     showQueryMarkers: false,
   };

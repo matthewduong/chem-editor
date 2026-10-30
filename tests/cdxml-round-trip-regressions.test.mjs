@@ -428,3 +428,19 @@ test('an atom carries its object tags through rotation', () => {
   const moved = turned.objectTags[0].textAnchor;
   assert.ok(Math.abs(moved.x - (2 * node.position.x - anchor.x)) < 1e-9);
 });
+
+test('a bond keeps its E/Z object tag through a round trip, and draws it', async () => {
+  const { generateDocumentSVG } = await import('../.unit-test-dist/src/lib/svgExport.js');
+  const source = `<?xml version="1.0"?><CDXML BondLength="14.4"><page id="100">
+    <fragment id="1"><n id="2" p="20 20"/><n id="3" p="34 20"/>
+    <b id="4" B="2" E="3" Order="2"><objecttag id="9" TagType="Unknown" Name="stereo"><t id="10" p="25 14"><s font="3" size="8" face="0">(E)</s></t></objecttag></b></fragment>
+  </page></CDXML>`;
+  const { document } = cdxmlToChemDrawDocument(source);
+  const bond = document.pages[0].objects.find((o) => o.id === '4');
+  assert.equal(bond.objectTags?.[0]?.name, 'stereo');
+  const once = chemDrawDocumentToCDXML(document);
+  assert.equal((once.match(/<objecttag/g) ?? []).length, 1);
+  const twice = chemDrawDocumentToCDXML(cdxmlToChemDrawDocument(once).document);
+  assert.equal(twice, once);
+  assert.ok(generateDocumentSVG(document).includes('(E)'));
+});

@@ -51,6 +51,15 @@
   },
   {
     "op": "call",
+    "name": "fillText",
+    "args": [
+      "b1",
+      7,
+      -14.5
+    ]
+  },
+  {
+    "op": "call",
     "name": "save",
     "args": []
   },

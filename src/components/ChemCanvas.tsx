@@ -30,6 +30,7 @@ import {
 import { Circle, Group, Layer, Line, Rect, Stage, Star } from 'react-konva';
 import { createProjectionEditCommand } from '../editor/commands/projectionEdit';
 import { contractSelection, findNicknameForSelection } from '../lib/nicknames';
+import { computeStereoLabels } from '../lib/stereoLabels';
 import { SHORTHAND_DATA } from '../lib/shorthand';
 import {
   createDeleteSelectionCommand,
@@ -331,6 +332,12 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
   const rdkitInvalidAtomIds = useMemo(
     () => (rdkitValidation?.source === chemDrawDocument ? rdkitValidation.ids : new Set<string>()),
     [chemDrawDocument, rdkitValidation],
+  );
+  // View > Show Stereochemistry: CIP labels for the document they were computed from.
+  const stereoLabelState = useStore((s) => s.stereoLabels);
+  const stereoLabels = useMemo(
+    () => (stereoLabelState?.source === chemDrawDocument ? stereoLabelState : undefined),
+    [chemDrawDocument, stereoLabelState],
   );
   const [atomLabelPanelLayout, setAtomLabelPanelLayout] = useState<EditPanelLayout | null>(null);
   const [arrowStylePanelLayout, setArrowStylePanelLayout] = useState<EditPanelLayout | null>(null);
@@ -706,6 +713,7 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
       hoveredNativeObjectId,
       editingTextBoxId,
       rdkitInvalidAtomIds,
+      stereoLabels,
       showValenceErrors: true,
       showQueryMarkers: true,
     }),
@@ -723,6 +731,7 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
       legacySceneState,
       pageSetup,
       rdkitInvalidAtomIds,
+      stereoLabels,
       selectedArrowIds,
       selectedAtomIds,
       selectedBondIds,
@@ -761,6 +770,7 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
       hoveredNativeObjectId: contentHoveredNativeObjectId,
       editingTextBoxId,
       rdkitInvalidAtomIds,
+      stereoLabels,
       showValenceErrors: true,
       showQueryMarkers: true,
     }),
@@ -778,6 +788,7 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
       legacySceneState,
       pageSetup,
       rdkitInvalidAtomIds,
+      stereoLabels,
       selectedArrowIds,
       selectedAtomIds,
       selectedBondIds,
@@ -986,6 +997,19 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
     return (atom: Atom, label: string | undefined) =>
       isAliasAtom(atom) ? resolveAliasForAtom(atom, label).selected?.entry : undefined;
   }, [resolveAliasForAtom]);
+
+  const showStereochemistry = documentViewSettings.showStereochemistry === true;
+  useEffect(() => {
+    if (!showStereochemistry || !rdkit) return;
+    const source = chemDrawDocument;
+    const timer = window.setTimeout(() => {
+      useStore.getState().setStereoLabels({
+        source,
+        ...computeStereoLabels(rdkit, atoms, bonds, resolveAliasEntry),
+      });
+    }, 120);
+    return () => window.clearTimeout(timer);
+  }, [atoms, bonds, chemDrawDocument, rdkit, resolveAliasEntry, showStereochemistry]);
 
   useEffect(() => {
     aliasResolutionCacheRef.current.clear();

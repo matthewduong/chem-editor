@@ -4157,6 +4157,16 @@ function App() {
                     })
                   }
                 />
+                <MenuCheckboxItem
+                  label="Show Stereochemistry"
+                  checked={documentViewSettings.showStereochemistry === true}
+                  onChange={() =>
+                    setDocumentViewSettings({
+                      ...documentViewSettings,
+                      showStereochemistry: !documentViewSettings.showStereochemistry,
+                    })
+                  }
+                />
                 <MenuSeparator />
                 <MenuItem
                   onClick={() => {

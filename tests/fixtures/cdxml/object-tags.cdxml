@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  Object tags on a node and on a bond. The bond case is the interesting one: every other module
-  draws its tags, but bondModule does not, so no tag text is recorded for b1 today.
+  Object tags on a node and on a bond. Both draw: bondModule draws a bond's tags as nodeModule
+  does an atom's (bonds' tags were once kept only as raw XML and never drawn).
 -->
 <CDXML BondLength="14.4" LineWidth="0.6" CaptionSize="10">
   <page id="page-1">

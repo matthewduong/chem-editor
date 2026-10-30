@@ -1428,6 +1428,21 @@ export function moveSelectedObjects(
   const objectMap = new Map(objects.map((object) => [object.id, object]));
   const selectedNodeIds = getSelectedNodeIds(objects, selectedObjectIds);
   const nextObjects = objects.map((object) => {
+    if (
+      object.type === 'bond' &&
+      object.objectTags &&
+      selectedNodeIds.has(object.beginNodeId) &&
+      selectedNodeIds.has(object.endNodeId)
+    ) {
+      // A bond's tags (E/Z labels) travel with its atoms.
+      return {
+        ...object,
+        objectTags: mapObjectTags(object.objectTags, (x: number, y: number) => ({
+          x: x + dx,
+          y: y + dy,
+        })),
+      };
+    }
     if (object.type === 'node' && selectedNodeIds.has(object.id)) {
       if (blocksTransform(object)) return object;
       const shift = (x: number, y: number) => ({ x: x + dx, y: y + dy });
@@ -1633,6 +1648,15 @@ export function rotateSelectedObjects(
     y: center.y + (x - center.x) * Math.sin(radians) + (y - center.y) * Math.cos(radians),
   });
   const nextObjects = objects.map((object) => {
+    if (
+      object.type === 'bond' &&
+      object.objectTags &&
+      selectedNodeIds.has(object.beginNodeId) &&
+      selectedNodeIds.has(object.endNodeId)
+    ) {
+      // A bond's tags (E/Z labels) travel with its atoms.
+      return { ...object, objectTags: mapObjectTags(object.objectTags, rotate) };
+    }
     if (object.type === 'node' && selectedNodeIds.has(object.id)) {
       if (blocksTransform(object)) return object;
       return {
@@ -1697,6 +1721,15 @@ export function scaleSelectedObjects(
     y: center.y + (y - center.y) * factor,
   });
   const nextObjects = objects.map((object) => {
+    if (
+      object.type === 'bond' &&
+      object.objectTags &&
+      selectedNodeIds.has(object.beginNodeId) &&
+      selectedNodeIds.has(object.endNodeId)
+    ) {
+      // A bond's tags (E/Z labels) travel with its atoms.
+      return { ...object, objectTags: mapObjectTags(object.objectTags, scale) };
+    }
     if (object.type === 'node' && selectedNodeIds.has(object.id)) {
       if (blocksTransform(object)) return object;
       return {
@@ -1808,7 +1841,20 @@ export function flipSelectedObjects(
       object.display &&
       swapStereo[object.display]
     ) {
-      return { ...object, display: swapStereo[object.display] };
+      return {
+        ...object,
+        display: swapStereo[object.display],
+        ...(object.objectTags ? { objectTags: mapObjectTags(object.objectTags, mirror) } : {}),
+      };
+    }
+    if (
+      object.type === 'bond' &&
+      object.objectTags &&
+      selectedNodeIds.has(object.beginNodeId) &&
+      selectedNodeIds.has(object.endNodeId)
+    ) {
+      // A bond's tags (E/Z labels) travel with its atoms.
+      return { ...object, objectTags: mapObjectTags(object.objectTags, mirror) };
     }
     if (object.type === 'node' && selectedNodeIds.has(object.id)) {
       if (blocksTransform(object)) return object;

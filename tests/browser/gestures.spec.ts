@@ -610,6 +610,39 @@ for (const scale of [1, 2]) {
       await page.getByText('Expand Label', { exact: true }).click();
       expect((await observe(page)).atoms.length).toBe(before + 2);
     });
+    test('Show Stereochemistry labels a wedged stereocentre', async ({ page }) => {
+      await openEditor(page);
+      await page.evaluate(async () => {
+        const { commitCanvasEdit } = await import(String('/src/store/index.ts'));
+        const atom = (id: string, element: string, x: number, y: number) => ({ id, x, y, element });
+        commitCanvasEdit({
+          atoms: [
+            atom('c', 'C', 300, 300),
+            atom('m', 'C', 330, 300),
+            atom('n', 'N', 285, 274),
+            atom('o', 'O', 285, 326),
+          ],
+          bonds: [
+            { id: 'b1', from: 'c', to: 'm', order: 1 },
+            { id: 'b2', from: 'c', to: 'n', order: 1, stereo: 1 },
+            { id: 'b3', from: 'c', to: 'o', order: 1 },
+          ],
+          arrows: [],
+          groups: [],
+          textBoxes: [],
+        } as never);
+      });
+      await page.getByText('Settings', { exact: true }).click();
+      await page.getByLabel('Show Stereochemistry').click();
+      await expect
+        .poll(() =>
+          page.evaluate(async () => {
+            const { useStore } = await import(String('/src/store/index.ts'));
+            return useStore.getState().stereoLabels?.atoms.get('c') ?? null;
+          }),
+        )
+        .toBe('(R)');
+    });
     test('chain preview commits once and cancellation creates no history', async ({ page }) => {
       await openEditor(page);
       await tool(page, 'Chain');

@@ -108,6 +108,8 @@ export type AtomColorViewMode = 'enhanced-defaults' | 'chemdraw-fidelity';
 
 export interface DocumentViewSettings {
   atomColorViewMode: AtomColorViewMode;
+  /** View > Show Stereochemistry: CIP indicators beside stereocentres and stereo bonds. */
+  showStereochemistry?: boolean;
 }
 
 export type AtomColorPaletteId =

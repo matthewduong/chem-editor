@@ -279,6 +279,12 @@ export interface AppState {
 
   // ── Viewer ──────────────────────────────────────────────────────────────────
   viewerSmiles: string;
+  /** CIP labels computed for the document (View > Show Stereochemistry), for exports to draw. */
+  stereoLabels: {
+    source: ChemDrawDocument | null;
+    atoms: Map<string, string>;
+    bonds: Map<string, string>;
+  } | null;
   viewerGeometrySmiles: string;
   viewerGeometryMolblock: string;
   viewerMolblock: string;
@@ -449,6 +455,7 @@ export interface AppState {
 
   // ── Viewer actions ───────────────────────────────────────────────────────────
   setViewerSmiles: (smiles: string) => void;
+  setStereoLabels: (labels: AppState['stereoLabels']) => void;
   setViewerGeometrySmiles: (smiles: string) => void;
   setViewerGeometryMolblock: (molblock: string) => void;
   setViewerMolblock: (molblock: string) => void;
@@ -602,6 +609,7 @@ export const useStore = create<AppState>((set, get) => ({
 
   // ── Viewer defaults ──────────────────────────────────────────────────────────
   viewerSmiles: '',
+  stereoLabels: null,
   viewerGeometrySmiles: '',
   viewerGeometryMolblock: '',
   viewerMolblock: '',
@@ -939,6 +947,7 @@ export const useStore = create<AppState>((set, get) => ({
 
   // ── Viewer actions ───────────────────────────────────────────────────────────
   setViewerSmiles: (viewerSmiles) => set({ viewerSmiles }),
+  setStereoLabels: (stereoLabels) => set({ stereoLabels }),
   setViewerGeometrySmiles: (viewerGeometrySmiles) => set({ viewerGeometrySmiles }),
   setViewerGeometryMolblock: (viewerGeometryMolblock) => set({ viewerGeometryMolblock }),
   setViewerMolblock: (viewerMolblock) => set({ viewerMolblock }),

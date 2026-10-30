@@ -13,6 +13,8 @@ import { resolveBondColor } from '../../../lib/settings';
 import { drawLine, drawPolyline, setStroke } from '../drawPrimitives';
 import { distanceToSegment } from '../geometry';
 import type { ObjectModule } from '../types';
+import { drawObjectTags } from './objectTagHelpers';
+import { drawBondStereoIndicator, hasStereoTag } from './stereoIndicators';
 
 export const BOND_MODULE: ObjectModule = {
   type: 'bond',
@@ -62,6 +64,13 @@ export const BOND_MODULE: ObjectModule = {
       scene.isDarkMode,
     );
     const color = isSelected || isHovered ? '#2196F3' : baseColor;
+    drawObjectTags(ctx, scene, object.objectTags, {
+      fallbackAnchor: { x: (fromAtom.x + toAtom.x) / 2, y: (fromAtom.y + toAtom.y) / 2 },
+      fallbackColor: baseColor,
+    });
+    if (scene.documentViewSettings.showStereochemistry && !hasStereoTag(object.objectTags)) {
+      drawBondStereoIndicator(ctx, scene, object.id, baseColor);
+    }
     const lineWidth =
       bond.lineWidth ??
       (object.style?.lineWidth != null

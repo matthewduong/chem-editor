@@ -1605,7 +1605,9 @@ function chemDrawDocumentToCDXMLInternal(document: ChemDrawDocument): string {
         attrs += ` ${CHEM_EDITOR_RING_TEMPLATE_BOND_MEMBERSHIPS_ATTR}="${xmlEscape(ringTemplateBondMemberships)}"`;
       }
       attrs += emitRawAttributes(bond.preservation?.rawAttributes);
-      const rawChildren = emitRawChildren(bond.preservation?.rawChildrenXml, '        ');
+      const rawChildren =
+        emitRawChildren(bond.preservation?.rawChildrenXml, '        ') +
+        emitObjectTags(bond.objectTags, '        ', exportScaleFactor, getColorIndex, getFontId);
       xml += rawChildren
         ? `      <b ${attrs}>\n${rawChildren}      </b>\n`
         : `      <b ${attrs}/>\n`;
@@ -2923,7 +2925,8 @@ export function cdxmlToChemDrawDocument(xmlString: string): ChemDrawConversionRe
             'color',
             'Color',
           ],
-          preserveChild: () => true,
+          // Object tags (E/Z labels) are read below and written back from the model.
+          preserveChild: (bondChild) => bondChild.tagName !== 'objecttag',
           capability: bondPreservationCapability,
           reasons: bondPreservationReasons,
         });
@@ -2938,6 +2941,8 @@ export function cdxmlToChemDrawDocument(xmlString: string): ChemDrawConversionRe
           }
           bond.preservation = bondPreservation;
         }
+        const bondObjectTags = parseObjectTags(child);
+        if (bondObjectTags) bond.objectTags = bondObjectTags;
         if (secondaryDisplay) warnings.push(`Bond ${bondId} uses secondary display semantics.`);
         bondIds.push(bondId);
         objects.push(bond);

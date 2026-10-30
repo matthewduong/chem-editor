@@ -53,6 +53,8 @@ export interface DocumentSceneState {
   hoveredNativeObjectId: string | null;
   editingTextBoxId: string | null;
   rdkitInvalidAtomIds: Set<string>;
+  /** CIP labels by atom and bond id, drawn when the view shows stereochemistry. */
+  stereoLabels?: { atoms: Map<string, string>; bonds: Map<string, string> };
   /**
    * Whether to flag atoms whose bonding exceeds their valence.
    *

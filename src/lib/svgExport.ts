@@ -178,9 +178,12 @@ export function generateCanvasSVGWithContext(
     transparent?: boolean;
     textBoxes?: TextBox[];
     pageSetup?: PageSetup;
+    /** CIP labels to draw when the view shows stereochemistry. */
+    stereoLabels?: { atoms: Map<string, string>; bonds: Map<string, string> };
   },
 ): string {
   const {
+    stereoLabels,
     chemDrawDocument,
     documentStyleSettings,
     documentViewSettings,
@@ -204,7 +207,7 @@ export function generateCanvasSVGWithContext(
     documentStyleSettings,
     documentViewSettings,
     pageSetup,
-    interaction: { isDarkMode },
+    interaction: { isDarkMode, ...(stereoLabels ? { stereoLabels } : {}) },
   });
   return renderSceneToSvg(scene, transparent);
 }

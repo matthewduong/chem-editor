@@ -30,6 +30,7 @@ import { measureRunWidth } from '../../../lib/textRunPresentation';
 import { SHORTHAND_DATA } from '../../../lib/shorthand';
 import { adaptColor, drawCircle, drawRunText, setStroke } from '../drawPrimitives';
 import { drawObjectTags } from './objectTagHelpers';
+import { drawAtomStereoIndicator, hasStereoTag } from './stereoIndicators';
 import type { ObjectModule } from '../types';
 
 export const NODE_MODULE: ObjectModule = {
@@ -319,6 +320,9 @@ export const NODE_MODULE: ObjectModule = {
       fallbackAnchor: { x: atom.x, y: atom.y },
       fallbackColor: resolvedColor,
     });
+    if (scene.documentViewSettings.showStereochemistry && !hasStereoTag(object.objectTags)) {
+      drawAtomStereoIndicator(ctx, scene, atom.id, resolvedColor);
+    }
   },
   hitTest(object, point, context, options) {
     if (object.type !== 'node') return false;

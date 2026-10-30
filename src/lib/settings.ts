@@ -544,6 +544,7 @@ export function normalizeDocumentViewSettings(
       value?.atomColorViewMode === 'enhanced-defaults'
         ? value.atomColorViewMode
         : DEFAULT_DOCUMENT_VIEW_SETTINGS.atomColorViewMode,
+    ...(value?.showStereochemistry === true ? { showStereochemistry: true } : {}),
   };
 }
 

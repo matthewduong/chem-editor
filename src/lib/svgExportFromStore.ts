@@ -16,7 +16,8 @@ export function generateCanvasSVG(
   textBoxes: TextBox[] = [],
   pageSetup?: PageSetup,
 ): string {
-  const { documentStyleSettings, documentViewSettings, chemDrawDocument } = useStore.getState();
+  const { documentStyleSettings, documentViewSettings, chemDrawDocument, stereoLabels } =
+    useStore.getState();
   return generateCanvasSVGWithContext(atoms, bonds, arrows, {
     chemDrawDocument,
     documentStyleSettings,
@@ -25,5 +26,6 @@ export function generateCanvasSVG(
     transparent,
     textBoxes,
     pageSetup,
+    ...(stereoLabels && stereoLabels.source === chemDrawDocument ? { stereoLabels } : {}),
   });
 }

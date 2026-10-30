@@ -71,7 +71,7 @@ Done in Phase II (2026-10-30), with ChemDraw's keys (preferences version 11).
 
 ## Stereochemistry and numbering
 
-- [ ] **CIP R/S and E/Z labels on the canvas** — not computed; imported tags are drawn · 12:
+- [x] **CIP R/S and E/Z labels on the canvas** — not computed; imported tags are drawn · 12:
       Stereochemistry, Stereochemistry Indicators
 - [ ] **Enhanced stereo flags (abs/AND/OR, chiral flag)** — absent in CDXML and V3000 · 17:
       Stereochemical Flags
