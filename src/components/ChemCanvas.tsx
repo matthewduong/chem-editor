@@ -31,6 +31,7 @@ import { Circle, Group, Layer, Line, Rect, Stage, Star } from 'react-konva';
 import { createProjectionEditCommand } from '../editor/commands/projectionEdit';
 import { contractSelection, findNicknameForSelection } from '../lib/nicknames';
 import { arrowConnectionPoint } from '../lib/arrowGesture';
+import { genericNicknameBase } from '../lib/genericLabels';
 import { fragmentAcross, fragmentationCaptions } from '../lib/massFragmentation';
 import { computeStereoLabels } from '../lib/stereoLabels';
 import { SHORTHAND_DATA } from '../lib/shorthand';
@@ -1109,7 +1110,14 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
               : '';
             const smilesAvailable = Boolean(result.smiles) && !hasCustomLabels;
             const chemistryAvailable = !hasCustomLabels;
-            if (hasCustomLabels) {
+            // A generic label (R1, X, Q…) is a query atom, not a mistake: the structure has no
+            // single chemistry, but it is not flagged.
+            const hasUnknownLabels = vA.some(
+              (atom) =>
+                hasCustomChemistryLabel(atom, resolveAliasForAtom) &&
+                genericNicknameBase(getAtomAlias(atom)) === null,
+            );
+            if (hasUnknownLabels) {
               vA.forEach((atom) => invalidAtomIds.add(atom.id));
             }
             return {

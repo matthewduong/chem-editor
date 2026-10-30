@@ -144,6 +144,8 @@ export interface ChemDrawNode {
   type: 'node';
   position: ChemDrawPoint;
   sourceNodeType?: string;
+  /** CDXML `GenericNickname`: the generic a label stands for (R under an "R1" label). */
+  genericNickname?: string;
   element?: string;
   charge?: number;
   lonePairCount?: number;

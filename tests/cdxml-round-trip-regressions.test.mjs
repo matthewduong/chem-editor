@@ -444,3 +444,37 @@ test('a bond keeps its E/Z object tag through a round trip, and draws it', async
   assert.equal(twice, once);
   assert.ok(generateDocumentSVG(document).includes('(E)'));
 });
+
+test('a ChemDraw generic keeps its GenericNickname under a numbered label', () => {
+  // As ChemDraw 23.1 wrote an "R1" label.
+  const source = `<?xml version="1.0"?><CDXML><page id="1"><fragment id="2"><n id="3" p="50 23"/><n id="58" p="70 23" NodeType="GenericNickname" NumHydrogens="0" GenericNickname="R"><t p="66.39 26.58" LabelJustification="Left" LabelAlignment="Left"><s font="3" size="10" color="0" face="96">R1</s></t></n><b id="4" B="3" E="58"/></fragment></page></CDXML>`;
+  const once = chemDrawDocumentToCDXML(cdxmlToChemDrawDocument(source).document);
+  assert.match(once, /GenericNickname="R"/);
+  assert.ok(!/GenericNickname="R1"/.test(once));
+  assert.equal(chemDrawDocumentToCDXML(cdxmlToChemDrawDocument(once).document), once);
+});
+
+test('a label typed as a generic is written as ChemDraw writes one', async () => {
+  const { canvasStateToChemDrawDocument } =
+    await import('../.unit-test-dist/src/lib/chemdrawModel.js');
+  const { setAliasAtomValue } = await import('../.unit-test-dist/src/lib/atomIdentity.js');
+  const exported = (label) => {
+    const atoms = [
+      { id: 'a', x: 0, y: 0, kind: 'element', element: 'C' },
+      setAliasAtomValue({ id: 'b', x: 30, y: 0, kind: 'element', element: 'C' }, label),
+    ];
+    const { document } = canvasStateToChemDrawDocument({
+      atoms,
+      bonds: [{ id: 'ab', from: 'a', to: 'b', order: 1 }],
+      arrows: [],
+      groups: [],
+      textBoxes: [],
+    });
+    return chemDrawDocumentToCDXML(document);
+  };
+  assert.match(exported('R1'), /NodeType="GenericNickname" NumHydrogens="0" GenericNickname="R"/);
+  assert.match(exported('X'), /GenericNickname="X"/);
+  assert.ok(!/GenericNickname/.test(exported('OMe')));
+  const again = chemDrawDocumentToCDXML(cdxmlToChemDrawDocument(exported('R1')).document);
+  assert.equal(again, exported('R1'));
+});

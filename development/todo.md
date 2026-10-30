@@ -88,7 +88,7 @@ Done in Phase II (2026-10-30), with ChemDraw's keys (preferences version 11).
 
 ## Query structures
 
-- [ ] **Typed generic labels as queries** (R, R1, X, A, Q, M, Ar, Het) — imported
+- [x] **Typed generic labels as queries** (R, R1, X, A, Q, M, Ar, Het) — imported
       `GenericNickname` renders; typed ones do not become queries (`gaps.md`) · 15: Generic Labels
 - [ ] **Atom and bond query property editing** — preserved from CDXML, edits blocked
       (`blocksSemanticEdit`) · 15: Atom Properties / Bond Properties

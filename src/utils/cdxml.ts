@@ -1,3 +1,4 @@
+import { genericNicknameBase } from '../lib/genericLabels';
 import {
   elementChildren,
   parentElement,
@@ -1492,6 +1493,9 @@ function chemDrawDocumentToCDXMLInternal(document: ChemDrawDocument): string {
       const y = formatCdxmlNumber(node.position.y * exportScaleFactor);
 
       let attrs = `id="${cdxId}" p="${x} ${y}"`;
+      // A label typed as a generic (R1, X, Q…) that no file has typed otherwise.
+      const typedGeneric =
+        !node.sourceNodeType && !node.query && genericNicknameBase(node.alias) !== null;
 
       if (
         (node.query?.type === 'list' || node.query?.type === 'not-list') &&
@@ -1517,8 +1521,10 @@ function chemDrawDocumentToCDXMLInternal(document: ChemDrawDocument): string {
         attrs += ` NodeType="AnyElement"`;
       } else if (node.sourceNodeType === 'Fragment' || node.sourceNodeType === 'Nickname') {
         attrs += ` NodeType="${node.sourceNodeType}"`;
-      } else if (node.sourceNodeType === 'GenericNickname') {
+      } else if (node.sourceNodeType === 'GenericNickname' || typedGeneric) {
         attrs += ` NodeType="GenericNickname"`;
+        // As ChemDraw 23 writes a generic it was given as a label.
+        if (typedGeneric) attrs += ` NumHydrogens="0"`;
       }
 
       if ((node.element ?? 'C') !== 'C') {
@@ -1609,8 +1615,14 @@ function chemDrawDocumentToCDXMLInternal(document: ChemDrawDocument): string {
         }
       }
       if (nodeLabel) {
-        if (node.sourceNodeType === 'GenericNickname') {
-          attrs += ` GenericNickname="${xmlEscape(node.alias ?? nodeLabel)}"`;
+        if (node.sourceNodeType === 'GenericNickname' || typedGeneric) {
+          // The generic itself, R for an "R1" label, unless the file said otherwise.
+          const generic =
+            node.genericNickname ??
+            genericNicknameBase(node.alias ?? nodeLabel) ??
+            node.alias ??
+            nodeLabel;
+          attrs += ` GenericNickname="${xmlEscape(generic)}"`;
         }
         let content = '';
         content += emitT(nodeLabel, parseFloat(x), parseFloat(y), '        ', {
@@ -2803,7 +2815,9 @@ export function cdxmlToChemDrawDocument(xmlString: string): ChemDrawConversionRe
           !aliasResolution &&
           (nodeType === 'GenericNickname' || nodeType === 'Nickname' || nodeType === 'Fragment') &&
           importedAlias &&
-          !SHORTHAND_DATA[importedAlias]
+          !SHORTHAND_DATA[importedAlias] &&
+          // A generic (R1, X…) is a query atom, not an unknown nickname.
+          genericNicknameBase(importedAlias) === null
         ) {
           aliasResolution = {
             status: 'coordination_only',
@@ -2831,6 +2845,9 @@ export function cdxmlToChemDrawDocument(xmlString: string): ChemDrawConversionRe
           ...(showAtomNumber != null ? { showAtomNumber } : {}),
           ...(bondOrdering?.length ? { bondOrdering } : {}),
           ...(sourceNodeType ? { sourceNodeType } : {}),
+          ...(nodeType === 'GenericNickname' && child.getAttribute('GenericNickname')
+            ? { genericNickname: child.getAttribute('GenericNickname')! }
+            : {}),
           ...(element ? { element } : {}),
           ...(importedAlias ? { alias: importedAlias } : {}),
           ...(charge != null ? { charge } : {}),
