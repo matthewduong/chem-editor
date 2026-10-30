@@ -335,6 +335,7 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
   );
   // View > Show Stereochemistry: CIP labels for the document they were computed from.
   const stereoLabelState = useStore((s) => s.stereoLabels);
+  const showReactionRoles = useStore((s) => s.showReactionRoles);
   const stereoLabels = useMemo(
     () => (stereoLabelState?.source === chemDrawDocument ? stereoLabelState : undefined),
     [chemDrawDocument, stereoLabelState],
@@ -714,6 +715,7 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
       editingTextBoxId,
       rdkitInvalidAtomIds,
       stereoLabels,
+      showReactionRoles,
       showValenceErrors: true,
       showQueryMarkers: true,
     }),
@@ -732,6 +734,7 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
       pageSetup,
       rdkitInvalidAtomIds,
       stereoLabels,
+      showReactionRoles,
       selectedArrowIds,
       selectedAtomIds,
       selectedBondIds,
@@ -771,6 +774,7 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
       editingTextBoxId,
       rdkitInvalidAtomIds,
       stereoLabels,
+      showReactionRoles,
       showValenceErrors: true,
       showQueryMarkers: true,
     }),
@@ -789,6 +793,7 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
       pageSetup,
       rdkitInvalidAtomIds,
       stereoLabels,
+      showReactionRoles,
       selectedArrowIds,
       selectedAtomIds,
       selectedBondIds,

@@ -62,7 +62,7 @@ Done in Phase II (2026-10-30), with ChemDraw's keys (preferences version 11).
 
 - [ ] **Clean Up Reaction** — Clean Up ignores arrows and reaction layout · 10: Drawing
       Reactions, Clean Up Reactions
-- [ ] **Reaction roles UI** — roles are guessed on import only and cannot be viewed or edited ·
+- [x] **Reaction roles UI** — roles are guessed on import only and cannot be viewed or edited ·
       10: The Reaction Interpreter
 - [ ] **Arrows attached to objects** — arrows are free endpoints · 6: Arrows, Connecting Arrows
 - [ ] **Mass fragmentation tool** — absent · 10: Mass Fragmentation

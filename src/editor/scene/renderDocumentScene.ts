@@ -1,4 +1,5 @@
 import { getVisibleObjects } from '../document';
+import { drawReactionRoleOverlay } from './reactionRoleOverlay';
 import { OBJECT_MODULES } from './objectModules';
 import { createViewportBounds, drawPageTiles } from './page';
 import type { DocumentSceneState, RenderSceneOptions } from './types';
@@ -32,6 +33,7 @@ export function renderDocumentScene(
     if (scene.hiddenObjectIds.has(object.id)) continue;
     OBJECT_MODULES[object.type].draw(object, { ctx, scene });
   }
+  if (scene.showReactionRoles) drawReactionRoleOverlay(ctx, scene);
 
   ctx.restore();
 }

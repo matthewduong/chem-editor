@@ -75,6 +75,7 @@ import {
   createFlipSelectionCommand,
   createToggleAtomNumbersCommand,
   createEnhancedStereoCommand,
+  createReactionRoleCommand,
   createJoinSelectionCommand,
 } from './editor/commands';
 import {
@@ -547,6 +548,7 @@ function App() {
   const showGrid = useStore((s) => s.showGrid);
   const showHydrogens = useStore((s) => s.showHydrogens);
   const appPreferences = useStore((s) => s.appPreferences);
+  const showReactionRoles = useStore((s) => s.showReactionRoles);
   // The user's nicknames are labels like the built-in ones everywhere a label is read.
   useEffect(() => {
     registerUserNicknames(
@@ -3910,6 +3912,101 @@ function App() {
                 </MenuItem>
                 <MenuItem
                   onClick={() => {
+                    const state = useStore.getState();
+                    state.dispatchEditorCommand(
+                      createReactionRoleCommand(
+                        'reactants',
+                        new Set([
+                          ...state.selectedObjectIds,
+                          ...state.selectedAtomIds,
+                          ...state.selectedTextBoxIds,
+                        ]),
+                      ),
+                    );
+                    state.setShowReactionRoles(true);
+                    setIsEditDropdownOpen(false);
+                  }}
+                >
+                  Reaction: Set as Reactant
+                </MenuItem>
+                <MenuItem
+                  onClick={() => {
+                    const state = useStore.getState();
+                    state.dispatchEditorCommand(
+                      createReactionRoleCommand(
+                        'products',
+                        new Set([
+                          ...state.selectedObjectIds,
+                          ...state.selectedAtomIds,
+                          ...state.selectedTextBoxIds,
+                        ]),
+                      ),
+                    );
+                    state.setShowReactionRoles(true);
+                    setIsEditDropdownOpen(false);
+                  }}
+                >
+                  Reaction: Set as Product
+                </MenuItem>
+                <MenuItem
+                  onClick={() => {
+                    const state = useStore.getState();
+                    state.dispatchEditorCommand(
+                      createReactionRoleCommand(
+                        'aboveArrow',
+                        new Set([
+                          ...state.selectedObjectIds,
+                          ...state.selectedAtomIds,
+                          ...state.selectedTextBoxIds,
+                        ]),
+                      ),
+                    );
+                    state.setShowReactionRoles(true);
+                    setIsEditDropdownOpen(false);
+                  }}
+                >
+                  Reaction: Set Above Arrow
+                </MenuItem>
+                <MenuItem
+                  onClick={() => {
+                    const state = useStore.getState();
+                    state.dispatchEditorCommand(
+                      createReactionRoleCommand(
+                        'belowArrow',
+                        new Set([
+                          ...state.selectedObjectIds,
+                          ...state.selectedAtomIds,
+                          ...state.selectedTextBoxIds,
+                        ]),
+                      ),
+                    );
+                    state.setShowReactionRoles(true);
+                    setIsEditDropdownOpen(false);
+                  }}
+                >
+                  Reaction: Set Below Arrow
+                </MenuItem>
+                <MenuItem
+                  onClick={() => {
+                    const state = useStore.getState();
+                    state.dispatchEditorCommand(
+                      createReactionRoleCommand(
+                        null,
+                        new Set([
+                          ...state.selectedObjectIds,
+                          ...state.selectedAtomIds,
+                          ...state.selectedTextBoxIds,
+                        ]),
+                      ),
+                    );
+                    state.setShowReactionRoles(true);
+                    setIsEditDropdownOpen(false);
+                  }}
+                >
+                  Reaction: Not in Reaction
+                </MenuItem>
+                <MenuItem
+                  onClick={() => {
                     setNicknameDraft('');
                     setIsEditDropdownOpen(false);
                   }}
@@ -4242,6 +4339,11 @@ function App() {
                           : 'enhanced-defaults',
                     })
                   }
+                />
+                <MenuCheckboxItem
+                  label="Show Reaction Interpretation"
+                  checked={showReactionRoles}
+                  onChange={() => useStore.getState().setShowReactionRoles(!showReactionRoles)}
                 />
                 <MenuCheckboxItem
                   label="Show Stereochemistry"

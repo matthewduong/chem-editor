@@ -53,6 +53,8 @@ export interface DocumentSceneState {
   hoveredNativeObjectId: string | null;
   editingTextBoxId: string | null;
   rdkitInvalidAtomIds: Set<string>;
+  /** Outline each reaction step's objects by role (an editing affordance). */
+  showReactionRoles?: boolean;
   /** CIP labels by atom and bond id, drawn when the view shows stereochemistry. */
   stereoLabels?: { atoms: Map<string, string>; bonds: Map<string, string> };
   /**

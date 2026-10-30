@@ -456,6 +456,9 @@ export interface AppState {
   // ── Viewer actions ───────────────────────────────────────────────────────────
   setViewerSmiles: (smiles: string) => void;
   setStereoLabels: (labels: AppState['stereoLabels']) => void;
+  /** Structure > Show Reaction Interpretation. */
+  showReactionRoles: boolean;
+  setShowReactionRoles: (show: boolean) => void;
   setViewerGeometrySmiles: (smiles: string) => void;
   setViewerGeometryMolblock: (molblock: string) => void;
   setViewerMolblock: (molblock: string) => void;
@@ -610,6 +613,7 @@ export const useStore = create<AppState>((set, get) => ({
   // ── Viewer defaults ──────────────────────────────────────────────────────────
   viewerSmiles: '',
   stereoLabels: null,
+  showReactionRoles: false,
   viewerGeometrySmiles: '',
   viewerGeometryMolblock: '',
   viewerMolblock: '',
@@ -948,6 +952,7 @@ export const useStore = create<AppState>((set, get) => ({
   // ── Viewer actions ───────────────────────────────────────────────────────────
   setViewerSmiles: (viewerSmiles) => set({ viewerSmiles }),
   setStereoLabels: (stereoLabels) => set({ stereoLabels }),
+  setShowReactionRoles: (showReactionRoles) => set({ showReactionRoles }),
   setViewerGeometrySmiles: (viewerGeometrySmiles) => set({ viewerGeometrySmiles }),
   setViewerGeometryMolblock: (viewerGeometryMolblock) => set({ viewerGeometryMolblock }),
   setViewerMolblock: (viewerMolblock) => set({ viewerMolblock }),

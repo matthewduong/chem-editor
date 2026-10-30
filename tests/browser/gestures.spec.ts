@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { test, expect } from '@playwright/test';
 import {
   openEditor,
@@ -707,6 +708,27 @@ for (const scale of [1, 2]) {
       expect(after).toBeLessThan(before * 0.95);
       await page.keyboard.press('ControlOrMeta+z');
       expect(Math.abs((await width()) - before)).toBeLessThan(1e-6);
+    });
+    test('Edit > Reaction sets a role in the step, as one undo step', async ({ page }) => {
+      await openEditor(page);
+      const source = readFileSync('tests/fixtures/cdxml/reaction-step.cdxml', 'utf8');
+      await page.evaluate(async (xml) => {
+        const { useStore } = await import(String('/src/store/index.ts'));
+        const api = await import(String('/src/lib/chemdrawDocumentCommands.ts'));
+        useStore.getState().replaceDocument(api.loadChemDrawDocumentForCanvas(xml).document);
+        useStore.getState().setSelectedTextBoxIds(new Set(['21']));
+      }, source);
+      const step = () =>
+        page.evaluate(async () => {
+          const { useStore } = await import(String('/src/store/index.ts'));
+          return useStore.getState().chemDrawDocument?.pages[0]?.schemes?.[0]?.steps[0] ?? null;
+        });
+      await page.getByText('Edit', { exact: true }).click();
+      await page.getByText('Reaction: Set Below Arrow', { exact: true }).click();
+      expect((await step())?.belowArrow).toEqual(['21']);
+      expect((await step())?.aboveArrow).toEqual([]);
+      await page.keyboard.press('ControlOrMeta+z');
+      expect((await step())?.aboveArrow).toEqual(['21']);
     });
     test('chain preview commits once and cancellation creates no history', async ({ page }) => {
       await openEditor(page);

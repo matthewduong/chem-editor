@@ -25,6 +25,7 @@ import {
 } from '../../lib/chemdrawModel';
 import { buildDocumentIndex, getActivePage } from '../document';
 import { toggleAtomNumbers } from '../../lib/atomNumbers';
+import { assignReactionRole, type StepRole } from '../../lib/reactionRoles';
 import { setEnhancedStereo, type EnhancedStereoType } from '../../lib/enhancedStereo';
 import { perspectiveSelectedObjects } from '../../lib/structurePerspective';
 import { bondJoinPairs, joinNodes, overlappingNodePairs } from '../../lib/joinStructures';
@@ -385,6 +386,49 @@ export function createPerspectiveSelectionCommand(
       return {
         document: next,
         inversePatch: createReplaceDocumentCommand(document, 'undo:structure-perspective'),
+        changedObjectIds: selectionIds,
+      };
+    },
+  };
+}
+
+/** Reaction role of the selection in its step; see `assignReactionRole`. */
+export function createReactionRoleCommand(
+  role: StepRole | null,
+  objectIds?: Iterable<string>,
+): EditorCommand {
+  return {
+    type: 'reaction-role',
+    description: `reaction-role-${role ?? 'none'}`,
+    apply(document, context) {
+      const selectionIds = resolveSelectionIds(context, objectIds);
+      // New scheme and step ids: numeric, past every id in the document, as CDXML's are.
+      let next = 1;
+      for (const page of document.pages) {
+        for (const id of [
+          ...page.objects.map((object) => object.id),
+          ...(page.schemes ?? []).flatMap((scheme) => [
+            scheme.id,
+            ...scheme.steps.map((step) => step.id),
+          ]),
+        ]) {
+          const value = Number(id);
+          if (Number.isInteger(value) && value >= next) next = value + 1;
+        }
+      }
+      const result = assignReactionRole(
+        document,
+        selectionIds,
+        role,
+        context.documentStyleSettings,
+        () => String(next++),
+      );
+      if (result === document) {
+        return { document, inversePatch: null, changedObjectIds: new Set() };
+      }
+      return {
+        document: result,
+        inversePatch: createReplaceDocumentCommand(document, 'undo:reaction-role'),
         changedObjectIds: selectionIds,
       };
     },

@@ -47,6 +47,7 @@ export interface SceneInteractionState {
   editingTextBoxId: string | null;
   rdkitInvalidAtomIds: Set<string>;
   stereoLabels?: { atoms: Map<string, string>; bonds: Map<string, string> };
+  showReactionRoles?: boolean;
   showValenceErrors: boolean;
   showQueryMarkers: boolean;
 }
@@ -81,6 +82,7 @@ function defaultInteractionState(): SceneInteractionState {
     editingTextBoxId: null,
     rdkitInvalidAtomIds: new Set(),
     stereoLabels: undefined,
+    showReactionRoles: false,
     showValenceErrors: false,
     showQueryMarkers: false,
   };

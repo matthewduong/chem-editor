@@ -11,7 +11,7 @@ export const GOLDEN_DIR = path.join(rootDir, 'tests', 'fixtures', 'goldens', 'op
 const DIST_DIR = path.join(rootDir, '.unit-test-dist', 'src');
 
 /** Fixed viewport so goldens do not depend on window size. */
-const RENDER_OPTIONS = {
+export const RENDER_OPTIONS = {
   width: 400,
   height: 400,
   stageScale: 1,
@@ -73,7 +73,7 @@ function getRenderer() {
 }
 
 /** Builds the scene for a fixture, applying its optional options sidecar. */
-async function buildFixtureScene(fixtureName) {
+export async function buildFixtureScene(fixtureName) {
   const {
     buildDocumentSceneState,
     cdxmlToChemDrawDocument,

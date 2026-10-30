@@ -81,3 +81,70 @@ test('an ordinary edit keeps the scheme', async () => {
   const merged = mergeCanvasStateIntoChemDrawDocument(document, moved).document;
   assert.deepEqual(merged.pages[0].schemes, document.pages[0].schemes);
 });
+
+test('roles are set from a selection into the nearest step, or a new one around the arrow', async () => {
+  const { assignReactionRole } = await import('../.unit-test-dist/src/lib/reactionRoles.js');
+  const { DEFAULT_DOCUMENT_STYLE_SETTINGS } =
+    await import('../.unit-test-dist/src/lib/settings.js');
+  let n = 100;
+  const newId = () => String(n++);
+  const { document } = cdxmlToChemDrawDocument(source);
+  const below = assignReactionRole(
+    document,
+    new Set(['21']),
+    'belowArrow',
+    DEFAULT_DOCUMENT_STYLE_SETTINGS,
+    newId,
+  );
+  const step = below.pages[0].schemes[0].steps[0];
+  assert.deepEqual(step.aboveArrow, []);
+  assert.deepEqual(step.belowArrow, ['21']);
+  // Selecting an atom of the product makes the whole structure the reactant.
+  const swapped = assignReactionRole(
+    below,
+    new Set(['31']),
+    'reactants',
+    DEFAULT_DOCUMENT_STYLE_SETTINGS,
+    newId,
+  );
+  assert.deepEqual(swapped.pages[0].schemes[0].steps[0].reactants, ['10', '30']);
+  assert.deepEqual(swapped.pages[0].schemes[0].steps[0].products, []);
+  assert.equal(swapped.pages[0].objects.find((o) => o.id === '30').role, 'reactant');
+  const removed = assignReactionRole(
+    swapped,
+    new Set(['30']),
+    null,
+    DEFAULT_DOCUMENT_STYLE_SETTINGS,
+    newId,
+  );
+  assert.deepEqual(removed.pages[0].schemes[0].steps[0].reactants, ['10']);
+
+  const bare = { ...document, pages: [{ ...document.pages[0], schemes: undefined }] };
+  const made = assignReactionRole(
+    bare,
+    new Set(['30']),
+    'products',
+    DEFAULT_DOCUMENT_STYLE_SETTINGS,
+    newId,
+  );
+  assert.deepEqual(made.pages[0].schemes[0].steps[0].arrows, ['20']);
+  assert.deepEqual(made.pages[0].schemes[0].steps[0].products, ['30']);
+});
+
+test('Show Reaction Interpretation outlines each role on screen only', async () => {
+  const { buildFixtureScene, RENDER_OPTIONS } = await import('../scripts/lib/scene-goldens.mjs');
+  const { createRecordingContext } = await import('../scripts/lib/recording-canvas.mjs');
+  const { renderDocumentScene } =
+    await import('../.unit-test-dist/src/editor/scene/renderDocumentScene.js');
+  const labels = async (showReactionRoles) => {
+    const scene = { ...(await buildFixtureScene('reaction-step.cdxml')), showReactionRoles };
+    const ctx = createRecordingContext();
+    renderDocumentScene(ctx, scene, RENDER_OPTIONS);
+    return ctx.__ops
+      .filter((op) => op.name === 'fillText')
+      .map((op) => op.args[0])
+      .filter((text) => ['Reactant', 'Product', 'Above arrow', 'Arrow'].includes(text));
+  };
+  assert.deepEqual((await labels(true)).sort(), ['Above arrow', 'Arrow', 'Product', 'Reactant']);
+  assert.deepEqual(await labels(false), []);
+});
