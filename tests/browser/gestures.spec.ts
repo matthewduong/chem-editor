@@ -483,6 +483,25 @@ for (const scale of [1, 2]) {
       ) as unknown as { angularSize: number };
       expect(Math.abs(arc.angularSize)).toBeLessThan(150);
     });
+    test('the atom label panel sets an isotope', async ({ page }) => {
+      await openEditor(page);
+      await tool(page, 'Chain');
+      const a = await point(page, 400, 300);
+      await page.mouse.click(a.x, a.y);
+      await page.getByPlaceholder('Carbons').fill('2');
+      await page.getByPlaceholder('Carbons').press('Enter');
+      const atoms = (await observe(page)).atoms;
+      await tool(page, 'Select');
+      const at = await page.evaluate(async (id) => {
+        const { useStore } = await import(String('/src/store/index.ts'));
+        useStore.getState().setSelectedAtomIds(new Set([id]));
+        return id;
+      }, atoms[0]!.id);
+      await page.getByLabel('Isotope mass number').fill('13');
+      await page.getByLabel('Isotope mass number').press('Enter');
+      const atom = (await observe(page)).atoms.find((x) => x.id === at)!;
+      expect(atom.isotope).toBe(13);
+    });
     test('chain preview commits once and cancellation creates no history', async ({ page }) => {
       await openEditor(page);
       await tool(page, 'Chain');

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Isotope labels: a 13C in a chain (labelled though it is carbon) and a deuterated oxygen. -->
+<CDXML BondLength="14.4" LineWidth="0.6">
+  <page id="100">
+    <fragment id="1">
+      <n id="2" p="30 40"/>
+      <n id="3" p="42.47 32.8" Isotope="13"/>
+      <n id="4" p="54.94 40" Element="8" Isotope="18" NumHydrogens="1"/>
+      <b id="5" B="2" E="3"/>
+      <b id="6" B="3" E="4"/>
+    </fragment>
+  </page>
+</CDXML>

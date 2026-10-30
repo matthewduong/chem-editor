@@ -204,7 +204,8 @@ export function isAtomLabelVisible(atom: Atom, connectedBondCount: number): bool
     getAtomLeadElement(atom) !== 'C' ||
     connectedBondCount === 0 ||
     isAliasAtom(atom) ||
-    (atom.charge ?? 0) !== 0
+    (atom.charge ?? 0) !== 0 ||
+    atom.isotope != null
   );
 }
 
@@ -1076,7 +1077,40 @@ function getAtomLabelMetrics(
       bonds,
     }) ??
     getAnchorLetterLabelMetrics(atom, atoms, bonds, labelText, fontSize, documentStyleSettings);
-  return withChargeAdornment(metrics, atom, labelText, fontSize, documentStyleSettings);
+  const charged = withChargeAdornment(metrics, atom, labelText, fontSize, documentStyleSettings);
+  return withIsotopeAdornment(charged, atom, labelText, fontSize, documentStyleSettings);
+}
+
+/**
+ * Where an isotope's mass number is drawn: raised by the superscript rule, at 0.75 scale, just
+ * before the lead element. A bond arriving from that side stops at it instead of running through
+ * the digits. (A label that also carries a charge keeps the charge's box.)
+ */
+function withIsotopeAdornment(
+  metrics: LabelClipMetrics,
+  atom: Atom,
+  labelText: string,
+  fontSize: number,
+  documentStyleSettings?: DocumentStyleSettings | null,
+): LabelClipMetrics {
+  if (!atom.isotope || metrics.adornment || metrics.clipMode !== 'circle') return metrics;
+  const mass = String(atom.isotope);
+  if (!labelText.startsWith(`${mass}${getAtomLeadElement(atom)}`)) return metrics;
+  const scale = 0.75;
+  const width = measureLabelSegmentWidth(mass, fontSize * scale, documentStyleSettings);
+  const capHeight = getAtomLabelCapHeight(fontSize);
+  const margin = getResolvedLabelMarginWidth(documentStyleSettings);
+  const baseline = capHeight / 2 - fontSize * 0.53;
+  const maxX = -(metrics.halfWidth - 1);
+  return {
+    ...metrics,
+    adornment: {
+      minX: maxX - width - margin,
+      maxX,
+      minY: baseline - capHeight * scale - margin,
+      maxY: baseline + margin,
+    },
+  };
 }
 
 /**

@@ -227,6 +227,12 @@ function reorderBondStack(bonds: Bond[], bondId: string, direction: 'front' | 'b
 }
 
 const LEGACY_DEFAULT_VISUAL_BOND_LENGTH = 45;
+/** A typed mass number: a positive integer, or null to clear the isotope. */
+function parseIsotopeInput(value: string): number | null {
+  const mass = Number.parseInt(value.trim(), 10);
+  return Number.isInteger(mass) && mass > 0 && mass < 400 ? mass : null;
+}
+
 const DEFAULT_STAGE_SCALE = LEGACY_DEFAULT_VISUAL_BOND_LENGTH / DEFAULT_CANVAS_BOND_LENGTH;
 
 export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, ref) => {
@@ -541,6 +547,8 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
     orientation: AtomLabelOrientation;
     resolution: ReturnType<typeof resolveAliasChemistry> | null;
     selectedCandidateId?: string;
+    /** Mass number as typed; empty for the natural element. */
+    isotope: string;
     screenX: number;
     screenY: number;
   } | null>(null);
@@ -1806,6 +1814,7 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
       orientation: atom.labelOrientation ?? node?.labelOrientation ?? 'auto',
       resolution,
       selectedCandidateId: atom.aliasResolution?.selectedCandidateId,
+      isotope: atom.isotope != null ? String(atom.isotope) : '',
       screenX,
       screenY,
       ...(prev?.id === atom.id
@@ -1819,6 +1828,7 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
             orientation: prev.orientation,
             resolution: prev.resolution,
             selectedCandidateId: prev.selectedCandidateId,
+            isotope: prev.isotope,
           }
         : {}),
     }));
@@ -1958,6 +1968,7 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
         color: nextColor,
         labelOrientation: nextOrientation,
         aliasResolution: nextAliasResolution,
+        isotope: parseIsotopeInput(editingAtomLabel.isotope),
       });
       commitNativeDocument(nextDocument, 'edit-node-label-style');
       setEditingAtomLabel(null);

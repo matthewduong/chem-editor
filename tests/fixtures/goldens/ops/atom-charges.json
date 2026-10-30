@@ -420,6 +420,57 @@
     "args": []
   },
   {
+    "op": "set",
+    "prop": "fillStyle",
+    "value": "#000000"
+  },
+  {
+    "op": "call",
+    "name": "fillText",
+    "args": [
+      "13",
+      2.4469,
+      52.462
+    ]
+  },
+  {
+    "op": "set",
+    "prop": "font",
+    "value": "normal 10px 'Liberation Sans', sans-serif"
+  },
+  {
+    "op": "call",
+    "name": "fillText",
+    "args": [
+      "C",
+      10.7892,
+      55.4988
+    ]
+  },
+  {
+    "op": "call",
+    "name": "fillText",
+    "args": [
+      "H",
+      18.0108,
+      55.4988
+    ]
+  },
+  {
+    "op": "set",
+    "prop": "font",
+    "value": "normal 7.5px 'Liberation Sans', sans-serif"
+  },
+  {
+    "op": "call",
+    "name": "fillText",
+    "args": [
+      "3",
+      25.2325,
+      59.862
+    ]
+  },
+  {
     "op": "call",
     "name": "save",
     "args": []
@@ -473,7 +524,7 @@
     "op": "call",
     "name": "lineTo",
     "args": [
-      14.4,
+      0.8469,
       60
     ]
   },

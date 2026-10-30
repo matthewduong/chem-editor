@@ -1148,6 +1148,8 @@ export function applyNodeLabelStyleEdit(
     color?: string;
     labelOrientation?: AtomLabelOrientation;
     aliasResolution?: ChemDrawNode['aliasResolution'];
+    /** A mass number, or null to clear it; undefined leaves the isotope alone. */
+    isotope?: number | null;
   },
 ): ChemDrawDocument {
   const objects = clonePageObjects(document);
@@ -1161,6 +1163,8 @@ export function applyNodeLabelStyleEdit(
     if (object.type !== 'node' || object.id !== nodeId) return object;
 
     const next: ChemDrawNode = { ...object };
+    if (edits.isotope === null) delete next.isotope;
+    else if (edits.isotope !== undefined) next.isotope = edits.isotope;
     const trimmed = edits.value?.trim();
     const nextValue =
       trimmed && trimmed.length > 0

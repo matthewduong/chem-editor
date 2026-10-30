@@ -47,6 +47,7 @@ interface CanvasTextEditorsProps {
     orientation: AtomLabelOrientation;
     resolution: ReturnType<typeof resolveAliasChemistry> | null;
     selectedCandidateId?: string;
+    isotope: string;
     screenX: number;
     screenY: number;
   } | null;
@@ -68,6 +69,7 @@ interface CanvasTextEditorsProps {
       orientation: AtomLabelOrientation;
       resolution: ReturnType<typeof resolveAliasChemistry> | null;
       selectedCandidateId?: string;
+      isotope: string;
       screenX: number;
       screenY: number;
     } | null>
@@ -436,6 +438,39 @@ export function CanvasTextEditors({
                 boxSizing: 'border-box',
               }}
             />
+            <label
+              style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}
+              title="Mass number, drawn as a superscript before the element (13C, 2H)"
+            >
+              Isotope
+              <input
+                aria-label="Isotope mass number"
+                inputMode="numeric"
+                placeholder="natural"
+                value={editingAtomLabel.isotope}
+                onChange={(ev) =>
+                  setEditingAtomLabel((prev) =>
+                    prev ? { ...prev, isotope: ev.target.value.replace(/[^0-9]/g, '') } : null,
+                  )
+                }
+                onKeyDown={(ev) => {
+                  ev.stopPropagation();
+                  ev.nativeEvent.stopImmediatePropagation();
+                  if (ev.key === 'Enter') {
+                    ev.preventDefault();
+                    commitAtomLabelEdit();
+                  }
+                }}
+                style={{
+                  width: 64,
+                  border: `1px solid ${isDarkMode ? '#555' : '#ccc'}`,
+                  borderRadius: 3,
+                  padding: '2px 6px',
+                  background: isDarkMode ? '#333' : '#fff',
+                  color: isDarkMode ? '#fff' : '#000',
+                }}
+              />
+            </label>
             {editingAtomLabel.resolution && editingAtomLabel.value.trim() && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                 <div

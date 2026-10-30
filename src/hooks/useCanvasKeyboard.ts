@@ -54,6 +54,7 @@ interface CanvasKeyboardBindings {
     orientation: AtomLabelOrientation;
     resolution: ReturnType<typeof resolveAliasChemistry> | null;
     selectedCandidateId?: string;
+    isotope: string;
     screenX: number;
     screenY: number;
   } | null;
@@ -105,6 +106,7 @@ interface CanvasKeyboardBindings {
       orientation: AtomLabelOrientation;
       resolution: ReturnType<typeof resolveAliasChemistry> | null;
       selectedCandidateId?: string;
+      isotope: string;
       screenX: number;
       screenY: number;
     } | null>

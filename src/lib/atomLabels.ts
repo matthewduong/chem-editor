@@ -164,6 +164,11 @@ export function getAtomDisplayText(
     }
   }
 
+  // An isotope's mass number leads the element (13C, 18OH, D2 18O): part of the label, so layout,
+  // anchoring and bond clipping all see it; `buildAtomLabelRuns` raises it to a superscript.
+  if (atom.isotope && !getAtomAlias(atom) && baseText === getAtomLeadElement(atom)) {
+    baseText = `${atom.isotope}${baseText}`;
+  }
   const hydrogenText = formatHydrogenLabel(hydrogenCount);
   if (!hydrogenText) return { text: baseText, orientation, parts: null };
 
@@ -459,7 +464,7 @@ export function inferAtomLabelFromDisplayedText(
   return { alias: normalized };
 }
 
-const GENERATED_LOOKING_LABEL = /^([A-Z][a-z]?)(?:H([0-9]*))?(?:([0-9]*)([+\-\u2212]))?$/;
+const GENERATED_LOOKING_LABEL = /^([0-9]+)?([A-Z][a-z]?)(?:H([0-9]*))?(?:([0-9]*)([+\-\u2212]))?$/;
 
 /**
  * A label read from a file that is exactly what this editor would generate for the atom.
@@ -476,12 +481,21 @@ export function asGeneratedLabelAtom(atom: Atom, bonds: Bond[]): Atom {
   if (!alias || atom.kind !== 'alias') return atom;
   const match = GENERATED_LOOKING_LABEL.exec(alias);
   if (!match) return atom;
-  const element = match[1]!;
-  if (element === 'C' || !isElementSymbol(element) || element !== atom.element) return atom;
+  // A leading mass number is the label this editor writes for an isotope (18OH); it must be the
+  // atom's own isotope, and then even a carbon's label is a generated one.
+  const mass = match[1];
+  if (mass !== undefined && Number(mass) !== atom.isotope) return atom;
+  const element = match[2]!;
+  if (
+    (element === 'C' && mass === undefined) ||
+    !isElementSymbol(element) ||
+    element !== atom.element
+  )
+    return atom;
   if (SHORTHAND_DATA[alias]) return atom;
-  const textHydrogens = match[2] === undefined ? 0 : match[2] === '' ? 1 : Number(match[2]);
-  const hasSign = match[4] !== undefined;
-  const textCharge = hasSign ? (match[4] === '+' ? 1 : -1) * (match[3] ? Number(match[3]) : 1) : 0;
+  const textHydrogens = match[3] === undefined ? 0 : match[3] === '' ? 1 : Number(match[3]);
+  const hasSign = match[5] !== undefined;
+  const textCharge = hasSign ? (match[5] === '+' ? 1 : -1) * (match[4] ? Number(match[4]) : 1) : 0;
   if (textCharge !== (atom.charge ?? 0)) return atom;
   const candidate: Atom = {
     ...atom,

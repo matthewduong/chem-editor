@@ -22,7 +22,7 @@ export function buildAtomLabelRuns(
   documentViewSettings: DocumentViewSettings,
   isDarkMode: boolean,
 ): TextRun[] {
-  return expandUnicodeSubscripts(
+  const runs = expandUnicodeSubscripts(
     expandFormulaRuns(
       buildAtomLabelRunsUnexpanded(
         atom,
@@ -34,6 +34,37 @@ export function buildAtomLabelRuns(
       ),
     ),
   );
+  return atom.isotope ? superscriptIsotope(runs, displayText, atom) : runs;
+}
+
+/** The mass number `getAtomDisplayText` put before the element, as a superscript run. */
+function superscriptIsotope(runs: TextRun[], displayText: string, atom: Atom): TextRun[] {
+  const mass = String(atom.isotope);
+  const element = getAtomLeadElement(atom);
+  const start = displayText.indexOf(`${mass}${element}`);
+  if (start < 0) return runs;
+  const end = start + mass.length;
+  const out: TextRun[] = [];
+  let offset = 0;
+  for (const run of runs) {
+    const runStart = offset;
+    const runEnd = offset + run.text.length;
+    offset = runEnd;
+    if (runEnd <= start || runStart >= end) {
+      out.push(run);
+      continue;
+    }
+    const cut = (from: number, to: number) => run.text.slice(from - runStart, to - runStart);
+    if (start > runStart) out.push({ ...run, text: cut(runStart, start) });
+    out.push({
+      ...run,
+      text: cut(Math.max(start, runStart), Math.min(end, runEnd)),
+      sup: true,
+      sub: false,
+    });
+    if (end < runEnd) out.push({ ...run, text: cut(end, runEnd) });
+  }
+  return out.filter((run) => run.text.length > 0);
 }
 
 function buildAtomLabelRunsUnexpanded(

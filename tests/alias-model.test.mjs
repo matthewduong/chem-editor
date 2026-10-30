@@ -28,6 +28,7 @@ import {
   getBondVisualMetrics,
 } from '../.unit-test-dist/src/lib/renderGeometry.js';
 import {
+  applyNodeLabelStyleEdit,
   applyNodeValueEdit,
   canvasStateToChemDrawDocument,
   chemDrawDocumentToCanvasState,
@@ -689,4 +690,12 @@ test('CDXML export preserves custom alias text without inventing chemistry', () 
   const cdxml = stateToCDXML(initialState, { documentStyleSettings });
   assert.match(cdxml, />MgBr</);
   assert.doesNotMatch(cdxml, /Element="/);
+});
+
+test('the label panel sets and clears an isotope', () => {
+  const initialDocument = canvasStateToChemDrawDocument(baseState(baseAtom())).document;
+  const labelled = applyNodeLabelStyleEdit(initialDocument, 'a1', { isotope: 13 });
+  assert.equal(chemDrawDocumentToCanvasState(labelled).state.atoms[0].isotope, 13);
+  const cleared = applyNodeLabelStyleEdit(labelled, 'a1', { isotope: null });
+  assert.equal(chemDrawDocumentToCanvasState(cleared).state.atoms[0].isotope, undefined);
 });
