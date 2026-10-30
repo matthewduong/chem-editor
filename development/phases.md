@@ -11,8 +11,8 @@ ChemDraw's own files (the `chemdraw_template*.cdxml` set in RDKit's test data), 
 | Phase | Theme                               | Status                 |
 | ----- | ----------------------------------- | ---------------------- |
 | I     | Graphics foundation and shape tools | **done 2026-10-29**    |
-| II    | Selection and arrange               | **ready** (plan below) |
-| III   | Annotations, bonds and labels       |                        |
+| II    | Selection and arrange               | **done 2026-10-30**    |
+| III   | Annotations, bonds and labels       | **ready** (plan below) |
 | IV    | Stereo, numbering and analysis      |                        |
 | V     | Reactions                           |                        |
 | VI    | Query structures                    |                        |
@@ -118,3 +118,69 @@ Imported shapes stay gated by `blocksTransform`.
 - Whether ChemDraw's Flip keeps wedge/hash as drawn (the guide implies the mirror-image
   stereoisomer) and how it treats atom label alignment.
 - How ChemDraw writes `Z` after Bring to Front / Send to Back.
+
+Phase II done 2026-10-30: lasso, flip and Rotate 180°, movable rotation centre, z-order, centre
+on page, join, typed chain length, Fixed Lengths/Angles, zoom commands and readout, reshape
+handles, and ChemDraw's keys for all of them (preferences version 11).
+
+## Phase III — annotations, bonds and labels
+
+### Groundwork landed in II.9
+
+- `Order="4"` reads as a quadruple bond (it read as a triple) and the 0x0008 query bit maps both
+  ways; formula-face text (face 96) is written back as 96 (it was written as 0).
+
+### Sub-steps
+
+**III.1 Orbitals.** Draw every `OrbitalType` from what the file gives (Center3D/axes, else the
+BoundingBox points the reader already derives): s, oval, p, lobe, hybrid, dz2, dxy, with the
+Shaded/Filled suffix parsed off the type and Plus/Minus phases as filled versus open lobes
+(`graphicModule.ts` ~538-607; today only `s` with axes and plain `p` draw, so most of
+`orbitals.cdxml` is blank). Then an orbital tool: `OrbitalShapeKind` in `shapeGesture.ts`, a
+drag from the atom outward setting the axis (the guide: click an atom for s, drag for p), and
+palette entries. Golden for `orbitals.cdxml` will move: that is the point.
+
+**III.2 Circled charges and radical ions.** New `ElectronToolMode`s (circled +/-, radical cation,
+radical anion) beside the Electrons palette's +1/-1 (`App.tsx` ~3136): set the node's charge (and
+radical) and add a Symbol graphic with `<represent attribute="Charge" object=…>` at a free angle
+(`createSymbolGraphic`); toggling off removes it. The label must not draw the charge a symbol
+represents (`nodeModule.ts` ~121, and the exported label text), or it shows twice.
+
+**III.3 Character map.** A floating panel of Greek, arrows, degree, ±, ‡, †, ·, primes and
+sub/superscript digits, with recently used characters first (guide "Character Map"); active only
+while a text editor is open. Buttons `preventDefault` on mousedown so the editor keeps focus; a
+`canvasRef.insertText(char)` inserts into whichever editor is open (atom label inputs by
+selection splice, captions by `insertPlainTextIntoEditable`).
+
+**III.4 Quadruple bond.** Draw four parallel lines (±0.5 and ±1.5 × `parallelOffset`,
+`renderGeometry.ts` `getOffsetBondLineGeometry`); bond menu entry and icon; the guide's three
+ways to make one (tool, drag along a triple, key on a bond; our `4` is the cyclobutane hotkey, so
+the key path uses the bond menu). Molfile export must not write order 4 (V2000 aromatic).
+
+**III.5 Isotope labels.** Draw the mass number as a superscript before the element
+(`atomLabelPresentation.ts` `buildAtomLabelRuns`), make an isotope make a carbon's label visible
+(`isAtomLabelVisible`), and add an isotope field to the atom label panel
+(`CanvasTextEditors.tsx` ~407) committing through `applyNodeLabelStyleEdit`.
+
+**III.6 Expand / contract nicknames.** Edit > Expand Label replaces a selected alias atom with its
+structure (from `expandSupportedAliasGraph`'s template, scaled to the bond length and turned so
+the attachment bond leaves its neighbour), as one undo step; Contract Label replaces a selected
+substructure with one external bond by the matching shorthand (canonical SMILES against
+`shorthand.ts`) or a typed label.
+
+**III.7 User-defined nicknames.** Structure > Define Nickname: a selected substructure with
+attachment points becomes a named shorthand stored in app preferences (or a nickname library file
+beside the template library), and lookups of `SHORTHAND_DATA[...]` go through one registry that
+includes them.
+
+**III.8 Caption line spacing and formula style.** `lineHeight` on text (Automatic, Variable,
+Fixed; CDXML `LineHeight` on `<t>` and the document's `CaptionLineHeight`), used in place of
+`AUTO_LINE_HEIGHT_RATIO`; a formula-style toggle on the text toolbar setting `formula` on runs,
+and the contentEditable round trip keeping it (a data attribute on formula spans).
+
+**III.9 Ready Phase IV.**
+
+### To probe on mac
+
+- Symbol size and placement for circled charges next to atoms; orbital proportions per type;
+  how ChemDraw writes a user nickname into a document that uses it.
