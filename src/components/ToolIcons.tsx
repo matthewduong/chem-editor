@@ -442,6 +442,13 @@ export function ShapeIcon({ kind, size = 22 }: { kind: ShapeKind; size?: number 
           <path d="M12 4V20M7.5 8H16.5M7.5 16H16.5" />
         </Frame>
       );
+    case 'mass-fragmentation':
+      return (
+        <Frame size={size}>
+          <path d="M5 15L9 9L14 12L19 7" />
+          <path d="M8 4L16 20" strokeDasharray="2 2" />
+        </Frame>
+      );
     case 'flag-absolute':
     case 'flag-relative':
     case 'flag-racemic':

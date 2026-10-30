@@ -439,6 +439,7 @@ const DRAWING_ELEMENT_OPTIONS: Array<{ kind: ShapeKind; title: string }> = [
   { kind: 'flag-absolute', title: 'Absolute Stereo Flag' },
   { kind: 'flag-relative', title: 'Relative Stereo Flag' },
   { kind: 'flag-racemic', title: 'Racemic Stereo Flag' },
+  { kind: 'mass-fragmentation', title: 'Mass Fragmentation' },
 ];
 
 const ELEMENT_SHORTCUTS = ['C', 'N', 'O', 'S', 'P', 'F', 'Cl', 'Br', 'H', 'D'];

@@ -790,6 +790,38 @@ for (const scale of [1, 2]) {
       expect(Math.abs(arrows[1]!.x1 - mid.x)).toBeLessThan(1e-6);
       expect(Math.abs(arrows[1]!.y1 - mid.y)).toBeLessThan(1e-6);
     });
+    test('Mass Fragmentation captions each side of the cut and leaves the structure', async ({
+      page,
+    }) => {
+      await openEditor(page);
+      await tool(page, 'Chain');
+      const a = await point(page, 300, 300);
+      await page.mouse.click(a.x, a.y);
+      await page.getByPlaceholder('Carbons').fill('3');
+      await page.getByPlaceholder('Carbons').press('Enter');
+      const atoms = (await observe(page)).atoms;
+      const bondsBefore = (await observe(page)).bonds.length;
+      // Across the first C-C bond, at right angles to it.
+      const [p, q] = [atoms[0]!, atoms[1]!];
+      const mid = { x: (p.x + q.x) / 2, y: (p.y + q.y) / 2 };
+      const along = { x: q.x - p.x, y: q.y - p.y };
+      const n = Math.hypot(along.x, along.y);
+      const across = { x: (-along.y / n) * 20, y: (along.x / n) * 20 };
+      await page.getByRole('button', { name: 'Expand Drawing', exact: true }).click();
+      await tool(page, 'Mass Fragmentation');
+      await dragDocument(
+        page,
+        { x: mid.x - across.x, y: mid.y - across.y },
+        { x: mid.x + across.x, y: mid.y + across.y },
+      );
+      const after = await observe(page);
+      expect(after.bonds).toHaveLength(bondsBefore);
+      const texts = after.document!.pages[0].objects.filter((o) => o.type === 'text') as Array<{
+        text: { runs: Array<{ text: string }> };
+      }>;
+      const captions = texts.map((t) => t.text.runs.map((r) => r.text).join(''));
+      expect(captions.sort()).toEqual(['C2H5\nExact Mass: 29.04', 'CH3\nExact Mass: 15.02']);
+    });
     test('chain preview commits once and cancellation creates no history', async ({ page }) => {
       await openEditor(page);
       await tool(page, 'Chain');

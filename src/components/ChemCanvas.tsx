@@ -31,6 +31,7 @@ import { Circle, Group, Layer, Line, Rect, Stage, Star } from 'react-konva';
 import { createProjectionEditCommand } from '../editor/commands/projectionEdit';
 import { contractSelection, findNicknameForSelection } from '../lib/nicknames';
 import { arrowConnectionPoint } from '../lib/arrowGesture';
+import { fragmentAcross, fragmentationCaptions } from '../lib/massFragmentation';
 import { computeStereoLabels } from '../lib/stereoLabels';
 import { SHORTHAND_DATA } from '../lib/shorthand';
 import {
@@ -3020,6 +3021,31 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
     }
     if (shapeTool.isActive()) {
       const shapes = shapeTool.commit();
+      // Mass Fragmentation: the cut line becomes each side's formula and exact mass; it stays
+      // drawn only with Alt.
+      if (shapes && shapeKind === 'mass-fragmentation') {
+        const line = shapes[0];
+        if (line?.type !== 'arrow') return;
+        const path = [line.tail, line.head];
+        const sides = fragmentAcross(path, atoms, bonds);
+        if (!sides) {
+          useStore.getState().showToast('Drag across the bonds to break.', 'info');
+          return;
+        }
+        const captions = fragmentationCaptions(
+          sides,
+          atoms,
+          path,
+          useStore.getState().documentStyleSettings,
+          () => crypto.randomUUID(),
+        );
+        useStore.getState().dispatchEditorCommand(
+          createUpsertObjectsCommand([...captions, ...(e.evt.altKey ? [line] : [])], {
+            description: 'mass-fragmentation',
+          }),
+        );
+        return;
+      }
       if (shapes) {
         useStore
           .getState()

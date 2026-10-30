@@ -98,7 +98,11 @@ export function createOrbitalGraphic(
 }
 
 /** Every kind the shape tool draws. */
+/** The Mass Fragmentation tool's cutting line (`massFragmentation.ts`). */
+export type FragmentationShapeKind = 'mass-fragmentation';
+
 export type ShapeKind =
+  | FragmentationShapeKind
   | BoxShapeKind
   | LineShapeKind
   | ArcShapeKind
@@ -309,6 +313,13 @@ export function shapeForDrag(
       ? lineEnd(start, pointer, constrain)
       : { x: start.x, y: start.y - (options.orbitalSize ?? 10) };
     return { object: createOrbitalGraphic(id, kind, start, tip), bigEnough: true };
+  }
+  if (kind === 'mass-fragmentation') {
+    const end = lineEnd(start, pointer, constrain);
+    return {
+      object: createLineArrow(id, 'dashed-line', start, end),
+      bigEnough: Math.hypot(end.x - start.x, end.y - start.y) >= MIN_SHAPE_SIZE,
+    };
   }
   if (kind === 'curve' || kind === 'edit-curve') {
     // The pen fits the whole pointer path (`useShapeTool`); from two points it is a straight curve.
