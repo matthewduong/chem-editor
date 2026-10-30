@@ -12,6 +12,7 @@ import {
   TextToolIcon,
 } from './components/ToolIcons';
 import { TemplatesPanel } from './components/TemplatesPanel';
+import { QueryPropertiesDialog } from './components/QueryPropertiesDialog';
 import { registerUserNicknames } from './lib/aliasChemistry';
 import { selectionToRootedSmiles } from './lib/nicknames';
 import { convertCanvasToNative, convertNativeToCanvas } from './lib/chemdrawMetrics';
@@ -563,6 +564,7 @@ function App() {
     );
   }, [appPreferences.nicknames]);
   const [nicknameDraft, setNicknameDraft] = useState<string | null>(null);
+  const [isQueryDialogOpen, setIsQueryDialogOpen] = useState(false);
   const pageSetup = useStore((s) => s.pageSetup);
   const documentStyleSettings = useStore((s) => s.documentStyleSettings);
   const documentViewSettings = useStore((s) => s.documentViewSettings);
@@ -4022,6 +4024,14 @@ function App() {
                 </MenuItem>
                 <MenuItem
                   onClick={() => {
+                    setIsQueryDialogOpen(true);
+                    setIsEditDropdownOpen(false);
+                  }}
+                >
+                  Query Properties…
+                </MenuItem>
+                <MenuItem
+                  onClick={() => {
                     setNicknameDraft('');
                     setIsEditDropdownOpen(false);
                   }}
@@ -6095,6 +6105,13 @@ function App() {
         isDarkMode={isDarkMode}
       />
 
+      {isQueryDialogOpen && (
+        <QueryPropertiesDialog
+          theme={theme}
+          isDarkMode={isDarkMode}
+          onClose={() => setIsQueryDialogOpen(false)}
+        />
+      )}
       {nicknameDraft !== null && (
         <div
           role="dialog"

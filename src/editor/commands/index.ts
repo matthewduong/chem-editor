@@ -393,6 +393,35 @@ export function createPerspectiveSelectionCommand(
   };
 }
 
+/**
+ * A selection edit as one undo step: `edit` maps the document and the selection's ids to the
+ * next document, returning the same document when there is nothing to change.
+ */
+export function createSelectionEditCommand(
+  type: string,
+  edit: (
+    document: ChemDrawDocument,
+    selectionIds: Set<string>,
+    context: EditorCommandContext,
+  ) => ChemDrawDocument,
+  objectIds?: Iterable<string>,
+): EditorCommand {
+  return {
+    type,
+    description: type,
+    apply(document, context) {
+      const selectionIds = resolveSelectionIds(context, objectIds);
+      const next = edit(document, selectionIds, context);
+      if (next === document) return { document, inversePatch: null, changedObjectIds: new Set() };
+      return {
+        document: next,
+        inversePatch: createReplaceDocumentCommand(document, `undo:${type}`),
+        changedObjectIds: selectionIds,
+      };
+    },
+  };
+}
+
 /** Structure > Clean Up Reaction; see `cleanUpReaction`. */
 export function createCleanUpReactionCommand(): EditorCommand {
   return {

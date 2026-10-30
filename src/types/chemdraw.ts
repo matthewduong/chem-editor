@@ -139,11 +139,40 @@ export interface ChemDrawQueryAtom {
   attachments?: string[];
 }
 
+/**
+ * Atom query properties (CDXML DTD, `<n>`): what a query atom may match. Each enum leaves out the
+ * DTD's default (Unspecified, or Equal for Translation), which is the property being absent.
+ */
+export interface ChemDrawAtomQueryProperties {
+  substituentsExactly?: number;
+  substituentsUpTo?: number;
+  freeSites?: number;
+  ringBondCount?: 'SpiroOrHigher' | 'Fusion' | 'SimpleRing' | 'AsDrawn' | 'NoRingBonds';
+  unsaturatedBonds?: 'MustBeAbsent' | 'MustBePresent';
+  implicitHydrogens?: boolean;
+  rxnChange?: boolean;
+  rxnStereo?: 'Inversion' | 'Retention';
+  translation?: 'Broad' | 'Narrow' | 'Any';
+  isotopicAbundance?: 'Any' | 'Natural' | 'Enriched' | 'Deficient' | 'Nonnatural';
+}
+
+/** A bond's reaction participation (CDXML DTD `RxnParticipation`), Unspecified left out. */
+export type ChemDrawBondRxnParticipation =
+  | 'ReactionCenter'
+  | 'MakeOrBreak'
+  | 'ChangeType'
+  | 'MakeAndChange'
+  | 'NotReactionCenter'
+  | 'NoChange'
+  | 'Unmapped';
+
 export interface ChemDrawNode {
   id: string;
   type: 'node';
   position: ChemDrawPoint;
   sourceNodeType?: string;
+  /** Query properties; see `ChemDrawAtomQueryProperties`. */
+  queryProperties?: ChemDrawAtomQueryProperties;
   /** CDXML `GenericNickname`: the generic a label stands for (R under an "R1" label). */
   genericNickname?: string;
   element?: string;
@@ -195,6 +224,7 @@ export interface ChemDrawBond {
   ringTemplateMemberships?: RingTemplateBondMembership[];
   objectTags?: ChemDrawObjectTag[];
   preservation?: ChemDrawPreservationMetadata;
+  rxnParticipation?: ChemDrawBondRxnParticipation;
 }
 
 export interface ChemDrawFragment {

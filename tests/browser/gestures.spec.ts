@@ -822,6 +822,42 @@ for (const scale of [1, 2]) {
       const captions = texts.map((t) => t.text.runs.map((r) => r.text).join(''));
       expect(captions.sort()).toEqual(['C2H5\nExact Mass: 29.04', 'CH3\nExact Mass: 15.02']);
     });
+    test('Query Properties sets atom and bond queries on the selection', async ({ page }) => {
+      await openEditor(page);
+      await tool(page, 'Chain');
+      const a = await point(page, 300, 300);
+      await page.mouse.click(a.x, a.y);
+      await page.getByPlaceholder('Carbons').fill('2');
+      await page.getByPlaceholder('Carbons').press('Enter');
+      await tool(page, 'Select');
+      await page.evaluate(async () => {
+        const { useStore } = await import(String('/src/store/index.ts'));
+        const state = useStore.getState();
+        state.setSelectedAtomIds(new Set(state.atoms.map((atom: { id: string }) => atom.id)));
+      });
+      await page.getByText('Edit', { exact: true }).click();
+      await page.getByText('Query Properties…', { exact: true }).click();
+      await page.getByLabel('Ring bonds').selectOption('SimpleRing');
+      await page.getByLabel('Topology').selectOption('ring');
+      const read = () =>
+        page.evaluate(async () => {
+          const { useStore } = await import(String('/src/store/index.ts'));
+          const objects = (useStore.getState().chemDrawDocument?.pages[0]?.objects ?? []) as Array<{
+            type: string;
+            queryProperties?: { ringBondCount?: string };
+            query?: { ringState?: string };
+          }>;
+          return {
+            atoms: objects
+              .filter((o) => o.type === 'node')
+              .map((o) => o.queryProperties?.ringBondCount),
+            bond: objects.find((o) => o.type === 'bond')?.query?.ringState,
+          };
+        });
+      expect(await read()).toEqual({ atoms: ['SimpleRing', 'SimpleRing'], bond: 'ring' });
+      await page.keyboard.press('ControlOrMeta+z');
+      expect((await read()).bond).toBeUndefined();
+    });
     test('chain preview commits once and cancellation creates no history', async ({ page }) => {
       await openEditor(page);
       await tool(page, 'Chain');

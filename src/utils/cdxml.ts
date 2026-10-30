@@ -1,5 +1,10 @@
 import { genericNicknameBase } from '../lib/genericLabels';
 import {
+  readAtomQueryProperties,
+  readBondRxnParticipation,
+  writeAtomQueryProperties,
+} from './cdxmlQueryProperties';
+import {
   elementChildren,
   parentElement,
   firstByTag,
@@ -1559,6 +1564,7 @@ function chemDrawDocumentToCDXMLInternal(document: ChemDrawDocument): string {
           attrs += ` EnhancedStereoGroupNum="${node.enhancedStereo.group}"`;
         }
       }
+      attrs += writeAtomQueryProperties(node.queryProperties);
       if (node.atomNumber != null) attrs += ` AtomNumber="${xmlEscape(node.atomNumber)}"`;
       if (node.showAtomNumber != null) {
         attrs += ` ShowAtomNumber="${node.showAtomNumber ? 'yes' : 'no'}"`;
@@ -1685,6 +1691,7 @@ function chemDrawDocumentToCDXMLInternal(document: ChemDrawDocument): string {
       if (bond.query?.ringState === 'ring') attrs += ` Topology="Ring"`;
       else if (bond.query?.ringState === 'chain') attrs += ` Topology="Chain"`;
       else if (bond.query?.ringState === 'either') attrs += ` Topology="RingOrChain"`;
+      if (bond.rxnParticipation) attrs += ` RxnParticipation="${bond.rxnParticipation}"`;
       const ringTemplateBondMemberships = serializeRingTemplateBondMemberships(bond);
       if (ringTemplateBondMemberships) {
         attrs += ` ${CHEM_EDITOR_RING_TEMPLATE_BOND_MEMBERSHIPS_ATTR}="${xmlEscape(ringTemplateBondMemberships)}"`;
@@ -2641,6 +2648,7 @@ export function cdxmlToChemDrawDocument(xmlString: string): ChemDrawConversionRe
                 ...(Number.isFinite(enhancedStereoGroup) ? { group: enhancedStereoGroup } : {}),
               }
             : undefined;
+        const queryPropertiesRead = readAtomQueryProperties((name) => child.getAttribute(name));
         const atomNumber = child.getAttribute('AtomNumber') ?? undefined;
         const showAtomNumberAttr = child.getAttribute('ShowAtomNumber');
         const showAtomNumber =
@@ -2841,6 +2849,9 @@ export function cdxmlToChemDrawDocument(xmlString: string): ChemDrawConversionRe
           ...(geometry ? { geometry } : {}),
           ...(atomStereo ? { atomStereo } : {}),
           ...(enhancedStereo ? { enhancedStereo } : {}),
+          ...(queryPropertiesRead.properties
+            ? { queryProperties: queryPropertiesRead.properties }
+            : {}),
           ...(atomNumber != null ? { atomNumber } : {}),
           ...(showAtomNumber != null ? { showAtomNumber } : {}),
           ...(bondOrdering?.length ? { bondOrdering } : {}),
@@ -2883,6 +2894,7 @@ export function cdxmlToChemDrawDocument(xmlString: string): ChemDrawConversionRe
             'AtomNumber',
             'ShowAtomNumber',
             ...(enhancedStereo ? ['EnhancedStereoType', 'EnhancedStereoGroupNum'] : []),
+            ...queryPropertiesRead.handled,
             'BondOrdering',
             'NodeType',
             'ElementList',
@@ -2940,6 +2952,7 @@ export function cdxmlToChemDrawDocument(xmlString: string): ChemDrawConversionRe
             ? doubleBondModeAttr
             : undefined;
         const topology = child.getAttribute('Topology');
+        const rxnParticipation = readBondRxnParticipation(child.getAttribute('RxnParticipation'));
         const lineWidthAttr = child.getAttribute('LineWidth');
         const bondSpacingAttr = child.getAttribute('BondSpacing');
         const bondSpacingAbsAttr = child.getAttribute('BondSpacingAbs');
@@ -3035,6 +3048,7 @@ export function cdxmlToChemDrawDocument(xmlString: string): ChemDrawConversionRe
             'Display2',
             CHEM_EDITOR_DOUBLE_BOND_MODE_ATTR,
             'Topology',
+            ...(rxnParticipation.handled ? ['RxnParticipation'] : []),
             'LineWidth',
             'BondSpacing',
             'BondSpacingAbs',
@@ -3058,6 +3072,7 @@ export function cdxmlToChemDrawDocument(xmlString: string): ChemDrawConversionRe
           }
           bond.preservation = bondPreservation;
         }
+        if (rxnParticipation.value) bond.rxnParticipation = rxnParticipation.value;
         const bondObjectTags = parseObjectTags(child);
         if (bondObjectTags) bond.objectTags = bondObjectTags;
         if (secondaryDisplay) warnings.push(`Bond ${bondId} uses secondary display semantics.`);
