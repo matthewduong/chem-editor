@@ -20,3 +20,6 @@ src-tauri/bin/
 src-tauri/.venv/
 .ruff_cache/
 .pnpm-store/
+
+# Vendored third-party references, kept byte for byte.
+development/reference/

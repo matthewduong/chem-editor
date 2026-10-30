@@ -14,8 +14,8 @@ ChemDraw's own files (the `chemdraw_template*.cdxml` set in RDKit's test data), 
 | II    | Selection and arrange               | **done 2026-10-30**    |
 | III   | Annotations, bonds and labels       | **done 2026-10-30**    |
 | IV    | Stereo, numbering and analysis      | **done 2026-10-30**    |
-| V     | Reactions                           | **ready** (plan below) |
-| VI    | Query structures                    |                        |
+| V     | Reactions                           | **done 2026-10-30**    |
+| VI    | Query structures                    | **ready** (plan below) |
 | VII   | Document, output and app shell      |                        |
 | VIII  | Naming                              |                        |
 
@@ -299,3 +299,51 @@ as a caption beside it; ChemDraw's fragmentation-line object and caption placeme
 ### To probe on mac
 
 - Clean Up Reaction spacing; the mass fragmentation line's CDXML.
+
+Phase V done 2026-10-30: schemes and steps modelled, reaction roles UI and Show Reaction
+Interpretation, Clean Up Reaction, connecting arrows, the Mass Fragmentation tool.
+
+## Phase VI — query structures
+
+Source: the CDXML DTD, now in `development/reference/cdxml/` (Revvity's open-sourced CDX
+library, the version RDKit pins). On `<n>` it gives the query attributes and their values:
+`NodeType` (… `GenericNickname`, `ElementList`, `AnonymousAlternativeGroup`,
+`NamedAlternativeGroup`, `MultiAttachment`, `VariableAttachment` …), `GenericNickname`,
+`ElementList` / `GenericList`, `AltGroupID`, `SubstituentsExactly` / `SubstituentsUpTo`,
+`FreeSites`, `RingBondCount (SpiroOrHigher|Fusion|SimpleRing|AsDrawn|NoRingBonds|Unspecified)`,
+`UnsaturatedBonds (Unspecified|MustBeAbsent|MustBePresent)`, `ImplicitHydrogens`,
+`RxnChange`, `RxnStereo (Unspecified|Inversion|Retention)`, `Translation`,
+`IsotopicAbundance`, `LinkCountLow` / `LinkCountHigh`, `ShowAtomQuery`. R-logic is a page-level
+`<rlogic>` of `<rlogicitem RLogicGroup RLogicOccurrence RLogicIfThenGroup RLogicRestH>`;
+alternative groups are `<altgroup>` holding the fragments an R stands for. Measured from files:
+`NodeType="GenericNickname" GenericNickname="R"` (11 in RDKit's ChemDraw test data).
+
+Today `ChemDrawQueryAtom` carries type, element list, R-group / generic name, link counts and
+attachments; other query attributes survive as raw attributes and query nodes are projected to
+display labels with edits blocked.
+
+### Groundwork landed in V.6
+
+- The DTD and property table in `development/reference/cdxml/` (with licence and README);
+  CLAUDE.md's "the CDXML DTD" now points there.
+
+### Sub-steps
+
+**VI.1 Typed generic labels.** Typing R, R1…, X, A, Q, M, Ar, Het (the DTD's GenericNickname
+values ChemDraw's label tool uses) makes a `GenericNickname` node, drawn as its label and written
+with `NodeType="GenericNickname"`, not an unresolved alias; bonds clip as for any label.
+
+**VI.2 Atom and bond query properties.** Model the atom attributes listed above and the bond's
+(`Topology`, `BondOrder` lists, `RxnParticipation`) as typed fields instead of raw ones; an
+Atom/Bond Query panel edits them (one undo step each); `ShowAtomQuery` draws ChemDraw's query
+indicators beside the atom (their text to probe on mac). Robustness cases for every enum.
+
+**VI.3 R-groups and R-logic.** Model `<altgroup>` (an R's members) and `<rlogic>`/`<rlogicitem>`;
+an R-Logic dialog (occurrence, if-then, RestH); **Expand Generic Structure** enumerates the
+combinations into new structures on the page, each member bonded at the R's attachment.
+
+**VI.4 Ready Phase VII.**
+
+### To probe on mac
+
+- Query indicator text and placement; how an altgroup frame draws; the enumerated layout.

@@ -144,7 +144,7 @@ These come from what has actually gone wrong here (see `development/audit-2026-0
   changes go through `src/editor/scene/` — `svgExport.ts` only assembles a scene and hands it to
   `renderDocumentScene`, it does not draw — so a change made there lands on screen, in PNG and in
   SVG at once; the Konva overlays in `ChemCanvas.tsx` are the one remaining exception. Claims about
-  ChemDraw behaviour need a source: the CDXML DTD, or `pnpm test:chemdraw:mac`.
+  ChemDraw behaviour need a source: the CDXML DTD (`development/reference/cdxml/`), or `pnpm test:chemdraw:mac`.
 - **Progress.** `development/gaps.md` lists known losses and divergences; a change that fixes or
   finds one updates it. `development/todo.md` lists ChemDraw features not yet built; tick an
   item when it lands. Test allowlists carry a reason string, and removing an entry is progress.
