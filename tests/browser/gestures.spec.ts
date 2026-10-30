@@ -502,6 +502,34 @@ for (const scale of [1, 2]) {
       const atom = (await observe(page)).atoms.find((x) => x.id === at)!;
       expect(atom.isotope).toBe(13);
     });
+    test('the character map types into the label being edited without taking focus', async ({
+      page,
+    }) => {
+      await openEditor(page);
+      await page.getByText('Edit', { exact: true }).click();
+      await page.getByText('Show Character Map', { exact: true }).click();
+      await tool(page, 'Chain');
+      const a = await point(page, 400, 300);
+      await page.mouse.click(a.x, a.y);
+      await page.getByPlaceholder('Carbons').fill('2');
+      await page.getByPlaceholder('Carbons').press('Enter');
+      const id = (await observe(page)).atoms[0]!.id;
+      await tool(page, 'Select');
+      await page.evaluate(async (atomId) => {
+        const { useStore } = await import(String('/src/store/index.ts'));
+        useStore.getState().setSelectedAtomIds(new Set([atomId]));
+      }, id);
+      const label = page
+        .getByLabel('Isotope mass number')
+        .locator('xpath=../..')
+        .locator('input')
+        .first();
+      await label.fill('C');
+      await page.getByRole('button', { name: 'α', exact: true }).click();
+      await page.getByRole('button', { name: '′', exact: true }).click();
+      await expect(label).toHaveValue('Cα′');
+      await expect(label).toBeFocused();
+    });
     test('chain preview commits once and cancellation creates no history', async ({ page }) => {
       await openEditor(page);
       await tool(page, 'Chain');

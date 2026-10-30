@@ -11,6 +11,7 @@ import {
   TextToolIcon,
 } from './components/ToolIcons';
 import { TemplatesPanel } from './components/TemplatesPanel';
+import { CharacterMapPanel } from './components/CharacterMapPanel';
 import { commitChainOfLength } from './tools/useChainTool';
 import type { ShapeKind } from './lib/shapeGesture';
 import { StructureDiagnostics } from './components/StructureDiagnostics';
@@ -547,6 +548,7 @@ function App() {
   const isAlignSubmenuOpen = useStore((s) => s.isAlignSubmenuOpen);
   const [isFrameSubmenuOpen, setIsFrameSubmenuOpen] = useState(false);
   const [isCurveSubmenuOpen, setIsCurveSubmenuOpen] = useState(false);
+  const [isCharacterMapOpen, setIsCharacterMapOpen] = useState(false);
   const isSettingsDropdownOpen = useStore((s) => s.isSettingsDropdownOpen);
   const isPreferencesPanelOpen = useStore((s) => s.isPreferencesPanelOpen);
   const isPeriodicTableOpen = useStore((s) => s.isPeriodicTableOpen);
@@ -3758,6 +3760,15 @@ function App() {
                 </MenuItem>
                 <MenuItem
                   onClick={() => {
+                    setIsCharacterMapOpen((open) => !open);
+                    setIsEditDropdownOpen(false);
+                  }}
+                >
+                  {isCharacterMapOpen ? 'Hide Character Map' : 'Show Character Map'}
+                </MenuItem>
+                <MenuSeparator />
+                <MenuItem
+                  onClick={() => {
                     joinSelection();
                     setIsEditDropdownOpen(false);
                   }}
@@ -5436,6 +5447,14 @@ function App() {
             </div>
           ))}
         </div>
+      )}
+
+      {isCharacterMapOpen && (
+        <CharacterMapPanel
+          theme={theme}
+          isDarkMode={isDarkMode}
+          onClose={() => setIsCharacterMapOpen(false)}
+        />
       )}
 
       {/* Periodic table modal */}
