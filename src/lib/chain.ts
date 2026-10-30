@@ -13,10 +13,20 @@ export function chainGeometry(
   const advance = bondLength * Math.cos(Math.PI / 6);
   const projection = dx * Math.cos(direction) + dy * Math.sin(direction);
   const count = Math.max(0, Math.min(200, Math.floor(projection / advance)));
+  return chainPoints(start, direction, count, bondLength);
+}
+
+/** A zigzag of `count` bonds from `start` along `axis`, the first bond 30° off it. */
+export function chainPoints(
+  start: { x: number; y: number },
+  axis: number,
+  count: number,
+  bondLength: number,
+) {
   const points = [{ ...start }];
   for (let i = 0; i < count; i++) {
     const previous = points.at(-1)!;
-    const angle = direction + ((i % 2 ? -1 : 1) * Math.PI) / 6;
+    const angle = axis + ((i % 2 ? -1 : 1) * Math.PI) / 6;
     points.push({
       x: previous.x + bondLength * Math.cos(angle),
       y: previous.y + bondLength * Math.sin(angle),

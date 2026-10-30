@@ -235,6 +235,12 @@ export interface AppState {
   rotationPivot: { x: number; y: number } | null;
   /** How the select tool gathers a selection when dragged on empty canvas. */
   selectMode: 'marquee' | 'lasso';
+  /** Object > Fixed Lengths / Fixed Angles (ChemDraw): bonds snap to the bond length / 15°. */
+  fixedLengths: boolean;
+  fixedAngles: boolean;
+  /** A chain-tool click waiting for its carbon count, and the last count given. */
+  chainLengthRequest: { start: { x: number; y: number }; startId?: string } | null;
+  lastChainCount: number | null;
   currentCharge: number;
   electronToolMode: ElectronToolMode;
   selectedFragment: string;
@@ -384,6 +390,12 @@ export interface AppState {
   setShapeKind: (kind: ShapeKind) => void;
   setRotationPivot: (pivot: { x: number; y: number } | null) => void;
   setSelectMode: (mode: 'marquee' | 'lasso') => void;
+  setFixedLengths: (on: boolean) => void;
+  setFixedAngles: (on: boolean) => void;
+  setChainLengthRequest: (
+    request: { start: { x: number; y: number }; startId?: string } | null,
+  ) => void;
+  setLastChainCount: (count: number | null) => void;
   setCurrentCharge: (charge: number) => void;
   setElectronToolMode: (mode: ElectronToolMode) => void;
   setSelectedFragment: (smiles: string) => void;
@@ -548,6 +560,10 @@ export const useStore = create<AppState>((set, get) => ({
   shapeKind: 'rectangle',
   rotationPivot: null,
   selectMode: 'marquee',
+  fixedLengths: true,
+  fixedAngles: true,
+  chainLengthRequest: null,
+  lastChainCount: null,
   currentCharge: 0,
   electronToolMode: 'charge-positive',
   selectedFragment: '',
@@ -696,6 +712,10 @@ export const useStore = create<AppState>((set, get) => ({
   setShapeKind: (shapeKind) => set({ shapeKind }),
   setRotationPivot: (rotationPivot) => set({ rotationPivot }),
   setSelectMode: (selectMode) => set({ selectMode }),
+  setFixedLengths: (fixedLengths) => set({ fixedLengths }),
+  setFixedAngles: (fixedAngles) => set({ fixedAngles }),
+  setChainLengthRequest: (chainLengthRequest) => set({ chainLengthRequest }),
+  setLastChainCount: (lastChainCount) => set({ lastChainCount }),
   setCurrentCharge: (currentCharge) => set({ currentCharge }),
   setElectronToolMode: (electronToolMode) => set({ electronToolMode }),
   setSelectedFragment: (selectedFragment) => set({ selectedFragment }),

@@ -1,7 +1,8 @@
 import { createEditorCommandContext } from '../editor/commands';
 import { useRef, useState } from 'react';
 import { ToolLifecycle, type ToolPointerInput } from '../editor/toolLifecycle';
-import { chainGeometry, materializeChain } from '../lib/chain';
+import { chainGeometry, chainPoints, materializeChain } from '../lib/chain';
+import { getNewBondAngle } from '../lib/newBondAngle';
 import { createProjectionEditCommand } from '../editor/commands/projectionEdit';
 import { chemDrawDocumentToCanvasState } from '../lib/chemdrawModel';
 import type { Atom } from '../types/chemistry';
@@ -18,6 +19,8 @@ export function useChainTool() {
     length: number;
     points: Array<{ x: number; y: number }>;
     endId?: string;
+    /** Alt held at the press: a click repeats the last chain length. */
+    repeatLast?: boolean;
   } | null>(null);
   const [count, setCount] = useState(0);
   const editable = (source: ChemDrawDocument, atom: Atom) => {
@@ -38,7 +41,7 @@ export function useChainTool() {
   return {
     count,
     isActive: () => gesture.current !== null,
-    begin(input: Input) {
+    begin(input: Input, options: { repeatLast?: boolean } = {}) {
       cancel();
       const s = useStore.getState(),
         source = s.chemDrawDocument;
@@ -55,6 +58,7 @@ export function useChainTool() {
         startId: input.hit?.id,
         length: s.documentStyleSettings.bondLength,
         points: [],
+        repeatLast: options.repeatLast,
       };
     },
     update(input: Input) {
@@ -113,6 +117,17 @@ export function useChainTool() {
         cancel();
         return;
       }
+      // A click, not a drag: ask for the number of carbons (ChemDraw's Add Chain), or with Alt
+      // repeat the last one given.
+      if (g.points.length < 2) {
+        cancel();
+        if (g.repeatLast && s.lastChainCount) {
+          commitChainOfLength(g.start, g.startId, s.lastChainCount);
+        } else {
+          s.setChainLengthRequest({ start: g.start, startId: g.startId });
+        }
+        return;
+      }
       try {
         const state = chemDrawDocumentToCanvasState(g.source).state;
         const result = materializeChain(g.points, state.atoms, state.bonds, g.startId, g.endId);
@@ -131,4 +146,42 @@ export function useChainTool() {
     },
     cancel,
   };
+}
+
+/**
+ * Adds a chain of `count` carbons at `start` (an atom when `startId` is given), zigzagging away
+ * from that atom's bonds, as one undo step. Remembers the count for Alt+click.
+ */
+export function commitChainOfLength(
+  start: { x: number; y: number },
+  startId: string | undefined,
+  count: number,
+): void {
+  const s = useStore.getState();
+  const source = s.chemDrawDocument;
+  if (!source || !Number.isInteger(count) || count < 1 || count > 200) return;
+  s.setLastChainCount(count);
+  const state = chemDrawDocumentToCanvasState(source).state;
+  const atom = startId ? state.atoms.find((entry) => entry.id === startId) : undefined;
+  // The first bond leaves the way a new bond would; the chain's axis is 30° off it.
+  const axis = atom ? getNewBondAngle(atom, state.atoms, state.bonds) - Math.PI / 6 : 0;
+  const origin = atom ? { x: atom.x, y: atom.y } : start;
+  try {
+    const result = materializeChain(
+      // n carbons: n new atoms off an existing one, n atoms in all on empty canvas.
+      chainPoints(origin, axis, atom ? count : count - 1, s.documentStyleSettings.bondLength),
+      state.atoms,
+      state.bonds,
+      atom?.id,
+    );
+    s.dispatchEditorCommand(
+      createProjectionEditCommand(
+        source,
+        { ...state, atoms: result.atoms, bonds: result.bonds },
+        'draw-chain',
+      ),
+    );
+  } catch (error) {
+    s.showToast(error instanceof Error ? error.message : 'Chain attachment failed.');
+  }
 }

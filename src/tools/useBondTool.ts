@@ -1,9 +1,9 @@
+import { bondDragEnd } from '../lib/newBondAngle';
 import { useCallback, useRef, useState } from 'react';
 import { createReplaceDocumentCommand } from '../editor/commands';
 import { ToolLifecycle } from '../editor/toolLifecycle';
 import type { ChemDrawDocument } from '../types/chemdraw';
 import { applyBondEdit, reverseBondDirection } from '../lib/chemdrawModel';
-import { SNAP_ANGLE } from '../lib/graph';
 import { DEFAULT_DOUBLE_BOND_MODE, getNextDoubleBondToolMode } from '../lib/renderGeometry';
 import { getNewBondAngle } from '../lib/newBondAngle';
 import { resolveChairAttachmentSnapping } from '../lib/ringTemplates';
@@ -25,7 +25,7 @@ export interface BondToolOverlay {
 
 export interface BondToolActions {
   begin: (pos: { x: number; y: number }, hitAtom: Atom | null, hitBond: Bond | null) => void;
-  update: (pos: { x: number; y: number }, hitAtom: Atom | null) => void;
+  update: (pos: { x: number; y: number }, hitAtom: Atom | null, free?: boolean) => void;
   commit: () => void;
   cancel: () => void;
   isActive: () => boolean;
@@ -155,50 +155,47 @@ export function useBondTool(): BondToolOverlay & BondToolActions {
     [],
   );
 
-  const update = useCallback((pos: { x: number; y: number }, hitAtom: Atom | null) => {
-    if (!isDraggingRef.current || !activeAtomIdRef.current) return;
-    const { atoms, bonds, documentStyleSettings } = getCanvasEditorState();
-    const bondLength = documentStyleSettings.bondLength;
-    const start = atoms.find((a) => a.id === activeAtomIdRef.current);
-    if (!start) return;
+  const update = useCallback(
+    (pos: { x: number; y: number }, hitAtom: Atom | null, free = false) => {
+      if (!isDraggingRef.current || !activeAtomIdRef.current) return;
+      const { atoms, bonds, documentStyleSettings } = getCanvasEditorState();
+      const bondLength = documentStyleSettings.bondLength;
+      const start = atoms.find((a) => a.id === activeAtomIdRef.current);
+      if (!start) return;
 
-    if (hitAtom && hitAtom.id !== activeAtomIdRef.current) {
-      setPreview({
-        startX: start.x,
-        startY: start.y,
-        x2: hitAtom.x,
-        y2: hitAtom.y,
-        targetId: hitAtom.id,
-      });
-    } else {
-      const chairSnap = resolveChairAttachmentSnapping({
-        atomId: start.id,
-        atoms,
-        bonds,
-        bondLength,
-        pointer: pos,
-      });
-      if (chairSnap?.selectedCandidate) {
+      if (hitAtom && hitAtom.id !== activeAtomIdRef.current) {
         setPreview({
           startX: start.x,
           startY: start.y,
-          x2: chairSnap.selectedCandidate.x,
-          y2: chairSnap.selectedCandidate.y,
+          x2: hitAtom.x,
+          y2: hitAtom.y,
+          targetId: hitAtom.id,
         });
-        return;
-      }
+      } else {
+        const chairSnap = resolveChairAttachmentSnapping({
+          atomId: start.id,
+          atoms,
+          bonds,
+          bondLength,
+          pointer: pos,
+        });
+        if (chairSnap?.selectedCandidate) {
+          setPreview({
+            startX: start.x,
+            startY: start.y,
+            x2: chairSnap.selectedCandidate.x,
+            y2: chairSnap.selectedCandidate.y,
+          });
+          return;
+        }
 
-      const dx = pos.x - start.x;
-      const dy = pos.y - start.y;
-      const angle = Math.round(Math.atan2(dy, dx) / SNAP_ANGLE) * SNAP_ANGLE;
-      setPreview({
-        startX: start.x,
-        startY: start.y,
-        x2: start.x + Math.cos(angle) * bondLength,
-        y2: start.y + Math.sin(angle) * bondLength,
-      });
-    }
-  }, []);
+        const { fixedLengths, fixedAngles } = getCanvasEditorState();
+        const end = bondDragEnd(start, pos, bondLength, { fixedLengths, fixedAngles, free });
+        setPreview({ startX: start.x, startY: start.y, x2: end.x, y2: end.y });
+      }
+    },
+    [],
+  );
 
   const cancel = useCallback(() => {
     lifecycle.current.cancel();

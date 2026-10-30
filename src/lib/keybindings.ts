@@ -233,6 +233,14 @@ export const APP_SHORTCUT_DEFINITIONS: ShortcutDefinition[] = [
     defaultBinding: { key: 'e', primary: true, shift: true },
   },
   {
+    id: 'app.edit.fixed-angles',
+    label: 'Toggle fixed angles',
+    description: 'Snap bonds to 15° steps, or let them follow the pointer. ChemDraw uses Ctrl+E.',
+    category: 'Edit',
+    context: 'global',
+    defaultBinding: { key: 'e', primary: true },
+  },
+  {
     id: 'app.arrange.join',
     label: 'Join',
     description: 'Fuse two selected atoms, or two selected bonds, into one. ChemDraw uses Ctrl+J.',

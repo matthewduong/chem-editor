@@ -11,6 +11,7 @@ import {
   TextToolIcon,
 } from './components/ToolIcons';
 import { TemplatesPanel } from './components/TemplatesPanel';
+import { commitChainOfLength } from './tools/useChainTool';
 import type { ShapeKind } from './lib/shapeGesture';
 import { StructureDiagnostics } from './components/StructureDiagnostics';
 import { useDocumentLifecycle } from './hooks/useDocumentLifecycle';
@@ -512,6 +513,10 @@ function App() {
   const arrowType = useStore((s) => s.arrowType);
   const shapeKind = useStore((s) => s.shapeKind);
   const selectMode = useStore((s) => s.selectMode);
+  const fixedLengths = useStore((s) => s.fixedLengths);
+  const fixedAngles = useStore((s) => s.fixedAngles);
+  const chainLengthRequest = useStore((s) => s.chainLengthRequest);
+  const [chainLengthInput, setChainLengthInput] = useState('');
   const electronToolMode = useStore((s) => s.electronToolMode);
   const selectedFragment = useStore((s) => s.selectedFragment);
   const ringSize = useStore((s) => s.ringSize);
@@ -2065,6 +2070,10 @@ function App() {
       if (matches('app.arrange.group')) {
         e.preventDefault();
         groupSelected();
+      }
+      if (matches('app.edit.fixed-angles')) {
+        e.preventDefault();
+        useStore.getState().setFixedAngles(!useStore.getState().fixedAngles);
       }
       if (matches('app.arrange.join')) {
         e.preventDefault();
@@ -3915,6 +3924,16 @@ function App() {
                   onChange={() => setIsDarkMode(!isDarkMode)}
                 />
                 <MenuCheckboxItem
+                  label="Fixed Lengths"
+                  checked={fixedLengths}
+                  onChange={() => useStore.getState().setFixedLengths(!fixedLengths)}
+                />
+                <MenuCheckboxItem
+                  label="Fixed Angles (Ctrl+E)"
+                  checked={fixedAngles}
+                  onChange={() => useStore.getState().setFixedAngles(!fixedAngles)}
+                />
+                <MenuCheckboxItem
                   label="Auto-H (Implied Hydrogens)"
                   checked={showHydrogens}
                   onChange={() => useStore.getState().setShowHydrogens(!showHydrogens)}
@@ -5530,6 +5549,57 @@ function App() {
         isDarkMode={isDarkMode}
       />
 
+      {chainLengthRequest && (
+        <div
+          role="dialog"
+          aria-label="Add Chain"
+          style={{
+            position: 'fixed',
+            left: '50%',
+            top: '30%',
+            transform: 'translateX(-50%)',
+            zIndex: 3000,
+            padding: 14,
+            borderRadius: 8,
+            background: theme.sidebar,
+            color: theme.text,
+            border: `1px solid ${theme.border}`,
+            boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
+          }}
+        >
+          <label style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            Carbons
+            <input
+              autoFocus
+              type="number"
+              min={1}
+              max={200}
+              placeholder="Carbons"
+              value={chainLengthInput}
+              onFocus={() => useStore.getState().setIsInputFocused(true)}
+              onBlur={() => useStore.getState().setIsInputFocused(false)}
+              onChange={(e) => setChainLengthInput(e.target.value)}
+              onKeyDown={(e) => {
+                const close = () => {
+                  useStore.getState().setChainLengthRequest(null);
+                  useStore.getState().setIsInputFocused(false);
+                  setChainLengthInput('');
+                };
+                if (e.key === 'Enter') {
+                  commitChainOfLength(
+                    chainLengthRequest.start,
+                    chainLengthRequest.startId,
+                    Number.parseInt(chainLengthInput, 10),
+                  );
+                  close();
+                }
+                if (e.key === 'Escape') close();
+              }}
+              style={{ width: 70 }}
+            />
+          </label>
+        </div>
+      )}
       <TransformDialogs
         theme={theme}
         isDarkMode={isDarkMode}

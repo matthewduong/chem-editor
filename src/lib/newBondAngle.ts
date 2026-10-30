@@ -80,3 +80,24 @@ export function getNewBondAngle(
   // The previous turn was towards the substituent's side, so turn the other way.
   return snap(straight - side * TURN);
 }
+
+/**
+ * Where a dragged bond ends. With Fixed Angles it points along the nearest 15° step, with Fixed
+ * Lengths it is one bond long; `free` (Alt held, as in ChemDraw) suspends both, so the end
+ * follows the pointer.
+ */
+export function bondDragEnd(
+  start: { x: number; y: number },
+  pointer: { x: number; y: number },
+  bondLength: number,
+  options: { fixedLengths: boolean; fixedAngles: boolean; free?: boolean },
+): { x: number; y: number } {
+  const dx = pointer.x - start.x;
+  const dy = pointer.y - start.y;
+  const fixedAngles = options.fixedAngles && !options.free;
+  const fixedLengths = options.fixedLengths && !options.free;
+  const raw = Math.atan2(dy, dx);
+  const angle = fixedAngles ? Math.round(raw / SNAP_ANGLE) * SNAP_ANGLE : raw;
+  const length = fixedLengths ? bondLength : Math.max(Math.hypot(dx, dy), 1e-6);
+  return { x: start.x + Math.cos(angle) * length, y: start.y + Math.sin(angle) * length };
+}

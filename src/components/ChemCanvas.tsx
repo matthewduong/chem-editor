@@ -2308,7 +2308,7 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
     });
     if (templateTool.isActive()) return;
     if (tool === 'chain') {
-      chainTool.begin({ point: pos, hit: hitA, modifiers });
+      chainTool.begin({ point: pos, hit: hitA, modifiers }, { repeatLast: e.evt.altKey });
       return;
     }
     if (hitA) setLastInteractedAtomId(hitA.id);
@@ -2664,11 +2664,11 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
       return;
     }
     if (tool === 'bond') {
-      bondTool.update(pos, hitA);
+      bondTool.update(pos, hitA, e.evt.altKey);
       return;
     }
     if (tool === 'atom') {
-      atomTool.update(pos, hitA);
+      atomTool.update(pos, hitA, e.evt.altKey);
       return;
     }
     if (tool === 'text' && textDragTool.isActive()) {

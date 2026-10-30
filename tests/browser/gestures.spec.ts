@@ -411,6 +411,20 @@ for (const scale of [1, 2]) {
       });
       expect(selected).toEqual([shapes[0]!.id]);
     });
+    test('a chain-tool click asks for the carbon count; Alt+click repeats it', async ({ page }) => {
+      await openEditor(page);
+      await tool(page, 'Chain');
+      const a = await point(page, 400, 300);
+      await page.mouse.click(a.x, a.y);
+      await page.getByPlaceholder('Carbons').fill('4');
+      await page.getByPlaceholder('Carbons').press('Enter');
+      expect((await observe(page)).atoms).toHaveLength(4);
+      const b = await point(page, 400, 450);
+      await page.keyboard.down('Alt');
+      await page.mouse.click(b.x, b.y);
+      await page.keyboard.up('Alt');
+      expect((await observe(page)).atoms).toHaveLength(8);
+    });
     test('chain preview commits once and cancellation creates no history', async ({ page }) => {
       await openEditor(page);
       await tool(page, 'Chain');
