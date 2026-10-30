@@ -323,6 +323,28 @@ for (const scale of [1, 2]) {
       );
       expect(selected).toEqual([shapes[0]!.id]);
     });
+    test('F2 and F3 bring the selected shape to the front and send it to the back', async ({
+      page,
+    }) => {
+      await openEditor(page);
+      await page.getByRole('button', { name: 'Expand Drawing', exact: true }).click();
+      await tool(page, 'Rectangle');
+      await drag(page, { x: 500, y: 400 }, { x: 640, y: 480 });
+      await tool(page, 'Oval');
+      await drag(page, { x: 570, y: 440 }, { x: 620, y: 470 });
+      const ids = async () =>
+        (await observe(page))
+          .document!.pages[0].objects.filter((x) => x.type === 'graphic')
+          .map((x) => (x as { graphicType: string }).graphicType);
+      expect(await ids()).toEqual(['rectangle', 'ellipse']);
+      await tool(page, 'Select');
+      const edge = await point(page, 500, 440);
+      await page.mouse.click(edge.x, edge.y);
+      await page.keyboard.press('F2');
+      expect(await ids()).toEqual(['ellipse', 'rectangle']);
+      await page.keyboard.press('F3');
+      expect(await ids()).toEqual(['rectangle', 'ellipse']);
+    });
     test('chain preview commits once and cancellation creates no history', async ({ page }) => {
       await openEditor(page);
       await tool(page, 'Chain');

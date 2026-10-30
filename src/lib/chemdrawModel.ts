@@ -1493,6 +1493,103 @@ export function getObjectsBounds(
   return union;
 }
 
+/** The CDXML `Z` an object carries: in its style for graphics and the like, else preserved raw. */
+function readObjectZ(object: ChemDrawObject): number | null {
+  if (object.style?.zIndex != null) return object.style.zIndex;
+  const raw = object.preservation?.rawAttributes?.Z;
+  const parsed = raw != null ? Number.parseInt(raw, 10) : Number.NaN;
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function writeObjectZ(object: ChemDrawObject, z: number): ChemDrawObject {
+  if (
+    object.style?.zIndex != null ||
+    object.type === 'graphic' ||
+    object.type === 'embedded-object' ||
+    object.type === 'table' ||
+    object.type === 'group'
+  ) {
+    return { ...object, style: { ...object.style, zIndex: z } } as ChemDrawObject;
+  }
+  return {
+    ...object,
+    preservation: {
+      ...object.preservation,
+      rawAttributes: { ...object.preservation?.rawAttributes, Z: String(z) },
+    },
+  } as ChemDrawObject;
+}
+
+/**
+ * Bring to Front / Send to Back (ChemDraw F2 / F3). A selected atom or bond brings its whole
+ * fragment, atoms and bonds included, since a structure is drawn as one. The objects keep their
+ * order among themselves and move to the end (front) or start (back) of the page, which is the
+ * scene's draw order. When the document uses CDXML `Z` -- ChemDraw orders by it, and our writer
+ * groups objects by type, so it is the only cross-type order a saved file keeps -- the moved
+ * objects get Z values past every other object's.
+ */
+export function reorderSelectedObjects(
+  document: ChemDrawDocument,
+  ids: Iterable<string>,
+  direction: 'front' | 'back',
+): ChemDrawDocument {
+  const objects = clonePageObjects(document);
+  if (!objects) return document;
+  const wanted = new Set(ids);
+  const moving = new Set<string>();
+  for (const object of objects) {
+    if (object.type !== 'fragment') continue;
+    const members = [...object.nodeIds, ...object.bondIds];
+    if (wanted.has(object.id) || members.some((id) => wanted.has(id))) {
+      moving.add(object.id);
+      members.forEach((id) => moving.add(id));
+    }
+  }
+  for (const object of objects) {
+    if (wanted.has(object.id) && object.type !== 'fragment') moving.add(object.id);
+  }
+  if (moving.size === 0 || moving.size === objects.length) return document;
+  const moved = objects.filter((object) => moving.has(object.id));
+  const rest = objects.filter((object) => !moving.has(object.id));
+  let next = direction === 'front' ? [...rest, ...moved] : [...moved, ...rest];
+
+  const restZ = rest.map(readObjectZ).filter((z): z is number => z != null);
+  if (restZ.length > 0 || moved.some((object) => readObjectZ(object) != null)) {
+    if (direction === 'front') {
+      let z = Math.max(0, ...restZ);
+      next = next.map((object) => (moving.has(object.id) ? writeObjectZ(object, ++z) : object));
+    } else {
+      // Moved objects take 1..k; everything that carried a Z shifts up by k to stay behind none.
+      const k = moved.length;
+      let z = 0;
+      next = next.map((object) => {
+        if (moving.has(object.id)) return writeObjectZ(object, ++z);
+        const current = readObjectZ(object);
+        return current != null ? writeObjectZ(object, current + k) : object;
+      });
+    }
+  }
+  return commitObjects(document, next);
+}
+
+/**
+ * Object > Center on Page: the offset that puts the centre of the selection's box at the centre of
+ * the page area (all tiles of a multi-page layout). Null when nothing selected has extent.
+ */
+export function getCenterOnPageOffset(
+  document: ChemDrawDocument,
+  ids: Iterable<string>,
+  page: { width: number; height: number },
+  documentStyleSettings: DocumentStyleSettings = DEFAULT_DOCUMENT_STYLE_SETTINGS,
+): { dx: number; dy: number } | null {
+  const bounds = getObjectsBounds(document, ids, documentStyleSettings);
+  if (!bounds) return null;
+  return {
+    dx: page.width / 2 - (bounds.left + bounds.right) / 2,
+    dy: page.height / 2 - (bounds.top + bounds.bottom) / 2,
+  };
+}
+
 export function rotateSelectedObjects(
   document: ChemDrawDocument,
   selectedObjectIds: Set<string>,

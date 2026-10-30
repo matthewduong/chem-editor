@@ -14,7 +14,11 @@ import type { ShapeKind } from './lib/shapeGesture';
 import { StructureDiagnostics } from './components/StructureDiagnostics';
 import { useDocumentLifecycle } from './hooks/useDocumentLifecycle';
 import { molblockToState, parseMolblockGeometry } from './lib/graph';
-import { canvasStateToChemDrawDocument, getObjectsBounds } from './lib/chemdrawModel';
+import {
+  canvasStateToChemDrawDocument,
+  getCenterOnPageOffset,
+  getObjectsBounds,
+} from './lib/chemdrawModel';
 import { createFrameObjects, type FrameKind } from './lib/shapeGesture';
 import { toggleCurveProperty, type CurveProperty } from './lib/curveGesture';
 import {
@@ -59,6 +63,8 @@ import {
   createRotateSelectionCommand,
   createScaleSelectionCommand,
   createUpsertObjectsCommand,
+  createMoveSelectionCommand,
+  createReorderSelectionCommand,
 } from './editor/commands';
 import {
   getChemDrawObjectCapability,
@@ -1159,6 +1165,35 @@ function App() {
     }
   }, [offPageContent, pageSetup.mode, showToast]);
 
+  /** Bring to Front / Send to Back for the selection. */
+  const reorderSelection = useCallback((direction: 'front' | 'back') => {
+    const state = useStore.getState();
+    if (!state.chemDrawDocument || state.selectedObjectIds.size === 0) return;
+    state.dispatchEditorCommand(
+      createReorderSelectionCommand(direction, { objectIds: state.selectedObjectIds }),
+    );
+  }, []);
+
+  /** Object > Center on Page; only a finite page has a centre. */
+  const centerSelectionOnPage = useCallback(() => {
+    const state = useStore.getState();
+    if (!state.chemDrawDocument || state.pageSetup.mode !== 'finite') return;
+    const { totalWidthPx, totalHeightPx } = getPageSetupDimensionsPx(state.pageSetup);
+    const offset = getCenterOnPageOffset(
+      state.chemDrawDocument,
+      state.selectedObjectIds,
+      { width: totalWidthPx, height: totalHeightPx },
+      state.documentStyleSettings,
+    );
+    if (!offset || (Math.abs(offset.dx) < 1e-9 && Math.abs(offset.dy) < 1e-9)) return;
+    state.dispatchEditorCommand(
+      createMoveSelectionCommand(offset, {
+        objectIds: state.selectedObjectIds,
+        description: 'center-on-page',
+      }),
+    );
+  }, []);
+
   /** Curve properties (ChemDraw's Curves menu), toggled on every selected curve. */
   const applyCurveProperty = useCallback((property: CurveProperty) => {
     const state = useStore.getState();
@@ -1986,6 +2021,18 @@ function App() {
         e.preventDefault();
         groupSelected();
       }
+      if (matches('app.arrange.bring-to-front')) {
+        e.preventDefault();
+        reorderSelection('front');
+      }
+      if (matches('app.arrange.send-to-back')) {
+        e.preventDefault();
+        reorderSelection('back');
+      }
+      if (matches('app.arrange.center-on-page')) {
+        e.preventDefault();
+        centerSelectionOnPage();
+      }
       if (matches('app.arrange.ungroup')) {
         e.preventDefault();
         ungroupSelected();
@@ -2030,6 +2077,8 @@ function App() {
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
   }, [
+    centerSelectionOnPage,
+    reorderSelection,
     handleNewDocument,
     handleSaveNative,
     handleSaveAsNative,
@@ -3545,6 +3594,33 @@ function App() {
                   shortcut="Ctrl+Shift+G"
                 >
                   Ungroup
+                </MenuItem>
+                <MenuItem
+                  onClick={() => {
+                    reorderSelection('front');
+                    setIsEditDropdownOpen(false);
+                  }}
+                  shortcut="F2"
+                >
+                  Bring to Front
+                </MenuItem>
+                <MenuItem
+                  onClick={() => {
+                    reorderSelection('back');
+                    setIsEditDropdownOpen(false);
+                  }}
+                  shortcut="F3"
+                >
+                  Send to Back
+                </MenuItem>
+                <MenuItem
+                  onClick={() => {
+                    centerSelectionOnPage();
+                    setIsEditDropdownOpen(false);
+                  }}
+                  shortcut="Ctrl+Shift+C"
+                >
+                  Center on Page
                 </MenuItem>
                 <MenuSeparator />
                 <div
