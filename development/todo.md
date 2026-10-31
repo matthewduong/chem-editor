@@ -125,8 +125,9 @@ Done in Phase II (2026-10-30), with ChemDraw's keys (preferences version 11).
 
 - [x] **Copy As SMILES, InChI, InChIKey and molfile** — copy writes CDXML and PNG only · 16:
       The Clipboard, Text Line Notation
-- [ ] **More export formats** — direct PDF, EPS, EMF, TIFF, JPEG; today PNG and SVG, PDF via
-      print · 16: File Formats
+- [x] **JPEG export** — the PNG raster on its paper · 16: File Formats
+- [ ] **Direct PDF, EPS, EMF and TIFF export** — PDF via print only; no writer for these in the
+      app's dependencies (gaps.md) · 16: File Formats
 - [ ] **Drag out to other apps / OLE embedding** — absent · 16: Transferring / Embedding Objects
 - [ ] **CDX/CDXML file thumbnails** — absent · 2: Previewing CDX and CDXML Files
 

@@ -3272,8 +3272,9 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
     markInteractionIdle();
   };
 
-  const fileController = useCanvasDocumentController(resetStageView, () =>
+  const fileController = useCanvasDocumentController(resetStageView, (format) =>
     sceneSurfaceRef.current?.toDataURL({
+      format,
       pixelRatio: 3,
       width: finitePageMetrics?.totalWidthPx ?? width,
       height: finitePageMetrics?.totalHeightPx ?? height,

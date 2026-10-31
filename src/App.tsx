@@ -1796,12 +1796,16 @@ function App() {
     }
   }, [setIsFileDropdownOpen]);
 
-  const handleExport = async (format: 'png' | 'svg' | 'cdxml' | 'sdf' | 'mol' | 'rxn' | 'smi') => {
+  const handleExport = async (
+    format: 'png' | 'jpeg' | 'svg' | 'cdxml' | 'sdf' | 'mol' | 'rxn' | 'smi',
+  ) => {
     setIsFileDropdownOpen(false);
     setIsExportSubmenuOpen(false);
     try {
       if (format === 'png') {
         await canvasRef.current?.exportPNG();
+      } else if (format === 'jpeg') {
+        await canvasRef.current?.exportJPEG();
       } else if (format === 'svg') {
         await canvasRef.current?.exportSVG();
       } else if (format === 'cdxml') {
@@ -3738,6 +3742,7 @@ function App() {
                   {isExportSubmenuOpen && (
                     <MenuContent width={150}>
                       <MenuItem onClick={() => handleExport('png')}>PNG Image</MenuItem>
+                      <MenuItem onClick={() => handleExport('jpeg')}>JPEG Image</MenuItem>
                       <MenuItem onClick={() => handleExport('svg')}>SVG Vector</MenuItem>
                       <MenuSeparator />
                       <MenuItem onClick={() => handleExport('mol')}>Molfile (.mol)</MenuItem>

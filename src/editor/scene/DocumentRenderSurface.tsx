@@ -3,7 +3,9 @@ import type { DocumentSceneState, RenderSceneOptions } from './renderDocumentSce
 import { renderDocumentScene } from './renderDocumentScene';
 
 export interface DocumentRenderSurfaceRef {
-  toDataURL: (options?: Partial<RenderSceneOptions> & { pixelRatio?: number }) => string;
+  toDataURL: (
+    options?: Partial<RenderSceneOptions> & { pixelRatio?: number; format?: 'png' | 'jpeg' },
+  ) => string;
 }
 
 interface Props extends RenderSceneOptions {
@@ -74,7 +76,18 @@ export const DocumentRenderSurface = forwardRef<DocumentRenderSurfaceRef, Props>
             },
             options?.pixelRatio ?? 1,
           );
-          return canvas.toDataURL('image/png');
+          if (options?.format !== 'jpeg') return canvas.toDataURL('image/png');
+          // JPEG has no transparency: the drawing goes on its paper (the document's
+          // background, else white).
+          const paper = document.createElement('canvas');
+          paper.width = canvas.width;
+          paper.height = canvas.height;
+          const ctx = paper.getContext('2d');
+          if (!ctx) return canvas.toDataURL('image/jpeg', 0.92);
+          ctx.fillStyle = (exportScene ?? scene).backgroundColor ?? '#ffffff';
+          ctx.fillRect(0, 0, paper.width, paper.height);
+          ctx.drawImage(canvas, 0, 0);
+          return paper.toDataURL('image/jpeg', 0.92);
         },
       }),
       [height, scene, exportScene, stagePos, stageScale, width],

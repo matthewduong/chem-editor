@@ -11,8 +11,8 @@ import type { ChemCanvasRef } from '../types/canvas';
 
 export function useCanvasDocumentController(
   resetStageView: () => void,
-  exportPng: () => string | undefined,
-): Pick<ChemCanvasRef, 'saveNative' | 'loadNative' | 'exportPNG' | 'exportSVG'> {
+  exportPng: (format?: 'png' | 'jpeg') => string | undefined,
+): Pick<ChemCanvasRef, 'saveNative' | 'loadNative' | 'exportPNG' | 'exportJPEG' | 'exportSVG'> {
   const loadState = useRef({ serial: 0, controller: null as AbortController | null });
   useEffect(
     () => () => {
@@ -98,6 +98,22 @@ export function useCanvasDocumentController(
         });
       } catch (e) {
         useStore.getState().showToast('PNG export failed');
+        console.error(e);
+      }
+    },
+    exportJPEG: async () => {
+      try {
+        const d = exportPng('jpeg');
+        if (!d) return;
+        await saveBinaryWithDialog({
+          title: 'Export JPEG',
+          defaultPath: 'molecule.jpg',
+          name: 'JPEG Image',
+          extensions: ['jpg', 'jpeg'],
+          content: Uint8Array.from(atob(d.split(',')[1]), (c) => c.charCodeAt(0)),
+        });
+      } catch (e) {
+        useStore.getState().showToast('JPEG export failed');
         console.error(e);
       }
     },

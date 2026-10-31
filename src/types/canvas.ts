@@ -14,6 +14,8 @@ export interface ChemCanvasRef {
     path?: string | null,
   ) => Promise<boolean>;
   exportPNG: () => Promise<void>;
+  /** File > Export > JPEG: the drawing on its paper, as exported PNGs are drawn. */
+  exportJPEG: () => Promise<void>;
   exportSVG: () => Promise<void>;
   insertImage: (options: {
     bytes: Uint8Array;

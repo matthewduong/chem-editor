@@ -21,6 +21,7 @@ const mocks = vi.hoisted(() => ({
     saveNative: vi.fn(),
     loadNative: vi.fn(),
     exportPNG: vi.fn(),
+    exportJPEG: vi.fn(),
     exportSVG: vi.fn(),
     insertImage: vi.fn(),
     getMolblock: vi.fn(() => 'mock-molblock'),
@@ -185,6 +186,14 @@ describe('App', () => {
         prompt: false,
       });
     });
+  });
+
+  it('exports JPEG through the ChemCanvas ref', async () => {
+    render(<App />);
+    fireEvent.click(screen.getByText('File'));
+    fireEvent.mouseEnter(screen.getByText('Export As').closest('.ui-menu-submenu')!);
+    fireEvent.click(screen.getByText('JPEG Image'));
+    await waitFor(() => expect(mocks.chemCanvasHandle.exportJPEG).toHaveBeenCalled());
   });
 
   it('saves as a new CDXML path and updates document file state', async () => {
