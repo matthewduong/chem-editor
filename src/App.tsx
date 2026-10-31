@@ -71,6 +71,7 @@ import { useRDKit } from './hooks/useRDKit';
 import { useToolPaletteManager } from './hooks/useToolPaletteManager';
 import { useStore, commitCanvasEdit } from './store';
 import { usePreferenceSync } from './hooks/usePreferenceSync';
+import { useStartupDocument } from './hooks/useStartupDocument';
 import './App.css';
 import { stateToCDXML, cdxmlToState, chemDrawDocumentToCDXML } from './utils/cdxml';
 import type { ChemDrawDocument } from './types/chemdraw';
@@ -1771,6 +1772,8 @@ function App() {
     setIsFileDropdownOpen(false);
     await saveDocument(true);
   }, [saveDocument, setIsFileDropdownOpen]);
+
+  useStartupDocument(loadChemicalFile);
 
   const handleOpenRecent = useCallback(
     async (filePath: string) => {

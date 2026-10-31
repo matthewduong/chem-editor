@@ -35,6 +35,38 @@ pub(crate) fn atomic_write_file(path: String, contents: Vec<u8>) -> Result<(), S
     atomic_write(Path::new(&path), &contents).map_err(|error| error.to_string())
 }
 
+/// The CDXML file the app was started on (`ChemEditor.exe drawing.cdxml`, "Open with", or the
+/// OLE server's open editing): the first argument that is not a flag and names a `.cdxml` file.
+pub(crate) fn document_path_from_args<I: IntoIterator<Item = String>>(args: I) -> Option<String> {
+    args.into_iter().skip(1).find(|arg| {
+        !arg.starts_with('-')
+            && Path::new(arg)
+                .extension()
+                .is_some_and(|extension| extension.eq_ignore_ascii_case("cdxml"))
+    })
+}
+
+#[derive(serde::Serialize)]
+pub(crate) struct StartupDocument {
+    path: String,
+    content: String,
+}
+
+/// The startup document's path and contents, for the main window to open; read here so a path
+/// outside the file-system plugin's scopes still opens. Later windows start empty.
+#[tauri::command]
+#[allow(clippy::needless_pass_by_value)]
+pub(crate) fn startup_document(window: tauri::Window) -> Result<Option<StartupDocument>, String> {
+    if window.label() != "main" {
+        return Ok(None);
+    }
+    let Some(path) = document_path_from_args(std::env::args()) else {
+        return Ok(None);
+    };
+    let content = fs::read_to_string(&path).map_err(|e| format!("{path}: {e}"))?;
+    Ok(Some(StartupDocument { path, content }))
+}
+
 /// Each window keeps its own recovery snapshot: the main window the original `recovery.json`,
 /// a document window `recovery-<label>.json`, its label reduced to `[a-z0-9-]`.
 pub(crate) fn recovery_file_name(window_label: &str) -> String {
@@ -96,6 +128,25 @@ pub(crate) fn save_document_recovery(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn the_startup_document_is_the_first_cdxml_argument() {
+        let args = |list: &[&str]| list.iter().map(ToString::to_string).collect::<Vec<_>>();
+        assert_eq!(
+            document_path_from_args(args(&[
+                "ChemEditor",
+                "-Embedding",
+                "C:/t/a.CDXML",
+                "b.cdxml"
+            ])),
+            Some("C:/t/a.CDXML".to_string())
+        );
+        assert_eq!(
+            document_path_from_args(args(&["ChemEditor", "notes.txt"])),
+            None
+        );
+        assert_eq!(document_path_from_args(args(&["ChemEditor"])), None);
+    }
 
     #[test]
     fn each_window_has_its_own_recovery_file() {

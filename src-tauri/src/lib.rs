@@ -945,6 +945,7 @@ pub fn run() {
             document_files::finish_document_quit,
             document_files::load_document_recovery,
             document_files::save_document_recovery,
+            document_files::startup_document,
             generate_conformers,
             parse_chemical_file,
             export_chemical_file,

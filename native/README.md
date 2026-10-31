@@ -39,7 +39,7 @@ offered.
    compiled, and the `windows` 0.58 signatures will need checking.
 2. Put `chem-editor-ole.exe` next to `ChemEditor.exe`, edit and import `register.reg`.
 3. Check in Word: Insert > Object > ChemEditor Drawing; double-click to edit; save, reopen.
-4. Open questions: ChemEditor.exe must open a path given on its command line and save back to
-   it (today it opens files from its own dialog); Copy from ChemEditor does not yet put an
+4. ChemEditor opens a `.cdxml` path given on its command line and saves back to it (the
+   `startup_document` command, Rust- and UI-tested). Open questions: Copy from ChemEditor does not yet put an
    embeddable object on the clipboard (`OleSetClipboard`), so objects are created from Insert >
    Object only; the server registers through the installer rather than a `.reg` file.
