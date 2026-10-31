@@ -8,16 +8,16 @@ Source of ChemDraw behaviour: the ChemDraw 17.1 User Guide (chapter and section 
 ChemDraw's own files (the `chemdraw_template*.cdxml` set in RDKit's test data), and
 `pnpm test:chemdraw:mac` where a measurement is needed.
 
-| Phase | Theme                               | Status                 |
-| ----- | ----------------------------------- | ---------------------- |
-| I     | Graphics foundation and shape tools | **done 2026-10-29**    |
-| II    | Selection and arrange               | **done 2026-10-30**    |
-| III   | Annotations, bonds and labels       | **done 2026-10-30**    |
-| IV    | Stereo, numbering and analysis      | **done 2026-10-30**    |
-| V     | Reactions                           | **done 2026-10-30**    |
-| VI    | Query structures                    | **done 2026-10-30**    |
-| VII   | Document, output and app shell      | **ready** (plan below) |
-| VIII  | Naming                              |                        |
+| Phase | Theme                               | Status                      |
+| ----- | ----------------------------------- | --------------------------- |
+| I     | Graphics foundation and shape tools | **done 2026-10-29**         |
+| II    | Selection and arrange               | **done 2026-10-30**         |
+| III   | Annotations, bonds and labels       | **done 2026-10-30**         |
+| IV    | Stereo, numbering and analysis      | **done 2026-10-30**         |
+| V     | Reactions                           | **done 2026-10-30**         |
+| VI    | Query structures                    | **done 2026-10-30**         |
+| VII   | Document, output and app shell      | **partly done 2026-10-31**  |
+| VIII  | Naming                              | **needs decisions** (below) |
 
 ## Phase I — done
 
@@ -388,3 +388,39 @@ EMF/EPS through the sidecar if a library allows, else recorded as gaps.
 **VII.10 Drag out / OLE, and thumbnails.** Drag a selection out as CDXML+PNG; OLE and OS
 thumbnails are platform work, likely partial (gaps).
 **VII.11 Ready Phase VIII.**
+
+Phase VII state 2026-10-31. Done: drawing settings UI, document background, saved colour palette,
+Document Properties, Export Border, Copy As SMILES/InChI/InChIKey/molfile (V3000 with enhanced
+stereo), Save Files Every N minutes, Print Preview and scaling, JPEG export. Open, each with its
+reason in gaps.md:
+
+- Print margins: the finite page is the drawing area; margins redefine page coordinates.
+- Direct PDF/EPS/EMF/TIFF: no writer among the dependencies; adding one (a Rust crate behind a
+  Tauri command, or the sidecar) is a dependency decision, and `pnpm install` cannot run in the
+  phase worktree.
+- Multiple open documents: one Tauri window per document (the single store and history make
+  in-window tabs a rewrite). Needs a capability entry in `src-tauri/capabilities/` for the new
+  window labels, a recovery snapshot per window (today one shared snapshot), and preferences
+  merged on write so two windows do not overwrite each other's nicknames. Cannot be exercised in
+  `pnpm dev:web`; needs `pnpm dev` and `cargo clippy`/`cargo test`.
+- Drag out / OLE / thumbnails: OLE is Windows COM and thumbnails are OS extensions; drag-out is
+  worth one try with plain HTML5 drag data from the webview, which could not be tested here.
+
+## Phase VIII — naming (needs the user's decisions)
+
+What exists: no naming code. Name>Struct is the fixed acronym dictionary in `shorthand.ts` and
+`compounds.ts`. RDKit (wasm and the sidecar's Python) has no IUPAC namer.
+
+Options, none taken:
+
+1. **Name>Struct with OPSIN** (MIT, Java). Sound and widely used. Needs a JVM at run time: either
+   bundle a JRE with the sidecar (large) or require Java. This machine has Java but no OPSIN jar.
+2. **Struct>Name**: no open, offline IUPAC namer of ChemDraw's quality exists. ML namers (STOUT)
+   are heavy and wrong often enough that their names should not be presented as fidelity.
+3. **A web service** (PubChem, NCI CACTUS) would name and parse well, but sends structures off the
+   machine. The documents this app is used for include unpublished pharma work, so whether that is
+   acceptable, opt-in or never is for the user to decide.
+
+Not done on purpose: a hand-written namer (wrong names are worse than none) and any network call.
+When a choice is made: Name>Struct goes through the sidecar (`opsin` command), Struct>Name per
+the option chosen, both behind Structure menu items with a clear "unavailable" state.
