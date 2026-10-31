@@ -109,7 +109,7 @@ Done in Phase II (2026-10-30), with ChemDraw's keys (preferences version 11).
       only · 4: Formatting Captions, Specifying Line Spacing
 - [x] **Document background colour** — was fixed by theme; now CDXML `bgcolor`, set in
       Document Properties · 4: Working with Color
-- [ ] **A saved colour palette** — native colour pickers only · 4: Working with Color
+- [x] **A saved colour palette** — native colour pickers only · 4: Working with Color
 
 ## View and document
 

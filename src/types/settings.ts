@@ -175,6 +175,8 @@ export interface AppPreferences {
   exportBorder: number;
   /** Save the open file every this many minutes; 0 is off (`autosave.ts`). */
   autosaveMinutes: number;
+  /** Saved colours offered by the drawing colour pickers (`colorPalette.ts`). */
+  colorPalette: string[];
 }
 
 export interface UserNickname {

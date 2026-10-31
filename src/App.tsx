@@ -18,6 +18,7 @@ import { registerUserNicknames } from './lib/aliasChemistry';
 import { selectionToRootedSmiles } from './lib/nicknames';
 import { expandGenericStructures } from './lib/rGroupEnumeration';
 import type { StructureTextFormat } from './lib/structureText';
+import { CHEMDRAW_DEFAULT_COLORS, PALETTE_DATALIST_ID } from './lib/colorPalette';
 import { convertCanvasToNative, convertNativeToCanvas } from './lib/chemdrawMetrics';
 import { CharacterMapPanel } from './components/CharacterMapPanel';
 import { commitChainOfLength } from './tools/useChainTool';
@@ -5132,6 +5133,7 @@ function App() {
                   <span style={{ fontSize: 11, color: theme.text }}>Color</span>
                   <input
                     type="color"
+                    list={PALETTE_DATALIST_ID}
                     value={textFormat.color}
                     onChange={(ev) => {
                       const c = ev.target.value;
@@ -6211,6 +6213,12 @@ function App() {
         isDarkMode={isDarkMode}
       />
 
+      {/* The saved palette and ChemDraw's defaults, suggested by every drawing colour picker. */}
+      <datalist id={PALETTE_DATALIST_ID}>
+        {[...appPreferences.colorPalette, ...CHEMDRAW_DEFAULT_COLORS].map((color) => (
+          <option key={color} value={color} />
+        ))}
+      </datalist>
       {isDocumentPropertiesOpen && (
         <DocumentPropertiesDialog
           theme={theme}

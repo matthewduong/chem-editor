@@ -7,6 +7,7 @@ import {
   setDocumentProperties,
   type EditableDocumentProperty,
 } from '../lib/documentProperties';
+import { PALETTE_DATALIST_ID } from '../lib/colorPalette';
 import { useStore } from '../store';
 import { FloatingPanel } from './FloatingPanel';
 
@@ -107,6 +108,7 @@ export function DocumentPropertiesDialog({
           <span style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
             <input
               type="color"
+              list={PALETTE_DATALIST_ID}
               aria-label="Background"
               value={document?.metadata?.backgroundColor ?? '#ffffff'}
               onChange={(event) => setBackground(event.target.value)}

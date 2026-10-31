@@ -1,4 +1,5 @@
 import { type ClipboardEvent as ReactClipboardEvent } from 'react';
+import { PALETTE_DATALIST_ID } from '../lib/colorPalette';
 import { resolveAliasChemistry } from '../lib/aliasChemistry';
 import { getOrientationPreviewLabel } from '../lib/atomLabelPresentation';
 import { aliasResolutionMessage } from '../lib/canvasChemistry';
@@ -613,6 +614,7 @@ export function CanvasTextEditors({
               <div style={{ fontSize: 11, color: '#888' }}>Color</div>
               <input
                 type="color"
+                list={PALETTE_DATALIST_ID}
                 value={editingAtomLabel.color}
                 onChange={(ev) =>
                   setEditingAtomLabel((prev) =>
@@ -813,6 +815,7 @@ export function CanvasTextEditors({
               <div style={{ fontSize: 11, color: '#888' }}>Color</div>
               <input
                 type="color"
+                list={PALETTE_DATALIST_ID}
                 value={editingArrowStyle.color}
                 onChange={(ev) =>
                   setEditingArrowStyle((prev) =>
@@ -1039,6 +1042,7 @@ export function CanvasTextEditors({
               <div style={{ fontSize: 11, color: '#888' }}>Color</div>
               <input
                 type="color"
+                list={PALETTE_DATALIST_ID}
                 value={editingBondStyle.color}
                 onChange={(ev) =>
                   setEditingBondStyle((prev) => (prev ? { ...prev, color: ev.target.value } : null))
@@ -1393,6 +1397,7 @@ export function CanvasTextEditors({
               <div style={{ fontSize: 11, color: '#888' }}>Color</div>
               <input
                 type="color"
+                list={PALETTE_DATALIST_ID}
                 value={editingArrowLabels.color || (isDarkMode ? '#ffffff' : '#000000')}
                 onChange={(ev) =>
                   setEditingArrowLabels((prev) =>

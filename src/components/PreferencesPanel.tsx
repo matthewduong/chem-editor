@@ -16,6 +16,7 @@ import type {
 import { SelectMenu } from './SelectMenu';
 import type { AppTheme } from './ViewerPanel';
 import { DeferredNumberInput } from './DeferredNumberInput';
+import { addPaletteColor } from '../lib/colorPalette';
 import { FloatingPanel } from './FloatingPanel';
 import { KeybindingsPanel } from './KeybindingsPanel';
 
@@ -746,6 +747,46 @@ export function PreferencesPanel({
           )}
           {preferencesTab === 'colors' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div style={{ fontSize: '12px', color: theme.text }}>
+                Saved Palette
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 4 }}>
+                  {appPreferences.colorPalette.map((color) => (
+                    <button
+                      key={color}
+                      type="button"
+                      title={`Remove ${color}`}
+                      aria-label={`Remove ${color}`}
+                      onClick={() =>
+                        setAppPreferences({
+                          ...appPreferences,
+                          colorPalette: appPreferences.colorPalette.filter((c) => c !== color),
+                        })
+                      }
+                      style={{
+                        width: 22,
+                        height: 22,
+                        background: color,
+                        border: `1px solid ${theme.border}`,
+                        borderRadius: 3,
+                        cursor: 'pointer',
+                      }}
+                    />
+                  ))}
+                  <input
+                    type="color"
+                    aria-label="Add a palette colour"
+                    title="Add a colour to the palette"
+                    defaultValue="#336699"
+                    onChange={(e) =>
+                      setAppPreferences({
+                        ...appPreferences,
+                        colorPalette: addPaletteColor(appPreferences.colorPalette, e.target.value),
+                      })
+                    }
+                    style={{ width: 28, height: 24, padding: 0 }}
+                  />
+                </div>
+              </div>
               <div
                 style={{
                   display: 'grid',
