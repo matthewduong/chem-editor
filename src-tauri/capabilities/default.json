@@ -1,9 +1,15 @@
 {
   "identifier": "default",
-  "description": "Capability for the main window",
-  "windows": ["main"],
+  "description": "Capability for the main window and the document windows File > New Window opens",
+  "windows": [
+    "main",
+    "document-*"
+  ],
   "permissions": [
     "core:default",
+    "core:event:allow-listen",
+    "core:event:allow-emit",
+    "core:webview:allow-create-webview-window",
     "core:window:allow-minimize",
     "core:window:allow-toggle-maximize",
     "core:window:allow-close",
@@ -27,7 +33,14 @@
     "fs:scope-temp-recursive",
     {
       "identifier": "fs:scope",
-      "allow": [{ "path": "$PICTURE/**/*" }, { "path": "$PUBLIC/**/*" }]
+      "allow": [
+        {
+          "path": "$PICTURE/**/*"
+        },
+        {
+          "path": "$PUBLIC/**/*"
+        }
+      ]
     }
   ]
 }

@@ -1,3 +1,4 @@
+import { isTauri } from '@tauri-apps/api/core';
 import {
   BondIcon,
   ChainIcon,
@@ -68,6 +69,7 @@ import { ArrowType } from './types/chemistry';
 import { useRDKit } from './hooks/useRDKit';
 import { useToolPaletteManager } from './hooks/useToolPaletteManager';
 import { useStore, commitCanvasEdit } from './store';
+import { usePreferenceSync } from './hooks/usePreferenceSync';
 import './App.css';
 import { stateToCDXML, cdxmlToState, chemDrawDocumentToCDXML } from './utils/cdxml';
 import type { ChemDrawDocument } from './types/chemdraw';
@@ -129,6 +131,7 @@ import { getRingPresetLabel, type RingPreset } from './lib/ringTemplates';
 import {
   getCurrentAppWindow,
   invokeTauri,
+  openDocumentWindow,
   readClipboardText,
   writeClipboardText,
   type AppWindowTheme,
@@ -558,6 +561,7 @@ function App() {
   const showHydrogens = useStore((s) => s.showHydrogens);
   const appPreferences = useStore((s) => s.appPreferences);
   const showReactionRoles = useStore((s) => s.showReactionRoles);
+  usePreferenceSync();
   // The user's nicknames are labels like the built-in ones everywhere a label is read.
   useEffect(() => {
     registerUserNicknames(
@@ -3811,6 +3815,15 @@ function App() {
                   }}
                 >
                   Print Preview…
+                </MenuItem>
+                <MenuItem
+                  onClick={() => {
+                    setIsFileDropdownOpen(false);
+                    if (isTauri()) openDocumentWindow();
+                    else showToast('New windows open in the desktop app.', 'info');
+                  }}
+                >
+                  New Window
                 </MenuItem>
                 <MenuItem
                   onClick={() => {

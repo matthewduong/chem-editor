@@ -100,7 +100,7 @@ Done in Phase II (2026-10-30), with ChemDraw's keys (preferences version 11).
 - [x] **Print preview and print scaling** — File > Print Preview, scale 25-400% · 3: Printing
 - [x] **Print margins** — each page's drawing fitted inside the paper margins (Print Preview)
       · 3: Page Setup
-- [ ] **Multiple open documents** — one document per window · 2: Documents
+- [x] **Multiple open documents** — File > New Window, one document per window · 2: Documents
 
 ## Document settings
 

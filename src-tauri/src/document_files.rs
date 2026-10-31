@@ -35,14 +35,36 @@ pub(crate) fn atomic_write_file(path: String, contents: Vec<u8>) -> Result<(), S
     atomic_write(Path::new(&path), &contents).map_err(|error| error.to_string())
 }
 
+/// Each window keeps its own recovery snapshot: the main window the original `recovery.json`,
+/// a document window `recovery-<label>.json`, its label reduced to `[a-z0-9-]`.
+pub(crate) fn recovery_file_name(window_label: &str) -> String {
+    if window_label == "main" {
+        return "recovery.json".to_string();
+    }
+    let safe: String = window_label
+        .chars()
+        .map(|c| {
+            if c.is_ascii_alphanumeric() || c == '-' {
+                c.to_ascii_lowercase()
+            } else {
+                '-'
+            }
+        })
+        .collect();
+    format!("recovery-{safe}.json")
+}
+
 #[tauri::command]
 #[allow(clippy::needless_pass_by_value)]
-pub(crate) fn load_document_recovery(app: tauri::AppHandle) -> Result<Option<String>, String> {
+pub(crate) fn load_document_recovery(
+    app: tauri::AppHandle,
+    window: tauri::Window,
+) -> Result<Option<String>, String> {
     let path = app
         .path()
         .app_data_dir()
         .map_err(|e| e.to_string())?
-        .join("recovery.json");
+        .join(recovery_file_name(window.label()));
     match fs::read_to_string(path) {
         Ok(contents) => Ok(Some(contents)),
         Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(None),
@@ -54,11 +76,12 @@ pub(crate) fn load_document_recovery(app: tauri::AppHandle) -> Result<Option<Str
 #[allow(clippy::needless_pass_by_value)]
 pub(crate) fn save_document_recovery(
     app: tauri::AppHandle,
+    window: tauri::Window,
     contents: Option<String>,
 ) -> Result<(), String> {
     let directory = app.path().app_data_dir().map_err(|e| e.to_string())?;
     fs::create_dir_all(&directory).map_err(|e| e.to_string())?;
-    let path = directory.join("recovery.json");
+    let path = directory.join(recovery_file_name(window.label()));
     if let Some(contents) = contents {
         atomic_write(&path, contents.as_bytes()).map_err(|e| e.to_string())
     } else {
@@ -73,6 +96,13 @@ pub(crate) fn save_document_recovery(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn each_window_has_its_own_recovery_file() {
+        assert_eq!(recovery_file_name("main"), "recovery.json");
+        assert_eq!(recovery_file_name("document-2"), "recovery-document-2.json");
+        assert_eq!(recovery_file_name("../Evil/x"), "recovery----evil-x.json");
+    }
 
     #[test]
     fn replaces_existing_file_and_creates_new_file() {

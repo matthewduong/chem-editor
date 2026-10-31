@@ -1,4 +1,6 @@
+import { isTauri } from '@tauri-apps/api/core';
 import { create } from 'zustand';
+import { broadcastTauri, currentWindowLabel } from '../lib/tauri';
 import { createProjectionEditCommand } from '../editor/commands/projectionEdit';
 import type {
   Atom,
@@ -97,7 +99,19 @@ function persistPreferences(appPreferences: AppPreferences) {
   void saveAppPreferences(appPreferences).catch(() => {
     /* intentional */
   });
+  // Other document windows adopt the change, so none of them later saves a stale copy over it.
+  if (isTauri()) {
+    void broadcastTauri(PREFERENCES_CHANGED_EVENT, {
+      source: currentWindowLabel(),
+      preferences: appPreferences,
+    }).catch(() => {
+      /* intentional */
+    });
+  }
 }
+
+/** Sent by the window that changed preferences; see `persistPreferences`. */
+export const PREFERENCES_CHANGED_EVENT = 'chem-editor://preferences-changed';
 
 export function getDisplayNameForFilePath(path: string | null | undefined): string {
   if (!path) return 'Untitled';
