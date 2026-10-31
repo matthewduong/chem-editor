@@ -1,0 +1,27 @@
+# UNBUILT: written on Linux, never compiled. Build and test on Windows (../README.md).
+[package]
+name = "chem-editor-ole"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[[bin]]
+name = "chem-editor-ole"
+path = "src/main.rs"
+
+[dependencies]
+windows-core = "0.58"
+windows = { version = "0.58", features = [
+  "implement",
+  "Win32_Foundation",
+  "Win32_Graphics_Gdi",
+  "Win32_Graphics_Imaging",
+  "Win32_System_Com",
+  "Win32_System_Com_StructuredStorage",
+  "Win32_System_Ole",
+  "Win32_System_Memory",
+  "Win32_System_SystemServices",
+  "Win32_UI_WindowsAndMessaging",
+] }
+
+[workspace]

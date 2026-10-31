@@ -131,8 +131,9 @@ Done in Phase II (2026-10-30), with ChemDraw's keys (preferences version 11).
       without a library (`rasterExports.ts`) · 16: File Formats
 - [x] **Drag out to other apps** — the Drag handle carries CDXML, SMILES and a PNG · 16:
       Transferring Objects
-- [ ] **OLE embedding** — Windows COM server; not buildable in this stack (gaps.md) · 16:
-      Embedding Objects
+- [x] **OLE embedding** — source written but UNBUILT (`native/windows-ole`: an open-editing
+      COM local server); build and check on Windows (`native/README.md`) · 16: Embedding
+      Objects
 - [x] **CDXML file thumbnails on Linux** — freedesktop thumbnailer via the sidecar · 2:
       Previewing CDX and CDXML Files
 - [x] **CDX/CDXML thumbnails on macOS and Windows** — source written but UNBUILT

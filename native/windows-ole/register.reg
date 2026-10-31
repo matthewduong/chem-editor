@@ -1,0 +1,28 @@
+Windows Registry Editor Version 5.00
+; UNTESTED. Registers ChemEditor.Document as an insertable OLE object for the current user.
+; Replace the path with the installed chem-editor-ole.exe (next to ChemEditor.exe).
+
+[HKEY_CURRENT_USER\Software\Classes\ChemEditor.Document]
+@="ChemEditor Drawing"
+
+[HKEY_CURRENT_USER\Software\Classes\ChemEditor.Document\CLSID]
+@="{3B7C9E21-58A4-4F0D-B2C6-7E1D94A5C803}"
+
+[HKEY_CURRENT_USER\Software\Classes\ChemEditor.Document\Insertable]
+
+[HKEY_CURRENT_USER\Software\Classes\CLSID\{3B7C9E21-58A4-4F0D-B2C6-7E1D94A5C803}]
+@="ChemEditor Drawing"
+
+[HKEY_CURRENT_USER\Software\Classes\CLSID\{3B7C9E21-58A4-4F0D-B2C6-7E1D94A5C803}\LocalServer32]
+@="C:\\Program Files\\ChemEditor\\chem-editor-ole.exe -Embedding"
+
+[HKEY_CURRENT_USER\Software\Classes\CLSID\{3B7C9E21-58A4-4F0D-B2C6-7E1D94A5C803}\ProgID]
+@="ChemEditor.Document"
+
+[HKEY_CURRENT_USER\Software\Classes\CLSID\{3B7C9E21-58A4-4F0D-B2C6-7E1D94A5C803}\Insertable]
+
+[HKEY_CURRENT_USER\Software\Classes\CLSID\{3B7C9E21-58A4-4F0D-B2C6-7E1D94A5C803}\Verb\0]
+@="&Edit,0,2"
+
+[HKEY_CURRENT_USER\Software\Classes\CLSID\{3B7C9E21-58A4-4F0D-B2C6-7E1D94A5C803}\MiscStatus]
+@="0"

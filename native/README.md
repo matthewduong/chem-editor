@@ -26,9 +26,20 @@ Both render through the sidecar's `chem-engine thumbnail INPUT OUTPUT SIZE` comm
 3. Check a folder of `.cdxml` files in large-icon view.
 4. Then register it from the NSIS/WiX installer hooks instead of the `.reg` file.
 
-## OLE embedding: not written
+## Windows: OLE embedding (`windows-ole/`)
 
-An embeddable, editable object in Word or PowerPoint needs a COM local server implementing
-`IOleObject`, `IDataObject`, `IPersistStorage` and in-place activation, registered by the
-installer. That is a separate native application, not a few hundred lines; it is left for a
-Windows machine where it can be built and tested.
+`chem-editor-ole.exe` is a COM local server for `ChemEditor.Document`, with open editing only
+(as ChemDraw's objects open in ChemDraw): the embedded object's storage holds its CDXML (stream
+`CDXML`); the container's picture is a DIB of the sidecar's rendering, decoded with WIC;
+double-clicking writes the CDXML to a temporary file, runs `ChemEditor.exe` on it, waits for it
+to close, reads the edits back, and asks the container to save. In-place activation is not
+offered.
+
+1. `cargo build --release` in `native/windows-ole` on Windows (MSVC); this has never been
+   compiled, and the `windows` 0.58 signatures will need checking.
+2. Put `chem-editor-ole.exe` next to `ChemEditor.exe`, edit and import `register.reg`.
+3. Check in Word: Insert > Object > ChemEditor Drawing; double-click to edit; save, reopen.
+4. Open questions: ChemEditor.exe must open a path given on its command line and save back to
+   it (today it opens files from its own dialog); Copy from ChemEditor does not yet put an
+   embeddable object on the clipboard (`OleSetClipboard`), so objects are created from Insert >
+   Object only; the server registers through the installer rather than a `.reg` file.
