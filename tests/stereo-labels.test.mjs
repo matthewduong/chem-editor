@@ -85,3 +85,24 @@ test("Show Stereochemistry is the file's ShowAtomStereo / ShowBondStereo", async
   assert.match(xml, /ShowAtomStereo="yes"/);
   assert.match(xml, /ShowBondStereo="yes"/);
 });
+
+test('an SVG export takes its margin as an option', async () => {
+  const { generateCanvasSVGWithContext } = await import('../.unit-test-dist/src/lib/svgExport.js');
+  const { DEFAULT_DOCUMENT_STYLE_SETTINGS, DEFAULT_DOCUMENT_VIEW_SETTINGS } =
+    await import('../.unit-test-dist/src/lib/settings.js');
+  const svg = (padding) =>
+    generateCanvasSVGWithContext(
+      [atom('a', 'C', 0, 0), atom('b', 'C', 30, 0)],
+      [{ id: 'ab', from: 'a', to: 'b', order: 1 }],
+      [],
+      {
+        chemDrawDocument: null,
+        documentStyleSettings: DEFAULT_DOCUMENT_STYLE_SETTINGS,
+        documentViewSettings: DEFAULT_DOCUMENT_VIEW_SETTINGS,
+        isDarkMode: false,
+        ...(padding != null ? { padding } : {}),
+      },
+    );
+  const width = (text) => Number(/width="([\d.]+)"/.exec(text)[1]);
+  assert.equal(width(svg(10)) + 60, width(svg()));
+});

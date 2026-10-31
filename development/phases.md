@@ -15,8 +15,8 @@ ChemDraw's own files (the `chemdraw_template*.cdxml` set in RDKit's test data), 
 | III   | Annotations, bonds and labels       | **done 2026-10-30**    |
 | IV    | Stereo, numbering and analysis      | **done 2026-10-30**    |
 | V     | Reactions                           | **done 2026-10-30**    |
-| VI    | Query structures                    | **ready** (plan below) |
-| VII   | Document, output and app shell      |                        |
+| VI    | Query structures                    | **done 2026-10-30**    |
+| VII   | Document, output and app shell      | **ready** (plan below) |
 | VIII  | Naming                              |                        |
 
 ## Phase I — done
@@ -347,3 +347,44 @@ combinations into new structures on the page, each member bonded at the R's atta
 ### To probe on mac
 
 - Query indicator text and placement; how an altgroup frame draws; the enumerated layout.
+
+Phase VI done 2026-10-30: typed generic labels as ChemDraw writes them, atom and bond query
+properties modelled and edited, R-group definitions read (and no longer written twice), Expand
+Generic Structure. R-logic is kept raw, neither applied nor edited (gaps.md).
+
+## Phase VII — document, output and app shell
+
+What exists: SVG/PNG export through the one scene renderer (`svgExport.ts`, margin now the
+`padding` option, default `DEFAULT_EXPORT_PADDING`); printing is `window.print()` (`App.tsx`);
+a recovery snapshot (`documentRecovery.ts`, `useDocumentLifecycle.tsx`) but no autosave to the
+open file; Copy writes CDXML and PNG (`clipboard.ts`); the sidecar exports chemical files
+(`export_chemical_file`); RDKit-wasm offers `get_inchi`, `get_inchikey_for_inchi` and
+`get_v3Kmolblock`. One document per window. Drawing settings in Preferences lack bold width,
+margin width, hash spacing and bond spacing.
+
+### Groundwork landed in VI.4
+
+- `generateCanvasSVGWithContext` takes `padding`; the export border is no longer a constant.
+
+### Sub-steps, in order of dependency
+
+**VII.1 Drawing settings UI.** Bold width, margin width, hash spacing and bond spacing in
+Preferences > Drawing (the ACS metrics in `chemdrawMetrics.ts`), with live preview.
+**VII.2 Background colour and colour palette.** Document background (CDXML `bgcolor`, DTD) and
+a saved palette in preferences.
+**VII.3 Document properties.** A dialog for the document's metadata (`Name`, `Comment`,
+`CreationUserName`… the CDXML root attributes the DTD lists), kept on round trip.
+**VII.4 Export border preference.** A preference feeding `padding` to SVG, PNG and Copy.
+**VII.5 Copy As SMILES / InChI / InChIKey / molfile.** From RDKit for the selection (or
+document); molfile as V3000 when enhanced stereo is present (`MDLV30/STEABS|STERAC|STEREL`,
+counts-line chiral flag), closing Phase IV's gap.
+**VII.6 Autosave to the open file.** Opt-in interval save to the open path (never a failed
+import's source), beside the recovery snapshot.
+**VII.7 Print preview, scaling and margins.** A preview of the printed pages from the scene
+renderer with scale and margins from page setup.
+**VII.8 More export formats.** PDF (vector, from the SVG), JPEG and TIFF (from the PNG path);
+EMF/EPS through the sidecar if a library allows, else recorded as gaps.
+**VII.9 Multiple open documents.** Tabs or windows, each with its own store slice.
+**VII.10 Drag out / OLE, and thumbnails.** Drag a selection out as CDXML+PNG; OLE and OS
+thumbnails are platform work, likely partial (gaps).
+**VII.11 Ready Phase VIII.**

@@ -28,8 +28,11 @@ import {
  * document's settings are read by `svgExportFromStore.ts` instead.
  */
 
-/** Margin around the drawing when there is no finite page to size against. */
-const CONTENT_PADDING = 40;
+/**
+ * Default margin around the drawing when there is no finite page to size against; an export
+ * may ask for another (the Export Border preference, Phase VII).
+ */
+export const DEFAULT_EXPORT_PADDING = 40;
 
 /** Shown when a document has nothing to draw and no page to fall back on. */
 const EMPTY_EXPORT_SIZE = { width: 200, height: 150 };
@@ -93,7 +96,10 @@ function computeSceneContentBounds(scene: DocumentSceneState): ChemDrawBounds | 
  * exported page comparable to one printed by ChemDraw. Without a finite page there is no
  * authored canvas, so the drawing is framed with a fixed margin instead.
  */
-function resolveExportViewport(scene: DocumentSceneState): {
+function resolveExportViewport(
+  scene: DocumentSceneState,
+  padding: number,
+): {
   width: number;
   height: number;
   stagePos: { x: number; y: number };
@@ -112,14 +118,18 @@ function resolveExportViewport(scene: DocumentSceneState): {
     return { ...EMPTY_EXPORT_SIZE, stagePos: { x: 0, y: 0 } };
   }
   return {
-    width: bounds.right - bounds.left + CONTENT_PADDING * 2,
-    height: bounds.bottom - bounds.top + CONTENT_PADDING * 2,
-    stagePos: { x: CONTENT_PADDING - bounds.left, y: CONTENT_PADDING - bounds.top },
+    width: bounds.right - bounds.left + padding * 2,
+    height: bounds.bottom - bounds.top + padding * 2,
+    stagePos: { x: padding - bounds.left, y: padding - bounds.top },
   };
 }
 
-function renderSceneToSvg(scene: DocumentSceneState, transparent: boolean): string {
-  const { width, height, stagePos } = resolveExportViewport(scene);
+function renderSceneToSvg(
+  scene: DocumentSceneState,
+  transparent: boolean,
+  padding = DEFAULT_EXPORT_PADDING,
+): string {
+  const { width, height, stagePos } = resolveExportViewport(scene, padding);
   const ctx = new SvgCanvasContext({
     width,
     height,
@@ -180,10 +190,13 @@ export function generateCanvasSVGWithContext(
     pageSetup?: PageSetup;
     /** CIP labels to draw when the view shows stereochemistry. */
     stereoLabels?: { atoms: Map<string, string>; bonds: Map<string, string> };
+    /** Margin around the drawing on an infinite page, in canvas units. */
+    padding?: number;
   },
 ): string {
   const {
     stereoLabels,
+    padding,
     chemDrawDocument,
     documentStyleSettings,
     documentViewSettings,
@@ -209,7 +222,7 @@ export function generateCanvasSVGWithContext(
     pageSetup,
     interaction: { isDarkMode, ...(stereoLabels ? { stereoLabels } : {}) },
   });
-  return renderSceneToSvg(scene, transparent);
+  return renderSceneToSvg(scene, transparent, padding);
 }
 
 export function generateDocumentSVG(
