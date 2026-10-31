@@ -114,7 +114,7 @@ Done in Phase II (2026-10-30), with ChemDraw's keys (preferences version 11).
 
 - [x] **Zoom commands** — zoom in/out, actual size and a zoom readout; today wheel zoom and Fit
       to Screen only · 3: Viewing Drawings, Magnification
-- [ ] **Document properties** — no metadata dialog · 2: Documents, Document Properties
+- [x] **Document properties** — no metadata dialog · 2: Documents, Document Properties
 - [ ] **Autosave to the open file** — only a recovery snapshot is written · 2: Autosave and
       Autorecovery
 - [x] **Export border preference** — fixed 40-unit margin (`DEFAULT_EXPORT_PADDING`, now an export option) in `svgExport.ts` · 16:

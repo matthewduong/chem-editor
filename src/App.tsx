@@ -13,6 +13,7 @@ import {
 } from './components/ToolIcons';
 import { TemplatesPanel } from './components/TemplatesPanel';
 import { QueryPropertiesDialog } from './components/QueryPropertiesDialog';
+import { DocumentPropertiesDialog } from './components/DocumentPropertiesDialog';
 import { registerUserNicknames } from './lib/aliasChemistry';
 import { selectionToRootedSmiles } from './lib/nicknames';
 import { expandGenericStructures } from './lib/rGroupEnumeration';
@@ -568,6 +569,7 @@ function App() {
   }, [appPreferences.nicknames]);
   const [nicknameDraft, setNicknameDraft] = useState<string | null>(null);
   const [isQueryDialogOpen, setIsQueryDialogOpen] = useState(false);
+  const [isDocumentPropertiesOpen, setIsDocumentPropertiesOpen] = useState(false);
   const pageSetup = useStore((s) => s.pageSetup);
   const documentStyleSettings = useStore((s) => s.documentStyleSettings);
   const documentViewSettings = useStore((s) => s.documentViewSettings);
@@ -3770,6 +3772,14 @@ function App() {
                 >
                   Print / PDF
                 </MenuItem>
+                <MenuItem
+                  onClick={() => {
+                    setIsFileDropdownOpen(false);
+                    setIsDocumentPropertiesOpen(true);
+                  }}
+                >
+                  Document Properties…
+                </MenuItem>
                 <MenuSeparator />
                 <MenuItem onClick={handleNewDocument} danger>
                   Clear Canvas
@@ -6201,6 +6211,13 @@ function App() {
         isDarkMode={isDarkMode}
       />
 
+      {isDocumentPropertiesOpen && (
+        <DocumentPropertiesDialog
+          theme={theme}
+          isDarkMode={isDarkMode}
+          onClose={() => setIsDocumentPropertiesOpen(false)}
+        />
+      )}
       {isQueryDialogOpen && (
         <QueryPropertiesDialog
           theme={theme}

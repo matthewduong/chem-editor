@@ -900,6 +900,31 @@ for (const scale of [1, 2]) {
         .poll(() => page.evaluate(() => navigator.clipboard.readText()))
         .toBe('ATUOYWHBWRKTHZ-UHFFFAOYSA-N');
     });
+    test('Document Properties edits the file comment as one undo step', async ({ page }) => {
+      await openEditor(page);
+      await tool(page, 'Chain');
+      const a = await point(page, 300, 300);
+      await page.mouse.click(a.x, a.y);
+      await page.getByPlaceholder('Carbons').fill('2');
+      await page.getByPlaceholder('Carbons').press('Enter');
+      await page.getByText('File', { exact: true }).click();
+      await page.getByText('Document Properties…', { exact: true }).click();
+      await page.getByLabel('Comment').fill('Route B');
+      await page.getByLabel('Name').click();
+      const comment = () =>
+        page.evaluate(async () => {
+          const { useStore } = await import(String('/src/store/index.ts'));
+          return (
+            useStore.getState().chemDrawDocument?.metadata?.preservedDocumentAttributes?.Comment ??
+            null
+          );
+        });
+      expect(await comment()).toBe('Route B');
+      await page.keyboard.press('Escape');
+      await page.mouse.click(5, 5);
+      await page.keyboard.press('ControlOrMeta+z');
+      expect(await comment()).toBeNull();
+    });
     test('chain preview commits once and cancellation creates no history', async ({ page }) => {
       await openEditor(page);
       await tool(page, 'Chain');
