@@ -651,6 +651,84 @@ export function PreferencesPanel({
                   style={numberInputStyle}
                 />
               </label>
+              {/* ChemDraw's Drawing settings (Document Settings > Drawing); ACS Document 1996
+                  values are the defaults (chemdrawMetrics.ts). */}
+              <label style={{ fontSize: '12px', color: theme.text }}>
+                Bold Width (pt)
+                <DeferredNumberInput
+                  value={appPreferences.drawing.nativeMetrics.boldWidth}
+                  min={0.1}
+                  max={12}
+                  step={0.1}
+                  onCommit={(boldWidth) =>
+                    setAppPreferences({
+                      ...appPreferences,
+                      drawing: {
+                        ...appPreferences.drawing,
+                        nativeMetrics: { ...appPreferences.drawing.nativeMetrics, boldWidth },
+                      },
+                    })
+                  }
+                  style={numberInputStyle}
+                />
+              </label>
+              <label style={{ fontSize: '12px', color: theme.text }}>
+                Margin Width (pt)
+                <DeferredNumberInput
+                  value={appPreferences.drawing.nativeMetrics.marginWidth}
+                  min={0}
+                  max={10}
+                  step={0.1}
+                  onCommit={(marginWidth) =>
+                    setAppPreferences({
+                      ...appPreferences,
+                      drawing: {
+                        ...appPreferences.drawing,
+                        nativeMetrics: { ...appPreferences.drawing.nativeMetrics, marginWidth },
+                      },
+                    })
+                  }
+                  style={numberInputStyle}
+                />
+              </label>
+              <label style={{ fontSize: '12px', color: theme.text }}>
+                Hash Spacing (pt)
+                <DeferredNumberInput
+                  value={appPreferences.drawing.nativeMetrics.hashSpacing}
+                  min={0.5}
+                  max={20}
+                  step={0.1}
+                  onCommit={(hashSpacing) =>
+                    setAppPreferences({
+                      ...appPreferences,
+                      drawing: {
+                        ...appPreferences.drawing,
+                        nativeMetrics: { ...appPreferences.drawing.nativeMetrics, hashSpacing },
+                      },
+                    })
+                  }
+                  style={numberInputStyle}
+                />
+              </label>
+              <label style={{ fontSize: '12px', color: theme.text }}>
+                Bond Spacing (% of length)
+                <DeferredNumberInput
+                  value={appPreferences.drawing.nativeMetrics.bondSpacingPct}
+                  min={1}
+                  max={50}
+                  step={1}
+                  onCommit={(bondSpacingPct) =>
+                    setAppPreferences({
+                      ...appPreferences,
+                      drawing: {
+                        ...appPreferences.drawing,
+                        nativeMetrics: { ...appPreferences.drawing.nativeMetrics, bondSpacingPct },
+                      },
+                    })
+                  }
+                  style={numberInputStyle}
+                />
+              </label>
             </div>
           )}
           {preferencesTab === 'colors' && (

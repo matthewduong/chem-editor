@@ -103,7 +103,7 @@ Done in Phase II (2026-10-30), with ChemDraw's keys (preferences version 11).
 
 ## Document settings
 
-- [ ] **Full drawing settings UI** — bold width, margin width, hash spacing and bond spacing are
+- [x] **Full drawing settings UI** — bold width, margin width, hash spacing and bond spacing are
       stored (`nativeMetrics`) but not editable · 4: Document and Object Settings
 - [x] **Caption line spacing and a Formula style control** — formula face renders on import
       only · 4: Formatting Captions, Specifying Line Spacing

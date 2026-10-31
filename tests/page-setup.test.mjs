@@ -285,3 +285,16 @@ test('saved nicknames keep only well-formed entries', () => {
   });
   assert.deepEqual(normalized.nicknames, [{ name: 'Prx', lead: 'C', subsSmiles: 'CCC' }]);
 });
+
+test('drawing metrics set in Preferences survive normalization', () => {
+  const normalized = normalizeAppPreferences({
+    drawing: {
+      nativeMetrics: { boldWidth: 3, marginWidth: 2.2, hashSpacing: 3.1, bondSpacingPct: 22 },
+    },
+  });
+  const metrics = normalized.drawing.nativeMetrics;
+  assert.equal(metrics.boldWidth, 3);
+  assert.equal(metrics.marginWidth, 2.2);
+  assert.equal(metrics.hashSpacing, 3.1);
+  assert.equal(metrics.bondSpacingPct, 22);
+});
