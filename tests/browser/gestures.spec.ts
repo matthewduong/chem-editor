@@ -1015,6 +1015,31 @@ for (const scale of [1, 2]) {
       });
       expect(remaining).toBe(0);
     });
+    test('dragging out carries the selection as CDXML, SMILES and an image', async ({ page }) => {
+      await openEditor(page);
+      await tool(page, 'Chain');
+      const a = await point(page, 300, 300);
+      await page.mouse.click(a.x, a.y);
+      await page.getByPlaceholder('Carbons').fill('3');
+      await page.getByPlaceholder('Carbons').press('Enter');
+      await tool(page, 'Select');
+      await expect.poll(async () => (await observe(page)).atoms.length).toBe(3);
+      const data = await page.getByLabel('Drag out').evaluate((handle) => {
+        const transfer = new DataTransfer();
+        handle.dispatchEvent(
+          new DragEvent('dragstart', { bubbles: true, cancelable: true, dataTransfer: transfer }),
+        );
+        return {
+          cdxml: transfer.getData('chemical/x-cdxml'),
+          text: transfer.getData('text/plain'),
+          html: transfer.getData('text/html'),
+        };
+      });
+      expect(data.text).toBe('CCC');
+      expect(data.cdxml).toContain('<CDXML');
+      expect((data.cdxml.match(/<n /g) ?? []).length).toBe(3);
+      expect(data.html).toContain('data:image/png;base64,');
+    });
     test('chain preview commits once and cancellation creates no history', async ({ page }) => {
       await openEditor(page);
       await tool(page, 'Chain');

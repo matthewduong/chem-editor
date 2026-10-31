@@ -129,8 +129,14 @@ Done in Phase II (2026-10-30), with ChemDraw's keys (preferences version 11).
 - [x] **JPEG export** — the PNG raster on its paper · 16: File Formats
 - [x] **Direct PDF, EPS, EMF and TIFF export** — the export raster in each format, written
       without a library (`rasterExports.ts`) · 16: File Formats
-- [ ] **Drag out to other apps / OLE embedding** — absent · 16: Transferring / Embedding Objects
-- [ ] **CDX/CDXML file thumbnails** — absent · 2: Previewing CDX and CDXML Files
+- [x] **Drag out to other apps** — the Drag handle carries CDXML, SMILES and a PNG · 16:
+      Transferring Objects
+- [ ] **OLE embedding** — Windows COM server; not buildable in this stack (gaps.md) · 16:
+      Embedding Objects
+- [x] **CDXML file thumbnails on Linux** — freedesktop thumbnailer via the sidecar · 2:
+      Previewing CDX and CDXML Files
+- [ ] **CDX/CDXML thumbnails on macOS and Windows** — QuickLook / shell extensions are native
+      plugins outside this stack (gaps.md) · 2: Previewing CDX and CDXML Files
 
 ## Considered, not now
 

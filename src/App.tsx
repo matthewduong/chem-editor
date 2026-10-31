@@ -16,6 +16,7 @@ import { TemplatesPanel } from './components/TemplatesPanel';
 import { QueryPropertiesDialog } from './components/QueryPropertiesDialog';
 import { DocumentPropertiesDialog } from './components/DocumentPropertiesDialog';
 import { PrintPages } from './components/PrintPages';
+import { DragOutHandle } from './components/DragOutHandle';
 import { registerUserNicknames } from './lib/aliasChemistry';
 import { selectionToRootedSmiles } from './lib/nicknames';
 import { expandGenericStructures } from './lib/rGroupEnumeration';
@@ -6631,6 +6632,7 @@ function App() {
         <TemplatesPanel
           insert={(template) => canvasRef.current?.beginTemplatePlacement(template)}
         />
+        <DragOutHandle canvas={canvasRef} />
         <StructureDiagnostics
           reveal={(ids) => {
             useStore.getState().setSelectedObjectIds(new Set(ids));

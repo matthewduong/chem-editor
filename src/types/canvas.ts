@@ -35,6 +35,8 @@ export interface ChemCanvasRef {
   fitToScreen: () => void;
   /** Structure > Name to Structure: from `name`, or from the selected caption; false if unread. */
   structureFromName: (name?: string) => boolean;
+  /** Drag out: the selection (or drawing) as CDXML, SMILES and PNG, or null with no document. */
+  dragPayload: () => { cdxml: string; smiles: string | null; png: string | null } | null;
   /** Structure > Structure to Name: captions under the selected structures. */
   nameStructures: () => void;
   /** Edit > Copy As: the selection as text in `format`, or null. */

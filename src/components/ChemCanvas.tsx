@@ -33,6 +33,8 @@ import { contractSelection, findNicknameForSelection } from '../lib/nicknames';
 import { arrowConnectionPoint } from '../lib/arrowGesture';
 import { genericNicknameBase } from '../lib/genericLabels';
 import { fragmentAcross, fragmentationCaptions } from '../lib/massFragmentation';
+import { extractDocumentSelection } from '../lib/documentClipboard';
+import { prepareChemDrawDocumentForSave } from '../lib/chemdrawDocumentCommands';
 import { computeStereoLabels } from '../lib/stereoLabels';
 import { nameToSmiles, resolveNameToSmiles, structureToName } from '../lib/naming';
 import {
@@ -1717,9 +1719,33 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
       );
     }
   };
+  /**
+   * Drag out to another app (ChemDraw 17.1 guide, "Transferring Objects"): the selection, or the
+   * drawing, as CDXML, as SMILES where the chemistry engine reads it, and as a PNG of the drawing.
+   */
+  const dragPayload = (): { cdxml: string; smiles: string | null; png: string | null } | null => {
+    const state = getCanvasEditorState();
+    const document = state.chemDrawDocument;
+    if (!document) return null;
+    const selection = new Set([...state.selectedObjectIds, ...state.selectedAtomIds]);
+    const fragment = selection.size ? extractDocumentSelection(document, selection) : null;
+    const cdxml = prepareChemDrawDocumentForSave({ document: fragment ?? document }).xml;
+    const png =
+      sceneSurfaceRef.current?.toDataURL({
+        pixelRatio: 2,
+        width: finitePageMetrics?.totalWidthPx ?? width,
+        height: finitePageMetrics?.totalHeightPx ?? height,
+        stageScale,
+        stagePos,
+        drawPageChrome: false,
+      }) ?? null;
+    return { cdxml, smiles: structureTextForSelection('smiles'), png };
+  };
   const namingRef = useRef({ structureFromName, nameSelectedStructures });
   namingRef.current = { structureFromName, nameSelectedStructures };
 
+  const dragPayloadRef = useRef(dragPayload);
+  dragPayloadRef.current = dragPayload;
   const structureTextRef = useRef(structureTextForSelection);
   structureTextRef.current = structureTextForSelection;
 
@@ -3584,6 +3610,7 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
       structureText: (format: StructureTextFormat) => structureTextRef.current(format),
       structureFromName: (name?: string) => namingRef.current.structureFromName(name),
       nameStructures: () => namingRef.current.nameSelectedStructures(),
+      dragPayload: () => dragPayloadRef.current(),
       expandLabels: () => labelActionsRef.current.expandSelectedLabels(),
       contractLabel: () => labelActionsRef.current.contractSelectedLabel(),
       zoomIn: () => zoomActionsRef.current.zoomBy(1.25),
