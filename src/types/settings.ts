@@ -179,6 +179,8 @@ export interface AppPreferences {
   colorPalette: string[];
   /** Print scaling, 25-400 % (ChemDraw 17.1 guide, "Scaling"). */
   printScalePercent: number;
+  /** Paper margins when printing, in inches; 0 prints the page edge to edge. */
+  printMarginInches: number;
 }
 
 export interface UserNickname {

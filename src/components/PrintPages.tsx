@@ -11,6 +11,7 @@ export function PrintPages({
   scalePercent,
   className,
   zoom = 1,
+  marginInches = 0,
 }: {
   pageSetup: PageSetup;
   svgUrl: string;
@@ -18,9 +19,19 @@ export function PrintPages({
   className?: string;
   /** Preview only: shrinks the pages to fit the panel. */
   zoom?: number;
+  /** Paper margins (ChemDraw's default is 0.5 in): each page's drawing is fitted inside them. */
+  marginInches?: number;
 }) {
-  const scale = scalePercent / 100;
   const { unit } = pageSetup;
+  const margin = (unit === 'cm' ? marginInches * 2.54 : marginInches) * zoom;
+  const inset = Math.max(
+    0.05,
+    Math.min(
+      1 - (2 * margin) / (pageSetup.pageWidth * zoom),
+      1 - (2 * margin) / (pageSetup.pageHeight * zoom),
+    ),
+  );
+  const scale = scalePercent / 100;
   return (
     <div className={className}>
       {Array.from({ length: pageSetup.rows * pageSetup.columns }, (_, index) => {
@@ -39,19 +50,30 @@ export function PrintPages({
               background: 'white',
             }}
           >
-            <img
-              src={svgUrl}
-              alt=""
+            <div
               style={{
                 position: 'absolute',
-                left: `-${column * pageSetup.pageWidth * zoom}${unit}`,
-                top: `-${row * pageSetup.pageHeight * zoom}${unit}`,
-                width: `${pageSetup.pageWidth * pageSetup.columns * scale * zoom}${unit}`,
-                height: `${pageSetup.pageHeight * pageSetup.rows * scale * zoom}${unit}`,
-                maxWidth: 'none',
-                maxHeight: 'none',
+                left: `${margin}${unit}`,
+                top: `${margin}${unit}`,
+                width: `${pageSetup.pageWidth * zoom * inset}${unit}`,
+                height: `${pageSetup.pageHeight * zoom * inset}${unit}`,
+                overflow: 'hidden',
               }}
-            />
+            >
+              <img
+                src={svgUrl}
+                alt=""
+                style={{
+                  position: 'absolute',
+                  left: `-${column * pageSetup.pageWidth * zoom * inset}${unit}`,
+                  top: `-${row * pageSetup.pageHeight * zoom * inset}${unit}`,
+                  width: `${pageSetup.pageWidth * pageSetup.columns * scale * zoom * inset}${unit}`,
+                  height: `${pageSetup.pageHeight * pageSetup.rows * scale * zoom * inset}${unit}`,
+                  maxWidth: 'none',
+                  maxHeight: 'none',
+                }}
+              />
+            </div>
           </div>
         );
       })}

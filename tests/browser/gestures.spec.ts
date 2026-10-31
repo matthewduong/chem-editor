@@ -952,6 +952,16 @@ for (const scale of [1, 2]) {
       await scale.press('Enter');
       await expect.poll(imageWidth).not.toBe(before);
       expect(parseFloat(await imageWidth())).toBeCloseTo(parseFloat(before) / 2, 5);
+      const margin = page.getByText('Margins (in)').locator('input');
+      await margin.fill('0.5');
+      await margin.press('Enter');
+      const inset = () =>
+        pages
+          .last()
+          .locator('img')
+          .evaluate((img) => (img.parentElement as HTMLElement).style.left);
+      // The preview draws pages at 0.45 of their size.
+      await expect.poll(inset).toBe('0.225in');
     });
     test('Name to Structure draws a named structure, and Structure to Name captions it', async ({
       page,

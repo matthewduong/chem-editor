@@ -6537,6 +6537,7 @@ function App() {
           pageSetup={pageSetup}
           svgUrl={finitePrintSvgUrl}
           scalePercent={appPreferences.printScalePercent}
+          marginInches={appPreferences.printMarginInches}
         />
       )}
       {isPrintPreviewOpen && pageSetup.mode === 'finite' && finitePrintSvgUrl && (
@@ -6569,6 +6570,19 @@ function App() {
                   style={{ width: 70 }}
                 />
               </label>
+              <label style={{ display: 'flex', gap: 6, alignItems: 'center', color: theme.text }}>
+                Margins (in)
+                <DeferredNumberInput
+                  value={appPreferences.printMarginInches}
+                  min={0}
+                  max={3}
+                  step={0.1}
+                  onCommit={(printMarginInches) =>
+                    setAppPreferences({ ...appPreferences, printMarginInches })
+                  }
+                  style={{ width: 60 }}
+                />
+              </label>
               <button
                 type="button"
                 onClick={() => {
@@ -6591,6 +6605,7 @@ function App() {
                 pageSetup={pageSetup}
                 svgUrl={finitePrintSvgUrl}
                 scalePercent={appPreferences.printScalePercent}
+                marginInches={appPreferences.printMarginInches}
                 zoom={0.45}
               />
             </div>
