@@ -122,7 +122,7 @@ Done in Phase II (2026-10-30), with ChemDraw's keys (preferences version 11).
 
 ## Clipboard and export
 
-- [ ] **Copy As SMILES, InChI, InChIKey and molfile** — copy writes CDXML and PNG only · 16:
+- [x] **Copy As SMILES, InChI, InChIKey and molfile** — copy writes CDXML and PNG only · 16:
       The Clipboard, Text Line Notation
 - [ ] **More export formats** — direct PDF, EPS, EMF, TIFF, JPEG; today PNG and SVG, PDF via
       print · 16: File Formats

@@ -879,6 +879,27 @@ for (const scale of [1, 2]) {
       await page.keyboard.press('ControlOrMeta+z');
       expect(await fragments()).toBe(before);
     });
+    test('Copy As SMILES and InChIKey put the structure on the clipboard', async ({
+      page,
+      context,
+    }) => {
+      await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+      await openEditor(page);
+      await tool(page, 'Chain');
+      const a = await point(page, 300, 300);
+      await page.mouse.click(a.x, a.y);
+      await page.getByPlaceholder('Carbons').fill('3');
+      await page.getByPlaceholder('Carbons').press('Enter');
+      await tool(page, 'Select');
+      await page.getByText('Edit', { exact: true }).click();
+      await page.getByText('Copy As SMILES', { exact: true }).click();
+      await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toBe('CCC');
+      await page.getByText('Edit', { exact: true }).click();
+      await page.getByText('Copy As InChIKey', { exact: true }).click();
+      await expect
+        .poll(() => page.evaluate(() => navigator.clipboard.readText()))
+        .toBe('ATUOYWHBWRKTHZ-UHFFFAOYSA-N');
+    });
     test('chain preview commits once and cancellation creates no history', async ({ page }) => {
       await openEditor(page);
       await tool(page, 'Chain');

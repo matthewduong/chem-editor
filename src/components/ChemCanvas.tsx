@@ -34,6 +34,11 @@ import { arrowConnectionPoint } from '../lib/arrowGesture';
 import { genericNicknameBase } from '../lib/genericLabels';
 import { fragmentAcross, fragmentationCaptions } from '../lib/massFragmentation';
 import { computeStereoLabels } from '../lib/stereoLabels';
+import {
+  structureAsText,
+  type EnhancedStereoGroups,
+  type StructureTextFormat,
+} from '../lib/structureText';
 import { SHORTHAND_DATA } from '../lib/shorthand';
 import {
   createDeleteSelectionCommand,
@@ -143,6 +148,7 @@ import type {
   ChemDrawEmbeddedObject,
   ChemDrawGraphic,
   ChemDrawObject,
+  ChemDrawNode,
 } from '../types/chemdraw';
 import type {
   Arrow,
@@ -1563,8 +1569,54 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
     );
     state.setSelectedAtomIds(new Set([plan.rootId]));
   };
+  /**
+   * Edit > Copy As: the selection (or everything) as SMILES, InChI, InChIKey or a molfile, with
+   * nicknames expanded; the text, or null when the chemistry engine cannot read it.
+   */
+  const structureTextForSelection = (format: StructureTextFormat): string | null => {
+    if (!rdkit) return null;
+    const state = getCanvasEditorState();
+    const chosen = state.selectedAtomIds.size
+      ? state.atoms.filter((atom) => state.selectedAtomIds.has(atom.id))
+      : state.atoms;
+    if (chosen.length === 0) return null;
+    const ids = new Set(chosen.map((atom) => atom.id));
+    const chosenBonds = state.bonds.filter((bond) => ids.has(bond.from) && ids.has(bond.to));
+    const { molblock } = buildChemistryMolblockInputs(
+      rdkit,
+      chosen,
+      chosenBonds,
+      1,
+      1,
+      resolveAliasEntry,
+    );
+    // Enhanced stereo by molfile index: the canvas atoms come first, in order.
+    const groups: EnhancedStereoGroups = { absolute: [], and: new Map(), or: new Map() };
+    const nodes = new Map(
+      (state.chemDrawDocument?.pages[0]?.objects ?? [])
+        .filter((object): object is ChemDrawNode => object.type === 'node')
+        .map((node) => [node.id, node]),
+    );
+    chosen.forEach((atom, index) => {
+      const stereo = nodes.get(atom.id)?.enhancedStereo;
+      if (!stereo) return;
+      if (stereo.type === 'Absolute') groups.absolute.push(index + 1);
+      else {
+        const bucket = stereo.type === 'And' ? groups.and : groups.or;
+        const n = stereo.group ?? 1;
+        bucket.set(n, [...(bucket.get(n) ?? []), index + 1]);
+      }
+    });
+    try {
+      return structureAsText(rdkit, molblock, format, groups);
+    } catch {
+      return null;
+    }
+  };
   const labelActionsRef = useRef({ expandSelectedLabels, contractSelectedLabel });
   labelActionsRef.current = { expandSelectedLabels, contractSelectedLabel };
+  const structureTextRef = useRef(structureTextForSelection);
+  structureTextRef.current = structureTextForSelection;
 
   const SCALE_PAD =
     selectedAtomIds.size > 0 || selectedBondIds.size > 0 || selectedArrowIds.size > 0 ? 20 : 2;
@@ -3423,6 +3475,7 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
           document.execCommand(cmd, false, value);
         }
       },
+      structureText: (format: StructureTextFormat) => structureTextRef.current(format),
       expandLabels: () => labelActionsRef.current.expandSelectedLabels(),
       contractLabel: () => labelActionsRef.current.contractSelectedLabel(),
       zoomIn: () => zoomActionsRef.current.zoomBy(1.25),

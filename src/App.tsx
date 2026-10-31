@@ -16,6 +16,7 @@ import { QueryPropertiesDialog } from './components/QueryPropertiesDialog';
 import { registerUserNicknames } from './lib/aliasChemistry';
 import { selectionToRootedSmiles } from './lib/nicknames';
 import { expandGenericStructures } from './lib/rGroupEnumeration';
+import type { StructureTextFormat } from './lib/structureText';
 import { convertCanvasToNative, convertNativeToCanvas } from './lib/chemdrawMetrics';
 import { CharacterMapPanel } from './components/CharacterMapPanel';
 import { commitChainOfLength } from './tools/useChainTool';
@@ -1251,6 +1252,26 @@ function App() {
     });
     state.showToast(`Nickname ${trimmed} defined as ${subsSmiles}.`, 'info');
     return true;
+  }, []);
+
+  /** Edit > Copy As: the structure as text on the clipboard. */
+  const copyStructureAs = useCallback((format: StructureTextFormat) => {
+    const text = canvasRef.current?.structureText(format);
+    const { showToast } = useStore.getState();
+    if (!text) {
+      showToast('The chemistry engine could not read this structure.', 'error');
+      return;
+    }
+    const fallback = () => navigator.clipboard?.writeText(text);
+    writeClipboardText(text)
+      .catch(fallback)
+      .then(() =>
+        showToast(
+          `Copied as ${format === 'inchikey' ? 'InChIKey' : format === 'inchi' ? 'InChI' : format === 'smiles' ? 'SMILES' : 'molfile'}.`,
+          'info',
+        ),
+      )
+      .catch(() => showToast('Could not write to the clipboard.', 'error'));
   }, []);
 
   /** Object > Join: two selected atoms or bonds fuse into one. */
@@ -4064,6 +4085,38 @@ function App() {
                   }}
                 >
                   Expand Generic Structure
+                </MenuItem>
+                <MenuItem
+                  onClick={() => {
+                    copyStructureAs('smiles');
+                    setIsEditDropdownOpen(false);
+                  }}
+                >
+                  Copy As SMILES
+                </MenuItem>
+                <MenuItem
+                  onClick={() => {
+                    copyStructureAs('inchi');
+                    setIsEditDropdownOpen(false);
+                  }}
+                >
+                  Copy As InChI
+                </MenuItem>
+                <MenuItem
+                  onClick={() => {
+                    copyStructureAs('inchikey');
+                    setIsEditDropdownOpen(false);
+                  }}
+                >
+                  Copy As InChIKey
+                </MenuItem>
+                <MenuItem
+                  onClick={() => {
+                    copyStructureAs('molfile');
+                    setIsEditDropdownOpen(false);
+                  }}
+                >
+                  Copy As Molfile
                 </MenuItem>
                 <MenuItem
                   onClick={() => {

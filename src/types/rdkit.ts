@@ -10,8 +10,11 @@ export interface RdkitMol {
   get_stereo_tags?(): string;
   /** RDKit descriptors as JSON, including `exactmw` and `amw`. */
   get_descriptors?(): string;
+  get_inchi?(): string;
+  get_v3Kmolblock?(): string;
 }
 
 export interface RdkitModule {
   get_mol(input: string, details?: string): RdkitMol | null;
+  get_inchikey_for_inchi?(inchi: string): string;
 }
