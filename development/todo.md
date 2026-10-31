@@ -135,8 +135,9 @@ Done in Phase II (2026-10-30), with ChemDraw's keys (preferences version 11).
       Embedding Objects
 - [x] **CDXML file thumbnails on Linux** — freedesktop thumbnailer via the sidecar · 2:
       Previewing CDX and CDXML Files
-- [ ] **CDX/CDXML thumbnails on macOS and Windows** — QuickLook / shell extensions are native
-      plugins outside this stack (gaps.md) · 2: Previewing CDX and CDXML Files
+- [x] **CDX/CDXML thumbnails on macOS and Windows** — source written but UNBUILT
+      (`native/`: a QuickLook extension and an IThumbnailProvider DLL); build and check on each
+      platform (`native/README.md`) · 2: Previewing CDX and CDXML Files
 
 ## Considered, not now
 
