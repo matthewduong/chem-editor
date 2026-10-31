@@ -177,6 +177,8 @@ export interface AppPreferences {
   autosaveMinutes: number;
   /** Saved colours offered by the drawing colour pickers (`colorPalette.ts`). */
   colorPalette: string[];
+  /** Print scaling, 25-400 % (ChemDraw 17.1 guide, "Scaling"). */
+  printScalePercent: number;
 }
 
 export interface UserNickname {

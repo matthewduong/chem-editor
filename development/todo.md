@@ -97,8 +97,9 @@ Done in Phase II (2026-10-30), with ChemDraw's keys (preferences version 11).
 
 ## Page and printing
 
-- [ ] **Print preview, print scaling and page margins** — printing goes straight to the OS
-      dialog; `PageSetup` has no margins · 3: Printing / Page Setup
+- [x] **Print preview and print scaling** — File > Print Preview, scale 25-400% · 3: Printing
+- [ ] **Print margins** — the finite page is the drawing area; ChemDraw's 0.5 in margins would
+      redefine page coordinates (gaps.md) · 3: Page Setup
 - [ ] **Multiple open documents** — one document per window · 2: Documents
 
 ## Document settings

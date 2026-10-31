@@ -424,6 +424,7 @@ export const DEFAULT_APP_PREFERENCES: AppPreferences = {
   exportBorder: 40,
   autosaveMinutes: 0,
   colorPalette: [],
+  printScalePercent: 100,
 };
 
 interface PersistedSettingsPayload {
@@ -1106,6 +1107,10 @@ export function normalizeAppPreferences(
         : 40,
     autosaveMinutes: normalizeAutosaveMinutes(value?.autosaveMinutes),
     colorPalette: normalizeColorPalette(value?.colorPalette),
+    printScalePercent:
+      typeof value?.printScalePercent === 'number' && Number.isFinite(value.printScalePercent)
+        ? Math.min(400, Math.max(25, Math.round(value.printScalePercent)))
+        : 100,
   };
 }
 

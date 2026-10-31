@@ -14,6 +14,7 @@ import {
 import { TemplatesPanel } from './components/TemplatesPanel';
 import { QueryPropertiesDialog } from './components/QueryPropertiesDialog';
 import { DocumentPropertiesDialog } from './components/DocumentPropertiesDialog';
+import { PrintPages } from './components/PrintPages';
 import { registerUserNicknames } from './lib/aliasChemistry';
 import { selectionToRootedSmiles } from './lib/nicknames';
 import { expandGenericStructures } from './lib/rGroupEnumeration';
@@ -571,6 +572,7 @@ function App() {
   const [nicknameDraft, setNicknameDraft] = useState<string | null>(null);
   const [isQueryDialogOpen, setIsQueryDialogOpen] = useState(false);
   const [isDocumentPropertiesOpen, setIsDocumentPropertiesOpen] = useState(false);
+  const [isPrintPreviewOpen, setIsPrintPreviewOpen] = useState(false);
   const pageSetup = useStore((s) => s.pageSetup);
   const documentStyleSettings = useStore((s) => s.documentStyleSettings);
   const documentViewSettings = useStore((s) => s.documentViewSettings);
@@ -3781,6 +3783,19 @@ function App() {
                 <MenuItem
                   onClick={() => {
                     setIsFileDropdownOpen(false);
+                    if (pageSetup.mode !== 'finite') {
+                      showToast(
+                        'Print Preview shows a finite page; set one in Page Setup.',
+                        'info',
+                      );
+                    } else setIsPrintPreviewOpen(true);
+                  }}
+                >
+                  Print Preview…
+                </MenuItem>
+                <MenuItem
+                  onClick={() => {
+                    setIsFileDropdownOpen(false);
                     setIsDocumentPropertiesOpen(true);
                   }}
                 >
@@ -6440,36 +6455,70 @@ function App() {
       )}
 
       {pageSetup.mode === 'finite' && finitePrintSvgUrl && finitePageMetrics && (
-        <div className="print-pages">
-          {Array.from({ length: pageSetup.rows * pageSetup.columns }, (_, index) => {
-            const row = Math.floor(index / pageSetup.columns);
-            const column = index % pageSetup.columns;
-            return (
-              <div
-                key={`print-page-${row}-${column}`}
-                className="print-page"
-                style={{
-                  width: `${pageSetup.pageWidth}${pageSetup.unit}`,
-                  height: `${pageSetup.pageHeight}${pageSetup.unit}`,
+        <PrintPages
+          className="print-pages"
+          pageSetup={pageSetup}
+          svgUrl={finitePrintSvgUrl}
+          scalePercent={appPreferences.printScalePercent}
+        />
+      )}
+      {isPrintPreviewOpen && pageSetup.mode === 'finite' && finitePrintSvgUrl && (
+        <FloatingPanel
+          pos={{ x: 160, y: 70 }}
+          size={{ width: 560, height: 520 }}
+          minWidth={320}
+          minHeight={240}
+          title="Print Preview"
+          theme={theme}
+          isDarkMode={isDarkMode}
+          onClose={() => setIsPrintPreviewOpen(false)}
+          onPosChange={() => {}}
+          onSizeChange={() => {}}
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+            <div
+              style={{ display: 'flex', gap: 8, alignItems: 'center', padding: 8, fontSize: 12 }}
+            >
+              <label style={{ display: 'flex', gap: 6, alignItems: 'center', color: theme.text }}>
+                Scale (%)
+                <DeferredNumberInput
+                  value={appPreferences.printScalePercent}
+                  min={25}
+                  max={400}
+                  step={5}
+                  onCommit={(printScalePercent) =>
+                    setAppPreferences({ ...appPreferences, printScalePercent })
+                  }
+                  style={{ width: 70 }}
+                />
+              </label>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsPrintPreviewOpen(false);
+                  handlePrint();
                 }}
               >
-                <img
-                  src={finitePrintSvgUrl}
-                  alt=""
-                  style={{
-                    position: 'absolute',
-                    left: `-${column * pageSetup.pageWidth}${pageSetup.unit}`,
-                    top: `-${row * pageSetup.pageHeight}${pageSetup.unit}`,
-                    width: `${pageSetup.pageWidth * pageSetup.columns}${pageSetup.unit}`,
-                    height: `${pageSetup.pageHeight * pageSetup.rows}${pageSetup.unit}`,
-                    maxWidth: 'none',
-                    maxHeight: 'none',
-                  }}
-                />
-              </div>
-            );
-          })}
-        </div>
+                Print…
+              </button>
+            </div>
+            <div
+              style={{
+                flex: 1,
+                overflow: 'auto',
+                background: isDarkMode ? '#2a2a2a' : '#ddd',
+                padding: 12,
+              }}
+            >
+              <PrintPages
+                pageSetup={pageSetup}
+                svgUrl={finitePrintSvgUrl}
+                scalePercent={appPreferences.printScalePercent}
+                zoom={0.45}
+              />
+            </div>
+          </div>
+        </FloatingPanel>
       )}
 
       {/* Toast notifications */}

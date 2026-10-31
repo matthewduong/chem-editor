@@ -925,6 +925,34 @@ for (const scale of [1, 2]) {
       await page.keyboard.press('ControlOrMeta+z');
       expect(await comment()).toBeNull();
     });
+    test('Print Preview shows the printed pages at the print scale', async ({ page }) => {
+      await openEditor(page);
+      await tool(page, 'Chain');
+      const a = await point(page, 300, 300);
+      await page.mouse.click(a.x, a.y);
+      await page.getByPlaceholder('Carbons').fill('3');
+      await page.getByPlaceholder('Carbons').press('Enter');
+      await page.evaluate(async () => {
+        const { useStore } = await import(String('/src/store/index.ts'));
+        const state = useStore.getState();
+        state.setPageSetup({ ...state.pageSetup, mode: 'finite', columns: 2, rows: 1 });
+      });
+      await page.getByText('File', { exact: true }).click();
+      await page.getByText('Print Preview…', { exact: true }).click();
+      const pages = page.locator('[data-testid="print-page"]');
+      await expect(pages).toHaveCount(4); // two printed, two previewed
+      const imageWidth = () =>
+        pages
+          .last()
+          .locator('img')
+          .evaluate((img) => (img as HTMLImageElement).style.width);
+      const before = await imageWidth();
+      const scale = page.getByText('Scale (%)').locator('input');
+      await scale.fill('50');
+      await scale.press('Enter');
+      await expect.poll(imageWidth).not.toBe(before);
+      expect(parseFloat(await imageWidth())).toBeCloseTo(parseFloat(before) / 2, 5);
+    });
     test('chain preview commits once and cancellation creates no history', async ({ page }) => {
       await openEditor(page);
       await tool(page, 'Chain');
