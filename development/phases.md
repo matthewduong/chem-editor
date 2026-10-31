@@ -8,16 +8,16 @@ Source of ChemDraw behaviour: the ChemDraw 17.1 User Guide (chapter and section 
 ChemDraw's own files (the `chemdraw_template*.cdxml` set in RDKit's test data), and
 `pnpm test:chemdraw:mac` where a measurement is needed.
 
-| Phase | Theme                               | Status                      |
-| ----- | ----------------------------------- | --------------------------- |
-| I     | Graphics foundation and shape tools | **done 2026-10-29**         |
-| II    | Selection and arrange               | **done 2026-10-30**         |
-| III   | Annotations, bonds and labels       | **done 2026-10-30**         |
-| IV    | Stereo, numbering and analysis      | **done 2026-10-30**         |
-| V     | Reactions                           | **done 2026-10-30**         |
-| VI    | Query structures                    | **done 2026-10-30**         |
-| VII   | Document, output and app shell      | **partly done 2026-10-31**  |
-| VIII  | Naming                              | **needs decisions** (below) |
+| Phase | Theme                               | Status                                      |
+| ----- | ----------------------------------- | ------------------------------------------- |
+| I     | Graphics foundation and shape tools | **done 2026-10-29**                         |
+| II    | Selection and arrange               | **done 2026-10-30**                         |
+| III   | Annotations, bonds and labels       | **done 2026-10-30**                         |
+| IV    | Stereo, numbering and analysis      | **done 2026-10-30**                         |
+| V     | Reactions                           | **done 2026-10-30**                         |
+| VI    | Query structures                    | **done 2026-10-30**                         |
+| VII   | Document, output and app shell      | **done 2026-10-31** (two native items open) |
+| VIII  | Naming                              | **done 2026-10-31** (offline, bounded)      |
 
 ## Phase I — done
 
@@ -424,3 +424,17 @@ Options, none taken:
 Not done on purpose: a hand-written namer (wrong names are worse than none) and any network call.
 When a choice is made: Name>Struct goes through the sidecar (`opsin` command), Struct>Name per
 the option chosen, both behind Structure menu items with a clear "unavailable" state.
+
+## Update 2026-10-31
+
+Phase VII finished: print margins, TIFF/PDF/EPS/EMF export (raster, `rasterExports.ts`), New
+Window (per-window recovery, preferences synced across windows), drag-out, and Linux CDXML
+thumbnails (freedesktop thumbnailer via the sidecar). Open, because they are native platform
+components this codebase cannot build or test from Linux: OLE embedding (a Windows COM server)
+and macOS/Windows file previews (a QuickLook extension, a shell thumbnail handler).
+
+Phase VIII done without a JVM or any network service: `src/lib/naming/` reads systematic names
+(chains, cycloalkanes, benzenes, one principal group, common prefixes) plus the compound table's
+names, and names structures of that class by IUPAC 2013 rules, showing a name only when it reads
+back to the identical structure. OPSIN or a web service could widen the coverage later; both
+remain the user's call.
