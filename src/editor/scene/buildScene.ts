@@ -217,6 +217,9 @@ export function buildDocumentSceneState(input: BuildSceneInput): DocumentSceneSt
     documentStyleSettings,
     documentViewSettings,
     pageSetup,
+    ...(document?.metadata?.backgroundColor
+      ? { backgroundColor: document.metadata.backgroundColor }
+      : {}),
     ...resolvedInteraction,
   };
 }

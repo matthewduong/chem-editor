@@ -45,6 +45,7 @@ const EMPTY_EXPORT_SIZE = { width: 200, height: 150 };
  * are not drawn into exports, so the colour is carried here instead.
  */
 function backgroundColor(scene: DocumentSceneState): string {
+  if (scene.backgroundColor) return scene.backgroundColor;
   if (scene.pageSetup.mode === 'finite') return scene.isDarkMode ? '#242424' : '#ffffff';
   return scene.isDarkMode ? '#1e1e1e' : '#f5f5f5';
 }

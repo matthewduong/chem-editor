@@ -29,3 +29,22 @@ test("document properties are the file's root attributes, edited and written bac
   assert.ok(!/ Name="old.cdxml"/.test(xml));
   assert.equal(setDocumentProperties(edited, { Comment: 'Route B' }), edited);
 });
+
+test('a background colour is written through the colour table and read back', async () => {
+  const { setDocumentBackground } =
+    await import('../.unit-test-dist/src/lib/documentProperties.js');
+  const { document } = cdxmlToChemDrawDocument(
+    source.replace('<CDXML ', '<CDXML color="0" bgcolor="1" '),
+  );
+  // ChemDraw's reserved white stays exactly as read.
+  assert.match(chemDrawDocumentToCDXML(document), /bgcolor="1"/);
+  const tinted = setDocumentBackground(document, '#FFF2CC');
+  const xml = chemDrawDocumentToCDXML(tinted);
+  const index = Number(/ bgcolor="(\d+)"/.exec(xml)[1]);
+  assert.ok(index >= 2);
+  assert.equal((xml.match(/bgcolor=/g) ?? []).length, 1);
+  const back = cdxmlToChemDrawDocument(xml).document;
+  assert.equal(back.metadata.backgroundColor, '#fff2cc');
+  assert.equal(chemDrawDocumentToCDXML(back), xml);
+  assert.equal(setDocumentBackground(tinted, null).metadata.backgroundColor, undefined);
+});

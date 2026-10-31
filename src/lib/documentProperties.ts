@@ -47,3 +47,20 @@ export function setDocumentProperties(
     metadata: { ...document.metadata, preservedDocumentAttributes: attributes },
   };
 }
+
+/** The document background (CDXML `bgcolor`); null returns it to the default white. */
+export function setDocumentBackground(
+  document: ChemDrawDocument,
+  color: string | null,
+): ChemDrawDocument {
+  const current = document.metadata?.backgroundColor ?? null;
+  const next =
+    color && /^#[0-9a-f]{6}$/i.test(color) && color.toLowerCase() !== '#ffffff'
+      ? color.toLowerCase()
+      : null;
+  if (current === next) return document;
+  const metadata = { ...document.metadata };
+  if (next) metadata.backgroundColor = next;
+  else delete metadata.backgroundColor;
+  return { ...document, metadata };
+}

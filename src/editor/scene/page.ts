@@ -21,7 +21,7 @@ export function drawPageTiles(
   for (let index = 0; index < scene.pageSetup.rows * scene.pageSetup.columns; index += 1) {
     const row = Math.floor(index / scene.pageSetup.columns);
     const column = index % scene.pageSetup.columns;
-    ctx.fillStyle = scene.isDarkMode ? '#242424' : '#ffffff';
+    ctx.fillStyle = scene.backgroundColor ?? (scene.isDarkMode ? '#242424' : '#ffffff');
     ctx.strokeStyle = scene.isDarkMode ? '#7a7a7a' : '#8a8a8a';
     ctx.lineWidth = 1;
     ctx.fillRect(

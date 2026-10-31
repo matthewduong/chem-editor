@@ -843,6 +843,7 @@ function buildColorTable(
   textBoxes: TextBox[],
   arrows: Arrow[],
   objects: ChemDrawObject[],
+  extraColors: string[] = [],
 ): {
   colortableXml: string;
   getIndex: (color: string) => number;
@@ -863,6 +864,7 @@ function buildColorTable(
     entries.push(rgb);
   };
 
+  extraColors.forEach(addColor);
   for (const tb of textBoxes) {
     if (tb.color) addColor(tb.color);
     for (const run of tb.runs) {
@@ -1298,8 +1300,15 @@ function chemDrawDocumentToCDXMLInternal(document: ChemDrawDocument): string {
   const exportScaleFactor =
     documentStyleSettings.nativeMetrics.bondLength / documentStyleSettings.bondLength;
   const pageSetup = normalizePageSetup(document.metadata?.pageSetup ?? DEFAULT_PAGE_SETUP);
+  const backgroundColor = document.metadata?.backgroundColor;
   const rawDocumentAttributesAttr = emitRawAttributes(
-    document.metadata?.preservedDocumentAttributes,
+    backgroundColor
+      ? Object.fromEntries(
+          Object.entries(document.metadata?.preservedDocumentAttributes ?? {}).filter(
+            ([name]) => name !== 'bgcolor',
+          ),
+        )
+      : document.metadata?.preservedDocumentAttributes,
   );
   const rawPageAttributesAttr = emitRawAttributes(document.metadata?.preservedPageAttributes);
   if (!page) {
@@ -1412,6 +1421,7 @@ function chemDrawDocumentToCDXMLInternal(document: ChemDrawDocument): string {
     textBoxes,
     arrowStyles,
     page.objects,
+    backgroundColor ? [backgroundColor] : [],
   );
   const { fonttableXml, getFontId } = buildFontTable(textBoxes, page.objects, [
     documentStyleSettings.nativeMetrics.labelFontFamily,
@@ -1501,7 +1511,7 @@ function chemDrawDocumentToCDXMLInternal(document: ChemDrawDocument): string {
 
   let xml = `<?xml version="1.0" encoding="UTF-8" ?>\n`;
   xml += `<!DOCTYPE CDXML SYSTEM "http://www.cambridgesoft.com/xml/cdxml.dtd" >\n`;
-  xml += `<CDXML BondSpacing="${formatCdxmlNumber(documentStyleSettings.nativeMetrics.bondSpacingPct)}" BondLength="${formatCdxmlNumber(documentStyleSettings.nativeMetrics.bondLength)}" BoldWidth="${formatCdxmlNumber(documentStyleSettings.nativeMetrics.boldWidth)}" LineWidth="${formatCdxmlNumber(documentStyleSettings.nativeMetrics.lineWidth)}" MarginWidth="${formatCdxmlNumber(documentStyleSettings.nativeMetrics.marginWidth)}" HashSpacing="${formatCdxmlNumber(documentStyleSettings.nativeMetrics.hashSpacing)}" ChainAngle="120" LabelFont="${getFontId(documentStyleSettings.nativeMetrics.labelFontFamily)}" CaptionFont="${getFontId(documentStyleSettings.nativeMetrics.captionFontFamily)}" LabelSize="${formatCdxmlNumber(documentStyleSettings.nativeMetrics.labelSize)}" CaptionSize="${formatCdxmlNumber(documentStyleSettings.nativeMetrics.captionSize)}" LabelFace="${Math.round(documentStyleSettings.nativeMetrics.labelFace)}" CaptionFace="${Math.round(documentStyleSettings.nativeMetrics.captionFace)}" ChemEditorBondLength="${formatCdxmlNumber(documentStyleSettings.bondLength)}" ChemEditorBondLineWidth="${formatCdxmlNumber(getDocumentBondLineWidth(documentStyleSettings))}" ChemEditorTextFontFamily="${xmlEscape(documentStyleSettings.textFormat.fontFamily)}" ChemEditorTextFontSize="${formatCdxmlNumber(documentStyleSettings.textFormat.fontSize)}" ChemEditorTextColor="${xmlEscape(documentStyleSettings.textFormat.color)}" ChemEditorTextAlign="${documentStyleSettings.textFormat.textAlign}" ChemEditorBondColor="${xmlEscape(documentStyleSettings.colors.bondColor)}" ChemEditorMonochrome="${documentStyleSettings.colors.monochrome ? 'true' : 'false'}" ChemEditorAtomColors="${xmlEscape(JSON.stringify(documentStyleSettings.colors.atomColors))}" ChemEditorPageMode="${pageSetup.mode}" ChemEditorPageUnit="${pageSetup.unit}" ChemEditorPagePresetId="${pageSetup.presetId}" ChemEditorPageOrientation="${pageSetup.orientation}" ChemEditorPageWidth="${pageSetup.pageWidth}" ChemEditorPageHeight="${pageSetup.pageHeight}" ChemEditorPageRows="${pageSetup.rows}" ChemEditorPageColumns="${pageSetup.columns}"${rawDocumentAttributesAttr}>\n`;
+  xml += `<CDXML BondSpacing="${formatCdxmlNumber(documentStyleSettings.nativeMetrics.bondSpacingPct)}" BondLength="${formatCdxmlNumber(documentStyleSettings.nativeMetrics.bondLength)}" BoldWidth="${formatCdxmlNumber(documentStyleSettings.nativeMetrics.boldWidth)}" LineWidth="${formatCdxmlNumber(documentStyleSettings.nativeMetrics.lineWidth)}" MarginWidth="${formatCdxmlNumber(documentStyleSettings.nativeMetrics.marginWidth)}" HashSpacing="${formatCdxmlNumber(documentStyleSettings.nativeMetrics.hashSpacing)}" ChainAngle="120" LabelFont="${getFontId(documentStyleSettings.nativeMetrics.labelFontFamily)}" CaptionFont="${getFontId(documentStyleSettings.nativeMetrics.captionFontFamily)}" LabelSize="${formatCdxmlNumber(documentStyleSettings.nativeMetrics.labelSize)}" CaptionSize="${formatCdxmlNumber(documentStyleSettings.nativeMetrics.captionSize)}" LabelFace="${Math.round(documentStyleSettings.nativeMetrics.labelFace)}" CaptionFace="${Math.round(documentStyleSettings.nativeMetrics.captionFace)}" ChemEditorBondLength="${formatCdxmlNumber(documentStyleSettings.bondLength)}" ChemEditorBondLineWidth="${formatCdxmlNumber(getDocumentBondLineWidth(documentStyleSettings))}" ChemEditorTextFontFamily="${xmlEscape(documentStyleSettings.textFormat.fontFamily)}" ChemEditorTextFontSize="${formatCdxmlNumber(documentStyleSettings.textFormat.fontSize)}" ChemEditorTextColor="${xmlEscape(documentStyleSettings.textFormat.color)}" ChemEditorTextAlign="${documentStyleSettings.textFormat.textAlign}" ChemEditorBondColor="${xmlEscape(documentStyleSettings.colors.bondColor)}" ChemEditorMonochrome="${documentStyleSettings.colors.monochrome ? 'true' : 'false'}" ChemEditorAtomColors="${xmlEscape(JSON.stringify(documentStyleSettings.colors.atomColors))}" ChemEditorPageMode="${pageSetup.mode}" ChemEditorPageUnit="${pageSetup.unit}" ChemEditorPagePresetId="${pageSetup.presetId}" ChemEditorPageOrientation="${pageSetup.orientation}" ChemEditorPageWidth="${pageSetup.pageWidth}" ChemEditorPageHeight="${pageSetup.pageHeight}" ChemEditorPageRows="${pageSetup.rows}" ChemEditorPageColumns="${pageSetup.columns}"${backgroundColor ? ` bgcolor="${getColorIndex(backgroundColor)}"` : ''}${rawDocumentAttributesAttr}>\n`;
   xml += `  <colortable>\n${colortableXml}  </colortable>\n`;
   xml += `  <fonttable>\n${fonttableXml}  </fonttable>\n`;
   xml += `  <page id="${page.id || getId()}" BoundingBox="${bbL.toFixed(2)} ${bbT.toFixed(2)} ${bbR.toFixed(2)} ${bbB.toFixed(2)}" HeaderPosition="36" FooterPosition="36" PrintTrimMarks="yes" HeightPages="${pageSetup.rows}" WidthPages="${pageSetup.columns}"${rawPageAttributesAttr}>\n`;
@@ -2436,6 +2446,14 @@ export function cdxmlToChemDrawDocument(xmlString: string): ChemDrawConversionRe
   // label by element, so heteroatoms drew in red and blue on documents ChemDraw renders in black.
   const getImportColor = (idx: number): string | undefined =>
     idx === 0 ? '#000000' : idx === 1 ? '#ffffff' : colorTable[idx - 2];
+  // A background chosen from the colour table is modelled; ChemDraw's reserved black and white
+  // (0 and 1) stay raw.
+  const bgcolorIndex = Number(root.getAttribute('bgcolor'));
+  const importedBackgroundColor =
+    Number.isInteger(bgcolorIndex) && bgcolorIndex >= 2 ? getImportColor(bgcolorIndex) : undefined;
+  if (importedBackgroundColor && preservedDocumentAttributes) {
+    delete preservedDocumentAttributes.bgcolor;
+  }
 
   const fontNameById = new Map<number, string>();
   const fonttableEl = firstByTag(doc, 'fonttable');
@@ -4487,6 +4505,7 @@ export function cdxmlToChemDrawDocument(xmlString: string): ChemDrawConversionRe
         heightPages: importedPageSetup.rows,
         documentStyleSettings: importedDocumentStyleSettings,
         ...(preservedDocumentAttributes ? { preservedDocumentAttributes } : {}),
+        ...(importedBackgroundColor ? { backgroundColor: importedBackgroundColor } : {}),
         ...(preservedPageAttributes ? { preservedPageAttributes } : {}),
         ...(preservedExtraPages.length ? { preservedExtraPages } : {}),
         ignoredSemantics: warnings.length ? warnings : undefined,

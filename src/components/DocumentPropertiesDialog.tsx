@@ -3,6 +3,7 @@ import { createSelectionEditCommand } from '../editor/commands';
 import {
   READ_ONLY_DOCUMENT_PROPERTIES,
   readDocumentProperties,
+  setDocumentBackground,
   setDocumentProperties,
   type EditableDocumentProperty,
 } from '../lib/documentProperties';
@@ -42,6 +43,14 @@ export function DocumentPropertiesDialog({
       .dispatchEditorCommand(
         createSelectionEditCommand('document-properties', (doc) =>
           setDocumentProperties(doc, { [name]: value }),
+        ),
+      );
+  const setBackground = (color: string | null) =>
+    useStore
+      .getState()
+      .dispatchEditorCommand(
+        createSelectionEditCommand('document-background', (doc) =>
+          setDocumentBackground(doc, color),
         ),
       );
   const field = (name: EditableDocumentProperty, multiline = false) => {
@@ -93,6 +102,20 @@ export function DocumentPropertiesDialog({
         {field('Name')}
         {field('CreationUserName')}
         {field('Comment', true)}
+        <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          Background
+          <span style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+            <input
+              type="color"
+              aria-label="Background"
+              value={document?.metadata?.backgroundColor ?? '#ffffff'}
+              onChange={(event) => setBackground(event.target.value)}
+            />
+            <button type="button" onClick={() => setBackground(null)}>
+              Default
+            </button>
+          </span>
+        </label>
         {READ_ONLY_DOCUMENT_PROPERTIES.filter((name) => properties[name]).map((name) => (
           <div key={name} style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
             <span style={{ opacity: 0.7 }}>{LABELS[name]}</span>

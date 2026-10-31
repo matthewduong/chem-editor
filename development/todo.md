@@ -107,8 +107,9 @@ Done in Phase II (2026-10-30), with ChemDraw's keys (preferences version 11).
       stored (`nativeMetrics`) but not editable · 4: Document and Object Settings
 - [x] **Caption line spacing and a Formula style control** — formula face renders on import
       only · 4: Formatting Captions, Specifying Line Spacing
-- [ ] **Document background colour and a saved colour palette** — background fixed by theme;
-      native colour pickers only · 4: Working with Color
+- [x] **Document background colour** — was fixed by theme; now CDXML `bgcolor`, set in
+      Document Properties · 4: Working with Color
+- [ ] **A saved colour palette** — native colour pickers only · 4: Working with Color
 
 ## View and document
 

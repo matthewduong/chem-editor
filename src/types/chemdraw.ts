@@ -477,6 +477,11 @@ export interface ChemDrawDocument {
     preservedDocumentAttributes?: Record<string, string>;
     preservedPageAttributes?: Record<string, string>;
     /**
+     * The document's background (CDXML root `bgcolor`) when it is a colour from the colour
+     * table; ChemDraw's reserved white (index 1) stays a raw attribute, written as read.
+     */
+    backgroundColor?: string;
+    /**
      * Pages after the first, kept verbatim. Only the first page is modelled and editable; these
      * are re-emitted untouched on export so a multi-page ChemDraw file does not lose pages.
      */
