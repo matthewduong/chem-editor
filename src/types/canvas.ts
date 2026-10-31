@@ -16,6 +16,8 @@ export interface ChemCanvasRef {
   exportPNG: () => Promise<void>;
   /** File > Export > JPEG: the drawing on its paper, as exported PNGs are drawn. */
   exportJPEG: () => Promise<void>;
+  /** File > Export As TIFF, PDF, EPS or EMF: the export raster in that format. */
+  exportRaster: (format: 'tiff' | 'pdf' | 'eps' | 'emf') => Promise<void>;
   exportSVG: () => Promise<void>;
   insertImage: (options: {
     bytes: Uint8Array;

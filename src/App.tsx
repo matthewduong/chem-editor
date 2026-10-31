@@ -1800,7 +1800,19 @@ function App() {
   }, [setIsFileDropdownOpen]);
 
   const handleExport = async (
-    format: 'png' | 'jpeg' | 'svg' | 'cdxml' | 'sdf' | 'mol' | 'rxn' | 'smi',
+    format:
+      | 'png'
+      | 'jpeg'
+      | 'tiff'
+      | 'pdf'
+      | 'eps'
+      | 'emf'
+      | 'svg'
+      | 'cdxml'
+      | 'sdf'
+      | 'mol'
+      | 'rxn'
+      | 'smi',
   ) => {
     setIsFileDropdownOpen(false);
     setIsExportSubmenuOpen(false);
@@ -1809,6 +1821,8 @@ function App() {
         await canvasRef.current?.exportPNG();
       } else if (format === 'jpeg') {
         await canvasRef.current?.exportJPEG();
+      } else if (format === 'tiff' || format === 'pdf' || format === 'eps' || format === 'emf') {
+        await canvasRef.current?.exportRaster(format);
       } else if (format === 'svg') {
         await canvasRef.current?.exportSVG();
       } else if (format === 'cdxml') {
@@ -3746,6 +3760,10 @@ function App() {
                     <MenuContent width={150}>
                       <MenuItem onClick={() => handleExport('png')}>PNG Image</MenuItem>
                       <MenuItem onClick={() => handleExport('jpeg')}>JPEG Image</MenuItem>
+                      <MenuItem onClick={() => handleExport('tiff')}>TIFF Image</MenuItem>
+                      <MenuItem onClick={() => handleExport('pdf')}>PDF Document</MenuItem>
+                      <MenuItem onClick={() => handleExport('eps')}>EPS Image</MenuItem>
+                      <MenuItem onClick={() => handleExport('emf')}>EMF Metafile</MenuItem>
                       <MenuItem onClick={() => handleExport('svg')}>SVG Vector</MenuItem>
                       <MenuSeparator />
                       <MenuItem onClick={() => handleExport('mol')}>Molfile (.mol)</MenuItem>

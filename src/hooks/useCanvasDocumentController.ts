@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { encodeEmf, encodeEps, encodePdf, encodeTiff } from '../lib/rasterExports';
 import {
   loadChemDrawDocumentForCanvasAsync,
   prepareChemDrawDocumentForSaveAsync,
@@ -12,7 +13,10 @@ import type { ChemCanvasRef } from '../types/canvas';
 export function useCanvasDocumentController(
   resetStageView: () => void,
   exportPng: (format?: 'png' | 'jpeg') => string | undefined,
-): Pick<ChemCanvasRef, 'saveNative' | 'loadNative' | 'exportPNG' | 'exportJPEG' | 'exportSVG'> {
+): Pick<
+  ChemCanvasRef,
+  'saveNative' | 'loadNative' | 'exportPNG' | 'exportJPEG' | 'exportSVG' | 'exportRaster'
+> {
   const loadState = useRef({ serial: 0, controller: null as AbortController | null });
   useEffect(
     () => () => {
@@ -114,6 +118,54 @@ export function useCanvasDocumentController(
         });
       } catch (e) {
         useStore.getState().showToast('JPEG export failed');
+        console.error(e);
+      }
+    },
+    exportRaster: async (format) => {
+      try {
+        const png = exportPng('png');
+        const jpeg = format === 'pdf' || format === 'eps' ? exportPng('jpeg') : null;
+        if (!png) return;
+        // Pixels, and the drawing's size in points (exports render at 3x).
+        const image = new Image();
+        image.src = png;
+        await image.decode();
+        const canvas = document.createElement('canvas');
+        canvas.width = image.naturalWidth;
+        canvas.height = image.naturalHeight;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+        ctx.drawImage(image, 0, 0);
+        const { width, height } = canvas;
+        const rgba = new Uint8Array(ctx.getImageData(0, 0, width, height).data.buffer);
+        const points = [width / 3, height / 3] as const;
+        const jpegBytes = jpeg
+          ? Uint8Array.from(atob(jpeg.split(',')[1]!), (c) => c.charCodeAt(0))
+          : null;
+        const content =
+          format === 'tiff'
+            ? encodeTiff(width, height, rgba, 216)
+            : format === 'emf'
+              ? encodeEmf(width, height, rgba, ...points)
+              : format === 'pdf'
+                ? encodePdf(jpegBytes!, width, height, ...points)
+                : encodeEps(jpegBytes!, width, height, ...points);
+        const label = {
+          tiff: 'TIFF Image',
+          pdf: 'PDF Document',
+          eps: 'EPS Image',
+          emf: 'EMF Metafile',
+        }[format];
+        const extension = format === 'tiff' ? 'tif' : format;
+        await saveBinaryWithDialog({
+          title: `Export ${format.toUpperCase()}`,
+          defaultPath: `molecule.${extension}`,
+          name: label,
+          extensions: format === 'tiff' ? ['tif', 'tiff'] : [extension],
+          content,
+        });
+      } catch (e) {
+        useStore.getState().showToast(`${format.toUpperCase()} export failed`);
         console.error(e);
       }
     },
