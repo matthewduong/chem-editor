@@ -77,3 +77,6 @@ GEMINI.md
 /native-ui-evidence/
 /package-hashes.json
 /ChemEditor-macos-arm64.app.tar.gz
+
+# Native platform builds (native/*/)
+native/*/target/
