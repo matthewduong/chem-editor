@@ -117,7 +117,7 @@ Done in Phase II (2026-10-30), with ChemDraw's keys (preferences version 11).
 - [ ] **Document properties** — no metadata dialog · 2: Documents, Document Properties
 - [ ] **Autosave to the open file** — only a recovery snapshot is written · 2: Autosave and
       Autorecovery
-- [ ] **Export border preference** — fixed 40-unit margin (`DEFAULT_EXPORT_PADDING`, now an export option) in `svgExport.ts` · 16:
+- [x] **Export border preference** — fixed 40-unit margin (`DEFAULT_EXPORT_PADDING`, now an export option) in `svgExport.ts` · 16:
       Graphics Export Border Preference
 
 ## Clipboard and export

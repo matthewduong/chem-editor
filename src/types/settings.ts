@@ -171,6 +171,8 @@ export interface AppPreferences {
   recentFiles: RecentFileEntry[];
   /** Nicknames the user defined (Structure > Define Nickname). */
   nicknames: UserNickname[];
+  /** Margin around an exported or copied drawing on an infinite page, in points. */
+  exportBorder: number;
 }
 
 export interface UserNickname {

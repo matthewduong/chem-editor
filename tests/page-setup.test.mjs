@@ -298,3 +298,10 @@ test('drawing metrics set in Preferences survive normalization', () => {
   assert.equal(metrics.hashSpacing, 3.1);
   assert.equal(metrics.bondSpacingPct, 22);
 });
+
+test('the export border defaults to the margin exports always had, and is clamped', () => {
+  assert.equal(normalizeAppPreferences({}).exportBorder, 40);
+  assert.equal(normalizeAppPreferences({ exportBorder: 12 }).exportBorder, 12);
+  assert.equal(normalizeAppPreferences({ exportBorder: -5 }).exportBorder, 0);
+  assert.equal(normalizeAppPreferences({ exportBorder: 'x' }).exportBorder, 40);
+});

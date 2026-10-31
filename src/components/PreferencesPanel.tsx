@@ -651,6 +651,19 @@ export function PreferencesPanel({
                   style={numberInputStyle}
                 />
               </label>
+              <label style={{ fontSize: '12px', color: theme.text }}>
+                Export Border (pt)
+                <DeferredNumberInput
+                  value={appPreferences.exportBorder}
+                  min={0}
+                  max={144}
+                  step={1}
+                  onCommit={(exportBorder) =>
+                    setAppPreferences({ ...appPreferences, exportBorder })
+                  }
+                  style={numberInputStyle}
+                />
+              </label>
               {/* ChemDraw's Drawing settings (Document Settings > Drawing); ACS Document 1996
                   values are the defaults (chemdrawMetrics.ts). */}
               <label style={{ fontSize: '12px', color: theme.text }}>

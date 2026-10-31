@@ -1,6 +1,7 @@
 import { useStore } from '../store';
 import type { Arrow, Atom, Bond, TextBox } from '../types/chemistry';
 import type { PageSetup } from '../types/settings';
+import { convertNativeToCanvas } from './chemdrawMetrics';
 import { generateCanvasSVGWithContext } from './svgExport';
 
 /**
@@ -16,8 +17,13 @@ export function generateCanvasSVG(
   textBoxes: TextBox[] = [],
   pageSetup?: PageSetup,
 ): string {
-  const { documentStyleSettings, documentViewSettings, chemDrawDocument, stereoLabels } =
-    useStore.getState();
+  const {
+    documentStyleSettings,
+    documentViewSettings,
+    chemDrawDocument,
+    stereoLabels,
+    appPreferences,
+  } = useStore.getState();
   return generateCanvasSVGWithContext(atoms, bonds, arrows, {
     chemDrawDocument,
     documentStyleSettings,
@@ -26,6 +32,7 @@ export function generateCanvasSVG(
     transparent,
     textBoxes,
     pageSetup,
+    padding: convertNativeToCanvas(appPreferences.exportBorder, documentStyleSettings),
     ...(stereoLabels && stereoLabels.source === chemDrawDocument ? { stereoLabels } : {}),
   });
 }

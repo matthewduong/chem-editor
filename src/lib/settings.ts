@@ -418,6 +418,8 @@ export const DEFAULT_APP_PREFERENCES: AppPreferences = {
   keybindings: buildDefaultKeybindingPreferences(),
   recentFiles: [],
   nicknames: [],
+  // The margin exports always had (canvas units are points at the default scale).
+  exportBorder: 40,
 };
 
 interface PersistedSettingsPayload {
@@ -1094,6 +1096,10 @@ export function normalizeAppPreferences(
     keybindings: normalizeKeybindingPreferences(value?.keybindings, value?.version),
     recentFiles: normalizeRecentFiles(value?.recentFiles),
     nicknames: normalizeNicknames(value?.nicknames),
+    exportBorder:
+      typeof value?.exportBorder === 'number' && Number.isFinite(value.exportBorder)
+        ? Math.min(144, Math.max(0, value.exportBorder))
+        : 40,
   };
 }
 
