@@ -1733,6 +1733,41 @@ def run_server() -> int:
 PROTOCOL_VERSION = 1
 
 
+def render_thumbnail(input_path, output_path, size=256):
+    """A file manager's preview of a CDXML file (the freedesktop thumbnailer runs this).
+
+    Every structure in the file, drawn where the file puts it, as a square PNG of `size` pixels.
+    A file RDKit cannot read, or with no structure, writes nothing and reports failure, so the
+    file manager keeps its generic icon.
+    """
+    size = max(16, min(int(size), 1024))
+    try:
+        mols = [mol for mol in Chem.MolsFromCDXMLFile(input_path, sanitize=False, removeHs=False) if mol]
+    except Exception:  # noqa: BLE001 - any parse failure means "no thumbnail"
+        return False
+    if not mols:
+        return False
+    combined = mols[0]
+    for mol in mols[1:]:
+        combined = Chem.CombineMols(combined, mol)
+    if combined.GetNumAtoms() == 0 or combined.GetNumConformers() == 0:
+        return False
+    from rdkit.Chem.Draw import rdMolDraw2D
+
+    drawer = rdMolDraw2D.MolDraw2DCairo(size, size)
+    options = drawer.drawOptions()
+    options.clearBackground = True
+    options.padding = 0.05
+    try:
+        drawer.DrawMolecule(combined)
+        drawer.FinishDrawing()
+    except Exception:  # noqa: BLE001
+        return False
+    with open(output_path, "wb") as handle:
+        handle.write(drawer.GetDrawingText())
+    return True
+
+
 def packaged_self_check():
     """Load bundled dependencies and data without running a quantum calculation."""
     import sqlite3
@@ -1785,6 +1820,11 @@ if __name__ == "__main__":
     # Protocol handshake
     subparsers.add_parser("protocol")
     subparsers.add_parser("self-check")
+
+    thumbnail_parser = subparsers.add_parser("thumbnail")
+    thumbnail_parser.add_argument("input")
+    thumbnail_parser.add_argument("output")
+    thumbnail_parser.add_argument("size", nargs="?", type=int, default=256)
 
     # Conformer command
     conf_parser = subparsers.add_parser("conformer")
@@ -1850,6 +1890,8 @@ if __name__ == "__main__":
     elif args.command == "xyz-conformer":
         content = sys.stdin.read()
         print(json.dumps(xyz_to_conformer(content)))
+    elif args.command == "thumbnail":
+        sys.exit(0 if render_thumbnail(args.input, args.output, args.size) else 1)
     elif args.command == "self-check":
         print(json.dumps(packaged_self_check()))
     elif args.command == "protocol":

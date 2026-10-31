@@ -1,0 +1,12 @@
+#!/bin/sh
+# Freedesktop thumbnailer for CDXML files: runs the bundled chem-engine's `thumbnail` command.
+# Usage: chem-editor-thumbnailer INPUT OUTPUT [SIZE]
+# The deb/rpm bundles install the engine under /usr/lib/ChemEditor; CHEM_EDITOR_LIB overrides it.
+lib="${CHEM_EDITOR_LIB:-/usr/lib/ChemEditor}"
+for engine in "$lib"/bin/chem-engine-*/chem-engine; do
+  if [ -x "$engine" ]; then
+    exec "$engine" thumbnail "$1" "$2" "${3:-256}"
+  fi
+done
+echo "chem-editor-thumbnailer: no chem-engine under $lib/bin" >&2
+exit 1

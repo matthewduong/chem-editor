@@ -39,6 +39,22 @@
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ]
+    ],
+    "linux": {
+      "deb": {
+        "files": {
+          "/usr/bin/chem-editor-thumbnailer": "linux/chem-editor-thumbnailer",
+          "/usr/share/thumbnailers/chem-editor.thumbnailer": "linux/chem-editor.thumbnailer",
+          "/usr/share/mime/packages/chem-editor.xml": "linux/chem-editor-mime.xml"
+        }
+      },
+      "rpm": {
+        "files": {
+          "/usr/bin/chem-editor-thumbnailer": "linux/chem-editor-thumbnailer",
+          "/usr/share/thumbnailers/chem-editor.thumbnailer": "linux/chem-editor.thumbnailer",
+          "/usr/share/mime/packages/chem-editor.xml": "linux/chem-editor-mime.xml"
+        }
+      }
+    }
   }
 }

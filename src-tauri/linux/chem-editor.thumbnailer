@@ -1,0 +1,4 @@
+[Thumbnailer Entry]
+TryExec=/usr/bin/chem-editor-thumbnailer
+Exec=/usr/bin/chem-editor-thumbnailer %i %o %s
+MimeType=chemical/x-cdxml;
