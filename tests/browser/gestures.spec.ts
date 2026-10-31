@@ -953,6 +953,58 @@ for (const scale of [1, 2]) {
       await expect.poll(imageWidth).not.toBe(before);
       expect(parseFloat(await imageWidth())).toBeCloseTo(parseFloat(before) / 2, 5);
     });
+    test('Name to Structure draws a named structure, and Structure to Name captions it', async ({
+      page,
+    }) => {
+      await openEditor(page);
+      await page.getByText('Edit', { exact: true }).click();
+      await page.getByText('Name to Structure…', { exact: true }).click();
+      await page.getByPlaceholder('e.g. 3-ethyl-2-methylhexan-1-ol').fill('propan-2-ol');
+      await page.getByPlaceholder('e.g. 3-ethyl-2-methylhexan-1-ol').press('Enter');
+      await expect.poll(async () => (await observe(page)).atoms.length).toBe(4);
+      await page.getByText('Edit', { exact: true }).click();
+      await page.getByText('Structure to Name', { exact: true }).click();
+      const captions = await page.evaluate(async () => {
+        const { useStore } = await import(String('/src/store/index.ts'));
+        return (useStore.getState().textBoxes ?? []).map((box: { runs: Array<{ text: string }> }) =>
+          box.runs.map((run) => run.text).join(''),
+        );
+      });
+      expect(captions).toEqual(['propan-2-ol']);
+    });
+    test('a selected caption naming a compound becomes that structure', async ({ page }) => {
+      await openEditor(page);
+      await page.evaluate(async () => {
+        const { commitCanvasEdit, useStore } = await import(String('/src/store/index.ts'));
+        commitCanvasEdit({
+          atoms: [],
+          bonds: [],
+          arrows: [],
+          groups: [],
+          textBoxes: [
+            {
+              id: 'cap',
+              x: 200,
+              y: 200,
+              runs: [{ text: 'cyclohexanol' }],
+              fontSize: 10,
+              fontFamily: 'Arial',
+              color: '#000000',
+              textAlign: 'left',
+            },
+          ],
+        } as never);
+        useStore.getState().setSelectedTextBoxIds(new Set(['cap']));
+      });
+      await page.getByText('Edit', { exact: true }).click();
+      await page.getByText('Name to Structure…', { exact: true }).click();
+      await expect.poll(async () => (await observe(page)).atoms.length).toBe(7);
+      const remaining = await page.evaluate(async () => {
+        const { useStore } = await import(String('/src/store/index.ts'));
+        return (useStore.getState().textBoxes ?? []).length;
+      });
+      expect(remaining).toBe(0);
+    });
     test('chain preview commits once and cancellation creates no history', async ({ page }) => {
       await openEditor(page);
       await tool(page, 'Chain');

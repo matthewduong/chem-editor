@@ -81,8 +81,8 @@ Done in Phase II (2026-10-30), with ChemDraw's keys (preferences version 11).
 
 ## Naming and analysis
 
-- [ ] **Struct>Name** — no naming code anywhere · 11: Struct>Name
-- [ ] **Name>Struct, including captions** — only a fixed acronym dictionary · 11: Name>Struct
+- [x] **Struct>Name** — no naming code anywhere · 11: Struct>Name
+- [x] **Name>Struct, including captions** — only a fixed acronym dictionary · 11: Name>Struct
 - [x] **m/z and elemental analysis** — Properties shows formula, MW and exact mass only · 12:
       Structure Analysis
 

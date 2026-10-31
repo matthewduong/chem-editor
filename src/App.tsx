@@ -573,6 +573,7 @@ function App() {
   const [isQueryDialogOpen, setIsQueryDialogOpen] = useState(false);
   const [isDocumentPropertiesOpen, setIsDocumentPropertiesOpen] = useState(false);
   const [isPrintPreviewOpen, setIsPrintPreviewOpen] = useState(false);
+  const [nameDraft, setNameDraft] = useState<string | null>(null);
   const pageSetup = useStore((s) => s.pageSetup);
   const documentStyleSettings = useStore((s) => s.documentStyleSettings);
   const documentViewSettings = useStore((s) => s.documentViewSettings);
@@ -4151,6 +4152,24 @@ function App() {
                 </MenuItem>
                 <MenuItem
                   onClick={() => {
+                    setIsEditDropdownOpen(false);
+                    if (useStore.getState().selectedTextBoxIds.size) {
+                      canvasRef.current?.structureFromName();
+                    } else setNameDraft('');
+                  }}
+                >
+                  Name to Structure…
+                </MenuItem>
+                <MenuItem
+                  onClick={() => {
+                    setIsEditDropdownOpen(false);
+                    canvasRef.current?.nameStructures();
+                  }}
+                >
+                  Structure to Name
+                </MenuItem>
+                <MenuItem
+                  onClick={() => {
                     setIsQueryDialogOpen(true);
                     setIsEditDropdownOpen(false);
                   }}
@@ -6252,6 +6271,46 @@ function App() {
           isDarkMode={isDarkMode}
           onClose={() => setIsQueryDialogOpen(false)}
         />
+      )}
+      {nameDraft !== null && (
+        <div
+          role="dialog"
+          aria-label="Name to Structure"
+          style={{
+            position: 'fixed',
+            left: '50%',
+            top: '30%',
+            transform: 'translateX(-50%)',
+            zIndex: 3000,
+            padding: 14,
+            borderRadius: 8,
+            background: theme.sidebar,
+            color: theme.text,
+            border: `1px solid ${theme.border}`,
+            boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
+          }}
+        >
+          <label style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            Name
+            <input
+              autoFocus
+              placeholder="e.g. 3-ethyl-2-methylhexan-1-ol"
+              value={nameDraft}
+              onFocus={() => useStore.getState().setIsInputFocused(true)}
+              onBlur={() => useStore.getState().setIsInputFocused(false)}
+              onChange={(e) => setNameDraft(e.target.value)}
+              onKeyDown={(e) => {
+                const close = () => {
+                  useStore.getState().setIsInputFocused(false);
+                  setNameDraft(null);
+                };
+                if (e.key === 'Enter' && canvasRef.current?.structureFromName(nameDraft)) close();
+                if (e.key === 'Escape') close();
+              }}
+              style={{ width: 260 }}
+            />
+          </label>
+        </div>
       )}
       {nicknameDraft !== null && (
         <div

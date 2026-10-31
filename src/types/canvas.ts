@@ -31,6 +31,10 @@ export interface ChemCanvasRef {
   addFromSmiles: (input: string) => void;
   applyTextFormat: (cmd: string, value?: string) => void;
   fitToScreen: () => void;
+  /** Structure > Name to Structure: from `name`, or from the selected caption; false if unread. */
+  structureFromName: (name?: string) => boolean;
+  /** Structure > Structure to Name: captions under the selected structures. */
+  nameStructures: () => void;
   /** Edit > Copy As: the selection as text in `format`, or null. */
   structureText: (format: import('../lib/structureText').StructureTextFormat) => string | null;
   /** Structure > Expand Label / Contract Label for the selection. */

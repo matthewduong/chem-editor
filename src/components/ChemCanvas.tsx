@@ -34,6 +34,7 @@ import { arrowConnectionPoint } from '../lib/arrowGesture';
 import { genericNicknameBase } from '../lib/genericLabels';
 import { fragmentAcross, fragmentationCaptions } from '../lib/massFragmentation';
 import { computeStereoLabels } from '../lib/stereoLabels';
+import { nameToSmiles, resolveNameToSmiles, structureToName } from '../lib/naming';
 import {
   structureAsText,
   type EnhancedStereoGroups,
@@ -1615,6 +1616,110 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
   };
   const labelActionsRef = useRef({ expandSelectedLabels, contractSelectedLabel });
   labelActionsRef.current = { expandSelectedLabels, contractSelectedLabel };
+  /**
+   * Structure > Name to Structure: the named structure, drawn where a selected caption holding the
+   * name was (which it replaces) or at the middle of the view; one undo step. False when the name
+   * is not read.
+   */
+  const structureFromName = (typed?: string): boolean => {
+    if (!rdkit) return false;
+    const state = getCanvasEditorState();
+    const caption =
+      typed === undefined
+        ? (state.textBoxes ?? []).find((box) => state.selectedTextBoxIds.has(box.id))
+        : undefined;
+    const name = typed ?? caption?.runs.map((run) => run.text).join('') ?? '';
+    const smiles = resolveNameToSmiles(name);
+    const mol = smiles ? rdkit.get_mol(smiles) : null;
+    if (!smiles || !mol) {
+      state.showToast(`No structure for "${name.trim()}".`, 'info');
+      return false;
+    }
+    mol.delete();
+    const base = {
+      atoms: state.atoms,
+      bonds: state.bonds,
+      arrows: state.arrows,
+      groups: state.groups ?? [],
+      textBoxes: (state.textBoxes ?? []).filter((box) => box.id !== caption?.id),
+    };
+    const point = caption
+      ? { x: caption.x, y: caption.y }
+      : { x: (width / 2 - stagePos.x) / stageScale, y: (height / 2 - stagePos.y) / stageScale };
+    const next = placeFragmentAt(smiles, point, undefined, undefined, false, { base });
+    if (!next) return false;
+    commitCanvasEdit(next);
+    return true;
+  };
+
+  /**
+   * Structure > Structure to Name: each selected structure (or every one) named under itself as a
+   * caption, one undo step. A name is used only if it reads back to the same structure.
+   */
+  const nameSelectedStructures = () => {
+    if (!rdkit) return;
+    const state = getCanvasEditorState();
+    const chosen = state.selectedAtomIds.size
+      ? new Set([...state.selectedAtomIds])
+      : new Set(state.atoms.map((atom) => atom.id));
+    const components = getConnectedComponents(state.atoms, state.bonds).filter((component) =>
+      [...component].some((id) => chosen.has(id)),
+    );
+    const canonical = (molblockOrSmiles: string) => {
+      const mol = rdkit.get_mol(molblockOrSmiles);
+      if (!mol) return null;
+      const out = mol.get_smiles();
+      mol.delete();
+      return out;
+    };
+    const style = resolveDocumentCaptionTextStyle(state.documentStyleSettings);
+    const captions: TextBox[] = [];
+    let unnamed = 0;
+    for (const component of components) {
+      const atoms = state.atoms.filter((atom) => component.has(atom.id));
+      const bonds = state.bonds.filter(
+        (bond) => component.has(bond.from) && component.has(bond.to),
+      );
+      const name = structureToName(atoms, bonds);
+      const drawn = canonical(graphToMolblock(atoms, bonds, 1, 1).molblock);
+      const read = name ? nameToSmiles(name) : null;
+      if (!name || !drawn || !read || canonical(read) !== drawn) {
+        unnamed += 1;
+        continue;
+      }
+      const xs = atoms.map((atom) => atom.x);
+      captions.push({
+        id: crypto.randomUUID(),
+        x: (Math.min(...xs) + Math.max(...xs)) / 2,
+        y: Math.max(...atoms.map((atom) => atom.y)) + state.documentStyleSettings.bondLength,
+        runs: [{ text: name }],
+        fontSize: style.fontSize,
+        fontFamily: style.fontFamily,
+        color: state.textFormat.color,
+        textAlign: 'center',
+        semanticMode: 'plain',
+        conversionStatus: 'plain',
+      });
+    }
+    if (captions.length) {
+      commitCanvasEdit({
+        atoms: state.atoms,
+        bonds: state.bonds,
+        arrows: state.arrows,
+        groups: state.groups ?? [],
+        textBoxes: [...(state.textBoxes ?? []), ...captions],
+      });
+    }
+    if (unnamed) {
+      state.showToast(
+        `${unnamed} structure${unnamed === 1 ? ' has' : 's have'} no name here (only simple chains, cycloalkanes and benzenes are named).`,
+        'info',
+      );
+    }
+  };
+  const namingRef = useRef({ structureFromName, nameSelectedStructures });
+  namingRef.current = { structureFromName, nameSelectedStructures };
+
   const structureTextRef = useRef(structureTextForSelection);
   structureTextRef.current = structureTextForSelection;
 
@@ -3477,6 +3582,8 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
         }
       },
       structureText: (format: StructureTextFormat) => structureTextRef.current(format),
+      structureFromName: (name?: string) => namingRef.current.structureFromName(name),
+      nameStructures: () => namingRef.current.nameSelectedStructures(),
       expandLabels: () => labelActionsRef.current.expandSelectedLabels(),
       contractLabel: () => labelActionsRef.current.contractSelectedLabel(),
       zoomIn: () => zoomActionsRef.current.zoomBy(1.25),
