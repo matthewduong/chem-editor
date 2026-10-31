@@ -1,4 +1,4 @@
-# Mac session handoff (branch `phase-1-graphics`)
+# Mac session handoff (branch `main`)
 
 Everything in `development/todo.md` is done and tested except two items, whose code is in
 `native/` and has never run (`native/README.md` has the details):
