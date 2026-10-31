@@ -53,6 +53,7 @@ import type {
   ChemDrawNode,
   ChemDrawReactionRole,
   ChemDrawReactionScheme,
+  ChemDrawRGroupDefinition,
   ChemDrawReactionStep,
   ChemDrawObject,
   ChemDrawObjectTag,
@@ -1139,6 +1140,46 @@ function emitObjectTags(
  * objects that keep their original ID (fragments, arrows, graphics, preserved XML) would otherwise
  * collide with the freshly numbered nodes and bonds.
  */
+/**
+ * An `<altgroup>` as an R-group definition: the name its label gives ("R1 =" is R1) and, for each
+ * member fragment, the atom bonded to its attachment point and where that point is.
+ */
+function readRGroupDefinition(
+  altgroupEl: Element,
+  importScaleFactor: number,
+): ChemDrawRGroupDefinition | null {
+  const id = altgroupEl.getAttribute('id');
+  const label = Array.from(elementChildren(altgroupEl)).find((child) => child.tagName === 't');
+  const name = (label?.textContent ?? '').replace(/=\s*$/, '').trim();
+  if (!id || !name) return null;
+  const members: ChemDrawRGroupDefinition['members'] = [];
+  for (const fragmentEl of Array.from(elementChildren(altgroupEl))) {
+    if (fragmentEl.tagName !== 'fragment' || !fragmentEl.getAttribute('id')) continue;
+    const children = Array.from(elementChildren(fragmentEl));
+    const point = children.find(
+      (child) =>
+        child.tagName === 'n' && child.getAttribute('NodeType') === 'ExternalConnectionPoint',
+    );
+    const pointId = point?.getAttribute('id');
+    const parts = (point?.getAttribute('p') ?? '').trim().split(/\s+/).map(Number);
+    if (!pointId || parts.length < 2 || !parts.every(Number.isFinite)) continue;
+    const bond = children.find(
+      (child) =>
+        child.tagName === 'b' &&
+        (child.getAttribute('B') === pointId || child.getAttribute('E') === pointId),
+    );
+    const attachmentNodeId =
+      bond?.getAttribute('B') === pointId ? bond?.getAttribute('E') : bond?.getAttribute('B');
+    if (!attachmentNodeId) continue;
+    members.push({
+      fragmentId: fragmentEl.getAttribute('id')!,
+      attachmentNodeId,
+      attachmentPoint: { x: parts[0]! / importScaleFactor, y: parts[1]! / importScaleFactor },
+    });
+  }
+  return members.length ? { id, name, members } : null;
+}
+
 const STEP_LISTS = [
   ['reactants', 'ReactionStepReactants'],
   ['products', 'ReactionStepProducts'],
@@ -2320,6 +2361,7 @@ export function cdxmlToChemDrawDocument(xmlString: string): ChemDrawConversionRe
     ChemDrawDocument['pages'][number]['preservedPageChildren']
   > = [];
   const schemes: ChemDrawReactionScheme[] = [];
+  const rGroupDefinitions: ChemDrawRGroupDefinition[] = [];
   const preservedDocumentAttributes = collectUnhandledAttributes(root, [
     'BondSpacing',
     'BondSpacingAbs',
@@ -4188,6 +4230,8 @@ export function cdxmlToChemDrawDocument(xmlString: string): ChemDrawConversionRe
         continue;
       }
       if (tag === 'altgroup') {
+        const definition = readRGroupDefinition(child, importScaleFactor);
+        if (definition) rGroupDefinitions.push(definition);
         // Its fragments are read for drawing (owned by it, read-only); it is written back whole.
         preservedPageChildren.push({
           tagName: tag,
@@ -4428,6 +4472,7 @@ export function cdxmlToChemDrawDocument(xmlString: string): ChemDrawConversionRe
           objects,
           ...(preservedPageChildren.length ? { preservedPageChildren } : {}),
           ...(schemes.length ? { schemes } : {}),
+          ...(rGroupDefinitions.length ? { rGroupDefinitions } : {}),
         },
       ],
       metadata: {

@@ -430,10 +430,24 @@ export interface ChemDrawReactionScheme {
   rawAttributes?: Record<string, string>;
 }
 
+/**
+ * An R-group definition read from an `<altgroup>`: its name ("R1" from an "R1 =" label) and its
+ * members, each a fragment with the atom that bonds to the R and where its attachment point
+ * (`ExternalConnectionPoint`) was. The altgroup itself is written back as read; this is for
+ * Expand Generic Structure.
+ */
+export interface ChemDrawRGroupDefinition {
+  id: string;
+  name: string;
+  members: Array<{ fragmentId: string; attachmentNodeId: string; attachmentPoint: ChemDrawPoint }>;
+}
+
 export interface ChemDrawPage {
   id: string;
   bounds?: ChemDrawBounds;
   objects: ChemDrawObject[];
+  /** R-group definitions from `<altgroup>`s; see `ChemDrawRGroupDefinition`. */
+  rGroupDefinitions?: ChemDrawRGroupDefinition[];
   /** Reaction schemes; drawn by nothing, read by reaction tools and written back. */
   schemes?: ChemDrawReactionScheme[];
   preservedPageChildren?: Array<{

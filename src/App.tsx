@@ -15,6 +15,7 @@ import { TemplatesPanel } from './components/TemplatesPanel';
 import { QueryPropertiesDialog } from './components/QueryPropertiesDialog';
 import { registerUserNicknames } from './lib/aliasChemistry';
 import { selectionToRootedSmiles } from './lib/nicknames';
+import { expandGenericStructures } from './lib/rGroupEnumeration';
 import { convertCanvasToNative, convertNativeToCanvas } from './lib/chemdrawMetrics';
 import { CharacterMapPanel } from './components/CharacterMapPanel';
 import { commitChainOfLength } from './tools/useChainTool';
@@ -78,6 +79,7 @@ import {
   createEnhancedStereoCommand,
   createReactionRoleCommand,
   createCleanUpReactionCommand,
+  createSelectionEditCommand,
   createJoinSelectionCommand,
 } from './editor/commands';
 import {
@@ -4021,6 +4023,47 @@ function App() {
                   }}
                 >
                   Reaction: Not in Reaction
+                </MenuItem>
+                <MenuItem
+                  onClick={() => {
+                    const state = useStore.getState();
+                    const document = state.chemDrawDocument;
+                    if (!document?.pages[0]?.rGroupDefinitions?.length) {
+                      state.showToast('This document defines no R-groups to expand.', 'info');
+                    } else {
+                      // New ids: numeric, past every id in the document, as CDXML's are.
+                      let next =
+                        Math.max(
+                          0,
+                          ...document.pages[0]!.objects.map((object) => Number(object.id) || 0),
+                        ) + 1;
+                      let summary = { count: 0, truncated: false };
+                      state.dispatchEditorCommand(
+                        createSelectionEditCommand(
+                          'expand-generic-structure',
+                          (doc, _ids, context) => {
+                            const result = expandGenericStructures(
+                              doc,
+                              state.selectedAtomIds,
+                              context.documentStyleSettings,
+                              () => String(next++),
+                            );
+                            summary = result;
+                            return result.document;
+                          },
+                        ),
+                      );
+                      state.showToast(
+                        summary.count
+                          ? `Drew ${summary.count} structure${summary.count === 1 ? '' : 's'}${summary.truncated ? ' (stopped at the limit)' : ''}.`
+                          : 'No structure with a defined R-group to expand.',
+                        'info',
+                      );
+                    }
+                    setIsEditDropdownOpen(false);
+                  }}
+                >
+                  Expand Generic Structure
                 </MenuItem>
                 <MenuItem
                   onClick={() => {

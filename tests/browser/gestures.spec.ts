@@ -858,6 +858,27 @@ for (const scale of [1, 2]) {
       await page.keyboard.press('ControlOrMeta+z');
       expect((await read()).bond).toBeUndefined();
     });
+    test('Expand Generic Structure draws each R-group combination as one undo step', async ({
+      page,
+    }) => {
+      await openEditor(page);
+      const source = readFileSync('tests/fixtures/cdxml/rgroup-definition.cdxml', 'utf8');
+      await page.evaluate(async (xml) => {
+        const { useStore } = await import(String('/src/store/index.ts'));
+        const api = await import(String('/src/lib/chemdrawDocumentCommands.ts'));
+        useStore.getState().replaceDocument(api.loadChemDrawDocumentForCanvas(xml).document);
+      }, source);
+      const fragments = async () =>
+        ((await observe(page)).document!.pages[0].objects as Array<{ type: string }>).filter(
+          (o) => o.type === 'fragment',
+        ).length;
+      const before = await fragments();
+      await page.getByText('Edit', { exact: true }).click();
+      await page.getByText('Expand Generic Structure', { exact: true }).click();
+      expect(await fragments()).toBe(before + 2);
+      await page.keyboard.press('ControlOrMeta+z');
+      expect(await fragments()).toBe(before);
+    });
     test('chain preview commits once and cancellation creates no history', async ({ page }) => {
       await openEditor(page);
       await tool(page, 'Chain');
