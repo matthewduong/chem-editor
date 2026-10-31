@@ -1,4 +1,5 @@
 import type { ChemDrawDocument } from '../types/chemdraw';
+import { normalizeAutosaveMinutes } from './autosave';
 import type {
   AppPreferences,
   AtomColorPaletteId,
@@ -420,6 +421,7 @@ export const DEFAULT_APP_PREFERENCES: AppPreferences = {
   nicknames: [],
   // The margin exports always had (canvas units are points at the default scale).
   exportBorder: 40,
+  autosaveMinutes: 0,
 };
 
 interface PersistedSettingsPayload {
@@ -1100,6 +1102,7 @@ export function normalizeAppPreferences(
       typeof value?.exportBorder === 'number' && Number.isFinite(value.exportBorder)
         ? Math.min(144, Math.max(0, value.exportBorder))
         : 40,
+    autosaveMinutes: normalizeAutosaveMinutes(value?.autosaveMinutes),
   };
 }
 

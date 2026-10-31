@@ -1173,6 +1173,19 @@ export function PreferencesPanel({
           )}
           {preferencesTab === 'app' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <label style={{ fontSize: '12px', color: theme.text }}>
+                Save Files Every (minutes, 0 is off)
+                <DeferredNumberInput
+                  value={appPreferences.autosaveMinutes}
+                  min={0}
+                  max={1440}
+                  step={1}
+                  onCommit={(autosaveMinutes) =>
+                    setAppPreferences({ ...appPreferences, autosaveMinutes })
+                  }
+                  style={numberInputStyle}
+                />
+              </label>
               <label
                 style={{
                   display: 'flex',

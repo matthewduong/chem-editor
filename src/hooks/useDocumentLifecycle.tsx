@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
+import { shouldAutosave } from '../lib/autosave';
 import { listen } from '@tauri-apps/api/event';
 import { isTauri } from '@tauri-apps/api/core';
 import type { ChemCanvasRef } from '../components/ChemCanvas';
@@ -53,6 +54,16 @@ export function useDocumentLifecycle(canvas: RefObject<ChemCanvasRef | null>) {
     },
     [canvas],
   );
+
+  // Save Files Every N minutes, when the preference is on and the file may be saved over.
+  const autosaveMinutes = useStore((s) => s.appPreferences.autosaveMinutes);
+  useEffect(() => {
+    if (autosaveMinutes <= 0) return;
+    const timer = window.setInterval(() => {
+      if (shouldAutosave(autosaveMinutes, useStore.getState().documentFile)) void save(false);
+    }, autosaveMinutes * 60_000);
+    return () => window.clearInterval(timer);
+  }, [autosaveMinutes, save]);
 
   const confirmReplace = useCallback(
     async (nextAction: string): Promise<boolean> => {

@@ -173,6 +173,8 @@ export interface AppPreferences {
   nicknames: UserNickname[];
   /** Margin around an exported or copied drawing on an infinite page, in points. */
   exportBorder: number;
+  /** Save the open file every this many minutes; 0 is off (`autosave.ts`). */
+  autosaveMinutes: number;
 }
 
 export interface UserNickname {
