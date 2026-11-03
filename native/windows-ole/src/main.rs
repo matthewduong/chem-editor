@@ -20,18 +20,17 @@ use windows::Win32::Foundation::{
     BOOL, E_FAIL, E_NOTIMPL, OLE_E_ADVISENOTSUPPORTED, OLE_E_NOCONNECTION, OLE_S_USEREG, POINTL, RECT,
     S_OK, SIZE,
 };
-use windows::Win32::System::Com::StructuredStorage::{
-    IStorage, STGM_CREATE, STGM_READ, STGM_READWRITE, STGM_SHARE_EXCLUSIVE,
-};
+use windows::Win32::System::Com::StructuredStorage::{IPersistStorage, IPersistStorage_Impl, IStorage};
 use windows::Win32::System::Com::{
-    CoRegisterClassObject, CoRevokeClassObject, IAdviseSink, IClassFactory, IClassFactory_Impl,
+    CoRegisterClassObject, CoRevokeClassObject, IPersist_Impl, IAdviseSink, IClassFactory, IClassFactory_Impl,
     IDataObject, IDataObject_Impl, IEnumFORMATETC, IEnumSTATDATA, IStream, CLSCTX_LOCAL_SERVER,
-    DVASPECT_CONTENT, FORMATETC, REGCLS_SINGLEUSE, STGMEDIUM, TYMED_HGLOBAL,
+    DVASPECT, DVASPECT_CONTENT, FORMATETC, REGCLS_SINGLEUSE,
+    STGMEDIUM, STGM_CREATE, STGM_READ, STGM_READWRITE, STGM_SHARE_EXCLUSIVE, TYMED_HGLOBAL,
 };
 use windows::Win32::System::Memory::{GlobalAlloc, GlobalLock, GlobalUnlock, GMEM_MOVEABLE};
 use windows::Win32::System::Ole::{
     CreateOleAdviseHolder, IOleAdviseHolder, IOleClientSite, IOleObject, IOleObject_Impl,
-    IPersistStorage, IPersistStorage_Impl, CF_DIB, OLEMISC_RECOMPOSEONRESIZE,
+    OLECLOSE, OLEGETMONIKER, OLEMISC, OLEWHICHMK, USERCLASSTYPE, CF_DIB, OLEMISC_RECOMPOSEONRESIZE,
 };
 use windows::Win32::UI::WindowsAndMessaging::{DispatchMessageW, GetMessageW, PostQuitMessage, MSG};
 
@@ -189,10 +188,13 @@ impl Document {
     }
 }
 
-impl IPersistStorage_Impl for Document_Impl {
+impl IPersist_Impl for Document_Impl {
     fn GetClassID(&self) -> Result<GUID> {
         Ok(CLSID_CHEM_EDITOR_DOCUMENT)
     }
+}
+
+impl IPersistStorage_Impl for Document_Impl {
     fn IsDirty(&self) -> HRESULT {
         S_OK
     }
@@ -282,7 +284,7 @@ impl IOleObject_Impl for Document_Impl {
     fn SetHostNames(&self, _: &PCWSTR, _: &PCWSTR) -> Result<()> {
         Ok(())
     }
-    fn Close(&self, _: u32) -> Result<()> {
+    fn Close(&self, _: &OLECLOSE) -> Result<()> {
         unsafe {
             if let Some(holder) = self.advise.borrow().as_ref() {
                 let _ = holder.SendOnClose();
@@ -291,10 +293,10 @@ impl IOleObject_Impl for Document_Impl {
         PostQuit();
         Ok(())
     }
-    fn SetMoniker(&self, _: u32, _: Option<&windows::Win32::System::Com::IMoniker>) -> Result<()> {
+    fn SetMoniker(&self, _: &OLEWHICHMK, _: Option<&windows::Win32::System::Com::IMoniker>) -> Result<()> {
         Err(E_NOTIMPL.into())
     }
-    fn GetMoniker(&self, _: u32, _: u32) -> Result<windows::Win32::System::Com::IMoniker> {
+    fn GetMoniker(&self, _: &OLEGETMONIKER, _: &OLEWHICHMK) -> Result<windows::Win32::System::Com::IMoniker> {
         Err(E_NOTIMPL.into())
     }
     fn InitFromData(&self, _: Option<&IDataObject>, _: BOOL, _: u32) -> Result<()> {
@@ -327,16 +329,16 @@ impl IOleObject_Impl for Document_Impl {
     fn GetUserClassID(&self) -> Result<GUID> {
         Ok(CLSID_CHEM_EDITOR_DOCUMENT)
     }
-    fn GetUserType(&self, _: u32) -> Result<windows::core::PWSTR> {
+    fn GetUserType(&self, _: &USERCLASSTYPE) -> Result<windows::core::PWSTR> {
         Err(OLE_S_USEREG.into())
     }
-    fn SetExtent(&self, _: u32, size: *const SIZE) -> Result<()> {
+    fn SetExtent(&self, _: DVASPECT, size: *const SIZE) -> Result<()> {
         if let Some(size) = unsafe { size.as_ref() } {
             *self.extent.borrow_mut() = *size;
         }
         Ok(())
     }
-    fn GetExtent(&self, _: u32) -> Result<SIZE> {
+    fn GetExtent(&self, _: DVASPECT) -> Result<SIZE> {
         Ok(*self.extent.borrow())
     }
     fn Advise(&self, sink: Option<&IAdviseSink>) -> Result<u32> {
@@ -355,8 +357,8 @@ impl IOleObject_Impl for Document_Impl {
     fn EnumAdvise(&self) -> Result<IEnumSTATDATA> {
         Err(E_NOTIMPL.into())
     }
-    fn GetMiscStatus(&self, _: u32) -> Result<u32> {
-        Ok(OLEMISC_RECOMPOSEONRESIZE.0 as u32)
+    fn GetMiscStatus(&self, _: DVASPECT) -> Result<OLEMISC> {
+        Ok(OLEMISC_RECOMPOSEONRESIZE)
     }
     fn SetColorScheme(&self, _: *const windows::Win32::Graphics::Gdi::LOGPALETTE) -> Result<()> {
         Err(E_NOTIMPL.into())
