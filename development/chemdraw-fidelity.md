@@ -241,6 +241,19 @@ recover the page-to-pixel mapping that ChemDraw's crop-to-content destroys; it c
 4.0000 px/pt. Sweep the size or the font in one page, so a ratio is distinguishable from a constant
 -- that is what separated the bracket lip (a fraction of the bracket) from a length in points.
 
+**Drive ChemDraw by AppleScript** (`osascript`, application id `com.revvity.ChemDraw`; the dictionary is in the
+app's `Contents/Resources/ChemDraw.sdef`). `do menu item "Select All" of menu "Edit"` then
+`do menu item "Clean Up Reaction" of menu "Structure"` (or `Convert Structure to Name`, any item in
+`name of every menu item of menu "..."`) runs a command; the document's `selection` has Molecular
+Weight, Exact Mass, Elemental Analysis, Molecular Formula and SMILES as properties (read each in its own
+call, `as text`: concatenating a number into a string fails). Commands that open a dialog or need a
+drag cannot be driven without Accessibility access for the terminal.
+
+**Read geometry from the PDF**: `savePdf`, then `pdftocairo -svg` and parse the `<path>` elements (a path
+may carry a `transform="matrix(...)"`). Rows 40 pt apart with three sizes per row, normalised by the size,
+told dots, bars and curves apart and showed which constants scale; a size sweep separates a ratio from an
+absolute length, as for the bracket lip.
+
 Two things will waste your time otherwise:
 
 - **ChemDraw silently refuses a document whose ids are not integers.** It opens nothing and reports

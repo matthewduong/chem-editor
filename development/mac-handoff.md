@@ -26,4 +26,13 @@ Also on the Mac, while ChemDraw is installed: the "to probe on mac" rows in
 mass fragmentation captions, naming choices…), measured with `pnpm test:chemdraw:mac` as
 `development/chemdraw-fidelity.md` describes.
 
+Probe status (2026-11-03): the "to probe on mac" rows in `development/gaps.md` are measured, drawn and
+tested for stereo and query indicators, atom numbers, chemical symbols, stereo flags, curly
+brackets, Faded curves, orbitals, analysis values, naming and Clean Up Reaction spacing. Blocked on
+Accessibility access for the terminal (System Settings > Privacy & Security > Accessibility), which
+`do menu item` cannot substitute for: Structure Perspective and Mass Fragmentation (drag tools) and
+Expand Generic Structure / R-Logic (dialogs). The method that worked is in `development/chemdraw-fidelity.md`
+("Probing ChemDraw"): AppleScript `do menu item` and the `selection` properties for values, render
+to PDF and read the vector paths (`pdftocairo -svg`) for geometry.
+
 Gate before each commit: `pnpm lint && pnpm test`.
