@@ -131,14 +131,17 @@ Done in Phase II (2026-10-30), with ChemDraw's keys (preferences version 11).
       without a library (`rasterExports.ts`) · 16: File Formats
 - [x] **Drag out to other apps** — the Drag handle carries CDXML, SMILES and a PNG · 16:
       Transferring Objects
-- [ ] **OLE embedding** — source written but UNBUILT (`native/windows-ole`: an open-editing
-      COM local server); build and check on Windows (`native/README.md`) · 16: Embedding
-      Objects
+- [ ] **OLE embedding** — `native/windows-ole`, an open-editing COM local server. Passes
+      `cargo check --target x86_64-pc-windows-msvc` against windows 0.58 (2026-11-03); never
+      run. Needs a Windows machine: build and check in Word (`native/README.md`) · 16:
+      Embedding Objects
 - [x] **CDXML file thumbnails on Linux** — freedesktop thumbnailer via the sidecar · 2:
       Previewing CDX and CDXML Files
-- [ ] **CDX/CDXML thumbnails on macOS and Windows** — source written but UNBUILT
-      (`native/`: a QuickLook extension and an IThumbnailProvider DLL); build and check on each
-      platform (`native/README.md`) · 2: Previewing CDX and CDXML Files
+- [ ] **CDX/CDXML thumbnails on macOS and Windows** — `native/`: a QuickLook extension and an
+      IThumbnailProvider DLL. macOS: compiles, signs and registers (elected), but QuickLook
+      never launches it for `.cdxml` (the system TextExtension takes the file), so no
+      thumbnail has been produced; see `native/README.md`. Windows: the DLL and the OLE
+      server type-check, never run · 2: Previewing CDX and CDXML Files
 
 ## Considered, not now
 

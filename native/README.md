@@ -12,7 +12,18 @@ Both render through the sidecar's `chem-engine thumbnail INPUT OUTPUT SIZE` comm
 1. `pnpm tauri build` on a Mac, giving `ChemEditor.app`.
 2. `native/macos-quicklook/build.sh path/to/ChemEditor.app` (needs Xcode command-line tools).
 3. Check: `qlmanage -r && qlmanage -t -s 256 some.cdxml`, then Finder's icon view.
-4. Open questions: the sandboxed extension running the bundled engine (it may need the engine
+4. Status 2026-11-03 (macOS 27, ChemDraw 26.1 installed): `build.sh` compiles and signs the
+   extension; the bundled engine layout matches `engineURL()`; `pluginkit` lists and elects it.
+   But `QLThumbnailGenerator` (use a small Swift caller; `qlmanage -t` hangs with "No sandbox
+   token") never launches it for a `.cdxml`: the ThumbnailsAgent starts
+   `com.apple.quicklook.thumbnail.TextExtension` (cdxml conforms to `public.text`), which
+   replies "Invalid thumbnail request". On this Mac `.cdxml` is `com.revvity.cdxml` (added to
+   the plist). Still to find: why the agent skips ours (check System Settings > General >
+   Login Items & Extensions > Quick Look; try a signed build rather than ad hoc). Keep one
+   registered copy of the app (`lsregister -dump | grep ChemEditor`); stale copies confuse
+   registration. The engine also writes no thumbnail for CDXML with `<fonttable>` inside
+   `<page>` (RDKit rejects it): 18 of 33 test fixtures.
+5. Open questions: the sandboxed extension running the bundled engine (it may need the engine
    signed with the same team and the `com.apple.security.inherit` entitlement); the CDXML UTI
    ChemDraw declares (`com.perkinelmer.chemdraw.cdxml` is assumed); wiring step 2 into the
    bundle (Tauri's `bundle.macOS.files` can place the `.appex` in `Contents/PlugIns`).
