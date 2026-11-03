@@ -704,32 +704,100 @@ def _nmr_dft_cache_dir() -> str:
     return os.path.join(_user_cache_dir(), "nmr_dft")
 
 
+_NMR_DFT_CACHE_VERSION = 2
+
+
 def _nmr_dft_cache_key(mol) -> str:
-    try:
-        structure = Chem.MolToSmiles(mol, canonical=True)
-    except Exception:
-        structure = Chem.MolToMolBlock(mol)
-    payload = f"{_DFT_SHIFT_PRESET['id']}|{structure}"
-    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+    # Indexed results belong to this exact atom order, including input hydrogens.
+    identity = {
+        "version": _NMR_DFT_CACHE_VERSION,
+        "preset": _DFT_SHIFT_PRESET["id"],
+        "atoms": [(a.GetAtomicNum(), a.GetIsotope(), a.GetFormalCharge(),
+                   a.GetNumRadicalElectrons(), int(a.GetChiralTag()),
+                   a.GetNumExplicitHs(), a.GetNoImplicit(), a.GetIsAromatic(),
+                   a.GetAtomMapNum()) for a in mol.GetAtoms()],
+        "bonds": [(b.GetBeginAtomIdx(), b.GetEndAtomIdx(), str(b.GetBondType()),
+                   int(b.GetStereo()), list(b.GetStereoAtoms()), b.GetIsAromatic())
+                  for b in mol.GetBonds()],
+    }
+    return hashlib.sha256(json.dumps(identity, sort_keys=True).encode()).hexdigest()
 
 
-def _load_nmr_dft_cache(cache_key: str) -> dict | None:
+def _validate_nmr_dft_result(payload: dict, atom_count: int) -> bool:
+    if not isinstance(payload, dict):
+        return False
+    def finite(value):
+        return isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value)
+    for name in ("signals_1h", "signals_13c"):
+        signals = payload.get(name)
+        if not isinstance(signals, list):
+            return False
+        for entry in signals:
+            if not isinstance(entry, dict):
+                return False
+            indices = entry.get("atom_idxs")
+            if not isinstance(indices, list) or not indices or any(
+                type(i) is not int or not 0 <= i < atom_count for i in indices
+            ):
+                return False
+            if not finite(entry.get("center_ppm")) or not finite(entry.get("integral")):
+                return False
+            transitions = entry.get("transitions")
+            couplings = entry.get("couplings_hz")
+            if not isinstance(transitions, list) or not isinstance(couplings, list):
+                return False
+            if any(not finite(c) for c in couplings) or any(
+                not isinstance(t, dict) or not finite(t.get("ppm")) or not finite(t.get("intensity"))
+                for t in transitions
+            ):
+                return False
+    return True
+
+
+def _load_nmr_dft_cache(cache_key: str, atom_count: int) -> dict | None:
     path = os.path.join(_nmr_dft_cache_dir(), f"{cache_key}.json")
     try:
         with open(path) as f:
-            return json.load(f)
-    except Exception:
-        return None
-
-
-def _save_nmr_dft_cache(cache_key: str, payload: dict) -> None:
-    path = os.path.join(_nmr_dft_cache_dir(), f"{cache_key}.json")
-    try:
-        os.makedirs(os.path.dirname(path), exist_ok=True)
-        with open(path, "w") as f:
-            json.dump(payload, f)
-    except Exception:
+            envelope = json.load(f)
+        if (envelope.get("version") == _NMR_DFT_CACHE_VERSION
+                and envelope.get("identity") == cache_key
+                and envelope.get("atom_count") == atom_count
+                and _validate_nmr_dft_result(envelope.get("result"), atom_count)):
+            return envelope["result"]
+    except (OSError, ValueError, AttributeError, TypeError):
         pass
+    return None
+
+
+def _save_nmr_dft_cache(cache_key: str, payload: dict, atom_count: int) -> None:
+    if not _validate_nmr_dft_result(payload, atom_count):
+        raise ValueError("DFT NMR returned invalid or non-finite predictions")
+    directory = _nmr_dft_cache_dir()
+    temporary = None
+    try:
+        os.makedirs(directory, exist_ok=True)
+        with tempfile.NamedTemporaryFile(mode="w", dir=directory, delete=False) as f:
+            temporary = f.name
+            json.dump({"version": _NMR_DFT_CACHE_VERSION, "identity": cache_key,
+                       "atom_count": atom_count, "result": payload}, f, allow_nan=False)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(temporary, os.path.join(directory, f"{cache_key}.json"))
+    except OSError:
+        pass  # A read-only cache must not invalidate a valid calculation.
+    finally:
+        if temporary and os.path.exists(temporary):
+            os.unlink(temporary)
+
+
+def _nmr_closed_shell_charge(mol) -> int:
+    if any(a.GetNumRadicalElectrons() for a in mol.GetAtoms()):
+        raise ValueError("DFT NMR does not support radicals or open-shell structures")
+    expanded = Chem.AddHs(mol)
+    charge = sum(a.GetFormalCharge() for a in expanded.GetAtoms())
+    if (sum(a.GetAtomicNum() for a in expanded.GetAtoms()) - charge) % 2:
+        raise ValueError("DFT NMR requires a closed-shell structure with an even electron count")
+    return charge
 
 
 # ── Hartree-Fock orbital plotting (PySCF RHF) ───────────────────────────────
@@ -1535,6 +1603,11 @@ def predict_nmr_dft(
     Returns {"error": ..., "fallback": True} if pyscf is not installed.
     """
     try:
+        mol = _load_nmr_mol(smiles=smiles, molblock=molblock)
+        if mol is None:
+            return {"error": "Invalid structure"}
+        total_charge = _nmr_closed_shell_charge(mol)
+        input_atom_count = mol.GetNumAtoms()
         import importlib.util
 
         if importlib.util.find_spec("pyscf") is None:
@@ -1544,11 +1617,8 @@ def predict_nmr_dft(
 
         from pyscf import dft, gto
 
-        mol = _load_nmr_mol(smiles=smiles, molblock=molblock)
-        if not mol:
-            return {"error": "Invalid structure"}
         cache_key = _nmr_dft_cache_key(mol)
-        cached = _load_nmr_dft_cache(cache_key)
+        cached = _load_nmr_dft_cache(cache_key, input_atom_count)
         if cached is not None:
             if progress_callback is not None:
                 progress_callback("finishing", "Finishing spectrum")
@@ -1581,6 +1651,8 @@ def predict_nmr_dft(
         pm = gto.Mole()
         pm.atom = "\n".join(atom_spec)
         pm.basis = _DFT_SHIFT_PRESET["basis"]
+        pm.charge = total_charge
+        pm.spin = 0
         pm.verbose = 0
         pm.build()
 
@@ -1589,13 +1661,18 @@ def predict_nmr_dft(
         mf.verbose = 0
         if progress_callback is not None:
             progress_callback("shielding", "Running shielding calculation")
-        mf.kernel()
+        energy = mf.kernel()
+        if not mf.converged or not math.isfinite(float(energy)):
+            return {"error": "DFT NMR SCF did not converge"}
 
         try:
             shieldings = _compute_pyscf_shieldings(mf)
         except ImportError as e:
             return {"error": str(e), "fallback": True}
 
+        import numpy as np
+        if np.shape(shieldings) != (mol.GetNumAtoms(), 3, 3) or not np.isfinite(shieldings).all():
+            return {"error": "DFT NMR returned non-finite or malformed shielding tensors"}
         if progress_callback is not None:
             progress_callback("scaling", "Applying DELTA50 linear scaling")
         signals_13c = []
@@ -1648,7 +1725,7 @@ def predict_nmr_dft(
             "signals_13c": signals_13c,
             "dft_geometry_refinement": "xtb" if xtb_refined else "mmff94s",
         }
-        _save_nmr_dft_cache(cache_key, base_result)
+        _save_nmr_dft_cache(cache_key, base_result, input_atom_count)
         if include_j:
             return {
                 "signals_1h": apply_topology_j_to_signals(_load_nmr_mol(smiles=smiles, molblock=molblock), signals_1h),
