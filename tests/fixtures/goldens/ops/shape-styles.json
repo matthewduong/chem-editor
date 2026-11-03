@@ -589,7 +589,7 @@
   {
     "op": "set",
     "prop": "lineWidth",
-    "value": 0.6
+    "value": 0.5
   },
   {
     "op": "set",
@@ -617,7 +617,7 @@
     "op": "call",
     "name": "moveTo",
     "args": [
-      17.2,
+      18.0333,
       150
     ]
   },
@@ -625,7 +625,7 @@
     "op": "call",
     "name": "lineTo",
     "args": [
-      22.8,
+      21.9667,
       150
     ]
   },
@@ -658,7 +658,7 @@
     "name": "moveTo",
     "args": [
       20,
-      147.2
+      148.0333
     ]
   },
   {
@@ -666,7 +666,7 @@
     "name": "lineTo",
     "args": [
       20,
-      152.8
+      151.9667
     ]
   },
   {
@@ -697,7 +697,7 @@
     "op": "call",
     "name": "moveTo",
     "args": [
-      37.2,
+      38.0333,
       150
     ]
   },
@@ -705,7 +705,7 @@
     "op": "call",
     "name": "lineTo",
     "args": [
-      42.8,
+      41.9667,
       150
     ]
   },
@@ -737,7 +737,7 @@
     "args": [
       60,
       150,
-      5,
+      4.69,
       0,
       6.2832
     ]
@@ -782,7 +782,7 @@
     "op": "call",
     "name": "moveTo",
     "args": [
-      57.6,
+      57.4778,
       150
     ]
   },
@@ -790,7 +790,7 @@
     "op": "call",
     "name": "lineTo",
     "args": [
-      62.4,
+      62.5222,
       150
     ]
   },
@@ -823,7 +823,7 @@
     "name": "moveTo",
     "args": [
       60,
-      147.6
+      147.4778
     ]
   },
   {
@@ -831,7 +831,7 @@
     "name": "lineTo",
     "args": [
       60,
-      152.4
+      152.5222
     ]
   },
   {
@@ -862,7 +862,7 @@
     "args": [
       80,
       150,
-      5,
+      4.69,
       0,
       6.2832
     ]
@@ -907,7 +907,7 @@
     "op": "call",
     "name": "moveTo",
     "args": [
-      77.6,
+      77.4778,
       150
     ]
   },
@@ -915,7 +915,7 @@
     "op": "call",
     "name": "lineTo",
     "args": [
-      82.4,
+      82.5222,
       150
     ]
   },
@@ -947,7 +947,7 @@
     "args": [
       100,
       150,
-      1.5,
+      0.8333,
       0,
       6.2832
     ]
@@ -981,9 +981,9 @@
     "op": "call",
     "name": "arc",
     "args": [
-      118.88,
+      120,
       150,
-      1.425,
+      0.8311,
       0,
       6.2832
     ]
@@ -1017,9 +1017,9 @@
     "op": "call",
     "name": "arc",
     "args": [
-      121.12,
+      116.26,
       150,
-      1.425,
+      0.8311,
       0,
       6.2832
     ]
@@ -1053,9 +1053,9 @@
     "op": "call",
     "name": "arc",
     "args": [
-      137.75,
+      140,
       150,
-      1.5,
+      2.2222,
       0,
       6.2832
     ]
@@ -1091,16 +1091,16 @@
     "op": "call",
     "name": "moveTo",
     "args": [
-      139.75,
-      150
+      137.4778,
+      160
     ]
   },
   {
     "op": "call",
     "name": "lineTo",
     "args": [
-      143.75,
-      150
+      142.5222,
+      160
     ]
   },
   {
@@ -1131,7 +1131,87 @@
     "op": "call",
     "name": "moveTo",
     "args": [
-      141.75,
+      140,
+      157.4778
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      140,
+      162.5222
+    ]
+  },
+  {
+    "op": "call",
+    "name": "stroke",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "call",
+    "name": "beginPath",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "moveTo",
+    "args": [
+      160,
+      145.7
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      160,
+      154.3
+    ]
+  },
+  {
+    "op": "call",
+    "name": "stroke",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "call",
+    "name": "beginPath",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "moveTo",
+    "args": [
+      157.7,
       148
     ]
   },
@@ -1139,7 +1219,127 @@
     "op": "call",
     "name": "lineTo",
     "args": [
-      141.75,
+      162.3,
+      148
+    ]
+  },
+  {
+    "op": "call",
+    "name": "stroke",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "call",
+    "name": "beginPath",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "moveTo",
+    "args": [
+      180,
+      145.7
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      180,
+      154.3
+    ]
+  },
+  {
+    "op": "call",
+    "name": "stroke",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "call",
+    "name": "beginPath",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "moveTo",
+    "args": [
+      177.7,
+      148
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      182.3,
+      148
+    ]
+  },
+  {
+    "op": "call",
+    "name": "stroke",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "call",
+    "name": "beginPath",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "moveTo",
+    "args": [
+      177.7,
+      152
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      182.3,
       152
     ]
   },
@@ -1154,84 +1354,6 @@
     "args": [
       []
     ]
-  },
-  {
-    "op": "call",
-    "name": "save",
-    "args": []
-  },
-  {
-    "op": "set",
-    "prop": "font",
-    "value": "10px 'Liberation Sans', sans-serif"
-  },
-  {
-    "op": "set",
-    "prop": "fillStyle",
-    "value": "#333333"
-  },
-  {
-    "op": "set",
-    "prop": "textAlign",
-    "value": "center"
-  },
-  {
-    "op": "set",
-    "prop": "textBaseline",
-    "value": "middle"
-  },
-  {
-    "op": "call",
-    "name": "fillText",
-    "args": [
-      "†",
-      160,
-      150
-    ]
-  },
-  {
-    "op": "call",
-    "name": "restore",
-    "args": []
-  },
-  {
-    "op": "call",
-    "name": "save",
-    "args": []
-  },
-  {
-    "op": "set",
-    "prop": "font",
-    "value": "10px 'Liberation Sans', sans-serif"
-  },
-  {
-    "op": "set",
-    "prop": "fillStyle",
-    "value": "#333333"
-  },
-  {
-    "op": "set",
-    "prop": "textAlign",
-    "value": "center"
-  },
-  {
-    "op": "set",
-    "prop": "textBaseline",
-    "value": "middle"
-  },
-  {
-    "op": "call",
-    "name": "fillText",
-    "args": [
-      "‡",
-      180,
-      150
-    ]
-  },
-  {
-    "op": "call",
-    "name": "restore",
-    "args": []
   },
   {
     "op": "call",

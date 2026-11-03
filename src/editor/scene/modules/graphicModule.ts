@@ -16,6 +16,7 @@ import { drawArrowHead } from './arrowModule';
 import { orbitalOutlines } from '../../../lib/orbitalGeometry';
 import { drawObjectTags } from './objectTagHelpers';
 import type { ObjectModule } from '../types';
+import { symbolShape } from '../../../lib/symbolGeometry';
 import { getPaintFontFamily } from '../../../lib/textMetrics';
 
 /** ChemDraw's default LipSize of 60, as import scales it. */
@@ -389,78 +390,36 @@ export const GRAPHIC_MODULE: ObjectModule = {
               },
               { x: object.bounds!.right, y: (object.bounds!.top + object.bounds!.bottom) / 2 },
             ];
-      const size = Math.max(Math.hypot(toward.x - at.x, toward.y - at.y), 8);
-      const cx = at.x;
-      const cy = at.y;
-      const radius = size / 2;
-      const arm = radius * 0.48;
       const symbolType = object.symbolType ?? '';
-      // Electron dots keep the size they had when graphics drew at a fixed 1.5px: 2.5 line widths.
-      const dotRadius = strokeWidth * 2.5;
-      if (symbolType === 'CirclePlus' || symbolType === 'CircleMinus') {
-        drawCircle(ctx, cx, cy, radius, { stroke: color, lineWidth: strokeWidth });
-        drawLine(ctx, cx - arm, cy, cx + arm, cy, color, strokeWidth);
-        if (symbolType === 'CirclePlus') {
-          drawLine(ctx, cx, cy - arm, cx, cy + arm, color, strokeWidth);
+      const style = scene.documentStyleSettings;
+      const scale = convertNativeToCanvas(1, style);
+      const shape = symbolShape(symbolType, at, toward, style.nativeMetrics.lineWidth, scale);
+      if (shape) {
+        for (const part of shape.primitives) {
+          if (part.kind === 'dot') {
+            drawCircle(ctx, part.x, part.y, part.r, { fill: color });
+          } else if (part.kind === 'circle') {
+            drawCircle(ctx, part.x, part.y, part.r, { stroke: color, lineWidth: shape.thickness });
+          } else if (part.kind === 'bar') {
+            drawLine(ctx, part.x1, part.y1, part.x2, part.y2, color, shape.thickness);
+          } else {
+            // The flag words are caption text, centred on the symbol's first point.
+            ctx.save();
+            ctx.font = `${convertNativeToCanvas(style.nativeMetrics.captionSize, style)}px ${getPaintFontFamily(style.nativeMetrics.captionFontFamily)}`;
+            ctx.fillStyle = color;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(part.text, part.x, part.y);
+            ctx.restore();
+          }
         }
-        drawObjectTags(ctx, scene, object.objectTags, {
-          fallbackAnchor: { x: cx, y: cy + radius + 10 },
-          fallbackColor: color,
-        });
-        return;
-      }
-      if (symbolType === 'Plus' || symbolType === 'Minus') {
-        const reach = radius * 0.7;
-        drawLine(ctx, cx - reach, cy, cx + reach, cy, color, strokeWidth);
-        if (symbolType === 'Plus')
-          drawLine(ctx, cx, cy - reach, cx, cy + reach, color, strokeWidth);
-        return;
-      }
-      if (symbolType === 'LonePair' || symbolType === 'LonePairBar') {
-        if (symbolType === 'LonePairBar') {
-          drawLine(ctx, cx - radius * 0.5, cy, cx + radius * 0.5, cy, color, strokeWidth);
-          return;
+        const circle = shape.primitives.find((part) => part.kind === 'circle');
+        if (circle) {
+          drawObjectTags(ctx, scene, object.objectTags, {
+            fallbackAnchor: { x: at.x, y: at.y + circle.r + 10 },
+            fallbackColor: color,
+          });
         }
-        drawCircle(ctx, cx - radius * 0.28, cy, dotRadius * 0.95, { fill: color });
-        drawCircle(ctx, cx + radius * 0.28, cy, dotRadius * 0.95, { fill: color });
-        return;
-      }
-      if (symbolType === 'Electron') {
-        drawCircle(ctx, cx, cy, dotRadius, { fill: color });
-        return;
-      }
-      if (symbolType === 'RadicalCation' || symbolType === 'RadicalAnion') {
-        drawCircle(ctx, cx - radius * 0.45, cy, dotRadius, { fill: color });
-        const sx = cx + radius * 0.35;
-        const reach = radius * 0.4;
-        drawLine(ctx, sx - reach, cy, sx + reach, cy, color, strokeWidth);
-        if (symbolType === 'RadicalCation')
-          drawLine(ctx, sx, cy - reach, sx, cy + reach, color, strokeWidth);
-        return;
-      }
-      if (symbolType === 'Dagger' || symbolType === 'DoubleDagger') {
-        // Drawn as a glyph in the caption font, as a printed transition-state mark is.
-        ctx.save();
-        ctx.font = `${Math.max(size, 6)}px ${getPaintFontFamily(scene.documentStyleSettings.nativeMetrics.captionFontFamily)}`;
-        ctx.fillStyle = color;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(symbolType === 'Dagger' ? '\u2020' : '\u2021', cx, cy);
-        ctx.restore();
-        return;
-      }
-      if (symbolType === 'Racemic' || symbolType === 'Absolute' || symbolType === 'Relative') {
-        ctx.save();
-        ctx.font = `${Math.max(size, 6)}px ${getPaintFontFamily(scene.documentStyleSettings.nativeMetrics.captionFontFamily)}`;
-        ctx.fillStyle = color;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(
-          symbolType === 'Racemic' ? 'rac' : symbolType === 'Absolute' ? 'abs' : 'rel',
-          cx,
-          cy,
-        );
-        ctx.restore();
         return;
       }
     }
