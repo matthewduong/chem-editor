@@ -80,7 +80,7 @@ pub(crate) fn kill_pid(pid: u32) {
 
 /// How long a one-shot sidecar call may run before it is killed. Long scientific jobs (DFT, NMR,
 /// orbitals) are cancellable by the user and pass `None` instead.
-pub(crate) const ONE_SHOT_TIMEOUT: Duration = Duration::from_secs(120);
+pub(crate) const ONE_SHOT_TIMEOUT: Duration = Duration::from_mins(2);
 
 /// Feed `stdin_content` to `child`, collect its output, and kill it if it outlives `timeout`.
 ///

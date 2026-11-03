@@ -409,7 +409,7 @@ fn bundled_sidecar_dir_name() -> Result<String, String> {
 }
 
 /// xtb minimisation of many conformers is slow but bounded.
-const CONFORMER_TIMEOUT: Duration = Duration::from_secs(600);
+const CONFORMER_TIMEOUT: Duration = Duration::from_mins(10);
 
 #[tauri::command]
 async fn generate_conformers(

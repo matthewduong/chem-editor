@@ -1,10 +1,7 @@
 {
   "identifier": "default",
   "description": "Capability for the main window and the document windows File > New Window opens",
-  "windows": [
-    "main",
-    "document-*"
-  ],
+  "windows": ["main", "document-*"],
   "permissions": [
     "core:default",
     "core:event:allow-listen",
