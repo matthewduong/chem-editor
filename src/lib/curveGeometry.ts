@@ -18,6 +18,58 @@ export interface CubicSegment {
   p3: ChemDrawPoint;
 }
 
+/**
+ * A curve's "Faded" fill is not a CurveType bit: ChemDraw writes `FadePercent` (300 from the
+ * Curves > Faded menu item) and fills the closed curve with its colour tinted towards white. The
+ * tint is not linear in FadePercent; this is the share of the colour kept, read from the flat
+ * gray ChemDraw 26.1.0.6801 filled a black curve with (255 less the gray, over 255) at each
+ * FadePercent from 0 (white) to 1000 (the colour itself).
+ */
+const FADE_KEPT: ReadonlyArray<readonly [number, number]> = [
+  [0, 0],
+  [50, 0.0392],
+  [100, 0.0784],
+  [150, 0.1216],
+  [200, 0.1608],
+  [300, 0.247],
+  [400, 0.3333],
+  [500, 0.4235],
+  [600, 0.5216],
+  [700, 0.6235],
+  [800, 0.7373],
+  [900, 0.859],
+  [950, 0.929],
+  [1000, 1],
+];
+
+/** The share of a faded curve's colour that stays, for a `FadePercent`. */
+export function fadeKept(fadePercent: number): number {
+  const p = Math.min(1000, Math.max(0, fadePercent));
+  for (let i = 1; i < FADE_KEPT.length; i += 1) {
+    const [p1, k1] = FADE_KEPT[i]!;
+    if (p <= p1) {
+      const [p0, k0] = FADE_KEPT[i - 1]!;
+      return k0 + ((k1 - k0) * (p - p0)) / (p1 - p0);
+    }
+  }
+  return 1;
+}
+
+/** A `#rrggbb` or `rgb(...)` colour tinted towards white as a faded fill; other strings as is. */
+export function fadedColor(color: string, fadePercent: number): string {
+  const hex = /^#([0-9a-f]{6})$/i.exec(color.trim());
+  const rgb = /^rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/i.exec(color.trim());
+  const channels = hex
+    ? [0, 2, 4].map((i) => parseInt(hex[1]!.slice(i, i + 2), 16))
+    : rgb
+      ? [Number(rgb[1]), Number(rgb[2]), Number(rgb[3])]
+      : null;
+  if (!channels) return color;
+  const kept = fadeKept(fadePercent);
+  const [r, g, b] = channels.map((c) => Math.round(255 - (255 - c!) * kept));
+  return `rgb(${r}, ${g}, ${b})`;
+}
+
 /** CurveType bits from the CDX specification, confirmed against ArrowheadHead/Tail in ChemDraw's templates. */
 export const CURVE_TYPE = {
   closed: 0x1,

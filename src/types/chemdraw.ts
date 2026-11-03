@@ -346,6 +346,8 @@ export interface ChemDrawGraphic {
   closed?: boolean;
   /** Curve: the CurveType bit set (see `CURVE_TYPE` in `lib/curveGeometry.ts`), kept as written. */
   curveType?: number;
+  /** Curve: `FadePercent`, ChemDraw's Faded fill (300 from its menu), 0-1000. */
+  fadePercent?: number;
   /** Curve: arrowheads, as on an arrow. */
   headEnd?: ChemDrawArrowEnd;
   tailEnd?: ChemDrawArrowEnd;

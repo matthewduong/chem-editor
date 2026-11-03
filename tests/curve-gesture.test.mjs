@@ -109,3 +109,24 @@ test('Edit Curve: anchors carry their direction lines, controls stay smooth, cli
   assert.equal(extended.points.length, curve.points.length + 3);
   assert.deepEqual(extended.points.at(-2), { x: 200, y: 0 });
 });
+
+test('faded is FadePercent 300 and not a CurveType bit, and it reads and writes back', async () => {
+  const { toggleCurveProperty } = await import('../.unit-test-dist/src/lib/curveGesture.js');
+  const { fadedColor, fadeKept } = await import('../.unit-test-dist/src/lib/curveGeometry.js');
+  const curve = { id: '1', type: 'graphic', graphicType: 'curve', curveType: 129 };
+  const faded = toggleCurveProperty(curve, 'faded');
+  assert.equal(faded.fadePercent, 300);
+  assert.equal(faded.curveType & 0x80, 0, 'faded clears filled');
+  assert.equal(toggleCurveProperty(faded, 'faded').fadePercent, undefined);
+  // The grays ChemDraw 26.1.0.6801 filled a black curve with at FadePercent 100, 300, 500, 900.
+  for (const [percent, gray] of [
+    [100, 235],
+    [300, 192],
+    [500, 147],
+    [900, 36],
+  ]) {
+    assert.equal(fadedColor('#000000', percent), `rgb(${gray}, ${gray}, ${gray})`, String(percent));
+  }
+  assert.equal(fadeKept(0), 0);
+  assert.equal(fadeKept(1000), 1);
+});

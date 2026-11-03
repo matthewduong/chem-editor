@@ -2,6 +2,7 @@ import { ARROW_SHAFT_NOTCH_GAP_PT, convertNativeToCanvas } from '../../../lib/ch
 import {
   CURVE_TYPE,
   cubicTangentAt,
+  fadedColor,
   curveSegments,
   sampleCurve,
   trimCubic,
@@ -72,14 +73,17 @@ function drawCurve(
   // ChemDraw dashes 2.5pt on, 2.5pt off, as on an arrow shaft.
   const dashLength = convertNativeToCanvas(2.5, settings);
 
-  const filled = fill != null || (bits & (CURVE_TYPE.filled | CURVE_TYPE.shaded)) !== 0;
+  const faded = object.fadePercent != null;
+  const filled = fill != null || faded || (bits & (CURVE_TYPE.filled | CURVE_TYPE.shaded)) !== 0;
   if (closed && filled) {
     ctx.save();
     ctx.beginPath();
     traceSegments(ctx, segments);
     ctx.closePath();
-    ctx.fillStyle = fill ?? color;
-    if (fill == null && (bits & CURVE_TYPE.shaded) !== 0) ctx.globalAlpha = 0.3;
+    // ChemDraw tints the curve's own colour: black, not this editor's softened #333 default.
+    const fadeBase = object.style?.color ?? (color === '#333333' ? '#000000' : color);
+    ctx.fillStyle = fill ?? (faded ? fadedColor(fadeBase, object.fadePercent!) : color);
+    if (fill == null && !faded && (bits & CURVE_TYPE.shaded) !== 0) ctx.globalAlpha = 0.3;
     ctx.fill();
     ctx.restore();
   }
@@ -454,27 +458,33 @@ export const GRAPHIC_MODULE: ObjectModule = {
         ctx.lineTo(end.x, end.y);
         ctx.lineTo(end.x + px * lip, end.y + py * lip);
       } else if (bracketKind === 'curly') {
-        // A brace: each end curls in from its lip to the spine, and the middle comes to a point
-        // the same distance out on the other side. It used to draw as a parenthesis.
-        const ux = dx / length;
-        const uy = dy / length;
-        const along = (from: { x: number; y: number }, distance: number) => ({
-          x: from.x + ux * distance,
-          y: from.y + uy * distance,
+        // ChemDraw's brace, read from the vector paths of curly brackets of 22, 41 and 81pt: it
+        // runs along the chord from the second corner to the first, and in chord-length
+        // fractions (u along, v across, v towards the cusp side) it is the same curve at every
+        // size and for every LipSize: six cubics, two corner curls, two straight spines and the
+        // cusp, standing 0.072 of the chord off it and coming to a point 0.144 off.
+        const ux = -dx / length;
+        const uy = -dy / length;
+        const vx = -px;
+        const vy = -py;
+        const at = (u: number, v: number) => ({
+          x: end.x + (ux * u + vx * v) * length,
+          y: end.y + (uy * u + vy * v) * length,
         });
-        const half = lip / 2;
-        const tip = { x: midX - px * half, y: midY - py * half };
-        const startIn = along(start, half);
-        const beforeTip = along({ x: midX, y: midY }, -half);
-        const afterTip = along({ x: midX, y: midY }, half);
-        const endIn = along(end, -half);
-        ctx.moveTo(start.x + px * half, start.y + py * half);
-        ctx.quadraticCurveTo(start.x, start.y, startIn.x, startIn.y);
-        ctx.lineTo(beforeTip.x, beforeTip.y);
-        ctx.quadraticCurveTo(midX, midY, tip.x, tip.y);
-        ctx.quadraticCurveTo(midX, midY, afterTip.x, afterTip.y);
-        ctx.lineTo(endIn.x, endIn.y);
-        ctx.quadraticCurveTo(end.x, end.y, end.x + px * half, end.y + py * half);
+        const curve = (c1: [number, number], c2: [number, number], to: [number, number]) => {
+          const a1 = at(...c1);
+          const a2 = at(...c2);
+          const a3 = at(...to);
+          ctx.bezierCurveTo(a1.x, a1.y, a2.x, a2.y, a3.x, a3.y);
+        };
+        const first = at(0, 0);
+        ctx.moveTo(first.x, first.y);
+        curve([0, 0.0398], [0.0322, 0.0722], [0.0722, 0.0722]);
+        curve([0.0722, 0.0722], [0.428, 0.0722], [0.428, 0.0722]);
+        curve([0.4677, 0.0722], [0.5, 0.1044], [0.5, 0.1443]);
+        curve([0.5, 0.1044], [0.5323, 0.0722], [0.5723, 0.0722]);
+        curve([0.5723, 0.0722], [0.9278, 0.0722], [0.9278, 0.0722]);
+        curve([0.9678, 0.0722], [1, 0.0398], [1, 0]);
       } else {
         ctx.moveTo(start.x + px * lip, start.y + py * lip);
         ctx.quadraticCurveTo(start.x, start.y, midX, midY);

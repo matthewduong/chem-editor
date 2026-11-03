@@ -1,0 +1,718 @@
+[
+  {
+    "op": "call",
+    "name": "save",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "translate",
+    "args": [
+      0,
+      0
+    ]
+  },
+  {
+    "op": "call",
+    "name": "scale",
+    "args": [
+      1,
+      1
+    ]
+  },
+  {
+    "op": "call",
+    "name": "save",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "beginPath",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "moveTo",
+    "args": [
+      60,
+      80
+    ]
+  },
+  {
+    "op": "call",
+    "name": "bezierCurveTo",
+    "args": [
+      60,
+      80,
+      80,
+      50,
+      80,
+      50
+    ]
+  },
+  {
+    "op": "call",
+    "name": "bezierCurveTo",
+    "args": [
+      80,
+      50,
+      100,
+      80,
+      100,
+      80
+    ]
+  },
+  {
+    "op": "call",
+    "name": "bezierCurveTo",
+    "args": [
+      100,
+      80,
+      80,
+      110,
+      80,
+      110
+    ]
+  },
+  {
+    "op": "call",
+    "name": "bezierCurveTo",
+    "args": [
+      80,
+      110,
+      60,
+      80,
+      60,
+      80
+    ]
+  },
+  {
+    "op": "call",
+    "name": "bezierCurveTo",
+    "args": [
+      60,
+      80,
+      60,
+      80,
+      60,
+      80
+    ]
+  },
+  {
+    "op": "call",
+    "name": "closePath",
+    "args": []
+  },
+  {
+    "op": "set",
+    "prop": "fillStyle",
+    "value": "rgb(192, 192, 192)"
+  },
+  {
+    "op": "call",
+    "name": "fill",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "restore",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "save",
+    "args": []
+  },
+  {
+    "op": "set",
+    "prop": "strokeStyle",
+    "value": "#333333"
+  },
+  {
+    "op": "set",
+    "prop": "lineWidth",
+    "value": 0.6
+  },
+  {
+    "op": "set",
+    "prop": "lineCap",
+    "value": "round"
+  },
+  {
+    "op": "set",
+    "prop": "lineJoin",
+    "value": "round"
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "set",
+    "prop": "lineCap",
+    "value": "butt"
+  },
+  {
+    "op": "call",
+    "name": "beginPath",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "moveTo",
+    "args": [
+      60,
+      80
+    ]
+  },
+  {
+    "op": "call",
+    "name": "bezierCurveTo",
+    "args": [
+      60,
+      80,
+      80,
+      50,
+      80,
+      50
+    ]
+  },
+  {
+    "op": "call",
+    "name": "bezierCurveTo",
+    "args": [
+      80,
+      50,
+      100,
+      80,
+      100,
+      80
+    ]
+  },
+  {
+    "op": "call",
+    "name": "bezierCurveTo",
+    "args": [
+      100,
+      80,
+      80,
+      110,
+      80,
+      110
+    ]
+  },
+  {
+    "op": "call",
+    "name": "bezierCurveTo",
+    "args": [
+      80,
+      110,
+      60,
+      80,
+      60,
+      80
+    ]
+  },
+  {
+    "op": "call",
+    "name": "bezierCurveTo",
+    "args": [
+      60,
+      80,
+      60,
+      80,
+      60,
+      80
+    ]
+  },
+  {
+    "op": "call",
+    "name": "closePath",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "stroke",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "call",
+    "name": "restore",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "save",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "beginPath",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "moveTo",
+    "args": [
+      160,
+      80
+    ]
+  },
+  {
+    "op": "call",
+    "name": "bezierCurveTo",
+    "args": [
+      160,
+      80,
+      180,
+      50,
+      180,
+      50
+    ]
+  },
+  {
+    "op": "call",
+    "name": "bezierCurveTo",
+    "args": [
+      180,
+      50,
+      200,
+      80,
+      200,
+      80
+    ]
+  },
+  {
+    "op": "call",
+    "name": "bezierCurveTo",
+    "args": [
+      200,
+      80,
+      180,
+      110,
+      180,
+      110
+    ]
+  },
+  {
+    "op": "call",
+    "name": "bezierCurveTo",
+    "args": [
+      180,
+      110,
+      160,
+      80,
+      160,
+      80
+    ]
+  },
+  {
+    "op": "call",
+    "name": "bezierCurveTo",
+    "args": [
+      160,
+      80,
+      160,
+      80,
+      160,
+      80
+    ]
+  },
+  {
+    "op": "call",
+    "name": "closePath",
+    "args": []
+  },
+  {
+    "op": "set",
+    "prop": "fillStyle",
+    "value": "rgb(36, 36, 36)"
+  },
+  {
+    "op": "call",
+    "name": "fill",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "restore",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "save",
+    "args": []
+  },
+  {
+    "op": "set",
+    "prop": "strokeStyle",
+    "value": "#333333"
+  },
+  {
+    "op": "set",
+    "prop": "lineWidth",
+    "value": 0.6
+  },
+  {
+    "op": "set",
+    "prop": "lineCap",
+    "value": "round"
+  },
+  {
+    "op": "set",
+    "prop": "lineJoin",
+    "value": "round"
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "set",
+    "prop": "lineCap",
+    "value": "butt"
+  },
+  {
+    "op": "call",
+    "name": "beginPath",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "moveTo",
+    "args": [
+      160,
+      80
+    ]
+  },
+  {
+    "op": "call",
+    "name": "bezierCurveTo",
+    "args": [
+      160,
+      80,
+      180,
+      50,
+      180,
+      50
+    ]
+  },
+  {
+    "op": "call",
+    "name": "bezierCurveTo",
+    "args": [
+      180,
+      50,
+      200,
+      80,
+      200,
+      80
+    ]
+  },
+  {
+    "op": "call",
+    "name": "bezierCurveTo",
+    "args": [
+      200,
+      80,
+      180,
+      110,
+      180,
+      110
+    ]
+  },
+  {
+    "op": "call",
+    "name": "bezierCurveTo",
+    "args": [
+      180,
+      110,
+      160,
+      80,
+      160,
+      80
+    ]
+  },
+  {
+    "op": "call",
+    "name": "bezierCurveTo",
+    "args": [
+      160,
+      80,
+      160,
+      80,
+      160,
+      80
+    ]
+  },
+  {
+    "op": "call",
+    "name": "closePath",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "stroke",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "call",
+    "name": "restore",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "save",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "beginPath",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "moveTo",
+    "args": [
+      260,
+      80
+    ]
+  },
+  {
+    "op": "call",
+    "name": "bezierCurveTo",
+    "args": [
+      260,
+      80,
+      280,
+      50,
+      280,
+      50
+    ]
+  },
+  {
+    "op": "call",
+    "name": "bezierCurveTo",
+    "args": [
+      280,
+      50,
+      300,
+      80,
+      300,
+      80
+    ]
+  },
+  {
+    "op": "call",
+    "name": "bezierCurveTo",
+    "args": [
+      300,
+      80,
+      280,
+      110,
+      280,
+      110
+    ]
+  },
+  {
+    "op": "call",
+    "name": "bezierCurveTo",
+    "args": [
+      280,
+      110,
+      260,
+      80,
+      260,
+      80
+    ]
+  },
+  {
+    "op": "call",
+    "name": "bezierCurveTo",
+    "args": [
+      260,
+      80,
+      260,
+      80,
+      260,
+      80
+    ]
+  },
+  {
+    "op": "call",
+    "name": "closePath",
+    "args": []
+  },
+  {
+    "op": "set",
+    "prop": "fillStyle",
+    "value": "rgb(255, 147, 147)"
+  },
+  {
+    "op": "call",
+    "name": "fill",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "restore",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "save",
+    "args": []
+  },
+  {
+    "op": "set",
+    "prop": "strokeStyle",
+    "value": "#ff0000"
+  },
+  {
+    "op": "set",
+    "prop": "lineWidth",
+    "value": 0.6
+  },
+  {
+    "op": "set",
+    "prop": "lineCap",
+    "value": "round"
+  },
+  {
+    "op": "set",
+    "prop": "lineJoin",
+    "value": "round"
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "set",
+    "prop": "lineCap",
+    "value": "butt"
+  },
+  {
+    "op": "call",
+    "name": "beginPath",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "moveTo",
+    "args": [
+      260,
+      80
+    ]
+  },
+  {
+    "op": "call",
+    "name": "bezierCurveTo",
+    "args": [
+      260,
+      80,
+      280,
+      50,
+      280,
+      50
+    ]
+  },
+  {
+    "op": "call",
+    "name": "bezierCurveTo",
+    "args": [
+      280,
+      50,
+      300,
+      80,
+      300,
+      80
+    ]
+  },
+  {
+    "op": "call",
+    "name": "bezierCurveTo",
+    "args": [
+      300,
+      80,
+      280,
+      110,
+      280,
+      110
+    ]
+  },
+  {
+    "op": "call",
+    "name": "bezierCurveTo",
+    "args": [
+      280,
+      110,
+      260,
+      80,
+      260,
+      80
+    ]
+  },
+  {
+    "op": "call",
+    "name": "bezierCurveTo",
+    "args": [
+      260,
+      80,
+      260,
+      80,
+      260,
+      80
+    ]
+  },
+  {
+    "op": "call",
+    "name": "closePath",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "stroke",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "call",
+    "name": "restore",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "restore",
+    "args": []
+  }
+]

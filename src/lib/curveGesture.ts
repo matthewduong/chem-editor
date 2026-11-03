@@ -212,13 +212,13 @@ export function createFreehandCurve(id: string, path: readonly Vec[]): ChemDrawG
   };
 }
 
-export type CurveProperty = 'closed' | 'filled' | 'shaded' | 'arrow-end' | 'arrow-start';
+export type CurveProperty = 'closed' | 'filled' | 'shaded' | 'faded' | 'arrow-end' | 'arrow-start';
 
 /**
  * Curve menu toggles, written as ChemDraw writes them: CurveType bits (Closed 1, Filled 128,
  * Shaded 256; ChemDraw's own closed Cp ellipse carries only CurveType 1) plus ArrowheadHead /
  * ArrowheadTail beside bits 8 and 16, as every arrowed curve in ChemDraw's templates does.
- * ChemDraw's "Faded" fill has no CurveType bit we know of, so it is not offered (gaps.md).
+ * "Faded" is `FadePercent` (300), not a CurveType bit, and does not close the curve (ChemDraw wrote no bits).
  */
 export function toggleCurveProperty(
   curve: ChemDrawGraphic,
@@ -238,14 +238,24 @@ export function toggleCurveProperty(
         ...(closing ? { headEnd: undefined, tailEnd: undefined, headType: undefined } : {}),
       };
     }
+    case 'faded':
+      return curve.fadePercent == null
+        ? {
+            ...curve,
+            fadePercent: 300,
+            curveType: bits & ~CURVE_TYPE.filled & ~CURVE_TYPE.shaded,
+          }
+        : { ...curve, fadePercent: undefined };
     case 'filled':
       return {
         ...curve,
+        fadePercent: undefined,
         curveType: (flip(CURVE_TYPE.filled) | CURVE_TYPE.closed) & ~CURVE_TYPE.shaded,
       };
     case 'shaded':
       return {
         ...curve,
+        fadePercent: undefined,
         curveType: (flip(CURVE_TYPE.shaded) | CURVE_TYPE.closed) & ~CURVE_TYPE.filled,
       };
     case 'arrow-end': {

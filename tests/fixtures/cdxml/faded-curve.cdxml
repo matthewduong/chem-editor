@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!-- Closed curves with ChemDraw's Faded fill (FadePercent, not a CurveType bit), measured on ChemDraw 26.1.0.6801 (gaps.md). -->
+<!DOCTYPE CDXML SYSTEM "http://www.cambridgesoft.com/xml/cdxml.dtd" >
+<CDXML BondLength="14.40" LineWidth="0.60" LabelSize="10" CaptionSize="10" LabelFont="3" CaptionFont="3" LabelFace="96">
+<colortable><color r="1" g="0" b="0"/></colortable>
+<fonttable><font id="3" charset="iso-8859-1" name="Arial"/></fonttable>
+<page id="1" BoundingBox="0 0 540 720" HeightPages="1" WidthPages="1">
+<curve id="101" CurveType="1" FadePercent="300" CurvePoints="60 80 80 50 100 80 80 110 60 80"/>
+<curve id="102" CurveType="1" FadePercent="900" CurvePoints="160 80 180 50 200 80 180 110 160 80"/>
+<curve id="103" CurveType="1" FadePercent="500" Color="2" CurvePoints="260 80 280 50 300 80 280 110 260 80"/>
+</page>
+</CDXML>

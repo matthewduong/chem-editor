@@ -326,64 +326,80 @@
     "op": "call",
     "name": "moveTo",
     "args": [
-      76.8,
-      2.4
-    ]
-  },
-  {
-    "op": "call",
-    "name": "quadraticCurveTo",
-    "args": [
-      80,
-      0,
-      82.4,
-      3.2
-    ]
-  },
-  {
-    "op": "call",
-    "name": "lineTo",
-    "args": [
-      92.6,
-      16.8
-    ]
-  },
-  {
-    "op": "call",
-    "name": "quadraticCurveTo",
-    "args": [
-      95,
-      20,
-      98.2,
-      17.6
-    ]
-  },
-  {
-    "op": "call",
-    "name": "quadraticCurveTo",
-    "args": [
-      95,
-      20,
-      97.4,
-      23.2
-    ]
-  },
-  {
-    "op": "call",
-    "name": "lineTo",
-    "args": [
-      107.6,
-      36.8
-    ]
-  },
-  {
-    "op": "call",
-    "name": "quadraticCurveTo",
-    "args": [
       110,
-      40,
-      106.8,
-      42.4
+      40
+    ]
+  },
+  {
+    "op": "call",
+    "name": "bezierCurveTo",
+    "args": [
+      111.592,
+      38.806,
+      111.922,
+      36.546,
+      110.722,
+      34.946
+    ]
+  },
+  {
+    "op": "call",
+    "name": "bezierCurveTo",
+    "args": [
+      110.722,
+      34.946,
+      100.048,
+      20.714,
+      100.048,
+      20.714
+    ]
+  },
+  {
+    "op": "call",
+    "name": "bezierCurveTo",
+    "args": [
+      98.857,
+      19.126,
+      99.176,
+      16.868,
+      100.772,
+      15.671
+    ]
+  },
+  {
+    "op": "call",
+    "name": "bezierCurveTo",
+    "args": [
+      99.176,
+      16.868,
+      96.919,
+      16.542,
+      95.719,
+      14.942
+    ]
+  },
+  {
+    "op": "call",
+    "name": "bezierCurveTo",
+    "args": [
+      95.719,
+      14.942,
+      85.054,
+      0.722,
+      85.054,
+      0.722
+    ]
+  },
+  {
+    "op": "call",
+    "name": "bezierCurveTo",
+    "args": [
+      83.854,
+      -0.878,
+      81.592,
+      -1.194,
+      80,
+      0
     ]
   },
   {

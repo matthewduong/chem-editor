@@ -4320,6 +4320,7 @@ function App() {
                           ['closed', 'Closed'],
                           ['filled', 'Filled'],
                           ['shaded', 'Shaded'],
+                          ['faded', 'Faded'],
                           ['arrow-end', 'Arrow at End'],
                           ['arrow-start', 'Arrow at Start'],
                         ] as const

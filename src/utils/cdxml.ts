@@ -2149,7 +2149,9 @@ function chemDrawDocumentToCDXMLInternal(document: ChemDrawDocument): string {
           ? ` BoundingBox="${boundsToCdxml(object.bounds, exportScaleFactor)}"`
           : '';
         const closedAttr = object.closed ? ' Closed="yes"' : '';
-        const curveTypeAttr = object.curveType != null ? ` CurveType="${object.curveType}"` : '';
+        const curveTypeAttr =
+          (object.curveType != null ? ` CurveType="${object.curveType}"` : '') +
+          (object.fadePercent != null ? ` FadePercent="${object.fadePercent}"` : '');
         const headAttr = object.headEnd ? arrowEndToCdxml(object.headEnd) : null;
         const tailAttr = object.tailEnd ? arrowEndToCdxml(object.tailEnd) : null;
         const curveHeadsAttr = `${headAttr ? ` ArrowheadHead="${headAttr}"` : ''}${tailAttr ? ` ArrowheadTail="${tailAttr}"` : ''}${object.headType ? ` ArrowheadType="${arrowHeadTypeToCdxml(object.headType)}"` : ''}`;
@@ -3738,6 +3740,8 @@ export function cdxmlToChemDrawDocument(xmlString: string): ChemDrawConversionRe
       const isRounded = isRect && rectType.includes('round');
       const curveTypeRaw = parseInt(el.getAttribute('CurveType') ?? '', 10);
       const curveType = Number.isFinite(curveTypeRaw) ? curveTypeRaw : undefined;
+      const fadePercentRaw = parseFloat(el.getAttribute('FadePercent') ?? '');
+      const fadePercent = Number.isFinite(fadePercentRaw) ? fadePercentRaw : undefined;
       const closedAttr = el.getAttribute('Closed')?.toLowerCase() === 'yes';
       // Our own writer stores a sharp-cornered polygon as a closed curve with every vertex written
       // three times; anything else is a real Bezier curve and must keep its control points.
@@ -3886,6 +3890,7 @@ export function cdxmlToChemDrawDocument(xmlString: string): ChemDrawConversionRe
           ? {
               ...(closedAttr ? { closed: true } : {}),
               ...(curveType != null ? { curveType } : {}),
+              ...(fadePercent != null ? { fadePercent } : {}),
               ...(curveHeadEnd ? { headEnd: curveHeadEnd } : {}),
               ...(curveTailEnd ? { tailEnd: curveTailEnd } : {}),
               ...(curveHeadType ? { headType: curveHeadType } : {}),
@@ -3955,7 +3960,7 @@ export function cdxmlToChemDrawDocument(xmlString: string): ChemDrawConversionRe
                 'MinorAxisEnd3D',
                 'SupersededBy',
                 ...(graphicType === 'curve'
-                  ? ['CurveType', 'ArrowheadHead', 'ArrowheadTail', 'ArrowheadType']
+                  ? ['CurveType', 'FadePercent', 'ArrowheadHead', 'ArrowheadTail', 'ArrowheadType']
                   : []),
               ],
         preserveChild: (child) => {
