@@ -4,7 +4,7 @@ import { useCachedStructureTask } from '../hooks/useCachedStructureTask';
 import { FloatingPanel } from './FloatingPanel';
 import type { MsSpectrum } from '../types/chemistry';
 import type { PanelTheme } from '../types/panelTheme';
-import { invokeTauri } from '../lib/tauri';
+import { invokeScientific } from '../lib/scientificJobs';
 
 interface Props {
   theme: PanelTheme;
@@ -125,7 +125,8 @@ function MsChart({
 export function MsPanel({ theme, isDarkMode, viewerSmiles }: Props) {
   const { msPos, msSize, setMsPos, setMsSize, setShowMsPanel, viewerStructureStatus } = useStore();
   const run = useCallback(
-    (smiles: string) => invokeTauri<SidecarMsResult>('predict_ms', { smiles }),
+    (smiles: string, signal?: AbortSignal) =>
+      invokeScientific<SidecarMsResult>('predict_ms', { smiles }, signal),
     [],
   );
   const selectData = useCallback((response: SidecarMsResult) => {

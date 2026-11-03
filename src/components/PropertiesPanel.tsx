@@ -4,7 +4,7 @@ import { useCachedStructureTask } from '../hooks/useCachedStructureTask';
 import { FloatingPanel } from './FloatingPanel';
 import type { MoleculeProperties } from '../types/chemistry';
 import type { PanelTheme } from '../types/panelTheme';
-import { invokeTauri } from '../lib/tauri';
+import { invokeScientific } from '../lib/scientificJobs';
 import { commitCanvasEdit } from '../store';
 import { resolveDocumentCaptionTextStyle } from '../lib/chemdrawMetrics';
 import {
@@ -89,7 +89,8 @@ export function PropertiesPanel({ theme, isDarkMode, viewerSmiles }: Props) {
     viewerStructureStatus,
   } = useStore();
   const run = useCallback(
-    (smiles: string) => invokeTauri<SidecarPropsResult>('compute_properties', { smiles }),
+    (smiles: string, signal?: AbortSignal) =>
+      invokeScientific<SidecarPropsResult>('compute_properties', { smiles }, signal),
     [],
   );
   const selectData = useCallback((response: SidecarPropsResult) => {

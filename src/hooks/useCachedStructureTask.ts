@@ -1,20 +1,19 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useDebouncedValue } from './useDebouncedValue';
 import { useSmilesCache } from './useSmilesCache';
+import { useRequestOwnership } from './useRequestOwnership';
 import type { ViewerStructureStatus } from '../store';
 import type { AsyncState } from '../types/panelState';
 
 type StructureTaskResult<TData> = { data: TData } | { error: string };
-
 interface UseCachedStructureTaskOptions<TResponse, TData> {
   viewerSmiles: string;
   viewerStructureStatus: ViewerStructureStatus;
   unavailableMessage: string;
-  run: (smiles: string) => Promise<TResponse>;
+  run: (smiles: string, signal?: AbortSignal) => Promise<TResponse>;
   selectData: (response: TResponse) => StructureTaskResult<TData>;
   debounceMs?: number;
 }
-
 export function useCachedStructureTask<TResponse, TData>({
   viewerSmiles,
   viewerStructureStatus,
@@ -22,74 +21,64 @@ export function useCachedStructureTask<TResponse, TData>({
   run,
   selectData,
   debounceMs = 500,
-}: UseCachedStructureTaskOptions<TResponse, TData>) {
-  const [state, setState] = useState<AsyncState<TData>>({
-    status: 'idle',
-    data: null,
-    error: null,
-  });
-  const debouncedSmiles = useDebouncedValue(viewerSmiles, debounceMs);
+}: UseCachedStructureTaskOptions<TResponse, TData>): AsyncState<TData> {
+  const [result, setResult] = useState<{ key: string; state: AsyncState<TData> } | null>(null);
+  const debounced = useDebouncedValue(viewerSmiles, debounceMs);
   const cache = useSmilesCache<TData>();
-  // Ignore stale async completions when a newer structure request has already started.
-  const requestSerialRef = useRef(0);
-
-  const queueState = useCallback(
-    (next: AsyncState<TData> | ((current: AsyncState<TData>) => AsyncState<TData>)) => {
-      queueMicrotask(() => {
-        setState(next);
-      });
-    },
-    [],
+  const ownership = useRequestOwnership(
+    `${viewerSmiles}|${viewerStructureStatus.chemistryAvailable}`,
   );
-
   useEffect(() => {
-    if (!debouncedSmiles) {
-      if (viewerStructureStatus.kind === 'display-only') {
-        queueState({
-          status: 'error',
-          data: null,
-          error: viewerStructureStatus.message ?? unavailableMessage,
-        });
-      } else {
-        queueState({ status: 'idle', data: null, error: null });
-      }
+    if (
+      !viewerSmiles ||
+      !viewerStructureStatus.chemistryAvailable ||
+      debounced !== viewerSmiles ||
+      cache.get(viewerSmiles) !== undefined
+    )
       return;
-    }
-
-    const cached = cache.get(debouncedSmiles);
-    if (cached) {
-      queueState({ status: 'success', data: cached, error: null });
-      return;
-    }
-
-    const serial = requestSerialRef.current + 1;
-    requestSerialRef.current = serial;
-    queueState((current) => ({ ...current, status: 'loading', error: null }));
-
-    run(debouncedSmiles)
+    const request = ownership.start();
+    void run(viewerSmiles, request.signal)
       .then((response) => {
-        if (requestSerialRef.current !== serial) return;
+        if (!request.current()) return;
         const next = selectData(response);
         if ('data' in next) {
-          cache.set(debouncedSmiles, next.data);
-          setState({ status: 'success', data: next.data, error: null });
-          return;
-        }
-        setState({ status: 'error', data: null, error: next.error });
+          cache.set(viewerSmiles, next.data);
+          setResult({
+            key: viewerSmiles,
+            state: { status: 'success', data: next.data, error: null },
+          });
+        } else
+          setResult({
+            key: viewerSmiles,
+            state: { status: 'error', data: null, error: next.error },
+          });
       })
       .catch((error) => {
-        if (requestSerialRef.current !== serial) return;
-        setState({ status: 'error', data: null, error: String(error) });
+        if (request.current())
+          setResult({
+            key: viewerSmiles,
+            state: { status: 'error', data: null, error: String(error) },
+          });
       });
+    return ownership.cancel;
   }, [
+    viewerSmiles,
+    viewerStructureStatus.chemistryAvailable,
+    debounced,
     cache,
-    debouncedSmiles,
-    queueState,
+    ownership,
     run,
     selectData,
-    unavailableMessage,
-    viewerStructureStatus,
   ]);
-
-  return state;
+  if (!viewerStructureStatus.chemistryAvailable && viewerStructureStatus.kind === 'display-only')
+    return {
+      status: 'error',
+      data: null,
+      error: viewerStructureStatus.message ?? unavailableMessage,
+    };
+  if (!viewerSmiles) return { status: 'idle', data: null, error: null };
+  const cached = cache.get(viewerSmiles);
+  if (cached !== undefined) return { status: 'success', data: cached, error: null };
+  if (result?.key === viewerSmiles) return result.state;
+  return { status: 'loading', data: null, error: null };
 }

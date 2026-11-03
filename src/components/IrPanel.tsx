@@ -5,7 +5,7 @@ import { FloatingPanel } from './FloatingPanel';
 import { assignIrPeak } from '../lib/irAssignments';
 import type { IrPeak } from '../types/chemistry';
 import type { PanelTheme } from '../types/panelTheme';
-import { invokeTauri } from '../lib/tauri';
+import { invokeScientific } from '../lib/scientificJobs';
 
 interface Props {
   theme: PanelTheme;
@@ -200,7 +200,8 @@ function IrChart({
 export function IrPanel({ theme, isDarkMode, viewerSmiles }: Props) {
   const { irPos, irSize, setIrPos, setIrSize, setShowIrPanel, viewerStructureStatus } = useStore();
   const run = useCallback(
-    (smiles: string) => invokeTauri<SidecarIrResult>('predict_ir', { smiles }),
+    (smiles: string, signal?: AbortSignal) =>
+      invokeScientific<SidecarIrResult>('predict_ir', { smiles }, signal),
     [],
   );
   const selectData = useCallback((response: SidecarIrResult) => {
