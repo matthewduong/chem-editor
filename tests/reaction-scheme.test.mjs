@@ -191,3 +191,33 @@ test('Clean Up Reaction lays the step out along its arrow', async () => {
     Math.abs((reagent.left + reagent.right) / 2 - (arrow.tail.x + arrow.head.x) / 2) < 1e-6,
   );
 });
+
+test('Clean Up Reaction puts a + between reactants, with a gap on each side (ChemDraw 26.1.0.6801)', async () => {
+  const { cleanUpReaction } = await import('../.unit-test-dist/src/lib/reactionCleanup.js');
+  const { getObjectsBounds } = await import('../.unit-test-dist/src/lib/chemdrawModel.js');
+  const { DEFAULT_DOCUMENT_STYLE_SETTINGS: settings } =
+    await import('../.unit-test-dist/src/lib/settings.js');
+  const xml = `<?xml version="1.0"?><CDXML BondLength="14.4" CaptionSize="10"><page id="1">
+    <fragment id="10"><n id="11" p="0 20" Element="6"/><n id="12" p="12.47 12.8" Element="6"/><b id="13" B="11" E="12"/></fragment>
+    <fragment id="14"><n id="15" p="30 60" Element="6"/><n id="16" p="42.47 52.8" Element="6"/><b id="17" B="15" E="16"/></fragment>
+    <arrow id="20" Head3D="190 16 0" Tail3D="140 16 0" ArrowheadHead="Full" ArrowheadType="Solid" HeadSize="1000" ArrowheadCenterSize="875" ArrowheadWidth="250"/>
+    <fragment id="30"><n id="31" p="205 20" Element="6"/><n id="32" p="217.47 12.8" Element="6"/><b id="33" B="31" E="32"/></fragment>
+    <scheme id="40"><step id="41" ReactionStepReactants="10 14" ReactionStepProducts="30" ReactionStepArrows="20"/></scheme>
+  </page></CDXML>`;
+  const { document } = cdxmlToChemDrawDocument(xml);
+  let n = 0;
+  const clean = cleanUpReaction(document, settings, () => `plus${n++}`);
+  const plus = clean.pages[0].objects.filter((o) => o.type === 'text');
+  assert.equal(plus.length, 1);
+  assert.equal(plus[0].text.runs[0].text, '+');
+  const gap = 1.515 * settings.nativeMetrics.captionSize;
+  const arrow = clean.pages[0].objects.find((o) => o.id === '20');
+  const box = (id) => getObjectsBounds(clean, [id], settings);
+  // Reactant 14 stands a gap before the arrow; reactant 10 a gap, the plus and a gap before that.
+  assert.ok(Math.abs(box('14').right - (arrow.tail.x - gap)) < 1e-6);
+  const plusWidth = 0.473 * settings.nativeMetrics.captionSize;
+  assert.ok(Math.abs(box('10').right - (box('14').left - 2 * gap - plusWidth)) < 1e-6);
+  // The plus box's left edge is 0.056 x the size right of its anchor, centred between them.
+  const left = plus[0].anchor.x + 0.056 * settings.nativeMetrics.captionSize;
+  assert.ok(Math.abs(left - (box('14').left - gap - plusWidth)) < 1e-6);
+});

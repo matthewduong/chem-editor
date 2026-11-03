@@ -1,4 +1,10 @@
-import type { ChemDrawArrow, ChemDrawDocument, ChemDrawReactionStep } from '../types/chemdraw';
+import type {
+  ChemDrawArrow,
+  ChemDrawDocument,
+  ChemDrawObject,
+  ChemDrawReactionStep,
+  ChemDrawText,
+} from '../types/chemdraw';
 import type { DocumentStyleSettings } from '../types/settings';
 import { resolveArcArrow } from './arrowArc';
 import { getObjectsBounds, mapArrow, moveSelectedObjects } from './chemdrawModel';
@@ -16,15 +22,24 @@ import { getObjectsBounds, mapArrow, moveSelectedObjects } from './chemdrawModel
  * also inserts a `+` between reactants that have none, which this does not.
  */
 const GAP_OF_CAPTION = 1.515;
+/**
+ * Between two reactants ChemDraw puts a `+` (text at the caption size) centred on the arrow's line
+ * with a gap on each side: its box was 0.473 x the size wide, its left edge 0.056 x the size right
+ * of the anchor, and its baseline 0.352 x the size below the line.
+ */
+const PLUS_WIDTH_OF_SIZE = 0.473;
+const PLUS_LEFT_OF_ANCHOR = 0.056;
+const PLUS_BASELINE_BELOW_LINE = 0.352;
 const TEXT_OFFSET_OF_CAPTION = 0.575;
 
 export function cleanUpReaction(
   document: ChemDrawDocument,
   settings: DocumentStyleSettings,
+  newId: () => string = () => crypto.randomUUID(),
 ): ChemDrawDocument {
   let result = document;
   for (const step of document.pages[0]?.schemes?.flatMap((scheme) => scheme.steps) ?? []) {
-    result = cleanUpStep(result, step, settings);
+    result = cleanUpStep(result, step, settings, newId);
   }
   return result;
 }
@@ -33,6 +48,7 @@ function cleanUpStep(
   document: ChemDrawDocument,
   step: ChemDrawReactionStep,
   settings: DocumentStyleSettings,
+  newId: () => string,
 ): ChemDrawDocument {
   const page = document.pages[0];
   const arrow = page?.objects.find(
@@ -115,11 +131,75 @@ function cleanUpStep(
       )
       .sort((a, b) => a.box.s0 - b.box.s0);
 
-  // Reactants: right to left from the tail.
+  // Reactants: right to left from the tail, a `+` in each gap between them.
+  const plusWidth = PLUS_WIDTH_OF_SIZE * captionSize;
+  const reactants = inOrder(step.reactants).reverse();
+  const plusLefts: number[] = [];
   let edge = -gap;
-  for (const { id, box } of inOrder(step.reactants).reverse()) {
+  reactants.forEach(({ id, box }, index) => {
     doc = moveBy(doc, id, edge - box.s1, -(box.t0 + box.t1) / 2);
-    edge -= box.s1 - box.s0 + gap;
+    edge -= box.s1 - box.s0;
+    if (index < reactants.length - 1) {
+      edge -= gap;
+      edge -= plusWidth;
+      plusLefts.push(edge);
+      edge -= gap;
+    }
+  });
+  if (plusLefts.length > 0) {
+    const isPlus = (object: ChemDrawObject): object is ChemDrawText =>
+      object.type === 'text' &&
+      object.text.runs
+        .map((run) => run.text)
+        .join('')
+        .trim() === '+' &&
+      (() => {
+        const rel = { x: object.anchor.x - arrow.tail.x, y: object.anchor.y - arrow.tail.y };
+        const s = rel.x * u.x + rel.y * u.y;
+        const t = rel.x * up.x + rel.y * up.y;
+        return Math.abs(t) < 3 * gap && s < 0 && s > -(1 + plusLefts.length) * 6 * gap - 400;
+      })();
+    const existing = doc.pages[0]!.objects.filter(isPlus).sort((a, b) => b.anchor.x - a.anchor.x);
+    const spots = plusLefts.map((left) => {
+      const s = left - PLUS_LEFT_OF_ANCHOR * captionSize;
+      const t = -PLUS_BASELINE_BELOW_LINE * captionSize;
+      return {
+        x: arrow.tail.x + u.x * s + up.x * t,
+        y: arrow.tail.y + u.y * s + up.y * t,
+      };
+    });
+    const created: ChemDrawText[] = [];
+    spots.forEach((spot, index) => {
+      const found = existing[index];
+      if (found) {
+        doc = moveSelectedObjects(
+          doc,
+          new Set([found.id]),
+          spot.x - found.anchor.x,
+          spot.y - found.anchor.y,
+        );
+      } else {
+        created.push({
+          id: newId(),
+          type: 'text',
+          anchor: spot,
+          text: { runs: [{ text: '+' }], justification: 'left' },
+          style: {
+            fontFamily: settings.nativeMetrics.captionFontFamily,
+            fontSize: captionSize,
+          },
+        });
+      }
+    });
+    if (created.length > 0) {
+      doc = {
+        ...doc,
+        pages: [
+          { ...doc.pages[0]!, objects: [...doc.pages[0]!.objects, ...created] },
+          ...doc.pages.slice(1),
+        ],
+      };
+    }
   }
   // Products: left to right from the head.
   edge = arrowLength + gap;
