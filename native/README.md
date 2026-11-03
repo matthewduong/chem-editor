@@ -21,7 +21,12 @@ Both render through the sidecar's `chem-engine thumbnail INPUT OUTPUT SIZE` comm
    the plist). Still to find: why the agent skips ours (check System Settings > General >
    Login Items & Extensions > Quick Look; try a signed build rather than ad hoc). Keep one
    registered copy of the app (`lsregister -dump | grep ChemEditor`); stale copies confuse
-   registration. The engine also writes no thumbnail for CDXML with `<fonttable>` inside
+   registration. Control experiment: with `public.json` added to `QLSupportedContentTypes` the
+   agent does launch our extension for a `.json` file, so signing and registration are fine;
+   for `.cdxml` it keeps choosing TextExtension even with `com.cambridgesoft.cdxml` (the
+   extension's second UTI) and `public.xml` listed. Selection for text-conforming
+   third-party types is the unsolved part.
+   The engine also writes no thumbnail for CDXML with `<fonttable>` inside
    `<page>` (RDKit rejects it): 18 of 33 test fixtures.
 5. Open questions: the sandboxed extension running the bundled engine (it may need the engine
    signed with the same team and the `com.apple.security.inherit` entitlement); the CDXML UTI
