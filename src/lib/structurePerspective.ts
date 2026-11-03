@@ -3,7 +3,7 @@ import { getSelectedNodeIds, mapObjectTags } from './chemdrawModel';
 
 /**
  * Structure Perspective (ChemDraw 17.1 guide): tilts the selected structures through three
- * dimensions. Atoms turn about the vertical axis by `tiltY` and the horizontal axis by `tiltX`
+ * dimensions. Atoms turn about the horizontal axis by `tiltX`, then the vertical axis by `tiltY`
  * (radians) through `center`, and are projected straight back onto the page. Each atom keeps
  * its depth (`ChemDrawNode.depth`, written as CDXML `xyz`) so successive tilts compose like one.
  * Orbitals and other drawings are not structures and stay put, as in ChemDraw.
@@ -23,12 +23,13 @@ export function perspectiveSelectedObjects(
   const tilt = (x: number, y: number, z: number) => {
     const dx = x - center.x;
     const dy = y - center.y;
-    // About the vertical axis, then the horizontal one.
-    const x1 = dx * cy + z * sy;
-    const z1 = -dx * sy + z * cy;
-    const y2 = dy * cx - z1 * sx;
-    const z2 = dy * sx + z1 * cx;
-    return { x: center.x + x1, y: center.y + y2, z: z2 };
+    // About the horizontal axis first, then the vertical one: ChemDraw's order for a diagonal
+    // drag (the other order was 8.6pt off, this 0.24pt).
+    const y1 = dy * cx - z * sx;
+    const z1 = dy * sx + z * cx;
+    const x2 = dx * cy + z1 * sy;
+    const z2 = -dx * sy + z1 * cy;
+    return { x: center.x + x2, y: center.y + y1, z: z2 };
   };
   const objects = page.objects.map((object) => {
     if (object.type !== 'node' || !nodeIds.has(object.id)) return object;

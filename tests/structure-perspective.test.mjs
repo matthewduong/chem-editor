@@ -57,3 +57,26 @@ test('shift keeps the tilt on one axis', () => {
   assert.equal(tilt.tiltX, 0);
   assert.ok(tilt.tiltY < 0);
 });
+
+test('a diagonal drag turns about the horizontal axis first, as ChemDraw does', () => {
+  // Isopentanol's first and last atoms; ChemDraw 26.1.0.6801 after a (30, 30) drag.
+  const { document: d } = cdxmlToChemDrawDocument(
+    '<?xml version="1.0"?><CDXML BondLength="14.4"><page id="1"><fragment id="9">' +
+      '<n id="11" p="78.22 290.82" Element="6"/><n id="12" p="127.6 297.89" Element="6"/>' +
+      '<b id="3" B="11" E="12"/></fragment></page></CDXML>',
+  );
+  const nodes = d.pages[0].objects.filter((o) => o.type === 'node');
+  const t = perspectiveTiltForDrag({ x: 0, y: 0 }, { x: 30, y: 30 }, 14.4, false);
+  const out = perspectiveSelectedObjects(
+    d,
+    new Set(nodes.map((n) => n.id)),
+    { x: 108.05, y: 302.4 },
+    t.tiltX,
+    t.tiltY,
+  ).pages[0].objects.filter((o) => o.type === 'node');
+  const near = (a, b) => Math.abs(a - b) < 0.5;
+  assert.ok(near(out[0].position.x, 86.53) && near(out[0].position.y, 292.7));
+  assert.ok(near(out[0].depth, -21.57));
+  assert.ok(near(out[1].position.x, 125.71) && near(out[1].position.y, 298.61));
+  assert.ok(near(out[1].depth, 8.74));
+});
