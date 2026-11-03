@@ -7,9 +7,18 @@ import { adaptColor, drawRunText } from '../drawPrimitives';
 /**
  * Computed stereochemistry indicators (View > Show Stereochemistry): the CIP label beside a
  * stereocentre, on the side clearest of its bonds, and beside a stereo double bond's middle, on
- * the side clearest of its neighbours. Caption font, as ChemDraw's own indicator tags default
- * to; the exact offset ChemDraw uses is not measured (gaps.md).
+ * the side clearest of its neighbours.
+ *
+ * Measured on ChemDraw 26.1.0.6801 (gaps.md): the tag is italic at 0.75 x the atom label size,
+ * whatever the caption size or bond length, and its box stands about 4.9pt clear of the atom (or
+ * the bond's middle), also whatever the bond length. Not modelled: the atom label's choice of the
+ * gap nearest straight down (we take the widest) and its drift towards the vertical.
  */
+const INDICATOR_SIZE_OF_LABEL = 0.75;
+const INDICATOR_CLEARANCE = 4.9;
+/** ChemDraw's box for `(R)` is 7.03pt tall at 7.5pt. */
+const INDICATOR_BOX_HEIGHT_EM = 0.937;
+
 export function hasStereoTag(tags: ChemDrawObjectTag[] | undefined): boolean {
   return Boolean(tags?.some((tag) => /stereo/i.test(tag.name ?? '')));
 }
@@ -26,12 +35,15 @@ function drawIndicator(
 ) {
   const fontFamily = scene.documentStyleSettings.nativeMetrics.captionFontFamily;
   const fontSize = convertNativeToCanvas(
-    scene.documentStyleSettings.nativeMetrics.captionSize,
+    scene.documentStyleSettings.nativeMetrics.labelSize * INDICATOR_SIZE_OF_LABEL,
     scene.documentStyleSettings,
   );
-  const run = { text };
+  const run = { text, italic: true };
   const width = measureRunWidth(run, fontSize, fontFamily);
-  const extent = gap + Math.abs(direction.x) * (width / 2) + Math.abs(direction.y) * (fontSize / 2);
+  const extent =
+    gap +
+    Math.abs(direction.x) * (width / 2) +
+    Math.abs(direction.y) * ((fontSize * INDICATOR_BOX_HEIGHT_EM) / 2);
   const center = { x: anchor.x + direction.x * extent, y: anchor.y + direction.y * extent };
   drawRunText(
     ctx,
@@ -84,7 +96,7 @@ export function drawAtomIndicator(
     label,
     atom,
     { x: Math.cos(best), y: Math.sin(best) },
-    scene.documentStyleSettings.bondLength * 0.35,
+    convertNativeToCanvas(INDICATOR_CLEARANCE, scene.documentStyleSettings),
     color,
   );
   return best;
@@ -116,15 +128,17 @@ export function drawBondStereoIndicator(
       if (far) lean += Math.sign((far.x - mid.x) * normal.x + (far.y - mid.y) * normal.y);
     }
   }
-  // On a tie, above the bond (the page's upper side).
-  const side = lean !== 0 ? -Math.sign(lean) : normal.y <= 0 ? 1 : -1;
+  // On a tie (an E bond, one substituent each side), ChemDraw uses the same side of the bond
+  // whichever way the substituents are mirrored: the left-hand normal of begin-to-end on a y-up
+  // page, so a bond drawn left to right puts it above and the reverse puts it below.
+  const side = lean !== 0 ? -Math.sign(lean) : -1;
   drawIndicator(
     ctx,
     scene,
     label,
     mid,
     { x: normal.x * side, y: normal.y * side },
-    scene.documentStyleSettings.bondLength * 0.3,
+    convertNativeToCanvas(INDICATOR_CLEARANCE, scene.documentStyleSettings),
     color,
   );
 }
