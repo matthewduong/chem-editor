@@ -8,9 +8,11 @@ import { invokeTauri } from '../lib/tauri';
 import { commitCanvasEdit } from '../store';
 import { resolveDocumentCaptionTextStyle } from '../lib/chemdrawMetrics';
 import {
+  exactMass,
   formatElementalAnalysis,
   formatMassPeaks,
   isotopePeaks,
+  molecularWeight,
   parseFormula,
 } from '../lib/massAnalysis';
 import type { TextRun } from '../types/chemistry';
@@ -106,16 +108,22 @@ export function PropertiesPanel({ theme, isDarkMode, viewerSmiles }: Props) {
 
   const p = state.data;
   const parsed = p ? parseFormula(p.formula) : null;
+  // ChemDraw's own tables and electron handling when the formula reads; RDKit's values otherwise.
+  const molecularWeightValue = p ? (parsed ? molecularWeight(parsed) : p.mw) : 0;
+  const exactMassValue = p ? (parsed ? exactMass(parsed) : p.exact_mass) : 0;
   // The Analysis window's values, under the labels ChemDraw pastes them with.
   const analysis = p
     ? [
         { label: 'Chemical Formula', value: p.formula, formula: true },
-        { label: 'Exact Mass', value: p.exact_mass.toFixed(2) },
-        { label: 'Molecular Weight', value: p.mw.toFixed(2) },
+        { label: 'Exact Mass', value: exactMassValue.toFixed(2) },
+        { label: 'Molecular Weight', value: molecularWeightValue.toFixed(2) },
         ...(parsed
           ? [
               { label: 'm/z', value: formatMassPeaks(isotopePeaks(parsed)) },
-              { label: 'Elemental Analysis', value: formatElementalAnalysis(parsed.counts) },
+              {
+                label: 'Elemental Analysis',
+                value: formatElementalAnalysis(parsed.counts, 2, parsed.charge),
+              },
             ]
           : []),
       ]
@@ -123,8 +131,8 @@ export function PropertiesPanel({ theme, isDarkMode, viewerSmiles }: Props) {
   const rows: [string, string][] = p
     ? [
         ['Formula', p.formula],
-        ['MW', `${p.mw.toFixed(2)} g/mol`],
-        ['Exact Mass', `${p.exact_mass.toFixed(4)} Da`],
+        ['MW', `${molecularWeightValue.toFixed(2)} g/mol`],
+        ['Exact Mass', `${exactMassValue.toFixed(4)} Da`],
         ...analysis
           .filter((line) => line.label === 'm/z' || line.label === 'Elemental Analysis')
           .map((line): [string, string] => [line.label, line.value]),

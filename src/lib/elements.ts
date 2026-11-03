@@ -44,7 +44,7 @@ export const ELEMENTS: Record<string, ElementData> = {
   Be: {
     atomic: 4,
     name: 'Beryllium',
-    weight: 9.0122,
+    weight: 9.0121831,
     exact: 9.0121830724,
     valencies: [2],
     color: '#c2ff00',
@@ -77,7 +77,7 @@ export const ELEMENTS: Record<string, ElementData> = {
   F: {
     atomic: 9,
     name: 'Fluorine',
-    weight: 18.998,
+    weight: 18.998403163,
     exact: 18.99840316273,
     valencies: [1],
     color: '#90e050',
@@ -85,7 +85,7 @@ export const ELEMENTS: Record<string, ElementData> = {
   Ne: {
     atomic: 10,
     name: 'Neon',
-    weight: 20.18,
+    weight: 20.1797,
     exact: 19.99244015455,
     valencies: [0],
     color: '#b3e3f5',
@@ -93,7 +93,7 @@ export const ELEMENTS: Record<string, ElementData> = {
   Na: {
     atomic: 11,
     name: 'Sodium',
-    weight: 22.99,
+    weight: 22.98976928,
     exact: 22.98976928196,
     valencies: [1],
     color: '#ab5cf2',
@@ -109,7 +109,7 @@ export const ELEMENTS: Record<string, ElementData> = {
   Al: {
     atomic: 13,
     name: 'Aluminium',
-    weight: 26.982,
+    weight: 26.9815384,
     exact: 26.981538414,
     valencies: [3],
     color: '#bfa6a6',
@@ -125,7 +125,7 @@ export const ELEMENTS: Record<string, ElementData> = {
   P: {
     atomic: 15,
     name: 'Phosphorus',
-    weight: 30.974,
+    weight: 30.973761998,
     exact: 30.97376199842,
     valencies: [3],
     color: '#ff8000',
@@ -157,7 +157,7 @@ export const ELEMENTS: Record<string, ElementData> = {
   K: {
     atomic: 19,
     name: 'Potassium',
-    weight: 39.098,
+    weight: 39.0983,
     exact: 38.9637066848,
     valencies: [1],
     color: '#8f40d4',
@@ -173,7 +173,7 @@ export const ELEMENTS: Record<string, ElementData> = {
   Sc: {
     atomic: 21,
     name: 'Scandium',
-    weight: 44.956,
+    weight: 44.955908,
     exact: 44.95590828,
     valencies: [],
     color: '#e6e6e6',
@@ -189,7 +189,7 @@ export const ELEMENTS: Record<string, ElementData> = {
   V: {
     atomic: 23,
     name: 'Vanadium',
-    weight: 50.942,
+    weight: 50.9415,
     exact: 50.94395695,
     valencies: [],
     color: '#a6a6ab',
@@ -197,7 +197,7 @@ export const ELEMENTS: Record<string, ElementData> = {
   Cr: {
     atomic: 24,
     name: 'Chromium',
-    weight: 51.996,
+    weight: 51.9961,
     exact: 51.94050623,
     valencies: [],
     color: '#8a99c7',
@@ -205,7 +205,7 @@ export const ELEMENTS: Record<string, ElementData> = {
   Mn: {
     atomic: 25,
     name: 'Manganese',
-    weight: 54.938,
+    weight: 54.938043,
     exact: 54.93804391,
     valencies: [],
     color: '#9c7ac7',
@@ -221,7 +221,7 @@ export const ELEMENTS: Record<string, ElementData> = {
   Co: {
     atomic: 27,
     name: 'Cobalt',
-    weight: 58.933,
+    weight: 58.933194,
     exact: 58.93319429,
     valencies: [],
     color: '#f090a0',
@@ -229,7 +229,7 @@ export const ELEMENTS: Record<string, ElementData> = {
   Ni: {
     atomic: 28,
     name: 'Nickel',
-    weight: 58.693,
+    weight: 58.6934,
     exact: 57.93534241,
     valencies: [],
     color: '#50d050',
@@ -269,7 +269,7 @@ export const ELEMENTS: Record<string, ElementData> = {
   As: {
     atomic: 33,
     name: 'Arsenic',
-    weight: 74.922,
+    weight: 74.921595,
     exact: 74.92159457,
     valencies: [3],
     color: '#bd80e3',
@@ -301,7 +301,7 @@ export const ELEMENTS: Record<string, ElementData> = {
   Rb: {
     atomic: 37,
     name: 'Rubidium',
-    weight: 85.468,
+    weight: 85.4678,
     exact: 84.91178973,
     valencies: [1],
     color: '#702eb0',
@@ -317,7 +317,7 @@ export const ELEMENTS: Record<string, ElementData> = {
   Y: {
     atomic: 39,
     name: 'Yttrium',
-    weight: 88.906,
+    weight: 88.90584,
     exact: 88.9058403,
     valencies: [],
     color: '#94ffff',
@@ -325,7 +325,7 @@ export const ELEMENTS: Record<string, ElementData> = {
   Zr: {
     atomic: 40,
     name: 'Zirconium',
-    weight: 91.224,
+    weight: 91.222,
     exact: 89.9047044,
     valencies: [],
     color: '#94e0e0',
@@ -333,7 +333,7 @@ export const ELEMENTS: Record<string, ElementData> = {
   Nb: {
     atomic: 41,
     name: 'Niobium',
-    weight: 92.906,
+    weight: 92.90637,
     exact: 92.9063781,
     valencies: [],
     color: '#73c2c9',
@@ -349,8 +349,8 @@ export const ELEMENTS: Record<string, ElementData> = {
   Tc: {
     atomic: 43,
     name: 'Technetium',
-    weight: 98,
-    exact: 96.906367,
+    weight: 97,
+    exact: 84.94894,
     valencies: [],
     color: '#3b9e9e',
   },
@@ -365,7 +365,7 @@ export const ELEMENTS: Record<string, ElementData> = {
   Rh: {
     atomic: 45,
     name: 'Rhodium',
-    weight: 102.91,
+    weight: 102.90549,
     exact: 102.905504,
     valencies: [],
     color: '#0a7d8c',
@@ -381,7 +381,7 @@ export const ELEMENTS: Record<string, ElementData> = {
   Ag: {
     atomic: 47,
     name: 'Silver',
-    weight: 107.87,
+    weight: 107.8682,
     exact: 106.905097,
     valencies: [],
     color: '#c0c0c0',
@@ -389,7 +389,7 @@ export const ELEMENTS: Record<string, ElementData> = {
   Cd: {
     atomic: 48,
     name: 'Cadmium',
-    weight: 112.41,
+    weight: 112.414,
     exact: 113.9033685,
     valencies: [2],
     color: '#ffd98f',
@@ -397,7 +397,7 @@ export const ELEMENTS: Record<string, ElementData> = {
   In: {
     atomic: 49,
     name: 'Indium',
-    weight: 114.82,
+    weight: 114.818,
     exact: 114.903878,
     valencies: [3],
     color: '#a67573',
@@ -429,7 +429,7 @@ export const ELEMENTS: Record<string, ElementData> = {
   I: {
     atomic: 53,
     name: 'Iodine',
-    weight: 126.9,
+    weight: 126.90447,
     exact: 126.904473,
     valencies: [1],
     color: '#940094',
@@ -437,7 +437,7 @@ export const ELEMENTS: Record<string, ElementData> = {
   Xe: {
     atomic: 54,
     name: 'Xenon',
-    weight: 131.29,
+    weight: 131.293,
     exact: 131.904155,
     valencies: [0],
     color: '#429eb0',
@@ -445,7 +445,7 @@ export const ELEMENTS: Record<string, ElementData> = {
   Cs: {
     atomic: 55,
     name: 'Caesium',
-    weight: 132.91,
+    weight: 132.90545196,
     exact: 132.905451933,
     valencies: [1],
     color: '#57178f',
@@ -453,7 +453,7 @@ export const ELEMENTS: Record<string, ElementData> = {
   Ba: {
     atomic: 56,
     name: 'Barium',
-    weight: 137.33,
+    weight: 137.327,
     exact: 137.9052472,
     valencies: [2],
     color: '#00c900',
@@ -461,7 +461,7 @@ export const ELEMENTS: Record<string, ElementData> = {
   La: {
     atomic: 57,
     name: 'Lanthanum',
-    weight: 138.91,
+    weight: 138.90547,
     exact: 138.906363,
     valencies: [],
     color: '#70d4ff',
@@ -469,7 +469,7 @@ export const ELEMENTS: Record<string, ElementData> = {
   Ce: {
     atomic: 58,
     name: 'Cerium',
-    weight: 140.12,
+    weight: 140.116,
     exact: 139.9054431,
     valencies: [],
     color: '#ffffc7',
@@ -477,7 +477,7 @@ export const ELEMENTS: Record<string, ElementData> = {
   Pr: {
     atomic: 59,
     name: 'Praseodymium',
-    weight: 140.91,
+    weight: 140.90766,
     exact: 140.9076576,
     valencies: [],
     color: '#d9ffc7',
@@ -485,7 +485,7 @@ export const ELEMENTS: Record<string, ElementData> = {
   Nd: {
     atomic: 60,
     name: 'Neodymium',
-    weight: 144.24,
+    weight: 144.242,
     exact: 141.907729,
     valencies: [],
     color: '#c7ffc7',
@@ -494,7 +494,7 @@ export const ELEMENTS: Record<string, ElementData> = {
     atomic: 61,
     name: 'Promethium',
     weight: 145,
-    exact: 144.912749,
+    exact: 127.94826,
     valencies: [],
     color: '#a3ffc7',
   },
@@ -509,7 +509,7 @@ export const ELEMENTS: Record<string, ElementData> = {
   Eu: {
     atomic: 63,
     name: 'Europium',
-    weight: 151.96,
+    weight: 151.964,
     exact: 152.921238,
     valencies: [],
     color: '#61ffc7',
@@ -517,7 +517,7 @@ export const ELEMENTS: Record<string, ElementData> = {
   Gd: {
     atomic: 64,
     name: 'Gadolinium',
-    weight: 157.25,
+    weight: 157.249,
     exact: 157.9241123,
     valencies: [],
     color: '#45ffc7',
@@ -525,7 +525,7 @@ export const ELEMENTS: Record<string, ElementData> = {
   Tb: {
     atomic: 65,
     name: 'Terbium',
-    weight: 158.93,
+    weight: 158.925354,
     exact: 158.925347,
     valencies: [],
     color: '#30ffc7',
@@ -541,7 +541,7 @@ export const ELEMENTS: Record<string, ElementData> = {
   Ho: {
     atomic: 67,
     name: 'Holmium',
-    weight: 164.93,
+    weight: 164.930328,
     exact: 164.9303288,
     valencies: [],
     color: '#00ff9c',
@@ -549,7 +549,7 @@ export const ELEMENTS: Record<string, ElementData> = {
   Er: {
     atomic: 68,
     name: 'Erbium',
-    weight: 167.26,
+    weight: 167.259,
     exact: 165.9302995,
     valencies: [],
     color: '#00e675',
@@ -557,7 +557,7 @@ export const ELEMENTS: Record<string, ElementData> = {
   Tm: {
     atomic: 69,
     name: 'Thulium',
-    weight: 168.93,
+    weight: 168.934218,
     exact: 168.9342179,
     valencies: [],
     color: '#00d452',
@@ -565,7 +565,7 @@ export const ELEMENTS: Record<string, ElementData> = {
   Yb: {
     atomic: 70,
     name: 'Ytterbium',
-    weight: 173.05,
+    weight: 173.045,
     exact: 173.9388664,
     valencies: [],
     color: '#00bf38',
@@ -573,7 +573,7 @@ export const ELEMENTS: Record<string, ElementData> = {
   Lu: {
     atomic: 71,
     name: 'Lutetium',
-    weight: 174.97,
+    weight: 174.96669,
     exact: 174.9407752,
     valencies: [],
     color: '#00ab24',
@@ -581,7 +581,7 @@ export const ELEMENTS: Record<string, ElementData> = {
   Hf: {
     atomic: 72,
     name: 'Hafnium',
-    weight: 178.49,
+    weight: 178.486,
     exact: 179.946557,
     valencies: [],
     color: '#4dc2ff',
@@ -589,7 +589,7 @@ export const ELEMENTS: Record<string, ElementData> = {
   Ta: {
     atomic: 73,
     name: 'Tantalum',
-    weight: 180.95,
+    weight: 180.94788,
     exact: 180.9479958,
     valencies: [],
     color: '#4da6ff',
@@ -605,7 +605,7 @@ export const ELEMENTS: Record<string, ElementData> = {
   Re: {
     atomic: 75,
     name: 'Rhenium',
-    weight: 186.21,
+    weight: 186.207,
     exact: 186.9557531,
     valencies: [],
     color: '#267dab',
@@ -621,7 +621,7 @@ export const ELEMENTS: Record<string, ElementData> = {
   Ir: {
     atomic: 77,
     name: 'Iridium',
-    weight: 192.22,
+    weight: 192.217,
     exact: 192.9629264,
     valencies: [],
     color: '#175487',
@@ -629,7 +629,7 @@ export const ELEMENTS: Record<string, ElementData> = {
   Pt: {
     atomic: 78,
     name: 'Platinum',
-    weight: 195.08,
+    weight: 195.084,
     exact: 194.9647917,
     valencies: [],
     color: '#d0d0e0',
@@ -637,7 +637,7 @@ export const ELEMENTS: Record<string, ElementData> = {
   Au: {
     atomic: 79,
     name: 'Gold',
-    weight: 196.97,
+    weight: 196.96657,
     exact: 196.9665688,
     valencies: [],
     color: '#ffd123',
@@ -645,7 +645,7 @@ export const ELEMENTS: Record<string, ElementData> = {
   Hg: {
     atomic: 80,
     name: 'Mercury',
-    weight: 200.59,
+    weight: 200.592,
     exact: 201.9706434,
     valencies: [2],
     color: '#b8b8d0',
@@ -669,7 +669,7 @@ export const ELEMENTS: Record<string, ElementData> = {
   Bi: {
     atomic: 83,
     name: 'Bismuth',
-    weight: 208.98,
+    weight: 208.9804,
     exact: 208.9803991,
     valencies: [3],
     color: '#9e4fb5',
@@ -678,7 +678,7 @@ export const ELEMENTS: Record<string, ElementData> = {
     atomic: 84,
     name: 'Polonium',
     weight: 209,
-    exact: 208.9824308,
+    exact: 189.99511,
     valencies: [],
     color: '#ab5c00',
   },
@@ -686,7 +686,7 @@ export const ELEMENTS: Record<string, ElementData> = {
     atomic: 85,
     name: 'Astatine',
     weight: 210,
-    exact: 209.9871479,
+    exact: 193.00019,
     valencies: [],
     color: '#754f45',
   },
@@ -694,7 +694,7 @@ export const ELEMENTS: Record<string, ElementData> = {
     atomic: 86,
     name: 'Radon',
     weight: 222,
-    exact: 221.9757544,
+    exact: 196.00231,
     valencies: [0],
     color: '#428296',
   },
@@ -702,7 +702,7 @@ export const ELEMENTS: Record<string, ElementData> = {
     atomic: 87,
     name: 'Francium',
     weight: 223,
-    exact: 223.0197359,
+    exact: 200.0065,
     valencies: [1],
     color: '#420066',
   },
@@ -710,14 +710,14 @@ export const ELEMENTS: Record<string, ElementData> = {
     atomic: 88,
     name: 'Radium',
     weight: 226,
-    exact: 226.0254103,
+    exact: 203.00921,
     valencies: [2],
     color: '#007d00',
   },
   Ac: {
     atomic: 89,
     name: 'Actinium',
-    weight: 227,
+    weight: 227.027747,
     exact: 227.0277523,
     valencies: [],
     color: '#70abfa',
@@ -725,7 +725,7 @@ export const ELEMENTS: Record<string, ElementData> = {
   Th: {
     atomic: 90,
     name: 'Thorium',
-    weight: 232.04,
+    weight: 232.0377,
     exact: 232.0380558,
     valencies: [],
     color: '#00baff',
@@ -733,7 +733,7 @@ export const ELEMENTS: Record<string, ElementData> = {
   Pa: {
     atomic: 91,
     name: 'Protactinium',
-    weight: 231.04,
+    weight: 231.03588,
     exact: 231.0358842,
     valencies: [],
     color: '#00a1ff',
@@ -741,7 +741,7 @@ export const ELEMENTS: Record<string, ElementData> = {
   U: {
     atomic: 92,
     name: 'Uranium',
-    weight: 238.03,
+    weight: 238.02891,
     exact: 238.0507884,
     valencies: [],
     color: '#008fff',
@@ -749,7 +749,7 @@ export const ELEMENTS: Record<string, ElementData> = {
   Np: {
     atomic: 93,
     name: 'Neptunium',
-    weight: 237,
+    weight: 237.0481673,
     exact: 237.0481734,
     valencies: [],
     color: '#0080ff',
@@ -758,14 +758,14 @@ export const ELEMENTS: Record<string, ElementData> = {
     atomic: 94,
     name: 'Plutonium',
     weight: 244,
-    exact: 244.0642053,
+    exact: 228.03873,
     valencies: [],
     color: '#006bff',
   },
   Am: {
     atomic: 95,
     name: 'Americium',
-    weight: 243,
+    weight: 243.0613727,
     exact: 243.0613813,
     valencies: [],
     color: '#545cf2',
@@ -774,7 +774,7 @@ export const ELEMENTS: Record<string, ElementData> = {
     atomic: 96,
     name: 'Curium',
     weight: 247,
-    exact: 247.0703541,
+    exact: 233.0508,
     valencies: [],
     color: '#785ce3',
   },

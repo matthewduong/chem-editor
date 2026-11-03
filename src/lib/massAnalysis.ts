@@ -36,12 +36,35 @@ function hillOrder(symbols: string[]): string[] {
   });
 }
 
-/** Percent by weight of each element, in Hill order. */
+/** ChemDraw's molecular weight: the table's weights summed, less the electrons of a cation. */
+export function molecularWeight(parsed: ParsedFormula): number {
+  const sum = Object.entries(parsed.counts).reduce(
+    (total, [symbol, n]) => total + ELEMENTS[symbol]!.weight * n,
+    0,
+  );
+  return sum - parsed.charge * ELECTRON_MASS;
+}
+
+/** ChemDraw's exact mass: the most abundant isotopes' masses summed, less a cation's electrons. */
+export function exactMass(parsed: ParsedFormula): number {
+  const sum = Object.entries(parsed.counts).reduce(
+    (total, [symbol, n]) => total + ELEMENTS[symbol]!.exact * n,
+    0,
+  );
+  return sum - parsed.charge * ELECTRON_MASS;
+}
+
+/**
+ * Percent by weight of each element, in Hill order. The denominator is the whole species' weight
+ * with its electrons (ChemDraw gave O2- as O, 99.99), so an ion's percentages do not sum to 100.
+ */
 export function elementalAnalysis(
   counts: Record<string, number>,
+  charge = 0,
 ): Array<{ element: string; percent: number }> {
   const symbols = Object.keys(counts).filter((symbol) => counts[symbol]! > 0);
-  const total = symbols.reduce((sum, s) => sum + ELEMENTS[s]!.weight * counts[s]!, 0);
+  const total =
+    symbols.reduce((sum, s) => sum + ELEMENTS[s]!.weight * counts[s]!, 0) - charge * ELECTRON_MASS;
   if (total <= 0) return [];
   return hillOrder(symbols).map((element) => ({
     element,
@@ -50,8 +73,12 @@ export function elementalAnalysis(
 }
 
 /** ChemDraw's elemental analysis line: `C, 40.00; H, 6.71; O, 53.29`. */
-export function formatElementalAnalysis(counts: Record<string, number>, decimals = 2): string {
-  return elementalAnalysis(counts)
+export function formatElementalAnalysis(
+  counts: Record<string, number>,
+  decimals = 2,
+  charge = 0,
+): string {
+  return elementalAnalysis(counts, charge)
     .map(({ element, percent }) => `${element}, ${percent.toFixed(decimals)}`)
     .join('; ');
 }
@@ -108,8 +135,12 @@ const ISOTOPES: Record<string, Array<[mass: number, abundance: number]>> = {
   ],
 };
 
-/** The electron's mass in Da (CODATA 2018). */
-const ELECTRON_MASS = 0.000548579909;
+/**
+ * The electron's mass in Da as ChemDraw uses it: 0.00054858, not CODATA's 0.000548579909. It adds
+ * it per negative charge and takes it off per positive one, in molecular weight and exact mass
+ * alike (measured on 26.1.0.6801: `[Fe+2]` is 55.84390284, `[OH-]` is 17.00754858).
+ */
+const ELECTRON_MASS = 0.00054858;
 
 export interface MassPeak {
   mz: number;
