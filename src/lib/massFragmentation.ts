@@ -166,11 +166,20 @@ export function fragmentAcross(
 }
 
 /**
- * Each side's formula and exact mass as a caption beside its atoms, on its own side of the line
- * and clear of them, in the document caption style: the formula (in formula style, so its
- * digits are subscripts) over "Exact Mass: …". ChemDraw's wording and placement are not
- * measured (gaps.md).
+ * Each side's formula and exact mass as a caption, as ChemDraw 26.1.0.6801 writes it (measured by
+ * dragging the Mass Fragmentation tool across the middle bond of isopentanol; gaps.md): two
+ * centred lines in the caption style, "Chemical formula: " then the formula, its digits subscript
+ * and one superscript bullet per radical, over "Exact mass: " with five decimals. The caption
+ * stands 7.5pt clear of its structure (3.6pt more past a heteroatom's label), centred on its
+ * horizontal extent, below it when the side lies below the line and above it otherwise; ChemDraw
+ * chose the vertical both times though the line was a diagonal.
  */
+const CAPTION_CLEARANCE = 7.5;
+const LABEL_HALF_HEIGHT = 3.6;
+/** First baseline below a two-line caption's top edge at the caption size 10: 10.87pt. */
+const FIRST_BASELINE_OF_SIZE = 1.087;
+const TWO_LINE_HEIGHT_OF_SIZE = 2.25;
+
 export function fragmentationCaptions(
   sides: readonly FragmentSide[],
   atoms: readonly Atom[],
@@ -182,36 +191,43 @@ export function fragmentationCaptions(
   const [p0, p1] = [path[0]!, path[path.length - 1]!];
   const length = Math.hypot(p1.x - p0.x, p1.y - p0.y) || 1;
   const normal = { x: -(p1.y - p0.y) / length, y: (p1.x - p0.x) / length };
-  const reach = settings.bondLength;
+  const size = settings.nativeMetrics.captionSize;
   return sides.map((side) => {
     const members = side.atomIds.map((id) => byId.get(id)!).filter(Boolean);
     const cx = members.reduce((sum, atom) => sum + atom.x, 0) / members.length;
     const cy = members.reduce((sum, atom) => sum + atom.y, 0) / members.length;
-    // Away from the line on this side; for a single formula, below the structure.
-    const away =
+    const left = Math.min(...members.map((atom) => atom.x));
+    const right = Math.max(...members.map((atom) => atom.x));
+    const pad = (atom: Atom) => (getAtomLeadElement(atom) === 'C' ? 0 : LABEL_HALF_HEIGHT);
+    const top = Math.min(...members.map((atom) => atom.y - pad(atom)));
+    const bottom = Math.max(...members.map((atom) => atom.y + pad(atom)));
+    // Which side of the line this structure lies on; a single formula goes below.
+    const awayY =
       sides.length === 1
-        ? { x: 0, y: 1 }
-        : (cx - p0.x) * normal.x + (cy - p0.y) * normal.y >= 0
-          ? normal
-          : { x: -normal.x, y: -normal.y };
-    const extent = Math.max(
-      0,
-      ...members.map((atom) => (atom.x - cx) * away.x + (atom.y - cy) * away.y),
-    );
+        ? 1
+        : ((cx - p0.x) * normal.x + (cy - p0.y) * normal.y >= 0 ? normal.y : -normal.y) >= 0
+          ? 1
+          : -1;
+    const topEdge =
+      awayY > 0
+        ? bottom + CAPTION_CLEARANCE
+        : top - CAPTION_CLEARANCE - TWO_LINE_HEIGHT_OF_SIZE * size;
     return {
       id: newId(),
       type: 'text',
-      anchor: { x: cx + away.x * (extent + reach), y: cy + away.y * (extent + reach) },
+      anchor: { x: (left + right) / 2, y: topEdge + FIRST_BASELINE_OF_SIZE * size },
       text: {
         runs: [
+          { text: 'Chemical formula: ' },
           { text: side.formula, formula: true },
-          { text: `\nExact Mass: ${side.exactMass.toFixed(2)}` },
+          ...(side.radicals > 0 ? [{ text: '\u2022'.repeat(side.radicals), sup: true }] : []),
+          { text: `\nExact mass: ${side.exactMass.toFixed(5)}` },
         ],
         justification: 'center',
       },
       style: {
         fontFamily: settings.nativeMetrics.captionFontFamily,
-        fontSize: settings.nativeMetrics.captionSize,
+        fontSize: size,
       },
     };
   });

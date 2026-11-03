@@ -195,7 +195,7 @@ export interface ChemDrawNode {
   aliasResolution?: AtomAliasResolution;
   geometry?: RingTemplateAtomGeometry;
   atomStereo?: RingTemplateAtomStereo;
-  /** Depth out of the page from Structure Perspective; kept in session, not written to files. */
+  /** Depth out of the page from Structure Perspective: the third value of CDXML `xyz`. */
   depth?: number;
   /** CDXML `EnhancedStereoType` / `EnhancedStereoGroupNum`: an enhanced stereo group. */
   enhancedStereo?: { type: 'Absolute' | 'And' | 'Or'; group?: number };

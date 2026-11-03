@@ -35,13 +35,25 @@ test('two tilts compose as one, because each atom keeps its depth', () => {
   assert.ok(Math.abs(at(twice, '4').x - origin.x) < 1e-9);
 });
 
-test('depth is not written to the file', () => {
+test('depth is written as xyz and read back', () => {
   const tilted = perspectiveSelectedObjects(document, ids, { x: 0, y: 0 }, 0.3, 0.4);
-  assert.ok(!/depth/i.test(chemDrawDocumentToCDXML(tilted)));
+  const out = chemDrawDocumentToCDXML(tilted);
+  assert.match(out, / xyz="[-\d.]+ [-\d.]+ [-\d.]+"/);
+  const back = cdxmlToChemDrawDocument(out).document.pages[0].objects.filter(
+    (o) => o.type === 'node',
+  );
+  assert.ok(back.some((node) => Math.abs(node.depth ?? 0) > 0.01));
+});
+
+test("a 40pt drag turns the structure 43.5 degrees, as ChemDraw's does", () => {
+  const { tiltY } = perspectiveTiltForDrag({ x: 0, y: 0 }, { x: 40, y: 0 }, 14.4, false);
+  assert.ok(Math.abs((-tiltY * 180) / Math.PI - 43.56) < 0.1);
+  const { tiltX } = perspectiveTiltForDrag({ x: 0, y: 0 }, { x: 0, y: 40 }, 14.4, false);
+  assert.ok(Math.abs((tiltX * 180) / Math.PI - 43.56) < 0.1);
 });
 
 test('shift keeps the tilt on one axis', () => {
   const tilt = perspectiveTiltForDrag({ x: 0, y: 0 }, { x: 30, y: 10 }, 30, true);
   assert.equal(tilt.tiltX, 0);
-  assert.ok(tilt.tiltY > 0);
+  assert.ok(tilt.tiltY < 0);
 });

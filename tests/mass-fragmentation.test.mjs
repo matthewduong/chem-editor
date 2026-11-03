@@ -55,3 +55,44 @@ test('a line that crosses nothing fragments nothing', () => {
     null,
   );
 });
+
+// ChemDraw 26.1.0.6801, Mass Fragmentation tool dragged across the C3-C4 bond of isopentanol
+// (CC(C)CCO, bond length 14.4): its two captions' wording and baseline anchors (gaps.md).
+test('captions read and stand where ChemDraw puts them', async () => {
+  const { fragmentationCaptions } = await import('../.unit-test-dist/src/lib/massFragmentation.js');
+  const { DEFAULT_DOCUMENT_STYLE_SETTINGS: settings } =
+    await import('../.unit-test-dist/src/lib/settings.js');
+  const atoms = [
+    atom('1', 'C', 78.22, 290.82),
+    atom('2', 'C', 89.54, 299.71),
+    atom('3', 'C', 87.5, 313.97),
+    atom('4', 'C', 102.91, 294.36),
+    atom('5', 'C', 114.23, 303.25),
+    atom('6', 'O', 127.6, 297.89),
+  ];
+  const bonds = [
+    bond('a', '1', '2'),
+    bond('b', '2', '3'),
+    bond('c', '2', '4'),
+    bond('d', '4', '5'),
+    bond('e', '5', '6'),
+  ];
+  // Across the C4-C5 bond (ChemDraw's drag was from (99.9, 287.7) to (117.3, 309.9)).
+  const path = [
+    { x: 99.9, y: 287.7 },
+    { x: 117.3, y: 309.9 },
+  ];
+  const sides = fragmentAcross(path, atoms, bonds);
+  let n = 0;
+  const captions = fragmentationCaptions(sides, atoms, path, settings, () => `t${n++}`);
+  const text = (c) => c.text.runs.map((r) => r.text).join('');
+  const bySide = Object.fromEntries(
+    sides.map((s, i) => [s.formula, { caption: captions[i], side: s }]),
+  );
+  const c4 = bySide.C4H9.caption;
+  assert.equal(text(c4), 'Chemical formula: C4H9•\nExact mass: 57.07043');
+  assert.ok(Math.abs(c4.anchor.x - 90.57) < 0.3 && Math.abs(c4.anchor.y - 332.37) < 0.3);
+  const oh = bySide.CH3O.caption;
+  assert.equal(text(oh), 'Chemical formula: CH3O•\nExact mass: 31.01839');
+  assert.ok(Math.abs(oh.anchor.x - 120.9) < 3.5 && Math.abs(oh.anchor.y - 275.12) < 0.5);
+});

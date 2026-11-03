@@ -1633,6 +1633,10 @@ function chemDrawDocumentToCDXMLInternal(document: ChemDrawDocument): string {
         }
       }
       attrs += writeAtomQueryProperties(node.queryProperties);
+      // ChemDraw writes a perspective-tilted atom's depth as `xyz="x y z"` beside `p` (measured).
+      if (node.depth != null && node.depth !== 0) {
+        attrs += ` xyz="${x} ${y} ${formatCdxmlNumber(node.depth * exportScaleFactor)}"`;
+      }
       if (node.atomNumber != null) attrs += ` AtomNumber="${xmlEscape(node.atomNumber)}"`;
       if (node.showAtomNumber != null) {
         attrs += ` ShowAtomNumber="${node.showAtomNumber ? 'yes' : 'no'}"`;
@@ -2728,6 +2732,11 @@ export function cdxmlToChemDrawDocument(xmlString: string): ChemDrawConversionRe
               }
             : undefined;
         const queryPropertiesRead = readAtomQueryProperties((name) => child.getAttribute(name));
+        const xyzParts = (child.getAttribute('xyz') ?? '').trim().split(/\s+/).map(Number);
+        const depthRead =
+          xyzParts.length >= 3 && Number.isFinite(xyzParts[2])
+            ? xyzParts[2]! / importScaleFactor
+            : undefined;
         const atomNumber = child.getAttribute('AtomNumber') ?? undefined;
         const showAtomNumberAttr = child.getAttribute('ShowAtomNumber');
         const showAtomNumber =
@@ -2931,6 +2940,7 @@ export function cdxmlToChemDrawDocument(xmlString: string): ChemDrawConversionRe
           ...(queryPropertiesRead.properties
             ? { queryProperties: queryPropertiesRead.properties }
             : {}),
+          ...(depthRead != null && depthRead !== 0 ? { depth: depthRead } : {}),
           ...(atomNumber != null ? { atomNumber } : {}),
           ...(showAtomNumber != null ? { showAtomNumber } : {}),
           ...(bondOrdering?.length ? { bondOrdering } : {}),
@@ -2972,6 +2982,7 @@ export function cdxmlToChemDrawDocument(xmlString: string): ChemDrawConversionRe
             'AS',
             'AtomNumber',
             'ShowAtomNumber',
+            'xyz',
             ...(enhancedStereo ? ['EnhancedStereoType', 'EnhancedStereoGroupNum'] : []),
             ...queryPropertiesRead.handled,
             'BondOrdering',
