@@ -70,6 +70,67 @@ export function fadedColor(color: string, fadePercent: number): string {
   return `rgb(${r}, ${g}, ${b})`;
 }
 
+/**
+ * A "Shaded" closed curve in ChemDraw 26.1.0.6801 is 32 flat-filled copies of the outline, the
+ * first the outline itself and each smaller, shrinking linearly to 0.112 of its size towards a
+ * point up and to the left of the middle (0.264 of the outline's width and height from it), then
+ * the outline stroked on top (gaps.md). The colours are measured for black (grays 145 down to 0,
+ * lighter outside), for white (0 up to 255) and for red (black up to 255, 38, 0); other colours
+ * follow the colour times the white ramp and are approximate.
+ */
+const SHADED_BLACK_GRAYS = [
+  145, 138, 131, 123, 116, 109, 103, 96, 89, 82, 77, 70, 64, 58, 53, 47, 41, 37, 32, 27, 21, 18, 13,
+  10, 5, 4, 2, 1, 0, 0, 0, 0,
+];
+/** The white ramp (0 to 1) of the orbital shading, shared by any colour that is not black. */
+const SHADED_LIGHT_RAMP = [
+  0, 0.0706, 0.1569, 0.2314, 0.298, 0.3569, 0.4118, 0.4627, 0.5098, 0.5569, 0.5961, 0.6353, 0.6706,
+  0.7059, 0.7373, 0.7686, 0.796, 0.8196, 0.8431, 0.8667, 0.8863, 0.902, 0.9216, 0.9373, 0.949,
+  0.9608, 0.9725, 0.9804, 0.9882, 0.9922, 0.9961, 1,
+];
+
+export interface ShadedSlice {
+  points: ChemDrawPoint[];
+  /** `rgb(r, g, b)` for the slice. */
+  color: string;
+}
+
+export function shadedCurveSlices(
+  outline: readonly ChemDrawPoint[],
+  rgb: readonly [number, number, number],
+): ShadedSlice[] {
+  if (outline.length < 3) return [];
+  const xs = outline.map((point) => point.x);
+  const ys = outline.map((point) => point.y);
+  const left = Math.min(...xs);
+  const right = Math.max(...xs);
+  const top = Math.min(...ys);
+  const bottom = Math.max(...ys);
+  const focus = {
+    x: (left + right) / 2 - 0.264 * (right - left),
+    y: (top + bottom) / 2 - 0.264 * (bottom - top),
+  };
+  const black = Math.max(...rgb) <= 38;
+  return SHADED_LIGHT_RAMP.map((light, k) => {
+    const scale = 1 - (k * 0.888) / 31;
+    let channels: number[];
+    if (black) {
+      channels = [SHADED_BLACK_GRAYS[k]!, SHADED_BLACK_GRAYS[k]!, SHADED_BLACK_GRAYS[k]!];
+    } else {
+      // Red went from black up to (255, 38, 0): its own colour times the ramp. The 38 of green
+      // at the top (and none of blue) is not modelled.
+      channels = rgb.map((c) => light * c);
+    }
+    return {
+      color: `rgb(${channels.map((c) => Math.round(c)).join(', ')})`,
+      points: outline.map((point) => ({
+        x: focus.x + scale * (point.x - focus.x),
+        y: focus.y + scale * (point.y - focus.y),
+      })),
+    };
+  });
+}
+
 /** CurveType bits from the CDX specification, confirmed against ArrowheadHead/Tail in ChemDraw's templates. */
 export const CURVE_TYPE = {
   closed: 0x1,

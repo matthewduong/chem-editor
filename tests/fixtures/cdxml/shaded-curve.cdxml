@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!-- Closed curves with the Shaded bit (CurveType 257) in black and in red: ChemDraw draws them as 32 stepped fills (measured on 26.1.0.6801, gaps.md). -->
+<!DOCTYPE CDXML SYSTEM "http://www.cambridgesoft.com/xml/cdxml.dtd" >
+<CDXML BondLength="14.40" LineWidth="0.60" LabelSize="10" CaptionSize="10" LabelFont="3" CaptionFont="3" LabelFace="96">
+<colortable><color r="1" g="0" b="0"/></colortable>
+<fonttable><font id="3" charset="iso-8859-1" name="Arial"/></fonttable>
+<page id="1" BoundingBox="0 0 540 720" HeightPages="1" WidthPages="1">
+<curve id="101" CurveType="257" CurvePoints="60 90 80 60 100 90 80 120 60 90"/>
+<curve id="102" CurveType="257" Color="2" CurvePoints="160 90 180 60 200 90 180 120 160 90"/>
+</page>
+</CDXML>

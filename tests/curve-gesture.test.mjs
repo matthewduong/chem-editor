@@ -130,3 +130,24 @@ test('faded is FadePercent 300 and not a CurveType bit, and it reads and writes 
   assert.equal(fadeKept(0), 0);
   assert.equal(fadeKept(1000), 1);
 });
+
+test("a shaded curve is 32 stepped fills ending at ChemDraw's last colour", async () => {
+  const { shadedCurveSlices } = await import('../.unit-test-dist/src/lib/curveGeometry.js');
+  const outline = [
+    { x: 0, y: 0 },
+    { x: 20, y: 0 },
+    { x: 20, y: 30 },
+    { x: 0, y: 30 },
+  ];
+  const black = shadedCurveSlices(outline, [0, 0, 0]);
+  assert.equal(black.length, 32);
+  assert.equal(black[0].color, 'rgb(145, 145, 145)');
+  assert.equal(black[31].color, 'rgb(0, 0, 0)');
+  const red = shadedCurveSlices(outline, [255, 0, 0]);
+  assert.equal(red[0].color, 'rgb(0, 0, 0)');
+  assert.equal(red[31].color, 'rgb(255, 0, 0)');
+  // The last copy is 0.112 of the first.
+  const width = (slice) =>
+    Math.max(...slice.points.map((p) => p.x)) - Math.min(...slice.points.map((p) => p.x));
+  assert.ok(Math.abs(width(black[31]) / width(black[0]) - 0.112) < 1e-6);
+});

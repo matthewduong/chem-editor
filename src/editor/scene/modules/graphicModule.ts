@@ -3,6 +3,7 @@ import {
   CURVE_TYPE,
   cubicTangentAt,
   fadedColor,
+  shadedCurveSlices,
   curveSegments,
   sampleCurve,
   trimCubic,
@@ -50,6 +51,14 @@ function shapeFlags(type: string | undefined): {
  * A ChemDraw <curve>: cubic segments through its anchor triples, optionally closed, filled or
  * shaded, with arrowheads at either end (ChemDraw writes freehand curved arrows this way).
  */
+function parseRgb(color: string): [number, number, number] {
+  const hex = /^#([0-9a-f]{6})$/i.exec(color.trim());
+  if (hex)
+    return [0, 2, 4].map((i) => parseInt(hex[1]!.slice(i, i + 2), 16)) as [number, number, number];
+  const rgb = /^rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/i.exec(color.trim());
+  return rgb ? [Number(rgb[1]), Number(rgb[2]), Number(rgb[3])] : [0, 0, 0];
+}
+
 function drawCurve(
   ctx: CanvasRenderingContext2D,
   object: ChemDrawGraphic,
@@ -75,7 +84,21 @@ function drawCurve(
 
   const faded = object.fadePercent != null;
   const filled = fill != null || faded || (bits & (CURVE_TYPE.filled | CURVE_TYPE.shaded)) !== 0;
-  if (closed && filled) {
+  if (closed && fill == null && !faded && (bits & CURVE_TYPE.shaded) !== 0) {
+    // ChemDraw's shading: stepped flat fills of the outline, outermost first (curveGeometry.ts).
+    const rgb = parseRgb(object.style?.color ?? (color === '#333333' ? '#000000' : color));
+    for (const slice of shadedCurveSlices(sampleCurve(segments), rgb)) {
+      ctx.save();
+      ctx.beginPath();
+      slice.points.forEach((point, index) =>
+        index === 0 ? ctx.moveTo(point.x, point.y) : ctx.lineTo(point.x, point.y),
+      );
+      ctx.closePath();
+      ctx.fillStyle = slice.color;
+      ctx.fill();
+      ctx.restore();
+    }
+  } else if (closed && filled) {
     ctx.save();
     ctx.beginPath();
     traceSegments(ctx, segments);
