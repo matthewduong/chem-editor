@@ -263,6 +263,19 @@ Two things will waste your time otherwise:
 When measuring a raster, threshold before you downsample. Averaging a row that contains a single
 hairline across a wide image washes it out entirely.
 
+## Before and after, 2026-11-03
+
+A run of this session's rendering and layout changes (a87e65f to da1b454) over the first 40 sorted
+corpus files, visual capture on, in two worktrees: 17 cases had renders to compare (the other 23
+fail the semantic gate in both runs, the same 23, from ChemDraw rebuilding reaction metadata and
+adding `+`). Against ChemDraw, mean rendered width error went 43.3 to 42.2px and height error
+18.5 to 10.9px, total differing pixels 328,950 to 316,523 (-3.8%), and the one case whose extent
+moved moved closer. Practical notes for repeating it: the harness shells out to `pnpm` in each
+worktree and tries to purge a symlinked `node_modules` (it aborts without a TTY; patch
+`scripts/lib/unit-test-build.mjs` to call `node_modules/.bin/tsc` instead), the import-fidelity
+assertion and the smoke mode's stop-at-first-failure both need bypassing locally to get a
+comparison, and the two runs must not overlap.
+
 ## Public Fixture Policy
 
 The public repo intentionally does not ship `.cdxml` fixtures or thesis-derived case lists.
