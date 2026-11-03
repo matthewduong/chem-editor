@@ -32,7 +32,12 @@ import { createProjectionEditCommand } from '../editor/commands/projectionEdit';
 import { contractSelection, findNicknameForSelection } from '../lib/nicknames';
 import { arrowConnectionPoint } from '../lib/arrowGesture';
 import { genericNicknameBase } from '../lib/genericLabels';
-import { fragmentAcross, fragmentationCaptions } from '../lib/massFragmentation';
+import {
+  fragmentAcross,
+  fragmentationCaptions,
+  fragmentationRadicals,
+} from '../lib/massFragmentation';
+import { createSymbolGraphic } from '../lib/shapeGesture';
 import { extractDocumentSelection } from '../lib/documentClipboard';
 import { prepareChemDrawDocumentForSave } from '../lib/chemdrawDocumentCommands';
 import { computeStereoLabels } from '../lib/stereoLabels';
@@ -3230,10 +3235,27 @@ export const ChemCanvas = forwardRef<ChemCanvasRef, Props>(({ width, height }, r
           useStore.getState().documentStyleSettings,
           () => crypto.randomUUID(),
         );
-        useStore.getState().dispatchEditorCommand(
-          createUpsertObjectsCommand([...captions, ...(e.evt.altKey ? [line] : [])], {
-            description: 'mass-fragmentation',
-          }),
+        // Each cut atom becomes a radical, as in ChemDraw: its flag and an electron symbol.
+        const state = useStore.getState();
+        const page = state.chemDrawDocument?.pages[0];
+        const marks = fragmentationRadicals(path, atoms, bonds);
+        const radicalNodes = [...new Set(marks.map((mark) => mark.atomId))].flatMap((atomId) => {
+          const node = page?.objects.find((o) => o.type === 'node' && o.id === atomId);
+          return node?.type === 'node'
+            ? [{ ...node, radicalElectrons: marks.filter((m) => m.atomId === atomId).length }]
+            : [];
+        });
+        const electrons = marks.map((mark) => ({
+          ...createSymbolGraphic(crypto.randomUUID(), 'Electron', mark.points[0], 0),
+          points: mark.points,
+          representedObjectId: mark.atomId,
+          representedAttribute: 'Radical',
+        }));
+        state.dispatchEditorCommand(
+          createUpsertObjectsCommand(
+            [...captions, ...radicalNodes, ...electrons, ...(e.evt.altKey ? [line] : [])],
+            { description: 'mass-fragmentation' },
+          ),
         );
         return;
       }

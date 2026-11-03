@@ -96,3 +96,23 @@ test('captions read and stand where ChemDraw puts them', async () => {
   assert.equal(text(oh), 'Chemical formula: CH3O•\nExact mass: 31.01839');
   assert.ok(Math.abs(oh.anchor.x - 120.9) < 3.5 && Math.abs(oh.anchor.y - 275.12) < 0.5);
 });
+
+test("cut atoms get ChemDraw's electron symbol: 2.8pt towards the break, second point 7.5pt left", async () => {
+  const { fragmentationRadicals } = await import('../.unit-test-dist/src/lib/massFragmentation.js');
+  const atoms = [atom('4', 'C', 102.91, 294.36), atom('5', 'C', 114.23, 303.25)];
+  const marks = fragmentationRadicals(
+    [
+      { x: 99.9, y: 287.7 },
+      { x: 117.3, y: 309.9 },
+    ],
+    atoms,
+    [bond('d', '4', '5')],
+  );
+  const near = (a, b) => Math.abs(a - b) < 0.05;
+  const four = marks.find((m) => m.atomId === '4');
+  assert.ok(near(four.points[0].x, 105.09) && near(four.points[0].y, 296.11));
+  assert.ok(near(four.points[1].x, 97.59) && near(four.points[1].y, 296.11));
+  const five = marks.find((m) => m.atomId === '5');
+  assert.ok(near(five.points[0].x, 112.05) && near(five.points[0].y, 301.5));
+  assert.ok(near(five.points[1].x, 104.55));
+});

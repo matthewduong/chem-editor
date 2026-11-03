@@ -232,3 +232,48 @@ export function fragmentationCaptions(
     };
   });
 }
+
+/**
+ * The radical ChemDraw leaves on each atom at a cut bond (measured on 26.1.0.6801, gaps.md): the
+ * atom is marked `Radical="Doublet"` and gets an `Electron` symbol whose first point stands 2.8pt
+ * from the atom towards the broken bond and whose second point is 7.5pt to the left of that.
+ * One entry per broken bond end; an atom cut twice has two.
+ */
+const ELECTRON_OFFSET = 2.8;
+const ELECTRON_SPAN = 7.5;
+
+export interface FragmentRadical {
+  atomId: string;
+  /** The electron symbol's BoundingBox points. */
+  points: [Point, Point];
+}
+
+export function fragmentationRadicals(
+  path: readonly Point[],
+  atoms: readonly Atom[],
+  bonds: readonly Bond[],
+): FragmentRadical[] {
+  const byId = new Map(atoms.map((atom) => [atom.id, atom]));
+  const marks: FragmentRadical[] = [];
+  for (const bond of bondsCrossedBy(path, atoms, bonds)) {
+    const a = byId.get(bond.from)!;
+    const b = byId.get(bond.to)!;
+    const length = Math.hypot(b.x - a.x, b.y - a.y) || 1;
+    const ux = (b.x - a.x) / length;
+    const uy = (b.y - a.y) / length;
+    for (const [atom, sign] of [
+      [a, 1],
+      [b, -1],
+    ] as const) {
+      const first = {
+        x: atom.x + sign * ux * ELECTRON_OFFSET,
+        y: atom.y + sign * uy * ELECTRON_OFFSET,
+      };
+      marks.push({
+        atomId: atom.id,
+        points: [first, { x: first.x - ELECTRON_SPAN, y: first.y }],
+      });
+    }
+  }
+  return marks;
+}
