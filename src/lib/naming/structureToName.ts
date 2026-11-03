@@ -1,7 +1,8 @@
 import type { Atom, Bond } from '../../types/chemistry';
 import { getAtomAlias, getAtomLeadElement } from '../atomIdentity';
 import { selectionToRootedSmiles } from '../nicknames';
-import { smilesStructureKey } from '../smilesKey';
+import { graphStructureKey, smilesStructureKey } from '../smilesKey';
+import { retainedNameFor } from './retainedNames';
 import { STEM_BY_LENGTH, SUBSTITUENTS } from './nameToSmiles';
 
 /**
@@ -82,11 +83,39 @@ function reach(graph: Graph, start: string, blocked: ReadonlySet<string>): Set<s
   return seen;
 }
 
+/**
+ * ChemDraw's retained name for the whole molecule, if it has one (`retainedNames.ts`). The key
+ * ignores ring bond orders, so the sum of (order - 1) over the bonds, which every Kekule form of
+ * a ring shares, separates a ring from its saturated twin; aromatic 1.5 bonds count half each.
+ */
+function retainedMoleculeName(
+  graph: Graph,
+  bonds: ReadonlyArray<{ from: string; to: string; order: number }>,
+): string | null {
+  const index = new Map(graph.ids.map((id, i) => [id, i]));
+  const key = graphStructureKey(
+    {
+      atoms: graph.ids.map((id) => graph.element.get(id)!.toUpperCase()),
+      bonds: bonds.map((bond) => [
+        index.get(bond.from)!,
+        index.get(bond.to)!,
+        bond.order === 1.5 ? 1.5 : Math.round(bond.order || 1),
+      ]),
+    },
+    false,
+  );
+  const unsaturation = Math.floor(
+    bonds.reduce(
+      (sum, bond) => sum + (bond.order === 1.5 ? 0.5 : Math.round(bond.order || 1) - 1),
+      0,
+    ) + 1e-9,
+  );
+  return retainedNameFor(key, unsaturation);
+}
+
 export function structureToName(atoms: readonly Atom[], bonds: readonly Bond[]): string | null {
   const heavy = atoms.filter((atom) => getAtomLeadElement(atom) !== 'H');
   if (heavy.length === 0 || heavy.some((atom) => getAtomAlias(atom))) return null;
-  const allowed = new Set(['C', 'N', 'O', 'F', 'Cl', 'Br', 'I']);
-  if (heavy.some((atom) => !allowed.has(getAtomLeadElement(atom)))) return null;
   const graph: Graph = {
     ids: heavy.map((atom) => atom.id),
     element: new Map(heavy.map((atom) => [atom.id, getAtomLeadElement(atom)])),
@@ -102,6 +131,10 @@ export function structureToName(atoms: readonly Atom[], bonds: readonly Bond[]):
     graph.adjacency.get(bond.to)!.push({ id: bond.from, order: value });
   }
   if (reach(graph, graph.ids[0]!, new Set()).size !== graph.ids.length) return null;
+  const retained = retainedMoleculeName(graph, heavyBonds);
+  if (retained) return retained;
+  const allowed = new Set(['C', 'N', 'O', 'F', 'Cl', 'Br', 'I']);
+  if (heavy.some((atom) => !allowed.has(getAtomLeadElement(atom)))) return null;
   const cycles = heavyBonds.length - graph.ids.length + 1;
   if (cycles > 1) return null;
   const isC = (id: string) => graph.element.get(id) === 'C';

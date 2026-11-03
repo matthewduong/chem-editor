@@ -112,14 +112,14 @@ function graphOf(smiles) {
 const EXPECTED = [
   ['CC(C)O', 'propan-2-ol'],
   ['CCC(C)=O', 'butan-2-one'],
-  ['OC(=O)CCCCC(=O)O', 'hexanedioic acid'],
-  ['CCC#N', 'propanenitrile'],
+  ['OC(=O)CCCCC(=O)O', 'adipic acid'],
+  ['CCC#N', 'propiononitrile'],
   ['CCC(C)C(CC)C(C)C', '3-ethyl-2,4-dimethylhexane'],
   ['C=CC=C', 'buta-1,3-diene'],
   ['CC(O)C=C', 'but-3-en-2-ol'],
   ['CC(=O)CCC(=O)O', '4-oxopentanoic acid'],
   ['OC(=O)C1CCCCC1', 'cyclohexanecarboxylic acid'],
-  ['Cc1cccc(C)c1', '1,3-dimethylbenzene'],
+  ['Cc1cccc(C)c1', 'm-xylene'],
   ['O=[N+]([O-])c1ccc(O)cc1', '4-nitrophenol'],
   ['CC(O)c1ccccc1', '1-phenylethan-1-ol'],
   ['OCCO', 'ethane-1,2-diol'],
@@ -152,5 +152,35 @@ test('structures outside the namable class get no name', () => {
     const name = structureToName(atoms, bonds);
     // Either nothing, or a name that really is the structure.
     if (name !== null) assert.equal(canonical(nameToSmiles(name)), canonical(smiles), smiles);
+  }
+});
+
+// ChemDraw 26.1.0.6801, Structure > Convert Structure to Name (gaps.md): retained names for whole
+// molecules, and the systematic ones it still gives.
+const CHEMDRAW_NAMES = [
+  ['CC=O', 'acetaldehyde'],
+  ['CC(=O)O', 'acetic acid'],
+  ['CC(C)=O', 'propan-2-one'],
+  ['C(=O)O', 'formic acid'],
+  ['COC(C)=O', 'methyl acetate'],
+  ['CC(=O)OC', 'methyl acetate'],
+  ['Cc1ccccc1C', 'o-xylene'],
+  ['ClC(Cl)Cl', 'chloroform'],
+  ['c1ccncc1', 'pyridine'],
+  ['C1CCNCC1', 'piperidine'],
+  ['c1ccsc1', 'thiophene'],
+  ['C1CCOC1', 'tetrahydrofuran'],
+  ['c1ccc2ccccc2c1', 'naphthalene'],
+  ['CC(C)CC', 'isopentane'],
+  ['CCCC(=O)O', 'butyric acid'],
+  ['CCC(=O)CC', 'pentan-3-one'],
+  ['CC(C)(C)O', '2-methylpropan-2-ol'],
+];
+
+test('whole molecules get the names ChemDraw gives them, and they read back', () => {
+  for (const [smiles, expected] of CHEMDRAW_NAMES) {
+    const { atoms, bonds } = graphOf(smiles);
+    assert.equal(structureToName(atoms, bonds), expected, smiles);
+    assert.equal(canonical(nameToSmiles(expected)), canonical(smiles), `${expected} reads back`);
   }
 });

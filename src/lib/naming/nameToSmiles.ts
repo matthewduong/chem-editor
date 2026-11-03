@@ -7,6 +7,8 @@
  * with RDKit before drawing.
  */
 
+import { retainedNameToSmiles } from './retainedNames';
+
 export const STEMS: Record<string, number> = {
   meth: 1,
   eth: 2,
@@ -159,6 +161,8 @@ function parsePrefixes(text: string): Array<{ name: string; locants: number[] | 
 export function nameToSmiles(input: string): string | null {
   let s = input.trim().toLowerCase().replace(/\s+/g, ' ');
   if (!s) return null;
+  const retained = retainedNameToSmiles(s);
+  if (retained) return retained;
 
   // Retained benzene parents, with prefixes before them ("4-nitrophenol").
   for (const [retained, first] of Object.entries(RETAINED).sort(

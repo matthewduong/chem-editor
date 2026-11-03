@@ -59,15 +59,23 @@ export function smilesStructureKey(smiles: string): string {
   return graphStructureKey(parse(smiles));
 }
 
+/** The key with no root: the same for every atom order of one molecule (a whole-molecule key). */
+export function smilesUnrootedKey(smiles: string): string {
+  return graphStructureKey(parse(smiles), false);
+}
+
 /**
  * The same key for a graph given directly: element labels (upper case) and bonds as
  * [from, to, order], rooted at atom 0. Lets a drawn substructure be compared with a shorthand's
  * SMILES.
  */
-export function graphStructureKey(graph: {
-  atoms: string[];
-  bonds: Array<[number, number, number]>;
-}): string {
+export function graphStructureKey(
+  graph: {
+    atoms: string[];
+    bonds: Array<[number, number, number]>;
+  },
+  rooted = true,
+): string {
   const { atoms, bonds } = graph;
   const neighbours: Array<Array<{ to: number; order: number }>> = atoms.map(() => []);
   // Orders inside rings are dropped, so an aromatic ring and its Kekule spelling share a key;
@@ -93,7 +101,7 @@ export function graphStructureKey(graph: {
     neighbours[a]!.push({ to: b, order: o });
     neighbours[b]!.push({ to: a, order: o });
   });
-  let colours = atoms.map((atom, i) => (i === 0 ? `*${atom}` : atom));
+  let colours = atoms.map((atom, i) => (rooted && i === 0 ? `*${atom}` : atom));
   for (let round = 0; round < 5; round += 1) {
     colours = colours.map((colour, i) => {
       const around = neighbours[i]!.map((n) => `${n.order}${colours[n.to]}`).sort();
@@ -102,7 +110,7 @@ export function graphStructureKey(graph: {
     // keep strings short with a stable hash, so keys compare across molecules
     colours = colours.map(hash);
   }
-  return `${atoms.length}:${bonds.length}:${[...colours].sort().join('|')}:${colours[0] ?? ''}`;
+  return `${atoms.length}:${bonds.length}:${[...colours].sort().join('|')}${rooted ? `:${colours[0] ?? ''}` : ''}`;
 }
 
 function hash(text: string): string {
