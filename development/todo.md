@@ -139,7 +139,8 @@ Done in Phase II (2026-10-30), with ChemDraw's keys (preferences version 11).
       Previewing CDX and CDXML Files
 - [ ] **CDX/CDXML thumbnails on macOS and Windows** — `native/`: a QuickLook extension and an
       IThumbnailProvider DLL. macOS: compiles, signs and registers (elected), but QuickLook
-      never launches it for `.cdxml` (the system TextExtension takes the file), so no
+      never launches it for `.cdxml` (the system TextExtension takes the file), and a sandboxed
+      extension cannot run the bundled engine (EPERM; needs a different design), so no
       thumbnail has been produced; see `native/README.md`. Windows: the DLL and the OLE
       server type-check, never run · 2: Previewing CDX and CDXML Files
 

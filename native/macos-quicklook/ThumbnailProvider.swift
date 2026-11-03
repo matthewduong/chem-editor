@@ -7,6 +7,9 @@
 // hands the PNG it writes to QuickLook.
 import Foundation
 import QuickLookThumbnailing
+import os
+
+private let log = Logger(subsystem: "com.mrd.chem-editor.cdxml-thumbnail", category: "thumbnail")
 
 final class ThumbnailProvider: QLThumbnailProvider {
     enum Failure: Error { case noEngine, engineFailed }
@@ -17,8 +20,14 @@ final class ThumbnailProvider: QLThumbnailProvider {
             .deletingLastPathComponent() // PlugIns
             .deletingLastPathComponent() // Contents
             .appendingPathComponent("Resources/bin", isDirectory: true)
-        let entries = (try? FileManager.default.contentsOfDirectory(
-            at: resources, includingPropertiesForKeys: nil)) ?? []
+        let entries: [URL]
+        do {
+            entries = try FileManager.default.contentsOfDirectory(
+                at: resources, includingPropertiesForKeys: nil)
+        } catch {
+            log.error("cannot list \(resources.path, privacy: .public): \(error.localizedDescription, privacy: .public)")
+            return nil
+        }
         return entries
             .filter { $0.lastPathComponent.hasPrefix("chem-engine-") }
             .map { $0.appendingPathComponent("chem-engine") }
@@ -30,6 +39,7 @@ final class ThumbnailProvider: QLThumbnailProvider {
         _ handler: @escaping (QLThumbnailReply?, Error?) -> Void
     ) {
         guard let engine = engineURL() else {
+            log.error("no engine under \(Bundle.main.bundleURL.path, privacy: .public)")
             handler(nil, Failure.noEngine)
             return
         }

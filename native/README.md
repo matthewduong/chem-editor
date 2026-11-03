@@ -26,6 +26,19 @@ Both render through the sidecar's `chem-engine thumbnail INPUT OUTPUT SIZE` comm
    for `.cdxml` it keeps choosing TextExtension even with `com.cambridgesoft.cdxml` (the
    extension's second UTI) and `public.xml` listed. Selection for text-conforming
    third-party types is the unsolved part.
+   Second experiment (2026-11-03): exporting our own UTI for an invented extension
+   (`UTExportedTypeDeclarations`, conforming to `public.data`) makes the agent launch the
+   extension, so the code path past selection could be exercised. What it showed, in order:
+   (a) the sandbox denies the extension listing the parent app's `Contents/Resources/bin`
+   (fixed in a test build with a `temporary-exception.files.absolute-path.read-only`
+   entitlement); (b) launching the engine then fails with `NSPOSIXErrorDomain` 1 (EPERM), also
+   with an SBPL `process-exec`/`file-map-executable` exception and with the engine signed
+   `app-sandbox` + `inherit`; (c) an engine signed with `inherit` traps (SIGTRAP) when the app
+   itself runs it unsandboxed, so one engine binary cannot serve both the app and a sandboxed
+   extension. The sandboxed extension needs a different design (render in-process, e.g. a Swift
+   or WASM renderer, or a separate inherit-signed engine copy inside the appex), not a
+   signing tweak. The Swift now logs why it fails (subsystem
+   `com.mrd.chem-editor.cdxml-thumbnail`).
    The engine also writes no thumbnail for CDXML with `<fonttable>` inside
    `<page>` (RDKit rejects it): 18 of 33 test fixtures.
 5. Open questions: the sandboxed extension running the bundled engine (it may need the engine
