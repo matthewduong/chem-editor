@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!-- Query properties set on atoms and bonds, no stored indicator tags: the scene draws them (measured on ChemDraw 26.1.0.6801, gaps.md). -->
+<!DOCTYPE CDXML SYSTEM "http://www.cambridgesoft.com/xml/cdxml.dtd" >
+<CDXML BondLength="14.40" LineWidth="0.60" LabelSize="10" CaptionSize="10" LabelFont="3" CaptionFont="3" LabelFace="96" ShowAtomQuery="yes" ShowBondQuery="yes" ShowBondRxn="yes">
+<colortable><color r="1" g="1" b="1"/><color r="0" g="0" b="0"/></colortable>
+<fonttable><font id="3" charset="iso-8859-1" name="Arial"/></fonttable>
+<page id="1" BoundingBox="0 0 540 720" HeightPages="1" WidthPages="1"><fragment id="106"><n id="101" p="50 50" Element="6" SubstituentsExactly="2"/><n id="102" p="37.53 57.20"/><n id="104" p="62.47 57.20"/><b id="103" B="101" E="102"/><b id="105" B="101" E="104"/></fragment>
+<fragment id="112"><n id="107" p="150 50" Element="6" SubstituentsExactly="2"/><n id="108" p="142.80 37.53"/><n id="110" p="142.80 62.47"/><b id="109" B="107" E="108"/><b id="111" B="107" E="110"/></fragment>
+<fragment id="118"><n id="113" p="250 50" Element="6" SubstituentsExactly="2"/><n id="114" p="262.47 42.80"/><n id="116" p="237.53 42.80"/><b id="115" B="113" E="114"/><b id="117" B="113" E="116"/></fragment>
+<fragment id="124"><n id="119" p="350 50" Element="6" SubstituentsExactly="2"/><n id="120" p="357.20 37.53"/><n id="122" p="357.20 62.47"/><b id="121" B="119" E="120"/><b id="123" B="119" E="122"/></fragment>
+<fragment id="130"><n id="125" p="50 130" Element="6" SubstituentsExactly="2"/><n id="126" p="63.53 125.07"/><n id="128" p="36.47 125.07"/><b id="127" B="125" E="126"/><b id="129" B="125" E="128"/></fragment>
+<fragment id="138"><n id="131" p="150 130" Element="6" SubstituentsExactly="2"/><n id="132" p="136.47 134.93"/><n id="134" p="152.50 144.18"/><n id="136" p="163.53 134.93"/><b id="133" B="131" E="132"/><b id="135" B="131" E="134"/><b id="137" B="131" E="136"/></fragment>
+<fragment id="146"><n id="139" p="250 130" Element="6" SubstituentsExactly="2"/><n id="140" p="250.00 115.60"/><n id="142" p="235.60 130.00"/><n id="144" p="250.00 144.40"/><b id="141" B="139" E="140"/><b id="143" B="139" E="142"/><b id="145" B="139" E="144"/></fragment>
+<fragment id="150"><n id="147" p="350 130" Element="6" SubstituentsExactly="2"/><n id="148" p="364.40 130.00"/><b id="149" B="147" E="148"/></fragment>
+<fragment id="156"><n id="151" p="50 240" Element="6" SubstituentsExactly="2" RingBondCount="Fusion"/><n id="152" p="37.53 247.20"/><n id="154" p="62.47 247.20"/><b id="153" B="151" E="152"/><b id="155" B="151" E="154"/></fragment>
+<fragment id="162"><n id="157" p="50 330" Element="6" SubstituentsExactly="2" RingBondCount="Fusion"/><n id="158" p="62.47 322.80"/><n id="160" p="37.53 322.80"/><b id="159" B="157" E="158"/><b id="161" B="157" E="160"/></fragment>
+<fragment id="168"><n id="163" p="160 240" Element="6" SubstituentsExactly="2" RingBondCount="Fusion" UnsaturatedBonds="MustBePresent"/><n id="164" p="147.53 247.20"/><n id="166" p="172.47 247.20"/><b id="165" B="163" E="164"/><b id="167" B="163" E="166"/></fragment>
+<fragment id="174"><n id="169" p="160 330" Element="6" SubstituentsExactly="2" RingBondCount="Fusion" UnsaturatedBonds="MustBePresent"/><n id="170" p="172.47 322.80"/><n id="172" p="147.53 322.80"/><b id="171" B="169" E="170"/><b id="173" B="169" E="172"/></fragment>
+<fragment id="180"><n id="175" p="270 240" Element="6" SubstituentsExactly="2" RingBondCount="Fusion" UnsaturatedBonds="MustBePresent" ImplicitHydrogens="yes"/><n id="176" p="257.53 247.20"/><n id="178" p="282.47 247.20"/><b id="177" B="175" E="176"/><b id="179" B="175" E="178"/></fragment>
+<fragment id="186"><n id="181" p="270 330" Element="6" SubstituentsExactly="2" RingBondCount="Fusion" UnsaturatedBonds="MustBePresent" ImplicitHydrogens="yes"/><n id="182" p="282.47 322.80"/><n id="184" p="257.53 322.80"/><b id="183" B="181" E="182"/><b id="185" B="181" E="184"/></fragment>
+<fragment id="192"><n id="187" p="380 240" Element="6" SubstituentsExactly="2" RingBondCount="Fusion" UnsaturatedBonds="MustBePresent" ImplicitHydrogens="yes" RxnChange="yes" FreeSites="1"/><n id="188" p="367.53 247.20"/><n id="190" p="392.47 247.20"/><b id="189" B="187" E="188"/><b id="191" B="187" E="190"/></fragment>
+<fragment id="198"><n id="193" p="380 330" Element="6" SubstituentsExactly="2" RingBondCount="Fusion" UnsaturatedBonds="MustBePresent" ImplicitHydrogens="yes" RxnChange="yes" FreeSites="1"/><n id="194" p="392.47 322.80"/><n id="196" p="367.53 322.80"/><b id="195" B="193" E="194"/><b id="197" B="193" E="196"/></fragment>
+<fragment id="201"><n id="199" p="50 370" Element="6"/><n id="200" p="64.40 370" Element="6"/><b id="202" B="199" E="200" Topology="Ring"/></fragment>
+<fragment id="205"><n id="203" p="150 370" Element="6"/><n id="204" p="150.00 355.6" Element="6"/><b id="206" B="203" E="204" Topology="Ring"/></fragment>
+<fragment id="209"><n id="207" p="250 370" Element="6"/><n id="208" p="260.18 359.82" Element="6"/><b id="210" B="207" E="208" Topology="Ring"/></fragment>
+<fragment id="213"><n id="211" p="350 370" Element="6"/><n id="212" p="339.82 359.82" Element="6"/><b id="214" B="211" E="212" Topology="Ring"/></fragment></page>
+</CDXML>

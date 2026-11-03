@@ -14,6 +14,7 @@ import { drawLine, drawPolyline, setStroke } from '../drawPrimitives';
 import { distanceToSegment } from '../geometry';
 import type { ObjectModule } from '../types';
 import { drawObjectTags } from './objectTagHelpers';
+import { drawBondQueryIndicator, hasQueryTag } from './queryIndicators';
 import { drawBondStereoIndicator, hasStereoTag } from './stereoIndicators';
 
 export const BOND_MODULE: ObjectModule = {
@@ -68,6 +69,16 @@ export const BOND_MODULE: ObjectModule = {
       fallbackAnchor: { x: (fromAtom.x + toAtom.x) / 2, y: (fromAtom.y + toAtom.y) / 2 },
       fallbackColor: baseColor,
     });
+    if (!hasQueryTag(object.objectTags)) {
+      drawBondQueryIndicator(
+        ctx,
+        scene,
+        object.id,
+        object.query?.ringState,
+        object.rxnParticipation,
+        baseColor,
+      );
+    }
     if (scene.documentViewSettings.showStereochemistry && !hasStereoTag(object.objectTags)) {
       drawBondStereoIndicator(ctx, scene, object.id, baseColor);
     }

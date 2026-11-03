@@ -1,0 +1,3003 @@
+[
+  {
+    "op": "call",
+    "name": "save",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "translate",
+    "args": [
+      0,
+      0
+    ]
+  },
+  {
+    "op": "call",
+    "name": "scale",
+    "args": [
+      1,
+      1
+    ]
+  },
+  {
+    "op": "set",
+    "prop": "font",
+    "value": "normal 7.5px 'Liberation Sans', sans-serif"
+  },
+  {
+    "op": "set",
+    "prop": "fontKerning",
+    "value": "none"
+  },
+  {
+    "op": "set",
+    "prop": "fillStyle",
+    "value": "#000000"
+  },
+  {
+    "op": "set",
+    "prop": "textBaseline",
+    "value": "top"
+  },
+  {
+    "op": "call",
+    "name": "fillText",
+    "args": [
+      "X2",
+      45.4132,
+      36.2404
+    ]
+  },
+  {
+    "op": "call",
+    "name": "save",
+    "args": []
+  },
+  {
+    "op": "set",
+    "prop": "globalAlpha",
+    "value": 1
+  },
+  {
+    "op": "set",
+    "prop": "strokeStyle",
+    "value": "#000000"
+  },
+  {
+    "op": "set",
+    "prop": "lineWidth",
+    "value": 0.6
+  },
+  {
+    "op": "set",
+    "prop": "lineCap",
+    "value": "round"
+  },
+  {
+    "op": "set",
+    "prop": "lineJoin",
+    "value": "round"
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "call",
+    "name": "beginPath",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "moveTo",
+    "args": [
+      50,
+      50
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      37.53,
+      57.2
+    ]
+  },
+  {
+    "op": "call",
+    "name": "stroke",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "call",
+    "name": "restore",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "save",
+    "args": []
+  },
+  {
+    "op": "set",
+    "prop": "globalAlpha",
+    "value": 1
+  },
+  {
+    "op": "set",
+    "prop": "strokeStyle",
+    "value": "#000000"
+  },
+  {
+    "op": "set",
+    "prop": "lineWidth",
+    "value": 0.6
+  },
+  {
+    "op": "set",
+    "prop": "lineCap",
+    "value": "round"
+  },
+  {
+    "op": "set",
+    "prop": "lineJoin",
+    "value": "round"
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "call",
+    "name": "beginPath",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "moveTo",
+    "args": [
+      50,
+      50
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      62.47,
+      57.2
+    ]
+  },
+  {
+    "op": "call",
+    "name": "stroke",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "call",
+    "name": "restore",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "fillText",
+    "args": [
+      "X2",
+      155,
+      45.8954
+    ]
+  },
+  {
+    "op": "call",
+    "name": "save",
+    "args": []
+  },
+  {
+    "op": "set",
+    "prop": "globalAlpha",
+    "value": 1
+  },
+  {
+    "op": "set",
+    "prop": "strokeStyle",
+    "value": "#000000"
+  },
+  {
+    "op": "set",
+    "prop": "lineWidth",
+    "value": 0.6
+  },
+  {
+    "op": "set",
+    "prop": "lineCap",
+    "value": "round"
+  },
+  {
+    "op": "set",
+    "prop": "lineJoin",
+    "value": "round"
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "call",
+    "name": "beginPath",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "moveTo",
+    "args": [
+      150,
+      50
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      142.8,
+      37.53
+    ]
+  },
+  {
+    "op": "call",
+    "name": "stroke",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "call",
+    "name": "restore",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "save",
+    "args": []
+  },
+  {
+    "op": "set",
+    "prop": "globalAlpha",
+    "value": 1
+  },
+  {
+    "op": "set",
+    "prop": "strokeStyle",
+    "value": "#000000"
+  },
+  {
+    "op": "set",
+    "prop": "lineWidth",
+    "value": 0.6
+  },
+  {
+    "op": "set",
+    "prop": "lineCap",
+    "value": "round"
+  },
+  {
+    "op": "set",
+    "prop": "lineJoin",
+    "value": "round"
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "call",
+    "name": "beginPath",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "moveTo",
+    "args": [
+      150,
+      50
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      142.8,
+      62.47
+    ]
+  },
+  {
+    "op": "call",
+    "name": "stroke",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "call",
+    "name": "restore",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "fillText",
+    "args": [
+      "X2",
+      245.4132,
+      53.5804
+    ]
+  },
+  {
+    "op": "call",
+    "name": "save",
+    "args": []
+  },
+  {
+    "op": "set",
+    "prop": "globalAlpha",
+    "value": 1
+  },
+  {
+    "op": "set",
+    "prop": "strokeStyle",
+    "value": "#000000"
+  },
+  {
+    "op": "set",
+    "prop": "lineWidth",
+    "value": 0.6
+  },
+  {
+    "op": "set",
+    "prop": "lineCap",
+    "value": "round"
+  },
+  {
+    "op": "set",
+    "prop": "lineJoin",
+    "value": "round"
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "call",
+    "name": "beginPath",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "moveTo",
+    "args": [
+      250,
+      50
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      262.47,
+      42.8
+    ]
+  },
+  {
+    "op": "call",
+    "name": "stroke",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "call",
+    "name": "restore",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "save",
+    "args": []
+  },
+  {
+    "op": "set",
+    "prop": "globalAlpha",
+    "value": 1
+  },
+  {
+    "op": "set",
+    "prop": "strokeStyle",
+    "value": "#000000"
+  },
+  {
+    "op": "set",
+    "prop": "lineWidth",
+    "value": 0.6
+  },
+  {
+    "op": "set",
+    "prop": "lineCap",
+    "value": "round"
+  },
+  {
+    "op": "set",
+    "prop": "lineJoin",
+    "value": "round"
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "call",
+    "name": "beginPath",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "moveTo",
+    "args": [
+      250,
+      50
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      237.53,
+      42.8
+    ]
+  },
+  {
+    "op": "call",
+    "name": "stroke",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "call",
+    "name": "restore",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "fillText",
+    "args": [
+      "X2",
+      335.8264,
+      45.8954
+    ]
+  },
+  {
+    "op": "call",
+    "name": "save",
+    "args": []
+  },
+  {
+    "op": "set",
+    "prop": "globalAlpha",
+    "value": 1
+  },
+  {
+    "op": "set",
+    "prop": "strokeStyle",
+    "value": "#000000"
+  },
+  {
+    "op": "set",
+    "prop": "lineWidth",
+    "value": 0.6
+  },
+  {
+    "op": "set",
+    "prop": "lineCap",
+    "value": "round"
+  },
+  {
+    "op": "set",
+    "prop": "lineJoin",
+    "value": "round"
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "call",
+    "name": "beginPath",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "moveTo",
+    "args": [
+      350,
+      50
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      357.2,
+      37.53
+    ]
+  },
+  {
+    "op": "call",
+    "name": "stroke",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "call",
+    "name": "restore",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "save",
+    "args": []
+  },
+  {
+    "op": "set",
+    "prop": "globalAlpha",
+    "value": 1
+  },
+  {
+    "op": "set",
+    "prop": "strokeStyle",
+    "value": "#000000"
+  },
+  {
+    "op": "set",
+    "prop": "lineWidth",
+    "value": 0.6
+  },
+  {
+    "op": "set",
+    "prop": "lineCap",
+    "value": "round"
+  },
+  {
+    "op": "set",
+    "prop": "lineJoin",
+    "value": "round"
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "call",
+    "name": "beginPath",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "moveTo",
+    "args": [
+      350,
+      50
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      357.2,
+      62.47
+    ]
+  },
+  {
+    "op": "call",
+    "name": "stroke",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "call",
+    "name": "restore",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "fillText",
+    "args": [
+      "X2",
+      45.4132,
+      133.5804
+    ]
+  },
+  {
+    "op": "call",
+    "name": "save",
+    "args": []
+  },
+  {
+    "op": "set",
+    "prop": "globalAlpha",
+    "value": 1
+  },
+  {
+    "op": "set",
+    "prop": "strokeStyle",
+    "value": "#000000"
+  },
+  {
+    "op": "set",
+    "prop": "lineWidth",
+    "value": 0.6
+  },
+  {
+    "op": "set",
+    "prop": "lineCap",
+    "value": "round"
+  },
+  {
+    "op": "set",
+    "prop": "lineJoin",
+    "value": "round"
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "call",
+    "name": "beginPath",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "moveTo",
+    "args": [
+      50,
+      130
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      63.53,
+      125.07
+    ]
+  },
+  {
+    "op": "call",
+    "name": "stroke",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "call",
+    "name": "restore",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "save",
+    "args": []
+  },
+  {
+    "op": "set",
+    "prop": "globalAlpha",
+    "value": 1
+  },
+  {
+    "op": "set",
+    "prop": "strokeStyle",
+    "value": "#000000"
+  },
+  {
+    "op": "set",
+    "prop": "lineWidth",
+    "value": 0.6
+  },
+  {
+    "op": "set",
+    "prop": "lineCap",
+    "value": "round"
+  },
+  {
+    "op": "set",
+    "prop": "lineJoin",
+    "value": "round"
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "call",
+    "name": "beginPath",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "moveTo",
+    "args": [
+      50,
+      130
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      36.47,
+      125.07
+    ]
+  },
+  {
+    "op": "call",
+    "name": "stroke",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "call",
+    "name": "restore",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "fillText",
+    "args": [
+      "X2",
+      145.4132,
+      116.2404
+    ]
+  },
+  {
+    "op": "call",
+    "name": "save",
+    "args": []
+  },
+  {
+    "op": "set",
+    "prop": "globalAlpha",
+    "value": 1
+  },
+  {
+    "op": "set",
+    "prop": "strokeStyle",
+    "value": "#000000"
+  },
+  {
+    "op": "set",
+    "prop": "lineWidth",
+    "value": 0.6
+  },
+  {
+    "op": "set",
+    "prop": "lineCap",
+    "value": "round"
+  },
+  {
+    "op": "set",
+    "prop": "lineJoin",
+    "value": "round"
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "call",
+    "name": "beginPath",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "moveTo",
+    "args": [
+      150,
+      130
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      136.47,
+      134.93
+    ]
+  },
+  {
+    "op": "call",
+    "name": "stroke",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "call",
+    "name": "restore",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "save",
+    "args": []
+  },
+  {
+    "op": "set",
+    "prop": "globalAlpha",
+    "value": 1
+  },
+  {
+    "op": "set",
+    "prop": "strokeStyle",
+    "value": "#000000"
+  },
+  {
+    "op": "set",
+    "prop": "lineWidth",
+    "value": 0.6
+  },
+  {
+    "op": "set",
+    "prop": "lineCap",
+    "value": "round"
+  },
+  {
+    "op": "set",
+    "prop": "lineJoin",
+    "value": "round"
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "call",
+    "name": "beginPath",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "moveTo",
+    "args": [
+      150,
+      130
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      152.5,
+      144.18
+    ]
+  },
+  {
+    "op": "call",
+    "name": "stroke",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "call",
+    "name": "restore",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "save",
+    "args": []
+  },
+  {
+    "op": "set",
+    "prop": "globalAlpha",
+    "value": 1
+  },
+  {
+    "op": "set",
+    "prop": "strokeStyle",
+    "value": "#000000"
+  },
+  {
+    "op": "set",
+    "prop": "lineWidth",
+    "value": 0.6
+  },
+  {
+    "op": "set",
+    "prop": "lineCap",
+    "value": "round"
+  },
+  {
+    "op": "set",
+    "prop": "lineJoin",
+    "value": "round"
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "call",
+    "name": "beginPath",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "moveTo",
+    "args": [
+      150,
+      130
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      163.53,
+      134.93
+    ]
+  },
+  {
+    "op": "call",
+    "name": "stroke",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "call",
+    "name": "restore",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "fillText",
+    "args": [
+      "X2",
+      255,
+      125.8954
+    ]
+  },
+  {
+    "op": "call",
+    "name": "save",
+    "args": []
+  },
+  {
+    "op": "set",
+    "prop": "globalAlpha",
+    "value": 1
+  },
+  {
+    "op": "set",
+    "prop": "strokeStyle",
+    "value": "#000000"
+  },
+  {
+    "op": "set",
+    "prop": "lineWidth",
+    "value": 0.6
+  },
+  {
+    "op": "set",
+    "prop": "lineCap",
+    "value": "round"
+  },
+  {
+    "op": "set",
+    "prop": "lineJoin",
+    "value": "round"
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "call",
+    "name": "beginPath",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "moveTo",
+    "args": [
+      250,
+      130
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      250,
+      115.6
+    ]
+  },
+  {
+    "op": "call",
+    "name": "stroke",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "call",
+    "name": "restore",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "save",
+    "args": []
+  },
+  {
+    "op": "set",
+    "prop": "globalAlpha",
+    "value": 1
+  },
+  {
+    "op": "set",
+    "prop": "strokeStyle",
+    "value": "#000000"
+  },
+  {
+    "op": "set",
+    "prop": "lineWidth",
+    "value": 0.6
+  },
+  {
+    "op": "set",
+    "prop": "lineCap",
+    "value": "round"
+  },
+  {
+    "op": "set",
+    "prop": "lineJoin",
+    "value": "round"
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "call",
+    "name": "beginPath",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "moveTo",
+    "args": [
+      250,
+      130
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      235.6,
+      130
+    ]
+  },
+  {
+    "op": "call",
+    "name": "stroke",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "call",
+    "name": "restore",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "save",
+    "args": []
+  },
+  {
+    "op": "set",
+    "prop": "globalAlpha",
+    "value": 1
+  },
+  {
+    "op": "set",
+    "prop": "strokeStyle",
+    "value": "#000000"
+  },
+  {
+    "op": "set",
+    "prop": "lineWidth",
+    "value": 0.6
+  },
+  {
+    "op": "set",
+    "prop": "lineCap",
+    "value": "round"
+  },
+  {
+    "op": "set",
+    "prop": "lineJoin",
+    "value": "round"
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "call",
+    "name": "beginPath",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "moveTo",
+    "args": [
+      250,
+      130
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      250,
+      144.4
+    ]
+  },
+  {
+    "op": "call",
+    "name": "stroke",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "call",
+    "name": "restore",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "fillText",
+    "args": [
+      "X2",
+      335.8264,
+      125.8954
+    ]
+  },
+  {
+    "op": "call",
+    "name": "save",
+    "args": []
+  },
+  {
+    "op": "set",
+    "prop": "globalAlpha",
+    "value": 1
+  },
+  {
+    "op": "set",
+    "prop": "strokeStyle",
+    "value": "#000000"
+  },
+  {
+    "op": "set",
+    "prop": "lineWidth",
+    "value": 0.6
+  },
+  {
+    "op": "set",
+    "prop": "lineCap",
+    "value": "round"
+  },
+  {
+    "op": "set",
+    "prop": "lineJoin",
+    "value": "round"
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "call",
+    "name": "beginPath",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "moveTo",
+    "args": [
+      350,
+      130
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      364.4,
+      130
+    ]
+  },
+  {
+    "op": "call",
+    "name": "stroke",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "call",
+    "name": "restore",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "fillText",
+    "args": [
+      "X2R",
+      42.7051,
+      226.2404
+    ]
+  },
+  {
+    "op": "call",
+    "name": "save",
+    "args": []
+  },
+  {
+    "op": "set",
+    "prop": "globalAlpha",
+    "value": 1
+  },
+  {
+    "op": "set",
+    "prop": "strokeStyle",
+    "value": "#000000"
+  },
+  {
+    "op": "set",
+    "prop": "lineWidth",
+    "value": 0.6
+  },
+  {
+    "op": "set",
+    "prop": "lineCap",
+    "value": "round"
+  },
+  {
+    "op": "set",
+    "prop": "lineJoin",
+    "value": "round"
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "call",
+    "name": "beginPath",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "moveTo",
+    "args": [
+      50,
+      240
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      37.53,
+      247.2
+    ]
+  },
+  {
+    "op": "call",
+    "name": "stroke",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "call",
+    "name": "restore",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "save",
+    "args": []
+  },
+  {
+    "op": "set",
+    "prop": "globalAlpha",
+    "value": 1
+  },
+  {
+    "op": "set",
+    "prop": "strokeStyle",
+    "value": "#000000"
+  },
+  {
+    "op": "set",
+    "prop": "lineWidth",
+    "value": 0.6
+  },
+  {
+    "op": "set",
+    "prop": "lineCap",
+    "value": "round"
+  },
+  {
+    "op": "set",
+    "prop": "lineJoin",
+    "value": "round"
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "call",
+    "name": "beginPath",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "moveTo",
+    "args": [
+      50,
+      240
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      62.47,
+      247.2
+    ]
+  },
+  {
+    "op": "call",
+    "name": "stroke",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "call",
+    "name": "restore",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "fillText",
+    "args": [
+      "X2R",
+      42.7051,
+      333.5804
+    ]
+  },
+  {
+    "op": "call",
+    "name": "save",
+    "args": []
+  },
+  {
+    "op": "set",
+    "prop": "globalAlpha",
+    "value": 1
+  },
+  {
+    "op": "set",
+    "prop": "strokeStyle",
+    "value": "#000000"
+  },
+  {
+    "op": "set",
+    "prop": "lineWidth",
+    "value": 0.6
+  },
+  {
+    "op": "set",
+    "prop": "lineCap",
+    "value": "round"
+  },
+  {
+    "op": "set",
+    "prop": "lineJoin",
+    "value": "round"
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "call",
+    "name": "beginPath",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "moveTo",
+    "args": [
+      50,
+      330
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      62.47,
+      322.8
+    ]
+  },
+  {
+    "op": "call",
+    "name": "stroke",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "call",
+    "name": "restore",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "save",
+    "args": []
+  },
+  {
+    "op": "set",
+    "prop": "globalAlpha",
+    "value": 1
+  },
+  {
+    "op": "set",
+    "prop": "strokeStyle",
+    "value": "#000000"
+  },
+  {
+    "op": "set",
+    "prop": "lineWidth",
+    "value": 0.6
+  },
+  {
+    "op": "set",
+    "prop": "lineCap",
+    "value": "round"
+  },
+  {
+    "op": "set",
+    "prop": "lineJoin",
+    "value": "round"
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "call",
+    "name": "beginPath",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "moveTo",
+    "args": [
+      50,
+      330
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      37.53,
+      322.8
+    ]
+  },
+  {
+    "op": "call",
+    "name": "stroke",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "call",
+    "name": "restore",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "fillText",
+    "args": [
+      "X2SR",
+      150.2039,
+      226.2404
+    ]
+  },
+  {
+    "op": "call",
+    "name": "save",
+    "args": []
+  },
+  {
+    "op": "set",
+    "prop": "globalAlpha",
+    "value": 1
+  },
+  {
+    "op": "set",
+    "prop": "strokeStyle",
+    "value": "#000000"
+  },
+  {
+    "op": "set",
+    "prop": "lineWidth",
+    "value": 0.6
+  },
+  {
+    "op": "set",
+    "prop": "lineCap",
+    "value": "round"
+  },
+  {
+    "op": "set",
+    "prop": "lineJoin",
+    "value": "round"
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "call",
+    "name": "beginPath",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "moveTo",
+    "args": [
+      160,
+      240
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      147.53,
+      247.2
+    ]
+  },
+  {
+    "op": "call",
+    "name": "stroke",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "call",
+    "name": "restore",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "save",
+    "args": []
+  },
+  {
+    "op": "set",
+    "prop": "globalAlpha",
+    "value": 1
+  },
+  {
+    "op": "set",
+    "prop": "strokeStyle",
+    "value": "#000000"
+  },
+  {
+    "op": "set",
+    "prop": "lineWidth",
+    "value": 0.6
+  },
+  {
+    "op": "set",
+    "prop": "lineCap",
+    "value": "round"
+  },
+  {
+    "op": "set",
+    "prop": "lineJoin",
+    "value": "round"
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "call",
+    "name": "beginPath",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "moveTo",
+    "args": [
+      160,
+      240
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      172.47,
+      247.2
+    ]
+  },
+  {
+    "op": "call",
+    "name": "stroke",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "call",
+    "name": "restore",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "fillText",
+    "args": [
+      "X2SR",
+      150.2039,
+      333.5804
+    ]
+  },
+  {
+    "op": "call",
+    "name": "save",
+    "args": []
+  },
+  {
+    "op": "set",
+    "prop": "globalAlpha",
+    "value": 1
+  },
+  {
+    "op": "set",
+    "prop": "strokeStyle",
+    "value": "#000000"
+  },
+  {
+    "op": "set",
+    "prop": "lineWidth",
+    "value": 0.6
+  },
+  {
+    "op": "set",
+    "prop": "lineCap",
+    "value": "round"
+  },
+  {
+    "op": "set",
+    "prop": "lineJoin",
+    "value": "round"
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "call",
+    "name": "beginPath",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "moveTo",
+    "args": [
+      160,
+      330
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      172.47,
+      322.8
+    ]
+  },
+  {
+    "op": "call",
+    "name": "stroke",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "call",
+    "name": "restore",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "save",
+    "args": []
+  },
+  {
+    "op": "set",
+    "prop": "globalAlpha",
+    "value": 1
+  },
+  {
+    "op": "set",
+    "prop": "strokeStyle",
+    "value": "#000000"
+  },
+  {
+    "op": "set",
+    "prop": "lineWidth",
+    "value": 0.6
+  },
+  {
+    "op": "set",
+    "prop": "lineCap",
+    "value": "round"
+  },
+  {
+    "op": "set",
+    "prop": "lineJoin",
+    "value": "round"
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "call",
+    "name": "beginPath",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "moveTo",
+    "args": [
+      160,
+      330
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      147.53,
+      322.8
+    ]
+  },
+  {
+    "op": "call",
+    "name": "stroke",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "call",
+    "name": "restore",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "fillText",
+    "args": [
+      "X2HSR",
+      257.4957,
+      226.2404
+    ]
+  },
+  {
+    "op": "call",
+    "name": "save",
+    "args": []
+  },
+  {
+    "op": "set",
+    "prop": "globalAlpha",
+    "value": 1
+  },
+  {
+    "op": "set",
+    "prop": "strokeStyle",
+    "value": "#000000"
+  },
+  {
+    "op": "set",
+    "prop": "lineWidth",
+    "value": 0.6
+  },
+  {
+    "op": "set",
+    "prop": "lineCap",
+    "value": "round"
+  },
+  {
+    "op": "set",
+    "prop": "lineJoin",
+    "value": "round"
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "call",
+    "name": "beginPath",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "moveTo",
+    "args": [
+      270,
+      240
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      257.53,
+      247.2
+    ]
+  },
+  {
+    "op": "call",
+    "name": "stroke",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "call",
+    "name": "restore",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "save",
+    "args": []
+  },
+  {
+    "op": "set",
+    "prop": "globalAlpha",
+    "value": 1
+  },
+  {
+    "op": "set",
+    "prop": "strokeStyle",
+    "value": "#000000"
+  },
+  {
+    "op": "set",
+    "prop": "lineWidth",
+    "value": 0.6
+  },
+  {
+    "op": "set",
+    "prop": "lineCap",
+    "value": "round"
+  },
+  {
+    "op": "set",
+    "prop": "lineJoin",
+    "value": "round"
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "call",
+    "name": "beginPath",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "moveTo",
+    "args": [
+      270,
+      240
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      282.47,
+      247.2
+    ]
+  },
+  {
+    "op": "call",
+    "name": "stroke",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "call",
+    "name": "restore",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "fillText",
+    "args": [
+      "X2HSR",
+      257.4957,
+      333.5804
+    ]
+  },
+  {
+    "op": "call",
+    "name": "save",
+    "args": []
+  },
+  {
+    "op": "set",
+    "prop": "globalAlpha",
+    "value": 1
+  },
+  {
+    "op": "set",
+    "prop": "strokeStyle",
+    "value": "#000000"
+  },
+  {
+    "op": "set",
+    "prop": "lineWidth",
+    "value": 0.6
+  },
+  {
+    "op": "set",
+    "prop": "lineCap",
+    "value": "round"
+  },
+  {
+    "op": "set",
+    "prop": "lineJoin",
+    "value": "round"
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "call",
+    "name": "beginPath",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "moveTo",
+    "args": [
+      270,
+      330
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      282.47,
+      322.8
+    ]
+  },
+  {
+    "op": "call",
+    "name": "stroke",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "call",
+    "name": "restore",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "save",
+    "args": []
+  },
+  {
+    "op": "set",
+    "prop": "globalAlpha",
+    "value": 1
+  },
+  {
+    "op": "set",
+    "prop": "strokeStyle",
+    "value": "#000000"
+  },
+  {
+    "op": "set",
+    "prop": "lineWidth",
+    "value": 0.6
+  },
+  {
+    "op": "set",
+    "prop": "lineCap",
+    "value": "round"
+  },
+  {
+    "op": "set",
+    "prop": "lineJoin",
+    "value": "round"
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "call",
+    "name": "beginPath",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "moveTo",
+    "args": [
+      270,
+      330
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      257.53,
+      322.8
+    ]
+  },
+  {
+    "op": "call",
+    "name": "stroke",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "call",
+    "name": "restore",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "fillText",
+    "args": [
+      "*HSRC",
+      367.915,
+      226.2404
+    ]
+  },
+  {
+    "op": "call",
+    "name": "save",
+    "args": []
+  },
+  {
+    "op": "set",
+    "prop": "globalAlpha",
+    "value": 1
+  },
+  {
+    "op": "set",
+    "prop": "strokeStyle",
+    "value": "#000000"
+  },
+  {
+    "op": "set",
+    "prop": "lineWidth",
+    "value": 0.6
+  },
+  {
+    "op": "set",
+    "prop": "lineCap",
+    "value": "round"
+  },
+  {
+    "op": "set",
+    "prop": "lineJoin",
+    "value": "round"
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "call",
+    "name": "beginPath",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "moveTo",
+    "args": [
+      380,
+      240
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      367.53,
+      247.2
+    ]
+  },
+  {
+    "op": "call",
+    "name": "stroke",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "call",
+    "name": "restore",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "save",
+    "args": []
+  },
+  {
+    "op": "set",
+    "prop": "globalAlpha",
+    "value": 1
+  },
+  {
+    "op": "set",
+    "prop": "strokeStyle",
+    "value": "#000000"
+  },
+  {
+    "op": "set",
+    "prop": "lineWidth",
+    "value": 0.6
+  },
+  {
+    "op": "set",
+    "prop": "lineCap",
+    "value": "round"
+  },
+  {
+    "op": "set",
+    "prop": "lineJoin",
+    "value": "round"
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "call",
+    "name": "beginPath",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "moveTo",
+    "args": [
+      380,
+      240
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      392.47,
+      247.2
+    ]
+  },
+  {
+    "op": "call",
+    "name": "stroke",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "call",
+    "name": "restore",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "fillText",
+    "args": [
+      "*HSRC",
+      367.915,
+      333.5804
+    ]
+  },
+  {
+    "op": "call",
+    "name": "save",
+    "args": []
+  },
+  {
+    "op": "set",
+    "prop": "globalAlpha",
+    "value": 1
+  },
+  {
+    "op": "set",
+    "prop": "strokeStyle",
+    "value": "#000000"
+  },
+  {
+    "op": "set",
+    "prop": "lineWidth",
+    "value": 0.6
+  },
+  {
+    "op": "set",
+    "prop": "lineCap",
+    "value": "round"
+  },
+  {
+    "op": "set",
+    "prop": "lineJoin",
+    "value": "round"
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "call",
+    "name": "beginPath",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "moveTo",
+    "args": [
+      380,
+      330
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      392.47,
+      322.8
+    ]
+  },
+  {
+    "op": "call",
+    "name": "stroke",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "call",
+    "name": "restore",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "save",
+    "args": []
+  },
+  {
+    "op": "set",
+    "prop": "globalAlpha",
+    "value": 1
+  },
+  {
+    "op": "set",
+    "prop": "strokeStyle",
+    "value": "#000000"
+  },
+  {
+    "op": "set",
+    "prop": "lineWidth",
+    "value": 0.6
+  },
+  {
+    "op": "set",
+    "prop": "lineCap",
+    "value": "round"
+  },
+  {
+    "op": "set",
+    "prop": "lineJoin",
+    "value": "round"
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "call",
+    "name": "beginPath",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "moveTo",
+    "args": [
+      380,
+      330
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      367.53,
+      322.8
+    ]
+  },
+  {
+    "op": "call",
+    "name": "stroke",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "call",
+    "name": "restore",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "fillText",
+    "args": [
+      "Rng",
+      50.3207,
+      356.2404
+    ]
+  },
+  {
+    "op": "call",
+    "name": "save",
+    "args": []
+  },
+  {
+    "op": "set",
+    "prop": "globalAlpha",
+    "value": 1
+  },
+  {
+    "op": "set",
+    "prop": "strokeStyle",
+    "value": "#000000"
+  },
+  {
+    "op": "set",
+    "prop": "lineWidth",
+    "value": 0.6
+  },
+  {
+    "op": "set",
+    "prop": "lineCap",
+    "value": "round"
+  },
+  {
+    "op": "set",
+    "prop": "lineJoin",
+    "value": "round"
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "call",
+    "name": "beginPath",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "moveTo",
+    "args": [
+      50,
+      370
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      64.4,
+      370
+    ]
+  },
+  {
+    "op": "call",
+    "name": "stroke",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "call",
+    "name": "restore",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "fillText",
+    "args": [
+      "Rng",
+      155,
+      358.6954
+    ]
+  },
+  {
+    "op": "call",
+    "name": "save",
+    "args": []
+  },
+  {
+    "op": "set",
+    "prop": "globalAlpha",
+    "value": 1
+  },
+  {
+    "op": "set",
+    "prop": "strokeStyle",
+    "value": "#000000"
+  },
+  {
+    "op": "set",
+    "prop": "lineWidth",
+    "value": 0.6
+  },
+  {
+    "op": "set",
+    "prop": "lineCap",
+    "value": "round"
+  },
+  {
+    "op": "set",
+    "prop": "lineJoin",
+    "value": "round"
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "call",
+    "name": "beginPath",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "moveTo",
+    "args": [
+      150,
+      370
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      150,
+      355.6
+    ]
+  },
+  {
+    "op": "call",
+    "name": "stroke",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "call",
+    "name": "restore",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "fillText",
+    "args": [
+      "Rng",
+      238.9081,
+      351.5028
+    ]
+  },
+  {
+    "op": "call",
+    "name": "save",
+    "args": []
+  },
+  {
+    "op": "set",
+    "prop": "globalAlpha",
+    "value": 1
+  },
+  {
+    "op": "set",
+    "prop": "strokeStyle",
+    "value": "#000000"
+  },
+  {
+    "op": "set",
+    "prop": "lineWidth",
+    "value": 0.6
+  },
+  {
+    "op": "set",
+    "prop": "lineCap",
+    "value": "round"
+  },
+  {
+    "op": "set",
+    "prop": "lineJoin",
+    "value": "round"
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "call",
+    "name": "beginPath",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "moveTo",
+    "args": [
+      250,
+      370
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      260.18,
+      359.82
+    ]
+  },
+  {
+    "op": "call",
+    "name": "stroke",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "call",
+    "name": "restore",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "fillText",
+    "args": [
+      "Rng",
+      347.3334,
+      351.5028
+    ]
+  },
+  {
+    "op": "call",
+    "name": "save",
+    "args": []
+  },
+  {
+    "op": "set",
+    "prop": "globalAlpha",
+    "value": 1
+  },
+  {
+    "op": "set",
+    "prop": "strokeStyle",
+    "value": "#000000"
+  },
+  {
+    "op": "set",
+    "prop": "lineWidth",
+    "value": 0.6
+  },
+  {
+    "op": "set",
+    "prop": "lineCap",
+    "value": "round"
+  },
+  {
+    "op": "set",
+    "prop": "lineJoin",
+    "value": "round"
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "call",
+    "name": "beginPath",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "moveTo",
+    "args": [
+      350,
+      370
+    ]
+  },
+  {
+    "op": "call",
+    "name": "lineTo",
+    "args": [
+      339.82,
+      359.82
+    ]
+  },
+  {
+    "op": "call",
+    "name": "stroke",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "setLineDash",
+    "args": [
+      []
+    ]
+  },
+  {
+    "op": "call",
+    "name": "restore",
+    "args": []
+  },
+  {
+    "op": "call",
+    "name": "restore",
+    "args": []
+  }
+]

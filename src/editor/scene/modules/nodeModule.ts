@@ -30,6 +30,7 @@ import { measureRunWidth } from '../../../lib/textRunPresentation';
 import { SHORTHAND_DATA } from '../../../lib/shorthand';
 import { adaptColor, drawCircle, drawRunText, setStroke } from '../drawPrimitives';
 import { drawObjectTags } from './objectTagHelpers';
+import { drawAtomQueryIndicator, hasQueryTag } from './queryIndicators';
 import { drawAtomIndicator, hasStereoTag } from './stereoIndicators';
 import type { ObjectModule } from '../types';
 
@@ -320,6 +321,9 @@ export const NODE_MODULE: ObjectModule = {
       fallbackAnchor: { x: atom.x, y: atom.y },
       fallbackColor: resolvedColor,
     });
+    if (!hasQueryTag(object.objectTags)) {
+      drawAtomQueryIndicator(ctx, scene, atom.id, object.queryProperties, resolvedColor);
+    }
     // Show Atom Number takes the clearest side; a stereo label the next clearest.
     const numberAngle =
       object.showAtomNumber && object.atomNumber
