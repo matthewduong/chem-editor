@@ -8,8 +8,16 @@ import { getObjectsBounds, mapArrow, moveSelectedObjects } from './chemdrawModel
  * Reactants go in a row before the arrow's tail and products after its head, centred on the
  * arrow's line, in the order they already stand; objects above and below the arrow are stacked
  * over and under its middle; and the arrow is lengthened when what it carries is wider than it.
- * Gaps are one bond length (ChemDraw's own spacing is not measured; gaps.md).
+ *
+ * Spacing was measured on ChemDraw 26.1.0.6801 (gaps.md): the gap between a reactant or product
+ * and its neighbour, the plus sign or the arrow's end, is 1.515 x the CaptionSize (15.1pt at 10,
+ * 21.2pt at 14; the bond length does not enter), the arrow is the widest label it carries plus
+ * two of those gaps, and text above or below stands 0.575 x the CaptionSize from the arrow. It
+ * also inserts a `+` between reactants that have none, which this does not.
  */
+const GAP_OF_CAPTION = 1.515;
+const TEXT_OFFSET_OF_CAPTION = 0.575;
+
 export function cleanUpReaction(
   document: ChemDrawDocument,
   settings: DocumentStyleSettings,
@@ -39,7 +47,9 @@ function cleanUpStep(
   };
   // "Up" from the arrow: its left normal, which is up the page for a left-to-right arrow.
   const up = { x: u.y, y: -u.x };
-  const gap = settings.bondLength;
+  const captionSize = settings.nativeMetrics.captionSize;
+  const gap = GAP_OF_CAPTION * captionSize;
+  const textOffset = TEXT_OFFSET_OF_CAPTION * captionSize;
   const present = new Set(page.objects.map((object) => object.id));
   const ids = (list: string[]) => list.filter((id) => present.has(id));
 
@@ -119,12 +129,12 @@ function cleanUpStep(
   }
   // Above and below: stacked outward from the arrow, centred on its middle.
   const middle = arrowLength / 2;
-  let level = gap / 2;
+  let level = textOffset;
   for (const { id, box } of inOrder(step.aboveArrow)) {
     doc = moveBy(doc, id, middle - (box.s0 + box.s1) / 2, level - box.t0);
     level += box.t1 - box.t0 + gap / 4;
   }
-  level = -gap / 2;
+  level = -textOffset;
   for (const { id, box } of inOrder(step.belowArrow)) {
     doc = moveBy(doc, id, middle - (box.s0 + box.s1) / 2, level - box.t1);
     level -= box.t1 - box.t0 + gap / 4;

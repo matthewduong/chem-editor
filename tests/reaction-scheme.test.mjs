@@ -176,13 +176,17 @@ test('Clean Up Reaction lays the step out along its arrow', async () => {
   const arrow = clean.pages[0].objects.find((o) => o.id === '20');
   const box = (id) => getObjectsBounds(clean, [id], settings);
   const midY = (b) => (b.top + b.bottom) / 2;
-  const gap = settings.bondLength;
+  // ChemDraw 26.1.0.6801: 1.515 x CaptionSize between a structure and the arrow's end, and 0.575 x
+  // CaptionSize from the arrow to text above or below it (gaps.md).
+  const gap = 1.515 * settings.nativeMetrics.captionSize;
   assert.ok(Math.abs(box('10').right - (arrow.tail.x - gap)) < 1e-6);
   assert.ok(Math.abs(box('30').left - (arrow.head.x + gap)) < 1e-6);
   assert.ok(Math.abs(midY(box('10')) - arrow.tail.y) < 1e-6);
   assert.ok(Math.abs(midY(box('30')) - arrow.tail.y) < 1e-6);
   const reagent = box('21');
-  assert.ok(reagent.bottom < arrow.tail.y);
+  assert.ok(
+    Math.abs(reagent.bottom - (arrow.tail.y - 0.575 * settings.nativeMetrics.captionSize)) < 1e-6,
+  );
   assert.ok(
     Math.abs((reagent.left + reagent.right) / 2 - (arrow.tail.x + arrow.head.x) / 2) < 1e-6,
   );
