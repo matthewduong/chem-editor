@@ -30,7 +30,7 @@ import { measureRunWidth } from '../../../lib/textRunPresentation';
 import { SHORTHAND_DATA } from '../../../lib/shorthand';
 import { adaptColor, drawCircle, drawRunText, setStroke } from '../drawPrimitives';
 import { drawObjectTags } from './objectTagHelpers';
-import { drawAtomQueryIndicator, hasQueryTag } from './queryIndicators';
+import { drawAtomQueryIndicator, drawAtomTag, hasNumberTag, hasQueryTag } from './queryIndicators';
 import { drawAtomIndicator, hasStereoTag } from './stereoIndicators';
 import type { ObjectModule } from '../types';
 
@@ -321,13 +321,20 @@ export const NODE_MODULE: ObjectModule = {
       fallbackAnchor: { x: atom.x, y: atom.y },
       fallbackColor: resolvedColor,
     });
-    if (!hasQueryTag(object.objectTags)) {
-      drawAtomQueryIndicator(ctx, scene, atom.id, object.queryProperties, resolvedColor);
-    }
-    // Show Atom Number takes the clearest side; a stereo label the next clearest.
+    const queryAngle = !hasQueryTag(object.objectTags)
+      ? drawAtomQueryIndicator(ctx, scene, atom.id, object.queryProperties, resolvedColor)
+      : null;
+    // The query letters take the clearest side, then Show Atom Number, then a stereo label.
     const numberAngle =
-      object.showAtomNumber && object.atomNumber
-        ? drawAtomIndicator(ctx, scene, atom.id, object.atomNumber, resolvedColor)
+      object.showAtomNumber && object.atomNumber && !hasNumberTag(object.objectTags)
+        ? drawAtomTag(
+            ctx,
+            scene,
+            atom.id,
+            object.atomNumber,
+            resolvedColor,
+            queryAngle == null ? [] : [queryAngle],
+          )
         : null;
     const stereoLabel = scene.stereoLabels?.atoms.get(atom.id);
     if (
@@ -341,7 +348,7 @@ export const NODE_MODULE: ObjectModule = {
         atom.id,
         stereoLabel,
         resolvedColor,
-        numberAngle == null ? [] : [numberAngle],
+        [queryAngle, numberAngle].filter((angle): angle is number => angle != null),
       );
     }
   },

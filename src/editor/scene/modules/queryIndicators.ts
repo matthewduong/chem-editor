@@ -1,4 +1,5 @@
 import { convertNativeToCanvas } from '../../../lib/chemdrawMetrics';
+import { getAtomBondClipOffset } from '../../../lib/renderGeometry';
 import { getFaceMetrics } from '../../../lib/textMetrics';
 import { measureRunWidth } from '../../../lib/textRunPresentation';
 import type {
@@ -21,6 +22,11 @@ import { adaptColor, drawRunText } from '../drawPrimitives';
  */
 export function hasQueryTag(tags: ChemDrawObjectTag[] | undefined): boolean {
   return Boolean(tags?.some((tag) => (tag.name ?? '').toLowerCase() === 'query'));
+}
+
+/** ChemDraw writes a shown atom number as `<objecttag Name="number">`; a stored one is drawn from the file. */
+export function hasNumberTag(tags: ChemDrawObjectTag[] | undefined): boolean {
+  return Boolean(tags?.some((tag) => (tag.name ?? '').toLowerCase() === 'number'));
 }
 
 const SIZE_OF_LABEL = 0.75;
@@ -88,22 +94,29 @@ function drawTag(
   );
 }
 
-/** The atom's query letters beside it, on the side of its widest gap between bonds. */
-export function drawAtomQueryIndicator(
+/**
+ * Small text beside an atom (its query letters, its number) on the side of its widest gap between
+ * bonds, `avoid` directions counting as bonds. The box stands 5pt clear of the atom, or of its
+ * label's box when it has one (an F's number was 10.4pt from the atom, a carbon's 7.7pt below).
+ * Returns the direction used. Ties between equal gaps went either way in ChemDraw; ours takes the
+ * first.
+ */
+export function drawAtomTag(
   ctx: CanvasRenderingContext2D,
   scene: DocumentSceneState,
   atomId: string,
-  query: ChemDrawAtomQueryProperties | undefined,
+  text: string,
   color: string,
-) {
-  const text = atomQueryText(query);
+  avoid: readonly number[] = [],
+): number | null {
   const atom = scene.legacy.atomById.get(atomId);
-  if (!text || !atom) return;
+  if (!text || !atom) return null;
   const bondAngles = scene.legacy.bonds
     .filter((bond) => bond.from === atomId || bond.to === atomId)
     .map((bond) => scene.legacy.atomById.get(bond.from === atomId ? bond.to : bond.from))
     .filter((other) => other !== undefined)
-    .map((other) => Math.atan2(other.y - atom.y, other.x - atom.x));
+    .map((other) => Math.atan2(other.y - atom.y, other.x - atom.x))
+    .concat(avoid);
   let best = -Math.PI / 2;
   let bestGap = -1;
   for (let i = 0; i < 72; i += 1) {
@@ -113,7 +126,36 @@ export function drawAtomQueryIndicator(
       : Math.PI;
     if (gap > bestGap + 1e-9) [best, bestGap] = [angle, gap];
   }
-  drawTag(ctx, scene, text, atom, { x: Math.cos(best), y: Math.sin(best) }, color);
+  const direction = { x: Math.cos(best), y: Math.sin(best) };
+  const labelClip = getAtomBondClipOffset(
+    atom,
+    scene.legacy.atoms,
+    scene.legacy.bonds,
+    direction.x,
+    direction.y,
+    scene.documentStyleSettings,
+    scene.legacy.labelMetricsCache,
+  );
+  drawTag(
+    ctx,
+    scene,
+    text,
+    { x: atom.x + direction.x * labelClip, y: atom.y + direction.y * labelClip },
+    direction,
+    color,
+  );
+  return best;
+}
+
+/** The atom's query letters beside it. */
+export function drawAtomQueryIndicator(
+  ctx: CanvasRenderingContext2D,
+  scene: DocumentSceneState,
+  atomId: string,
+  query: ChemDrawAtomQueryProperties | undefined,
+  color: string,
+): number | null {
+  return drawAtomTag(ctx, scene, atomId, atomQueryText(query), color);
 }
 
 /** The bond's query text beside its middle, on its upper side (right of a vertical bond). */
