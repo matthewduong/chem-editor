@@ -20,6 +20,17 @@ vi.mock('../../src/lib/orbitalMesh.ts', () => ({
   buildOrbitalMesh: mocks.buildOrbitalMesh,
 }));
 
+// jsdom has no Worker; mesh in-thread through the same buildOrbitalMesh the worker calls.
+vi.mock('../../src/workers/orbitalMeshClient.ts', () => ({
+  OrbitalMeshClient: class {
+    mesh(result: { fields: Record<string, unknown>; grid: unknown }, key: string, iso: number) {
+      return Promise.resolve(mocks.buildOrbitalMesh(result.fields[key], result.grid, iso));
+    }
+    cancel() {}
+    dispose() {}
+  },
+}));
+
 function createMolecule(label: string) {
   return {
     atoms: [{ element: label, x: 0, y: 0, z: 0 }],

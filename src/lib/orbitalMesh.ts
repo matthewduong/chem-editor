@@ -163,7 +163,7 @@ function polygonizeTetrahedron(
 }
 
 function valueAt(
-  values: number[],
+  values: number[] | Float64Array,
   dims: readonly [number, number, number],
   ix: number,
   iy: number,

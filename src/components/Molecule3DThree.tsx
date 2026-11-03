@@ -355,7 +355,7 @@ function clearGroup(group: ThreeGroup) {
 }
 
 function buildOrbitalSurfaceObjects(
-  positions: number[],
+  positions: number[] | Float64Array,
   colorHex: string,
   appearance: ViewerOrbitalAppearance,
   isDarkMode: boolean,

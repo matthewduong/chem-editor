@@ -36,8 +36,8 @@ export interface ViewerOrbitalMetadata {
 
 export interface ViewerOrbitalMesh {
   key: string;
-  positivePositions: number[];
-  negativePositions: number[];
+  positivePositions: number[] | Float64Array;
+  negativePositions: number[] | Float64Array;
 }
 
 export interface ViewerOrbitalGrid {
@@ -48,7 +48,7 @@ export interface ViewerOrbitalGrid {
 
 export interface ViewerOrbitalField {
   key: string;
-  values: number[];
+  values: number[] | Float64Array;
   minValue: number;
   maxValue: number;
 }

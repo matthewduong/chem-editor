@@ -1,6 +1,7 @@
-import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
-import type { Viewer3DMolecule, ViewerOrbitalMesh, ViewerOrbitalResult } from '../lib/viewer3d';
-import { buildOrbitalMesh } from '../lib/orbitalMesh';
+import { useEffect, useCallback, useMemo, useRef, useState } from 'react';
+import type { Viewer3DMolecule, ViewerOrbitalResult } from '../lib/viewer3d';
+import { useOrbitalMesh } from './useOrbitalMesh';
+import { orbitalCache } from '../lib/orbitalCache';
 import type { ViewerOrbitalBasis } from '../types/settings';
 import { invokeScientific } from '../lib/scientificJobs';
 
@@ -9,8 +10,6 @@ interface OrbitalResponse extends ViewerOrbitalResult {
   fallback?: boolean;
 }
 
-const orbitalCache = new Map<string, ViewerOrbitalResult>();
-const orbitalMeshCache = new Map<string, ViewerOrbitalMesh | null>();
 const ORBITAL_CACHE_VERSION = 2;
 
 function buildGeometrySignature(molecule: Viewer3DMolecule | null) {
@@ -52,19 +51,23 @@ async function fetchOrbitals(
     },
     signal,
   ).then((result) => {
-      if (result.error) throw new Error(result.error);
-      if (!result.grid) throw new Error('HF orbital calculation returned no volumetric grid');
-      const normalized: ViewerOrbitalResult = {
-        basis: result.basis,
-        orbitals: result.orbitals ?? [],
-        grid: result.grid,
-        fields: result.fields ?? {},
-        warnings: result.warnings ?? [],
-      };
-      if (orbitalCache.size >= 24) orbitalCache.delete(orbitalCache.keys().next().value!);
-      orbitalCache.set(key, normalized);
-      return normalized;
-    });
+    if (result.error) throw new Error(result.error);
+    if (!result.grid) throw new Error('HF orbital calculation returned no volumetric grid');
+    const normalized: ViewerOrbitalResult = {
+      basis: result.basis,
+      orbitals: result.orbitals ?? [],
+      grid: result.grid,
+      fields: Object.fromEntries(
+        Object.entries(result.fields ?? {}).map(([key, field]) => [
+          key,
+          { ...field, values: new Float64Array(field.values) },
+        ]),
+      ),
+      warnings: result.warnings ?? [],
+    };
+
+    return normalized;
+  });
 
   return request;
 }
@@ -145,7 +148,8 @@ export function useHartreeFockOrbitals({
     if (!enabled || !molecule || !requestKey) return;
     controllerRef.current?.abort();
     requestSerialRef.current += 1;
-    const cached = orbitalCache.get(requestKey);
+    // The displayed result is held outside the inactive-buffer cache, so check it first.
+    const cached = (activeKey === requestKey ? result : null) ?? orbitalCache.get(requestKey);
     if (cached) {
       applyResult(cached, requestKey);
       setPendingKey(null);
@@ -173,7 +177,18 @@ export function useHartreeFockOrbitals({
         if (requestSerialRef.current !== serial) return;
         setPendingKey(null);
       });
-  }, [applyResult, basis, charge, enabled, molblock, molecule, requestKey, smiles]);
+  }, [
+    activeKey,
+    applyResult,
+    basis,
+    charge,
+    enabled,
+    molblock,
+    molecule,
+    requestKey,
+    result,
+    smiles,
+  ]);
 
   const cachedResult = requestKey ? (orbitalCache.get(requestKey) ?? null) : null;
   const effectiveResult =
@@ -190,21 +205,19 @@ export function useHartreeFockOrbitals({
   );
   const loading = Boolean(enabled && requestKey && pendingKey === requestKey);
   const effectiveError = enabled && requestKey && errorKey === requestKey ? error : null;
-  const deferredIsovalue = useDeferredValue(isovalue);
-  const resultGrid = effectiveResult?.grid ?? null;
-  const selectedField =
-    effectiveSelectedOrbitalKey && effectiveResult
-      ? (effectiveResult.fields[effectiveSelectedOrbitalKey] ?? null)
-      : null;
-  const selectedMesh = useMemo<ViewerOrbitalMesh | null>(() => {
-    if (!requestKey || !selectedField || !resultGrid) return null;
-    const meshKey = `${requestKey}|${selectedField.key}|${deferredIsovalue.toFixed(4)}`;
-    if (orbitalMeshCache.has(meshKey)) return orbitalMeshCache.get(meshKey) ?? null;
-    const nextMesh = buildOrbitalMesh(selectedField, resultGrid, deferredIsovalue);
-    if (orbitalMeshCache.size >= 72) orbitalMeshCache.delete(orbitalMeshCache.keys().next().value!);
-    orbitalMeshCache.set(meshKey, nextMesh);
-    return nextMesh;
-  }, [deferredIsovalue, requestKey, resultGrid, selectedField]);
+  const meshState = useOrbitalMesh(
+    effectiveResult,
+    requestKey,
+    effectiveSelectedOrbitalKey,
+    isovalue,
+  );
+  useEffect(() => {
+    if (!effectiveResult || !requestKey) return;
+    orbitalCache.delete(requestKey);
+    return () => {
+      orbitalCache.set(requestKey, effectiveResult);
+    };
+  }, [effectiveResult, requestKey]);
 
   return {
     cancel,
@@ -213,9 +226,9 @@ export function useHartreeFockOrbitals({
     warnings: effectiveResult?.warnings ?? [],
     selectedOrbitalKey: effectiveSelectedOrbitalKey,
     setSelectedOrbitalKey,
-    selectedMesh,
+    selectedMesh: meshState.mesh,
     loading,
-    error: effectiveError,
+    error: effectiveError ?? meshState.error,
     stale,
     calculate,
   };
