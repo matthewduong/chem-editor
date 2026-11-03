@@ -1,3 +1,4 @@
+import { ringTopology } from './ringTopology';
 import type { Arrow, Atom, Bond, DoubleBondMode } from '../types/chemistry';
 import type { ChemDrawArrow, ChemDrawBond } from '../types/chemdraw';
 import type { DocumentStyleSettings } from '../types/settings';
@@ -120,12 +121,7 @@ export function computeRingCentroids(
   atoms: Atom[],
   bonds: Bond[],
 ): Map<string, { cx: number; cy: number; n: number }> {
-  const adj = new Map<string, { neighborId: string; bondId: string }[]>();
-  for (const atom of atoms) adj.set(atom.id, []);
-  for (const bond of bonds) {
-    adj.get(bond.from)?.push({ neighborId: bond.to, bondId: bond.id });
-    adj.get(bond.to)?.push({ neighborId: bond.from, bondId: bond.id });
-  }
+  const { adj, component } = ringTopology(atoms, bonds);
 
   const atomById = new Map(atoms.map((atom) => [atom.id, atom]));
   const orderByBondId = new Map(bonds.map((bond) => [bond.id, bond.order]));
@@ -139,10 +135,16 @@ export function computeRingCentroids(
     prev.set(bond.from, '');
     let found = false;
 
-    while (queue.length && !found) {
-      const current = queue.shift()!;
+    let cursor = 0;
+    while (cursor < queue.length && !found) {
+      const current = queue[cursor++]!;
       for (const { neighborId, bondId } of adj.get(current) ?? []) {
-        if (bondId === bond.id || prev.has(neighborId)) continue;
+        if (
+          bondId === bond.id ||
+          component.get(bondId) !== component.get(bond.id) ||
+          prev.has(neighborId)
+        )
+          continue;
         if (side !== 0 && current === bond.from && begin && end) {
           const neighbour = atomById.get(neighborId);
           if (!neighbour) continue;
@@ -172,6 +174,7 @@ export function computeRingCentroids(
 
   const result = new Map<string, { cx: number; cy: number; n: number }>();
   for (const bond of bonds) {
+    if (!component.has(bond.id)) continue;
     let ring = shortestRing(bond, 0);
     if (!ring) continue;
     if (bond.order === 2) {

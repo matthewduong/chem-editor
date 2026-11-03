@@ -25,6 +25,7 @@ export interface SpatialEntry {
 export interface DocumentSpatialIndex {
   cellSize: number;
   cells: Map<string, string[]>;
+  overflow: string[];
 }
 
 export interface DocumentIndex {
@@ -69,11 +70,26 @@ function getSpatialCellKey(x: number, y: number): string {
   return `${x},${y}`;
 }
 
+function boundedRange(minX: number, maxX: number, minY: number, maxY: number, limit: number) {
+  return (
+    [minX, maxX, minY, maxY].every(Number.isSafeInteger) &&
+    maxX >= minX &&
+    maxY >= minY &&
+    maxX - minX + 1 <= limit &&
+    maxY - minY + 1 <= limit &&
+    (maxX - minX + 1) * (maxY - minY + 1) <= limit
+  );
+}
+
 function populateSpatialIndex(index: DocumentSpatialIndex, entry: SpatialEntry) {
   const minX = getCellCoordinate(entry.bounds.left, index.cellSize);
   const maxX = getCellCoordinate(entry.bounds.right, index.cellSize);
   const minY = getCellCoordinate(entry.bounds.top, index.cellSize);
   const maxY = getCellCoordinate(entry.bounds.bottom, index.cellSize);
+  if (!boundedRange(minX, maxX, minY, maxY, 256)) {
+    index.overflow.push(entry.id);
+    return;
+  }
   for (let cellY = minY; cellY <= maxY; cellY += 1) {
     for (let cellX = minX; cellX <= maxX; cellX += 1) {
       const key = getSpatialCellKey(cellX, cellY);
@@ -92,8 +108,16 @@ function collectCandidateIds(
   const maxX = getCellCoordinate(bounds.right, index.spatialIndex.cellSize);
   const minY = getCellCoordinate(bounds.top, index.spatialIndex.cellSize);
   const maxY = getCellCoordinate(bounds.bottom, index.spatialIndex.cellSize);
-  const seen = new Set<string>();
-  const candidates: Array<{ id: string; orderIndex: number }> = [];
+  if (!boundedRange(minX, maxX, minY, maxY, 4096)) {
+    return index.spatialEntries.map(({ id }) => ({
+      id,
+      orderIndex: index.objectOrderIndexById.get(id) ?? Number.MAX_SAFE_INTEGER,
+    }));
+  }
+  const seen = new Set<string>(index.spatialIndex.overflow);
+  const candidates: Array<{ id: string; orderIndex: number }> = index.spatialIndex.overflow.map(
+    (id) => ({ id, orderIndex: index.objectOrderIndexById.get(id) ?? Number.MAX_SAFE_INTEGER }),
+  );
 
   for (let cellY = minY; cellY <= maxY; cellY += 1) {
     for (let cellX = minX; cellX <= maxX; cellX += 1) {
@@ -331,6 +355,7 @@ export function buildDocumentIndexUncached(
       spatialIndex: {
         cellSize: SPATIAL_INDEX_CELL_SIZE,
         cells: new Map(),
+        overflow: [],
       },
       pageBounds: null,
       chargeSymbolNodeIds: new Set(),
@@ -355,6 +380,7 @@ export function buildDocumentIndexUncached(
   const spatialIndex: DocumentSpatialIndex = {
     cellSize: SPATIAL_INDEX_CELL_SIZE,
     cells: new Map(),
+    overflow: [],
   };
   for (const entry of spatialEntries) populateSpatialIndex(spatialIndex, entry);
 
