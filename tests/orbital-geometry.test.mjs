@@ -18,22 +18,42 @@ test('an OrbitalType names a shape, a phase and a fill', () => {
   assert.equal(parseOrbitalType('mystery').shape, 'unknown');
 });
 
-test('lobed orbitals run from the nucleus: p has a lobe on each side of it', () => {
+test('p runs through its second point, the nucleus: a shaded lobe on the first side, a white one beyond', () => {
   const p = {
     id: 'o',
     type: 'graphic',
     graphicType: 'orbital',
-    orbitalType: 'pShaded',
+    orbitalType: 'p',
     points: [
       { x: 0, y: 0 },
-      { x: 0, y: -20 },
+      { x: 0, y: 20 },
     ],
   };
-  const [front, back] = orbitalOutlines(p);
-  assert.equal(front.fill, 'shaded');
-  assert.equal(back.fill, 'open');
-  assert.ok(Math.min(...front.points.map((q) => q.y)) < -19);
-  assert.ok(Math.max(...back.points.map((q) => q.y)) > 19);
+  const outlines = orbitalOutlines(p);
+  // 32 shaded slices of the first lobe, then the second lobe in white with its outline.
+  assert.equal(outlines.length, 33);
+  assert.equal(outlines[0].gray, 0);
+  assert.equal(outlines[0].stroke, false);
+  assert.equal(outlines[32].gray, 1);
+  assert.equal(outlines[32].stroke, true);
+  const ys = outlines.flatMap((o) => o.points.map((q) => q.y));
+  assert.ok(
+    Math.abs(Math.min(...ys) - 0) < 1e-6 && Math.abs(Math.max(...ys) - 40) < 0.01,
+    'spans 2L',
+  );
+  // The same orbital types ChemDraw's DTD names all draw something.
+  for (const type of [
+    's',
+    'oval',
+    'lobe',
+    'hybridPlus',
+    'hybridMinus',
+    'dz2Plus',
+    'dxy',
+    'sFilled',
+  ]) {
+    assert.ok(orbitalOutlines({ ...p, orbitalType: type }).length > 0, type);
+  }
   assert.equal(orbitalOutlines({ ...p, orbitalType: 'dxyPlus' }).length, 4);
 });
 
@@ -43,7 +63,8 @@ test('orbital tools write ChemDraw orbitals: s by axes, the rest nucleus to tip'
   const click = shapeForDrag('orbital-lobe', '9', { x: 80, y: 40 }, { x: 80, y: 40 }, false, {
     orbitalSize: 12,
   }).object;
-  assert.deepEqual(click.points[1], { x: 80, y: 28 });
+  assert.deepEqual(click.points[0], { x: 80, y: 28 });
+  assert.deepEqual(click.points[1], { x: 80, y: 40 });
   const { document } = cdxmlToChemDrawDocument(
     '<?xml version="1.0"?><CDXML BondLength="14.4"><page id="100"/></CDXML>',
   );
@@ -55,5 +76,5 @@ test('orbital tools write ChemDraw orbitals: s by axes, the rest nucleus to tip'
     out,
     /<graphic id="7"[^>]*GraphicType="Orbital" OrbitalType="sShaded" OvalType="Circle Shaded" Center3D=/,
   );
-  assert.match(out, /<graphic id="8" BoundingBox="50 10 50 40"[^>]*OrbitalType="pShaded"/);
+  assert.match(out, /<graphic id="8" BoundingBox="50 40 50 10"[^>]*OrbitalType="p"/);
 });

@@ -515,6 +515,20 @@ export const GRAPHIC_MODULE: ObjectModule = {
           index === 0 ? ctx.moveTo(point.x, point.y) : ctx.lineTo(point.x, point.y),
         );
         if (outline.closed) ctx.closePath();
+        if (outline.gray !== undefined) {
+          // A measured ChemDraw shape: flat gray fills, white or black, shaded as 32 of them.
+          if (outline.gray !== null) {
+            const level = Math.round(outline.gray * 255);
+            ctx.fillStyle = outline.gray === 0 ? color : `rgb(${level}, ${level}, ${level})`;
+            ctx.fill();
+          }
+          if (outline.stroke) {
+            setStroke(ctx, color, strokeWidth);
+            ctx.lineJoin = 'round';
+            ctx.stroke();
+          }
+          continue;
+        }
         if (outline.fill !== 'open') {
           ctx.fillStyle = orbitalFill;
           ctx.globalAlpha = outline.fill === 'shaded' ? 0.3 : 1;

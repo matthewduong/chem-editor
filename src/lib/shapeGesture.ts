@@ -45,14 +45,17 @@ export type OrbitalShapeKind =
   | 'orbital-dxy'
   | 'orbital-oval';
 
-/** The OrbitalType each orbital tool writes: shaded, the ChemDraw palette's usual look. */
+/**
+ * The OrbitalType each orbital tool writes, all names from the DTD: shaded where ChemDraw has a
+ * shaded name, and p, hybrid, dz2 and dxy as ChemDraw draws them by default (shaded lobes).
+ */
 export const ORBITAL_TYPE: Record<OrbitalShapeKind, string> = {
   'orbital-s': 'sShaded',
-  'orbital-p': 'pShaded',
+  'orbital-p': 'p',
   'orbital-lobe': 'lobeShaded',
-  'orbital-hybrid': 'hybridPlusShaded',
-  'orbital-dz2': 'dz2PlusShaded',
-  'orbital-dxy': 'dxyPlusShaded',
+  'orbital-hybrid': 'hybridPlus',
+  'orbital-dz2': 'dz2Plus',
+  'orbital-dxy': 'dxy',
   'orbital-oval': 'ovalShaded',
 };
 
@@ -62,8 +65,8 @@ export function isOrbitalShape(kind: ShapeKind): kind is OrbitalShapeKind {
 
 /**
  * An orbital with its nucleus at `node` and the lobe it was dragged out to ending at `tip`, written
- * as ChemDraw writes one: an s orbital by Center3D and axes, the others by a nucleus-to-tip
- * BoundingBox.
+ * as ChemDraw writes one: an s orbital by Center3D and axes, the others by a BoundingBox that has
+ * the far end of the lobe first and the nucleus second (ChemDraw's own samples; `orbitalShapes.ts`).
  */
 export function createOrbitalGraphic(
   id: string,
@@ -94,7 +97,7 @@ export function createOrbitalGraphic(
       },
     };
   }
-  return { ...base, points: [{ ...node }, { ...tip }] };
+  return { ...base, points: [{ ...tip }, { ...node }] };
 }
 
 /** Every kind the shape tool draws. */
