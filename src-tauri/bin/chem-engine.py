@@ -812,7 +812,6 @@ _ORBITAL_DEFAULT_SPACING_BOHR = 0.6
 _ORBITAL_PADDING_BOHR = 4.0
 _ORBITAL_MAX_GRID_POINTS = 160_000
 _ORBITAL_CHUNK_POINTS = 24_000
-_HF_OPTIMIZATION_TIMEOUT_S = 45.0
 _HF_OPTIMIZATION_MAX_STEPS = 20
 _HF_OPTIMIZATION_GRADIENT_TOL = 3e-3
 _CUBE_VERTEX_OFFSETS = (
@@ -1426,7 +1425,6 @@ def optimize_hartree_fock_geometry(
             [[float(atom["x"]), float(atom["y"]), float(atom["z"])] for atom in atoms],
             dtype=float,
         )
-        start_time = time.monotonic()
         state: dict[str, object] = {
             "dm0": None,
             "best_energy": None,
@@ -1435,8 +1433,6 @@ def optimize_hartree_fock_geometry(
         }
 
         def evaluate(flat_coords):
-            if time.monotonic() - start_time > _HF_OPTIMIZATION_TIMEOUT_S:
-                raise TimeoutError("HF geometry optimization timed out")
             coords = np.asarray(flat_coords, dtype=float).reshape((-1, 3))
             atom_spec = [
                 f"{symbol} {coords[index, 0]:.8f} {coords[index, 1]:.8f} {coords[index, 2]:.8f}"
@@ -2008,9 +2004,15 @@ if __name__ == "__main__":
     elif args.command == "ir":
         print(json.dumps(predict_ir(args.smiles)))
     elif args.command == "nmr":
+        molblock = sys.stdin.read() if args.molblock == "-" else args.molblock
         if args.method == "dft":
-            print(json.dumps(predict_nmr_dft(args.smiles, molblock=args.molblock, include_j=args.include_j)))
+            def report_progress(stage: str, label: str) -> None:
+                # The shell forwards marked stderr lines as job progress, apart from diagnostics.
+                print("@progress " + json.dumps({"stage": stage, "label": label}), file=sys.stderr, flush=True)
+
+            print(json.dumps(predict_nmr_dft(args.smiles, molblock=molblock, include_j=args.include_j,
+                                             progress_callback=report_progress)))
         else:
-            print(json.dumps(predict_nmr(args.smiles, molblock=args.molblock, solvent=args.solvent)))
+            print(json.dumps(predict_nmr(args.smiles, molblock=molblock, solvent=args.solvent)))
     else:
         parser.print_help()

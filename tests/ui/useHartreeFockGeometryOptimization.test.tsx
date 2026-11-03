@@ -71,19 +71,23 @@ describe('useHartreeFockGeometryOptimization', () => {
     expect(mocks.invokeTauri).toHaveBeenCalledTimes(1);
   });
 
-  it('reports timeout errors when an optimization never returns', async () => {
-    const setTimeoutSpy = vi.spyOn(window, 'setTimeout').mockImplementation(((
-      callback: TimerHandler,
-    ) => {
-      if (typeof callback === 'function') callback();
-      return 0 as unknown as number;
-    }) as typeof window.setTimeout);
-    mocks.invokeTauri.mockImplementation(() => new Promise(() => undefined));
+  it('cancels the backend job, waits for its terminal reply, and reports no error', async () => {
+    let rejectJob!: (error: Error) => void;
+    mocks.invokeTauri.mockImplementation((command: string) => {
+      if (command === 'cancel_scientific_job') {
+        // The backend settles the original request only once its process has been reaped.
+        rejectJob(new Error('Job cancelled'));
+        return Promise.resolve('cancelled');
+      }
+      return new Promise((_, reject) => {
+        rejectJob = reject;
+      });
+    });
 
     const { result } = renderHook(() =>
       useHartreeFockGeometryOptimization({
         enabled: true,
-        smiles: 'optimize-timeout',
+        smiles: 'optimize-cancel',
         molblock: '',
         molecule: createMolecule('N'),
         basis: '3-21G',
@@ -95,9 +99,18 @@ describe('useHartreeFockGeometryOptimization', () => {
       void result.current.optimize();
       await flushMicrotasks();
     });
+    expect(result.current.loading).toBe(true);
+    const jobId = mocks.invokeTauri.mock.calls[0][1].jobId;
+    expect(typeof jobId).toBe('string');
 
-    expect(result.current.error).toBe('HF geometry optimization timed out');
-    setTimeoutSpy.mockRestore();
+    await act(async () => {
+      result.current.cancel();
+      await flushMicrotasks();
+    });
+
+    expect(mocks.invokeTauri).toHaveBeenCalledWith('cancel_scientific_job', { jobId });
+    expect(result.current.loading).toBe(false);
+    expect(result.current.error).toBeNull();
   });
 
   it('keeps the newest optimization result when an older request resolves late', async () => {

@@ -1,7 +1,7 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useEffect, useCallback, useMemo, useRef, useState } from 'react';
 import type { Viewer3DMolecule } from '../lib/viewer3d';
 import type { ViewerOrbitalBasis } from '../types/settings';
-import { invokeTauri } from '../lib/tauri';
+import { invokeScientific } from '../lib/scientificJobs';
 
 interface OptimizationAtom {
   element: string;
@@ -41,8 +41,6 @@ export interface HartreeFockGeometryOptimizationOptions {
 }
 
 const optimizationCache = new Map<string, HartreeFockOptimizedConformer>();
-const inFlightOptimizationCache = new Map<string, Promise<HartreeFockOptimizedConformer>>();
-const OPTIMIZATION_REQUEST_TIMEOUT_MS = 90000;
 const OPTIMIZATION_CACHE_VERSION = 1;
 
 function buildGeometrySignature(molecule: Viewer3DMolecule | null) {
@@ -76,6 +74,7 @@ async function requestOptimizedGeometry(
   molecule: Viewer3DMolecule,
   basis: ViewerOrbitalBasis,
   charge: number | null,
+  signal?: AbortSignal,
 ): Promise<HartreeFockOptimizedConformer> {
   const trimmedMolblock = molblock.trim();
   const trimmedSmiles = smiles.trim();
@@ -83,11 +82,10 @@ async function requestOptimizedGeometry(
   const cacheKey = `${OPTIMIZATION_CACHE_VERSION}|${structureKey}|${basis}|${charge ?? 'na'}|${buildGeometrySignature(molecule)}`;
   const cached = optimizationCache.get(cacheKey);
   if (cached) return cached;
-  const inFlight = inFlightOptimizationCache.get(cacheKey);
-  if (inFlight) return inFlight;
 
-  const request = Promise.race([
-    invokeTauri<OptimizationResponse>('optimize_hartree_fock_geometry', {
+  const request = invokeScientific<OptimizationResponse>(
+    'optimize_hartree_fock_geometry',
+    {
       smiles: trimmedMolblock ? undefined : trimmedSmiles || undefined,
       molblock: trimmedMolblock || undefined,
       atoms: molecule.atoms.map((atom) => ({
@@ -104,34 +102,24 @@ async function requestOptimizedGeometry(
       })),
       basis,
       charge: charge ?? undefined,
-    }),
-    new Promise<never>((_, reject) => {
-      window.setTimeout(
-        () => reject(new Error('HF geometry optimization timed out')),
-        OPTIMIZATION_REQUEST_TIMEOUT_MS,
-      );
-    }),
-  ])
-    .then((result) => {
-      if (result.error) throw new Error(result.error);
-      const normalized: HartreeFockOptimizedConformer = {
-        structureKey,
-        forceField: 'hartree-fock',
-        atoms: result.atoms ?? [],
-        bonds: result.bonds ?? [],
-        energyHartree: result.energyHartree,
-        warnings: result.warnings ?? [],
-      };
-      if (optimizationCache.size >= 12)
-        optimizationCache.delete(optimizationCache.keys().next().value!);
-      optimizationCache.set(cacheKey, normalized);
-      return normalized;
-    })
-    .finally(() => {
-      inFlightOptimizationCache.delete(cacheKey);
-    });
+    },
+    signal,
+  ).then((result) => {
+    if (result.error) throw new Error(result.error);
+    const normalized: HartreeFockOptimizedConformer = {
+      structureKey,
+      forceField: 'hartree-fock',
+      atoms: result.atoms ?? [],
+      bonds: result.bonds ?? [],
+      energyHartree: result.energyHartree,
+      warnings: result.warnings ?? [],
+    };
+    if (optimizationCache.size >= 12)
+      optimizationCache.delete(optimizationCache.keys().next().value!);
+    optimizationCache.set(cacheKey, normalized);
+    return normalized;
+  });
 
-  inFlightOptimizationCache.set(cacheKey, request);
   return request;
 }
 
@@ -148,6 +136,8 @@ export function useHartreeFockGeometryOptimization({
   const [activeKey, setActiveKey] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const requestSerialRef = useRef(0);
+  const controllerRef = useRef<AbortController | null>(null);
+  const [errorKey, setErrorKey] = useState<string | null>(null);
 
   const requestKey = useMemo(() => {
     if (!enabled || !molecule) return null;
@@ -155,8 +145,20 @@ export function useHartreeFockGeometryOptimization({
     return `${OPTIMIZATION_CACHE_VERSION}|${structureKey}|${basis}|${charge ?? 'na'}|${buildGeometrySignature(molecule)}`;
   }, [basis, charge, enabled, molecule, molblock, smiles]);
 
+  useEffect(() => {
+    requestSerialRef.current += 1;
+    controllerRef.current?.abort();
+    return () => {
+      requestSerialRef.current += 1;
+      controllerRef.current?.abort();
+    };
+  }, [requestKey]);
+  const cancel = useCallback(() => controllerRef.current?.abort(), []);
+
   const optimize = useCallback(async () => {
     if (!enabled || !molecule || !requestKey) return null;
+    controllerRef.current?.abort();
+    requestSerialRef.current += 1;
     const cached = optimizationCache.get(requestKey);
     if (cached) {
       setActiveKey(requestKey);
@@ -168,17 +170,28 @@ export function useHartreeFockGeometryOptimization({
 
     const serial = requestSerialRef.current + 1;
     requestSerialRef.current = serial;
+    const controller = new AbortController();
+    controllerRef.current = controller;
+    setErrorKey(requestKey);
     setPendingKey(requestKey);
     setError(null);
 
     try {
-      const next = await requestOptimizedGeometry(smiles, molblock, molecule, basis, charge);
+      const next = await requestOptimizedGeometry(
+        smiles,
+        molblock,
+        molecule,
+        basis,
+        charge,
+        controller.signal,
+      );
       if (requestSerialRef.current !== serial) return null;
       setActiveKey(requestKey);
       setResult(next);
       return next;
     } catch (value: unknown) {
-      if (requestSerialRef.current !== serial) return null;
+      // A cancellation the user asked for is not a failure to report.
+      if (requestSerialRef.current !== serial || controller.signal.aborted) return null;
       setError(describeError(value));
       return null;
     } finally {
@@ -191,10 +204,11 @@ export function useHartreeFockGeometryOptimization({
     enabled && requestKey ? (activeKey === requestKey ? result : cachedResult) : null;
 
   return {
+    cancel,
     result: effectiveResult,
     warnings: effectiveResult?.warnings ?? [],
     loading: Boolean(enabled && requestKey && pendingKey === requestKey),
-    error: enabled && requestKey ? error : null,
+    error: enabled && requestKey && errorKey === requestKey ? error : null,
     optimize,
   };
 }

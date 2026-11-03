@@ -1,8 +1,8 @@
-import { useCallback, useDeferredValue, useMemo, useRef, useState } from 'react';
+import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import type { Viewer3DMolecule, ViewerOrbitalMesh, ViewerOrbitalResult } from '../lib/viewer3d';
 import { buildOrbitalMesh } from '../lib/orbitalMesh';
 import type { ViewerOrbitalBasis } from '../types/settings';
-import { invokeTauri } from '../lib/tauri';
+import { invokeScientific } from '../lib/scientificJobs';
 
 interface OrbitalResponse extends ViewerOrbitalResult {
   error?: string;
@@ -10,9 +10,7 @@ interface OrbitalResponse extends ViewerOrbitalResult {
 }
 
 const orbitalCache = new Map<string, ViewerOrbitalResult>();
-const inFlightOrbitalCache = new Map<string, Promise<ViewerOrbitalResult>>();
 const orbitalMeshCache = new Map<string, ViewerOrbitalMesh | null>();
-const ORBITAL_REQUEST_TIMEOUT_MS = 60000;
 const ORBITAL_CACHE_VERSION = 2;
 
 function buildGeometrySignature(molecule: Viewer3DMolecule | null) {
@@ -28,6 +26,7 @@ async function fetchOrbitals(
   molecule: Viewer3DMolecule,
   basis: ViewerOrbitalBasis,
   charge: number | null,
+  signal?: AbortSignal,
 ): Promise<ViewerOrbitalResult> {
   const trimmedMolblock = molblock.trim();
   const trimmedSmiles = smiles.trim();
@@ -35,11 +34,10 @@ async function fetchOrbitals(
   const key = `${ORBITAL_CACHE_VERSION}|${structureKey}|${basis}|${charge ?? 'na'}|${buildGeometrySignature(molecule)}`;
   const cached = orbitalCache.get(key);
   if (cached) return cached;
-  const inFlight = inFlightOrbitalCache.get(key);
-  if (inFlight) return inFlight;
 
-  const request = Promise.race([
-    invokeTauri<OrbitalResponse>('calculate_orbitals', {
+  const request = invokeScientific<OrbitalResponse>(
+    'calculate_orbitals',
+    {
       smiles: trimmedMolblock ? undefined : trimmedSmiles || undefined,
       molblock: trimmedMolblock || undefined,
       atoms: molecule.atoms.map((atom) => ({
@@ -51,15 +49,9 @@ async function fetchOrbitals(
       })),
       basis,
       charge: charge ?? undefined,
-    }),
-    new Promise<never>((_, reject) => {
-      window.setTimeout(
-        () => reject(new Error('HF orbital calculation timed out')),
-        ORBITAL_REQUEST_TIMEOUT_MS,
-      );
-    }),
-  ])
-    .then((result) => {
+    },
+    signal,
+  ).then((result) => {
       if (result.error) throw new Error(result.error);
       if (!result.grid) throw new Error('HF orbital calculation returned no volumetric grid');
       const normalized: ViewerOrbitalResult = {
@@ -72,12 +64,8 @@ async function fetchOrbitals(
       if (orbitalCache.size >= 24) orbitalCache.delete(orbitalCache.keys().next().value!);
       orbitalCache.set(key, normalized);
       return normalized;
-    })
-    .finally(() => {
-      inFlightOrbitalCache.delete(key);
     });
 
-  inFlightOrbitalCache.set(key, request);
   return request;
 }
 
@@ -120,12 +108,24 @@ export function useHartreeFockOrbitals({
   const [pendingKey, setPendingKey] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const requestSerialRef = useRef(0);
+  const controllerRef = useRef<AbortController | null>(null);
+  const [errorKey, setErrorKey] = useState<string | null>(null);
 
   const requestKey = useMemo(() => {
     if (!enabled || !molecule) return null;
     const structureKey = molblock.trim() || smiles.trim() || buildGeometrySignature(molecule);
     return `${ORBITAL_CACHE_VERSION}|${structureKey}|${basis}|${charge ?? 'na'}|${buildGeometrySignature(molecule)}`;
   }, [basis, charge, enabled, molblock, molecule, smiles]);
+
+  useEffect(() => {
+    requestSerialRef.current += 1;
+    controllerRef.current?.abort();
+    return () => {
+      requestSerialRef.current += 1;
+      controllerRef.current?.abort();
+    };
+  }, [requestKey]);
+  const cancel = useCallback(() => controllerRef.current?.abort(), []);
 
   const applyResult = useCallback((next: ViewerOrbitalResult, key: string) => {
     setActiveKey(key);
@@ -143,6 +143,8 @@ export function useHartreeFockOrbitals({
 
   const calculate = useCallback(() => {
     if (!enabled || !molecule || !requestKey) return;
+    controllerRef.current?.abort();
+    requestSerialRef.current += 1;
     const cached = orbitalCache.get(requestKey);
     if (cached) {
       applyResult(cached, requestKey);
@@ -152,15 +154,19 @@ export function useHartreeFockOrbitals({
 
     const serial = requestSerialRef.current + 1;
     requestSerialRef.current = serial;
+    const controller = new AbortController();
+    controllerRef.current = controller;
+    setErrorKey(requestKey);
     setPendingKey(requestKey);
     setError(null);
-    fetchOrbitals(smiles, molblock, molecule, basis, charge)
+    fetchOrbitals(smiles, molblock, molecule, basis, charge, controller.signal)
       .then((next) => {
         if (requestSerialRef.current !== serial) return;
         applyResult(next, requestKey);
       })
       .catch((err: unknown) => {
-        if (requestSerialRef.current !== serial) return;
+        // A cancellation the user asked for is not a failure to report.
+        if (requestSerialRef.current !== serial || controller.signal.aborted) return;
         setError(describeError(err));
       })
       .finally(() => {
@@ -183,7 +189,7 @@ export function useHartreeFockOrbitals({
     enabled && requestKey && activeKey && activeKey !== requestKey && !cachedResult,
   );
   const loading = Boolean(enabled && requestKey && pendingKey === requestKey);
-  const effectiveError = enabled && requestKey ? error : null;
+  const effectiveError = enabled && requestKey && errorKey === requestKey ? error : null;
   const deferredIsovalue = useDeferredValue(isovalue);
   const resultGrid = effectiveResult?.grid ?? null;
   const selectedField =
@@ -201,6 +207,7 @@ export function useHartreeFockOrbitals({
   }, [deferredIsovalue, requestKey, resultGrid, selectedField]);
 
   return {
+    cancel,
     result: effectiveResult,
     orbitals: effectiveResult?.orbitals ?? [],
     warnings: effectiveResult?.warnings ?? [],

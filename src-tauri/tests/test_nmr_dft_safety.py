@@ -116,3 +116,18 @@ class DftEndToEndTests(unittest.TestCase):
         self.assertIn('non-finite', result['error'])
         self.assertEqual(cached, [])
 
+
+class OneShotNmrCommandTests(unittest.TestCase):
+    def test_molblock_is_read_from_stdin(self):
+        import subprocess
+        import sys
+
+        script = Path(engine.__file__)
+        molblock = Chem.MolToMolBlock(Chem.MolFromSmiles('CCO'))
+        output = subprocess.run(
+            [sys.executable, str(script), 'nmr', '--method', 'hose', '--molblock', '-'],
+            input=molblock, capture_output=True, text=True, timeout=120, check=True,
+        )
+        result = json.loads(output.stdout)
+        self.assertNotIn('error', result)
+        self.assertTrue(result['signals_13c'])

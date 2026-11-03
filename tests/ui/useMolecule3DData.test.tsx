@@ -170,7 +170,8 @@ describe('useMolecule3DData', () => {
         delta_e: number;
       }>;
     }>();
-    mocks.invokeTauri.mockImplementation((_command, args) => {
+    mocks.invokeTauri.mockImplementation((command, args) => {
+      if (command === 'cancel_scientific_job') return Promise.resolve('cancelled');
       const payload = args as { molblock?: string; smiles?: string };
       if (payload.molblock?.includes('Zn')) return staleRequest.promise;
       return freshRequest.promise;
@@ -219,8 +220,14 @@ describe('useMolecule3DData', () => {
       await flushMicrotasks();
     });
 
+    const conformerCalls = () =>
+      mocks.invokeTauri.mock.calls.filter(([command]) => command === 'generate_conformers');
     await waitFor(() => {
-      expect(mocks.invokeTauri).toHaveBeenCalledTimes(2);
+      expect(conformerCalls()).toHaveLength(2);
+    });
+    // The superseded request's backend job is cancelled rather than abandoned.
+    expect(mocks.invokeTauri).toHaveBeenCalledWith('cancel_scientific_job', {
+      jobId: conformerCalls()[0][1].jobId,
     });
 
     await act(async () => {

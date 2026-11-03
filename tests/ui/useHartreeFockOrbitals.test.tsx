@@ -7,6 +7,8 @@ const mocks = vi.hoisted(() => ({
   invokeTauri: vi.fn(),
   buildOrbitalMesh: vi.fn((field, _grid, isovalue: number) => ({
     key: `${field.key}:${isovalue.toFixed(3)}`,
+    positivePositions: [],
+    negativePositions: [],
   })),
 }));
 
@@ -89,11 +91,13 @@ describe('useHartreeFockOrbitals', () => {
       expect(result.current.warnings).toEqual(['Coarse orbital grid']);
     });
     expect(mocks.invokeTauri).toHaveBeenCalledTimes(1);
-    expect(mocks.buildOrbitalMesh).toHaveBeenCalledWith(
-      response.fields['mo-0'],
-      response.grid,
-      0.05,
-    );
+    await waitFor(() => {
+      expect(mocks.buildOrbitalMesh).toHaveBeenCalledWith(
+        expect.objectContaining({ key: 'mo-0' }),
+        response.grid,
+        0.05,
+      );
+    });
 
     await act(async () => {
       result.current.calculate();
@@ -116,19 +120,22 @@ describe('useHartreeFockOrbitals', () => {
     });
   });
 
-  it('reports timeout failures without requiring a Tauri runtime', async () => {
-    const setTimeoutSpy = vi.spyOn(window, 'setTimeout').mockImplementation(((
-      callback: TimerHandler,
-    ) => {
-      if (typeof callback === 'function') callback();
-      return 0 as unknown as number;
-    }) as typeof window.setTimeout);
-    mocks.invokeTauri.mockImplementation(() => new Promise(() => undefined));
+  it('cancels the backend job and reports no error for a requested cancellation', async () => {
+    let rejectJob!: (error: Error) => void;
+    mocks.invokeTauri.mockImplementation((command: string) => {
+      if (command === 'cancel_scientific_job') {
+        rejectJob(new Error('Job cancelled'));
+        return Promise.resolve('cancelled');
+      }
+      return new Promise((_, reject) => {
+        rejectJob = reject;
+      });
+    });
 
     const { result } = renderHook(() =>
       useHartreeFockOrbitals({
         enabled: true,
-        smiles: 'orbital-timeout',
+        smiles: 'orbital-cancel',
         molblock: '',
         molecule: createMolecule('O'),
         basis: '3-21G',
@@ -141,9 +148,17 @@ describe('useHartreeFockOrbitals', () => {
       result.current.calculate();
       await flushMicrotasks();
     });
+    expect(result.current.loading).toBe(true);
+    const jobId = mocks.invokeTauri.mock.calls[0][1].jobId;
 
-    expect(result.current.error).toBe('HF orbital calculation timed out');
-    setTimeoutSpy.mockRestore();
+    await act(async () => {
+      result.current.cancel();
+      await flushMicrotasks();
+    });
+
+    expect(mocks.invokeTauri).toHaveBeenCalledWith('cancel_scientific_job', { jobId });
+    expect(result.current.loading).toBe(false);
+    expect(result.current.error).toBeNull();
   });
 
   it('ignores stale orbital responses when a newer calculation finishes first', async () => {

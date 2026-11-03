@@ -1,3 +1,4 @@
+import { ScientificJobStatus } from './ScientificJobStatus';
 import { Suspense, forwardRef, lazy, useCallback, useImperativeHandle, useRef } from 'react';
 import { useStore } from '../store';
 import { Molecule3DHartreeFockPopup } from './Molecule3DHartreeFockPopup';
@@ -133,6 +134,7 @@ export const Molecule3DThreePanel = forwardRef<Molecule3DRef, Props>(
       error: orbitalError,
       stale: orbitalStale,
       calculate: calculateOrbitals,
+      cancel: cancelOrbitals,
     } = useHartreeFockOrbitals({
       enabled: isHartreeFock,
       smiles,
@@ -148,6 +150,7 @@ export const Molecule3DThreePanel = forwardRef<Molecule3DRef, Props>(
       loading: optimizeLoading,
       error: optimizeError,
       optimize: optimizeGeometry,
+      cancel: cancelOptimization,
     } = useHartreeFockGeometryOptimization({
       enabled: isHartreeFock,
       smiles,
@@ -281,7 +284,7 @@ export const Molecule3DThreePanel = forwardRef<Molecule3DRef, Props>(
                 border: `1px solid ${borderColor}`,
               }}
             >
-              Calculating HF orbitals...
+              <ScientificJobStatus label="Calculating HF orbitals" cancel={cancelOrbitals} />
             </div>
           )}
           {optimizeLoading && molecule && !loading && !orbitalLoading && (
@@ -299,7 +302,7 @@ export const Molecule3DThreePanel = forwardRef<Molecule3DRef, Props>(
                 border: `1px solid ${borderColor}`,
               }}
             >
-              Optimizing HF geometry...
+              <ScientificJobStatus label="Optimizing HF geometry" cancel={cancelOptimization} />
             </div>
           )}
           {orbitalError && molecule && !loading && !orbitalLoading && (

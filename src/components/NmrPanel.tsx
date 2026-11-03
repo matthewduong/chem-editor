@@ -5,7 +5,9 @@ import { useSmilesCache } from '../hooks/useSmilesCache';
 import { FloatingPanel } from './FloatingPanel';
 import type { NmrSignal, NmrSpectrum } from '../types/chemistry';
 import type { PanelTheme } from '../types/panelTheme';
-import { invokeTauri, listenTauri } from '../lib/tauri';
+import { listenTauri } from '../lib/tauri';
+import { invokeScientific } from '../lib/scientificJobs';
+import { useRequestOwnership } from '../hooks/useRequestOwnership';
 
 interface Props {
   theme: PanelTheme;
@@ -109,9 +111,10 @@ function formatElapsedSeconds(ms: number) {
 type DftProgressKey = (typeof DFT_PROGRESS_STEPS)[number]['key'];
 
 type DftProgressEvent = {
-  request_id: string;
-  stage: DftProgressKey;
-  label: string;
+  jobId: string;
+  status: string;
+  stage?: DftProgressKey;
+  label?: string;
 };
 
 function getDftProgressSteps(
@@ -547,7 +550,7 @@ function SpectrumChart({
 
 export function NmrPanel({ theme, isDarkMode, viewerSmiles }: Props) {
   const {
-    nmrSpectrum,
+    nmrSpectrum: storedSpectrum,
     nmrPos,
     nmrSize,
     viewerMolblock,
@@ -588,10 +591,13 @@ export function NmrPanel({ theme, isDarkMode, viewerSmiles }: Props) {
 
   const rawStructureKey = viewerMolblock || viewerSmiles;
   const debouncedStructureKey = useDebouncedValue(rawStructureKey, 500);
-  const structureKey = debouncedStructureKey;
+  const structureKey = rawStructureKey;
   const requestKey = structureKey
     ? `${structureKey}::${method}::${method === 'hose' ? solvent : includeHeuristicJ ? 'heur-j' : 'shift-only'}`
     : '';
+  const ownership = useRequestOwnership(requestKey);
+  const [cancelledKey, setCancelledKey] = useState<string | null>(null);
+  const nmrSpectrum = completedRequestKey === requestKey ? storedSpectrum : null;
   const activeSignals = useMemo(
     () =>
       nmrSpectrum ? (nucleus === '1H' ? nmrSpectrum.signals_1h : nmrSpectrum.signals_13c) : [],
@@ -608,26 +614,28 @@ export function NmrPanel({ theme, isDarkMode, viewerSmiles }: Props) {
     (hoveredSignalIndex ?? selectedSignalIndex ?? linkedSignalIndex) !== null
       ? activeSignals[(hoveredSignalIndex ?? selectedSignalIndex ?? linkedSignalIndex) as number]
       : null;
-  const isPredicting = Boolean(requestKey) && completedRequestKey !== requestKey;
+  const isPredicting =
+    Boolean(requestKey) && completedRequestKey !== requestKey && cancelledKey !== requestKey;
   const ppmWindow = ppmWindows[nucleus];
 
   useEffect(() => {
     let disposed = false;
     let unlisten: (() => void) | null = null;
 
-    void listenTauri<DftProgressEvent>('nmr-progress', (event) => {
+    void listenTauri<DftProgressEvent>('scientific-job-progress', (event) => {
       if (disposed) {
         return;
       }
       const payload = event.payload;
-      if (payload.request_id !== activeProgressRequestIdRef.current) {
+      if (!payload.stage || payload.jobId !== activeProgressRequestIdRef.current) {
         return;
       }
+      const stage = payload.stage;
       const startedAt =
         predictionStartedAtRef.current === null ? 0 : Date.now() - predictionStartedAtRef.current;
-      setActiveDftStage(payload.stage);
+      setActiveDftStage(stage);
       setDftStageStartedAtMs((current) =>
-        current[payload.stage] === undefined ? { ...current, [payload.stage]: startedAt } : current,
+        current[stage] === undefined ? { ...current, [stage]: startedAt } : current,
       );
     }).then((fn) => {
       if (disposed) {
@@ -645,21 +653,14 @@ export function NmrPanel({ theme, isDarkMode, viewerSmiles }: Props) {
     };
   }, []);
 
-  useEffect(
-    () => () => {
-      if (activeDftRequestKeyRef.current) {
-        activeDftRequestKeyRef.current = null;
-        activeProgressRequestIdRef.current = null;
-        predictionStartedAtRef.current = null;
-        void invokeTauri('cancel_nmr_prediction');
-      }
-    },
-    [],
-  );
-
   useEffect(() => {
+    const owned = ownership.start();
+    requestSerialRef.current += 1;
+    activeDftRequestKeyRef.current = null;
+    if (debouncedStructureKey !== rawStructureKey) return ownership.cancel;
     if (!requestKey) {
       queueMicrotask(() => {
+        if (!owned.current()) return;
         if (viewerStructureStatus.kind === 'display-only') {
           setPredictionError(
             viewerStructureStatus.message ?? 'NMR prediction is unavailable for this structure.',
@@ -671,6 +672,7 @@ export function NmrPanel({ theme, isDarkMode, viewerSmiles }: Props) {
       predictionStartedAtRef.current = null;
       activeProgressRequestIdRef.current = null;
       queueMicrotask(() => {
+        if (!owned.current()) return;
         setDftStageStartedAtMs({});
         setActiveDftStage(null);
       });
@@ -681,6 +683,7 @@ export function NmrPanel({ theme, isDarkMode, viewerSmiles }: Props) {
       predictionStartedAtRef.current = null;
       activeProgressRequestIdRef.current = null;
       queueMicrotask(() => {
+        if (!owned.current()) return;
         setPredictionError(
           viewerStructureStatus.message ?? 'NMR prediction is unavailable for this structure.',
         );
@@ -695,6 +698,7 @@ export function NmrPanel({ theme, isDarkMode, viewerSmiles }: Props) {
     const cached = nmrCache.get(requestKey);
     if (cached) {
       queueMicrotask(() => {
+        if (!owned.current()) return;
         setCompletedRequestKey(requestKey);
         setNmrSpectrum(cached);
         setPredictionError(null);
@@ -712,11 +716,11 @@ export function NmrPanel({ theme, isDarkMode, viewerSmiles }: Props) {
     }
 
     const serial = requestSerialRef.current + 1;
-    const requestId = `nmr-${serial}`;
     requestSerialRef.current = serial;
     predictionStartedAtRef.current = Date.now();
-    activeProgressRequestIdRef.current = requestId;
+    activeProgressRequestIdRef.current = null;
     queueMicrotask(() => {
+      if (!owned.current()) return;
       setPredictionElapsedMs(0);
       setDftStageStartedAtMs({});
       setActiveDftStage(null);
@@ -725,16 +729,22 @@ export function NmrPanel({ theme, isDarkMode, viewerSmiles }: Props) {
       activeDftRequestKeyRef.current = requestKey;
     }
 
-    invokeTauri<SidecarNmrResult>('predict_nmr', {
-      smiles: viewerSmiles || undefined,
-      molblock: viewerMolblock || undefined,
-      method,
-      solvent: method === 'hose' ? solvent : undefined,
-      includeJ: method === 'dft' ? includeHeuristicJ : undefined,
-      requestId,
-    })
+    invokeScientific<SidecarNmrResult>(
+      'predict_nmr',
+      {
+        smiles: viewerSmiles || undefined,
+        molblock: viewerMolblock || undefined,
+        method,
+        solvent: method === 'hose' ? solvent : undefined,
+        includeJ: method === 'dft' ? includeHeuristicJ : undefined,
+      },
+      owned.signal,
+      (jobId) => {
+        if (owned.current()) activeProgressRequestIdRef.current = jobId;
+      },
+    )
       .then((result) => {
-        if (requestSerialRef.current !== serial) {
+        if (!owned.current() || requestSerialRef.current !== serial) {
           return;
         }
         predictionStartedAtRef.current = null;
@@ -766,7 +776,7 @@ export function NmrPanel({ theme, isDarkMode, viewerSmiles }: Props) {
         }
       })
       .catch((error) => {
-        if (requestSerialRef.current !== serial) {
+        if (!owned.current() || requestSerialRef.current !== serial) {
           return;
         }
         predictionStartedAtRef.current = null;
@@ -787,7 +797,11 @@ export function NmrPanel({ theme, isDarkMode, viewerSmiles }: Props) {
         setActiveDftStage(null);
         setNmrSpectrum(null);
       });
+    return ownership.cancel;
   }, [
+    ownership,
+    debouncedStructureKey,
+    rawStructureKey,
     includeHeuristicJ,
     method,
     solvent,
@@ -1177,6 +1191,16 @@ export function NmrPanel({ theme, isDarkMode, viewerSmiles }: Props) {
           </button>
         </div>
 
+        {isPredicting && (
+          <button
+            onClick={() => {
+              ownership.cancel();
+              setCancelledKey(requestKey);
+            }}
+          >
+            Cancel calculation
+          </button>
+        )}
         {isPredicting && method === 'dft' && (
           <div
             style={{
@@ -1371,7 +1395,7 @@ export function NmrPanel({ theme, isDarkMode, viewerSmiles }: Props) {
               </div>
             )}
 
-            {predictionError && !isPredicting && (
+            {predictionError && completedRequestKey === requestKey && !isPredicting && (
               <div
                 style={{
                   background: controlBg,

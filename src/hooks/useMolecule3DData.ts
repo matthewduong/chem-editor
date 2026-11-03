@@ -7,7 +7,7 @@ import {
   normalizeViewerElementSymbol,
   viewer3DMoleculeFromMolblock,
 } from '../lib/viewer3d';
-import { invokeTauri } from '../lib/tauri';
+import { invokeScientific } from '../lib/scientificJobs';
 
 interface ConformerResult {
   error?: string;
@@ -16,8 +16,6 @@ interface ConformerResult {
 }
 
 const conformerCache = new Map<string, Viewer3DMolecule[]>();
-const inFlightConformerCache = new Map<string, Promise<Viewer3DMolecule[]>>();
-const CONFORMER_REQUEST_TIMEOUT_MS = 45000;
 const CONFORMER_CACHE_VERSION = 3;
 const prepareViewerConformers = (nextConformers: Viewer3DMolecule[]) =>
   alignViewerConformerSeries(nextConformers);
@@ -154,6 +152,7 @@ async function fetchConformers(
   forceField: string,
   maxConformers: number,
   preferSmilesInput: boolean,
+  signal?: AbortSignal,
 ): Promise<Viewer3DMolecule[]> {
   // Prefer mapped SMILES when available so RDKit builds the same chemistry-aware
   // graph used elsewhere, while atom-map numbers keep canvas/viewer sync stable.
@@ -162,45 +161,34 @@ async function fetchConformers(
   const key = `${CONFORMER_CACHE_VERSION}|${structureKey}|${forceField}|${maxConformers}`;
   const cached = conformerCache.get(key);
   if (cached) return cached;
-  const inFlight = inFlightConformerCache.get(key);
-  if (inFlight) return inFlight;
 
-  const request = Promise.race([
-    invokeTauri<ConformerResult>('generate_conformers', {
+  const request = invokeScientific<ConformerResult>(
+    'generate_conformers',
+    {
       smiles: useSmilesInput ? smiles || undefined : undefined,
       molblock: useSmilesInput ? undefined : molblock || undefined,
       forceField,
       maxConformers,
-    }),
-    new Promise<never>((_, reject) => {
-      window.setTimeout(
-        () => reject(new Error('3D generation timed out')),
-        CONFORMER_REQUEST_TIMEOUT_MS,
-      );
-    }),
-  ])
-    .then((result) => {
-      if (result.error) throw new Error(result.error);
-      const bonds = result.bonds || [];
-      const conformers = result.conformers || [];
-      const data = conformers.map((conformer) => ({
-        atoms: (conformer.atoms || []).map((atom) => ({
-          ...atom,
-          element: normalizeViewerElementSymbol(atom.element),
-        })),
-        bonds,
-        energy: conformer.energy,
-        delta_e: conformer.delta_e,
-      }));
-      if (conformerCache.size >= 50) conformerCache.delete(conformerCache.keys().next().value!);
-      conformerCache.set(key, data);
-      return data;
-    })
-    .finally(() => {
-      inFlightConformerCache.delete(key);
-    });
+    },
+    signal,
+  ).then((result) => {
+    if (result.error) throw new Error(result.error);
+    const bonds = result.bonds || [];
+    const conformers = result.conformers || [];
+    const data = conformers.map((conformer) => ({
+      atoms: (conformer.atoms || []).map((atom) => ({
+        ...atom,
+        element: normalizeViewerElementSymbol(atom.element),
+      })),
+      bonds,
+      energy: conformer.energy,
+      delta_e: conformer.delta_e,
+    }));
+    if (conformerCache.size >= 50) conformerCache.delete(conformerCache.keys().next().value!);
+    conformerCache.set(key, data);
+    return data;
+  });
 
-  inFlightConformerCache.set(key, request);
   return request;
 }
 
@@ -363,6 +351,7 @@ export function useMolecule3DData({
       return;
     }
 
+    const controller = new AbortController();
     const serial = requestSerialRef.current + 1;
     requestSerialRef.current = serial;
     const limit = multiConformer ? maxConformers : 1;
@@ -383,6 +372,7 @@ export function useMolecule3DData({
       effectiveForceField,
       limit,
       preferSmilesGeometry,
+      controller.signal,
     )
       .then((data) => {
         if (requestSerialRef.current !== serial) return;
@@ -407,6 +397,10 @@ export function useMolecule3DData({
         if (requestSerialRef.current !== serial) return;
         setLoading(false);
       });
+    return () => {
+      requestSerialRef.current += 1;
+      controller.abort();
+    };
   }, [
     forceField,
     geometrySmiles,
