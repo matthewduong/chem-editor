@@ -1,3 +1,4 @@
+import { guardDocumentWrites } from '../store/documentGuard';
 import { isTauri } from '@tauri-apps/api/core';
 import { create } from 'zustand';
 import { broadcastTauri, currentWindowLabel } from '../lib/tauri';
@@ -573,1149 +574,1162 @@ export interface AppState {
   dismissToast: (id: number) => void;
 }
 
-export const useStore = create<AppState>((set, get) => ({
-  // ── Editor defaults ──────────────────────────────────────────────────────────
-  tool: 'bond',
-  element: 'C',
-  atomToolMode: 'element',
-  bondOrder: 1,
-  stereo: 0,
-  arrowType: 'reaction',
-  shapeKind: 'rectangle',
-  rotationPivot: null,
-  selectMode: 'marquee',
-  fixedLengths: true,
-  fixedAngles: true,
-  chainLengthRequest: null,
-  lastChainCount: null,
-  currentCharge: 0,
-  electronToolMode: 'charge-positive',
-  selectedFragment: '',
-  showHydrogens: true,
-  ringSize: 6,
-  ringPreset: 'polygon',
-  ringRotationSteps: 0,
+export const useStore = create<AppState>(
+  guardDocumentWrites((set, get) => ({
+    // ── Editor defaults ──────────────────────────────────────────────────────────
+    tool: 'bond',
+    element: 'C',
+    atomToolMode: 'element',
+    bondOrder: 1,
+    stereo: 0,
+    arrowType: 'reaction',
+    shapeKind: 'rectangle',
+    rotationPivot: null,
+    selectMode: 'marquee',
+    fixedLengths: true,
+    fixedAngles: true,
+    chainLengthRequest: null,
+    lastChainCount: null,
+    currentCharge: 0,
+    electronToolMode: 'charge-positive',
+    selectedFragment: '',
+    showHydrogens: true,
+    ringSize: 6,
+    ringPreset: 'polygon',
+    ringRotationSteps: 0,
 
-  // ── Canvas defaults ──────────────────────────────────────────────────────────
-  atoms: initialProjection.atoms,
-  bonds: initialProjection.bonds,
-  arrows: initialProjection.arrows,
-  groups: initialProjection.groups ?? [],
-  textBoxes: initialProjection.textBoxes ?? [],
-  history: [initialDocument],
-  historyIndex: 0,
-  selectedObjectIds: new Set(),
-  selectedAtomIds: new Set(),
-  selectedBondIds: new Set(),
-  selectedArrowIds: new Set(),
-  selectedTextBoxIds: new Set(),
-  lastInteractedAtomId: null,
-  canvasSize: { width: 800, height: 600 },
-  pageSetup: DEFAULT_PAGE_SETUP,
-  chemDrawDocument: initialDocument,
-  previewChemDrawDocument: null,
-  documentFile: createUntitledDocumentFile(),
-  documentSessionId: crypto.randomUUID(),
-  savedDocument: initialDocument,
-  selectionPreviewTransform: null,
-  chemDrawWarnings: [],
-  objectCount: 0,
-  largeDocumentMode: false,
-  documentRevision: 0,
-  projectionRevision: 0,
+    // ── Canvas defaults ──────────────────────────────────────────────────────────
+    atoms: initialProjection.atoms,
+    bonds: initialProjection.bonds,
+    arrows: initialProjection.arrows,
+    groups: initialProjection.groups ?? [],
+    textBoxes: initialProjection.textBoxes ?? [],
+    history: [initialDocument],
+    historyIndex: 0,
+    selectedObjectIds: new Set(),
+    selectedAtomIds: new Set(),
+    selectedBondIds: new Set(),
+    selectedArrowIds: new Set(),
+    selectedTextBoxIds: new Set(),
+    lastInteractedAtomId: null,
+    canvasSize: { width: 800, height: 600 },
+    pageSetup: DEFAULT_PAGE_SETUP,
+    chemDrawDocument: initialDocument,
+    previewChemDrawDocument: null,
+    documentFile: createUntitledDocumentFile(),
+    documentSessionId: crypto.randomUUID(),
+    savedDocument: initialDocument,
+    selectionPreviewTransform: null,
+    chemDrawWarnings: [],
+    objectCount: 0,
+    largeDocumentMode: false,
+    documentRevision: 0,
+    projectionRevision: 0,
 
-  // ── Viewer defaults ──────────────────────────────────────────────────────────
-  viewerSmiles: '',
-  stereoLabels: null,
-  showReactionRoles: false,
-  viewerGeometrySmiles: '',
-  viewerGeometryMolblock: '',
-  viewerMolblock: '',
-  viewerStructureStatus: {
-    kind: 'empty',
-    chemistryAvailable: false,
-    fallbackGeometryAvailable: false,
-    message: null,
-  },
-  viewerAtomIndexById: {},
-  viewerAtomIdByMapNumber: {},
-  hoveredCanvasAtomId: null,
-  hoveredCanvasBondId: null,
-  editableSmiles: '',
-  isInputFocused: false,
-  previewMode: '3D',
-  showViewer: false,
-  viewerMode: DEFAULT_APP_PREFERENCES.viewer.mode,
-  viewerPos: { x: 10, y: 10 },
-  viewerSize: { width: 400, height: 350 },
-  splitWidth: 450,
-  minimizeGeometry: true,
-  rawConformer: null,
-  viewerHoveredAtomIdx: null,
-  viewerSelectedAtomIdx: null,
-  viewerRepresentation: DEFAULT_APP_PREFERENCES.viewer.representation,
-  viewerSpin: DEFAULT_APP_PREFERENCES.viewer.spin,
-  viewerSpinSpeed: DEFAULT_APP_PREFERENCES.viewer.spinSpeed,
-  viewerForceField: DEFAULT_APP_PREFERENCES.viewer.forceField,
-  viewerMultiConformer: DEFAULT_APP_PREFERENCES.viewer.multiConformer,
-  viewerMaxConformers: DEFAULT_APP_PREFERENCES.viewer.maxConformers,
-  viewerShowAtomNumbers: DEFAULT_APP_PREFERENCES.viewer.showAtomNumbers,
-  viewerShowAtomLabels: DEFAULT_APP_PREFERENCES.viewer.showAtomLabels,
-  viewerShowMeasureToolbar: DEFAULT_APP_PREFERENCES.viewer.showMeasureToolbar,
-  viewerAtomScale: DEFAULT_APP_PREFERENCES.viewer.atomScale,
-  viewerBondScale: DEFAULT_APP_PREFERENCES.viewer.bondScale,
-  viewerPerspectiveFov: DEFAULT_APP_PREFERENCES.viewer.perspectiveFov,
-  viewerBackgroundColor: DEFAULT_APP_PREFERENCES.viewer.backgroundColor,
-  viewerBondColor: DEFAULT_APP_PREFERENCES.viewer.bondColor,
-  viewerAmbientLightIntensity: DEFAULT_APP_PREFERENCES.viewer.ambientLightIntensity,
-  viewerHemiLightIntensity: DEFAULT_APP_PREFERENCES.viewer.hemiLightIntensity,
-  viewerKeyLightIntensity: DEFAULT_APP_PREFERENCES.viewer.keyLightIntensity,
-  viewerFillLightIntensity: DEFAULT_APP_PREFERENCES.viewer.fillLightIntensity,
-  viewerRimLightIntensity: DEFAULT_APP_PREFERENCES.viewer.rimLightIntensity,
-  viewerOrbitalBasis: DEFAULT_APP_PREFERENCES.viewer.orbitals.basis,
-  viewerOrbitalOpacity: DEFAULT_APP_PREFERENCES.viewer.orbitals.opacity,
-  viewerOrbitalPositiveColor: DEFAULT_APP_PREFERENCES.viewer.orbitals.positiveColor,
-  viewerOrbitalNegativeColor: DEFAULT_APP_PREFERENCES.viewer.orbitals.negativeColor,
-  viewerOrbitalMaterial: DEFAULT_APP_PREFERENCES.viewer.orbitals.material,
-  viewerOrbitalOutline: DEFAULT_APP_PREFERENCES.viewer.orbitals.outline,
-  viewerOrbitalIsovalue: DEFAULT_APP_PREFERENCES.viewer.orbitals.isovalue,
-  viewerOrbitalShowPositivePhase: DEFAULT_APP_PREFERENCES.viewer.orbitals.showPositivePhase,
-  viewerOrbitalShowNegativePhase: DEFAULT_APP_PREFERENCES.viewer.orbitals.showNegativePhase,
+    // ── Viewer defaults ──────────────────────────────────────────────────────────
+    viewerSmiles: '',
+    stereoLabels: null,
+    showReactionRoles: false,
+    viewerGeometrySmiles: '',
+    viewerGeometryMolblock: '',
+    viewerMolblock: '',
+    viewerStructureStatus: {
+      kind: 'empty',
+      chemistryAvailable: false,
+      fallbackGeometryAvailable: false,
+      message: null,
+    },
+    viewerAtomIndexById: {},
+    viewerAtomIdByMapNumber: {},
+    hoveredCanvasAtomId: null,
+    hoveredCanvasBondId: null,
+    editableSmiles: '',
+    isInputFocused: false,
+    previewMode: '3D',
+    showViewer: false,
+    viewerMode: DEFAULT_APP_PREFERENCES.viewer.mode,
+    viewerPos: { x: 10, y: 10 },
+    viewerSize: { width: 400, height: 350 },
+    splitWidth: 450,
+    minimizeGeometry: true,
+    rawConformer: null,
+    viewerHoveredAtomIdx: null,
+    viewerSelectedAtomIdx: null,
+    viewerRepresentation: DEFAULT_APP_PREFERENCES.viewer.representation,
+    viewerSpin: DEFAULT_APP_PREFERENCES.viewer.spin,
+    viewerSpinSpeed: DEFAULT_APP_PREFERENCES.viewer.spinSpeed,
+    viewerForceField: DEFAULT_APP_PREFERENCES.viewer.forceField,
+    viewerMultiConformer: DEFAULT_APP_PREFERENCES.viewer.multiConformer,
+    viewerMaxConformers: DEFAULT_APP_PREFERENCES.viewer.maxConformers,
+    viewerShowAtomNumbers: DEFAULT_APP_PREFERENCES.viewer.showAtomNumbers,
+    viewerShowAtomLabels: DEFAULT_APP_PREFERENCES.viewer.showAtomLabels,
+    viewerShowMeasureToolbar: DEFAULT_APP_PREFERENCES.viewer.showMeasureToolbar,
+    viewerAtomScale: DEFAULT_APP_PREFERENCES.viewer.atomScale,
+    viewerBondScale: DEFAULT_APP_PREFERENCES.viewer.bondScale,
+    viewerPerspectiveFov: DEFAULT_APP_PREFERENCES.viewer.perspectiveFov,
+    viewerBackgroundColor: DEFAULT_APP_PREFERENCES.viewer.backgroundColor,
+    viewerBondColor: DEFAULT_APP_PREFERENCES.viewer.bondColor,
+    viewerAmbientLightIntensity: DEFAULT_APP_PREFERENCES.viewer.ambientLightIntensity,
+    viewerHemiLightIntensity: DEFAULT_APP_PREFERENCES.viewer.hemiLightIntensity,
+    viewerKeyLightIntensity: DEFAULT_APP_PREFERENCES.viewer.keyLightIntensity,
+    viewerFillLightIntensity: DEFAULT_APP_PREFERENCES.viewer.fillLightIntensity,
+    viewerRimLightIntensity: DEFAULT_APP_PREFERENCES.viewer.rimLightIntensity,
+    viewerOrbitalBasis: DEFAULT_APP_PREFERENCES.viewer.orbitals.basis,
+    viewerOrbitalOpacity: DEFAULT_APP_PREFERENCES.viewer.orbitals.opacity,
+    viewerOrbitalPositiveColor: DEFAULT_APP_PREFERENCES.viewer.orbitals.positiveColor,
+    viewerOrbitalNegativeColor: DEFAULT_APP_PREFERENCES.viewer.orbitals.negativeColor,
+    viewerOrbitalMaterial: DEFAULT_APP_PREFERENCES.viewer.orbitals.material,
+    viewerOrbitalOutline: DEFAULT_APP_PREFERENCES.viewer.orbitals.outline,
+    viewerOrbitalIsovalue: DEFAULT_APP_PREFERENCES.viewer.orbitals.isovalue,
+    viewerOrbitalShowPositivePhase: DEFAULT_APP_PREFERENCES.viewer.orbitals.showPositivePhase,
+    viewerOrbitalShowNegativePhase: DEFAULT_APP_PREFERENCES.viewer.orbitals.showNegativePhase,
 
-  // ── UI defaults ──────────────────────────────────────────────────────────────
-  isDarkMode: DEFAULT_APP_PREFERENCES.isDarkMode,
-  showGrid: DEFAULT_APP_PREFERENCES.showGrid,
-  appPreferences: DEFAULT_APP_PREFERENCES,
-  preferencesHydrated: false,
-  documentStyleSettings: DEFAULT_APP_PREFERENCES.drawing,
-  documentViewSettings: DEFAULT_APP_PREFERENCES.documentView,
-  sidebarWidth: 135,
-  editMenusHidden: false,
-  showBondMenu: false,
-  showSmilesBar: false,
-  isFileDropdownOpen: false,
-  isExportSubmenuOpen: false,
-  isEditDropdownOpen: false,
-  isAlignSubmenuOpen: false,
-  isSettingsDropdownOpen: false,
-  isPreferencesPanelOpen: false,
-  isPeriodicTableOpen: false,
-  isAboutOpen: false,
-  isViewerSettingsOpen: false,
-  isCalculateDropdownOpen: false,
-  showPropertiesPanel: false,
-  showIrPanel: false,
-  showNmrPanel: false,
-  showMsPanel: false,
-  propertiesPos: { x: 10, y: 10 },
-  irPos: { x: 430, y: 10 },
-  nmrPos: { x: 10, y: 320 },
-  msPos: { x: 430, y: 310 },
-  propertiesSize: { width: 260, height: 290 },
-  irSize: { width: 420, height: 290 },
-  nmrSize: { width: 700, height: 500 },
-  msSize: { width: 420, height: 260 },
-  moleculeProperties: null,
-  irSpectrum: null,
-  nmrSpectrum: null,
-  msSpectrum: null,
-  collapsedSections: new Set(),
-  licensesText: '',
-  textFormat: buildTextFormatFromDocumentSettings(DEFAULT_APP_PREFERENCES.drawing),
-  toasts: [],
+    // ── UI defaults ──────────────────────────────────────────────────────────────
+    isDarkMode: DEFAULT_APP_PREFERENCES.isDarkMode,
+    showGrid: DEFAULT_APP_PREFERENCES.showGrid,
+    appPreferences: DEFAULT_APP_PREFERENCES,
+    preferencesHydrated: false,
+    documentStyleSettings: DEFAULT_APP_PREFERENCES.drawing,
+    documentViewSettings: DEFAULT_APP_PREFERENCES.documentView,
+    sidebarWidth: 135,
+    editMenusHidden: false,
+    showBondMenu: false,
+    showSmilesBar: false,
+    isFileDropdownOpen: false,
+    isExportSubmenuOpen: false,
+    isEditDropdownOpen: false,
+    isAlignSubmenuOpen: false,
+    isSettingsDropdownOpen: false,
+    isPreferencesPanelOpen: false,
+    isPeriodicTableOpen: false,
+    isAboutOpen: false,
+    isViewerSettingsOpen: false,
+    isCalculateDropdownOpen: false,
+    showPropertiesPanel: false,
+    showIrPanel: false,
+    showNmrPanel: false,
+    showMsPanel: false,
+    propertiesPos: { x: 10, y: 10 },
+    irPos: { x: 430, y: 10 },
+    nmrPos: { x: 10, y: 320 },
+    msPos: { x: 430, y: 310 },
+    propertiesSize: { width: 260, height: 290 },
+    irSize: { width: 420, height: 290 },
+    nmrSize: { width: 700, height: 500 },
+    msSize: { width: 420, height: 260 },
+    moleculeProperties: null,
+    irSpectrum: null,
+    nmrSpectrum: null,
+    msSpectrum: null,
+    collapsedSections: new Set(),
+    licensesText: '',
+    textFormat: buildTextFormatFromDocumentSettings(DEFAULT_APP_PREFERENCES.drawing),
+    toasts: [],
 
-  // ── Editor actions ───────────────────────────────────────────────────────────
-  setTool: (tool) =>
-    set((state) => ({
-      tool,
-      ...(state.tool === 'ring' && tool !== 'ring' ? { ringRotationSteps: 0 } : {}),
-    })),
-  setElement: (element) => set({ element, atomToolMode: 'element' }),
-  setAtomToolSelection: (element, atomToolMode) => set({ element, atomToolMode }),
-  setBondOrder: (bondOrder) => set({ bondOrder }),
-  setStereo: (stereo) => set({ stereo }),
-  setArrowType: (arrowType) => set({ arrowType }),
-  setShapeKind: (shapeKind) => set({ shapeKind }),
-  setRotationPivot: (rotationPivot) => set({ rotationPivot }),
-  setSelectMode: (selectMode) => set({ selectMode }),
-  setFixedLengths: (fixedLengths) => set({ fixedLengths }),
-  setFixedAngles: (fixedAngles) => set({ fixedAngles }),
-  setChainLengthRequest: (chainLengthRequest) => set({ chainLengthRequest }),
-  setLastChainCount: (lastChainCount) => set({ lastChainCount }),
-  setCurrentCharge: (currentCharge) => set({ currentCharge }),
-  setElectronToolMode: (electronToolMode) => set({ electronToolMode }),
-  setSelectedFragment: (selectedFragment) => set({ selectedFragment }),
-  setShowHydrogens: (showHydrogens) =>
-    set((s) => {
-      const appPreferences = { ...s.appPreferences, showHydrogens };
-      persistPreferences(appPreferences);
-      return { showHydrogens, appPreferences };
-    }),
-  setRingSize: (ringSize) => set({ ringSize }),
-  setRingPreset: (ringPreset) => set({ ringPreset, ringRotationSteps: 0 }),
-  rotateRingTemplate: (deltaSteps) =>
-    set((state) => ({
-      ringRotationSteps: (((state.ringRotationSteps + deltaSteps) % 6) + 6) % 6,
-    })),
-  setRingRotationSteps: (ringRotationSteps) =>
-    set({
-      ringRotationSteps: ((ringRotationSteps % 6) + 6) % 6,
-    }),
+    // ── Editor actions ───────────────────────────────────────────────────────────
+    setTool: (tool) =>
+      set((state) => ({
+        tool,
+        ...(state.tool === 'ring' && tool !== 'ring' ? { ringRotationSteps: 0 } : {}),
+      })),
+    setElement: (element) => set({ element, atomToolMode: 'element' }),
+    setAtomToolSelection: (element, atomToolMode) => set({ element, atomToolMode }),
+    setBondOrder: (bondOrder) => set({ bondOrder }),
+    setStereo: (stereo) => set({ stereo }),
+    setArrowType: (arrowType) => set({ arrowType }),
+    setShapeKind: (shapeKind) => set({ shapeKind }),
+    setRotationPivot: (rotationPivot) => set({ rotationPivot }),
+    setSelectMode: (selectMode) => set({ selectMode }),
+    setFixedLengths: (fixedLengths) => set({ fixedLengths }),
+    setFixedAngles: (fixedAngles) => set({ fixedAngles }),
+    setChainLengthRequest: (chainLengthRequest) => set({ chainLengthRequest }),
+    setLastChainCount: (lastChainCount) => set({ lastChainCount }),
+    setCurrentCharge: (currentCharge) => set({ currentCharge }),
+    setElectronToolMode: (electronToolMode) => set({ electronToolMode }),
+    setSelectedFragment: (selectedFragment) => set({ selectedFragment }),
+    setShowHydrogens: (showHydrogens) =>
+      set((s) => {
+        const appPreferences = { ...s.appPreferences, showHydrogens };
+        persistPreferences(appPreferences);
+        return { showHydrogens, appPreferences };
+      }),
+    setRingSize: (ringSize) => set({ ringSize }),
+    setRingPreset: (ringPreset) => set({ ringPreset, ringRotationSteps: 0 }),
+    rotateRingTemplate: (deltaSteps) =>
+      set((state) => ({
+        ringRotationSteps: (((state.ringRotationSteps + deltaSteps) % 6) + 6) % 6,
+      })),
+    setRingRotationSteps: (ringRotationSteps) =>
+      set({
+        ringRotationSteps: ((ringRotationSteps % 6) + 6) % 6,
+      }),
 
-  // ── Canvas actions ───────────────────────────────────────────────────────────
-  commitDocument: (document) => set((s) => historyCommitPatch(s, document)),
-  undo: () =>
-    set((s) =>
-      s.historyIndex > 0
-        ? { ...documentPatch(s, s.history[s.historyIndex - 1]), historyIndex: s.historyIndex - 1 }
-        : { previewChemDrawDocument: null, selectionPreviewTransform: null },
-    ),
-  redo: () =>
-    set((s) =>
-      s.historyIndex < s.history.length - 1
-        ? { ...documentPatch(s, s.history[s.historyIndex + 1]), historyIndex: s.historyIndex + 1 }
-        : { previewChemDrawDocument: null, selectionPreviewTransform: null },
-    ),
+    // ── Canvas actions ───────────────────────────────────────────────────────────
+    commitDocument: (document) => set((s) => historyCommitPatch(s, document)),
+    undo: () =>
+      set((s) =>
+        s.historyIndex > 0
+          ? { ...documentPatch(s, s.history[s.historyIndex - 1]), historyIndex: s.historyIndex - 1 }
+          : { previewChemDrawDocument: null, selectionPreviewTransform: null },
+      ),
+    redo: () =>
+      set((s) =>
+        s.historyIndex < s.history.length - 1
+          ? { ...documentPatch(s, s.history[s.historyIndex + 1]), historyIndex: s.historyIndex + 1 }
+          : { previewChemDrawDocument: null, selectionPreviewTransform: null },
+      ),
 
-  selectAll: () =>
-    set((s) => {
-      const nativeOnlyObjectIds =
-        s.chemDrawDocument?.pages[0]?.objects
-          .filter(
-            (object) =>
-              object.type === 'graphic' ||
-              object.type === 'bracket' ||
-              object.type === 'embedded-object' ||
-              object.type === 'table' ||
-              object.type === 'group',
-          )
-          .map((object) => object.id) ?? [];
-      return {
+    selectAll: () =>
+      set((s) => {
+        const nativeOnlyObjectIds =
+          s.chemDrawDocument?.pages[0]?.objects
+            .filter(
+              (object) =>
+                object.type === 'graphic' ||
+                object.type === 'bracket' ||
+                object.type === 'embedded-object' ||
+                object.type === 'table' ||
+                object.type === 'group',
+            )
+            .map((object) => object.id) ?? [];
+        return {
+          selectedObjectIds: new Set([
+            ...s.atoms.map((a) => a.id),
+            ...s.bonds.map((b) => b.id),
+            ...s.arrows.map((a) => a.id),
+            ...s.textBoxes.map((t) => t.id),
+            ...nativeOnlyObjectIds,
+          ]),
+          selectedAtomIds: new Set(s.atoms.map((a) => a.id)),
+          selectedBondIds: new Set(s.bonds.map((b) => b.id)),
+          selectedArrowIds: new Set(s.arrows.map((a) => a.id)),
+          selectedTextBoxIds: new Set(s.textBoxes.map((t) => t.id)),
+        };
+      }),
+
+    deselectAll: () =>
+      set({
+        selectedObjectIds: new Set(),
+        selectedAtomIds: new Set(),
+        selectedBondIds: new Set(),
+        selectedArrowIds: new Set(),
+        selectedTextBoxIds: new Set(),
+      }),
+
+    clearCanvas: () => get().commitDocument(emptyDocument(get().appPreferences)),
+
+    setSelectedObjectIds: (selectedObjectIds) => set({ selectedObjectIds }),
+    setSelectedAtomIds: (selectedAtomIds) =>
+      set((s) => ({
+        selectedAtomIds,
         selectedObjectIds: new Set([
-          ...s.atoms.map((a) => a.id),
-          ...s.bonds.map((b) => b.id),
-          ...s.arrows.map((a) => a.id),
-          ...s.textBoxes.map((t) => t.id),
-          ...nativeOnlyObjectIds,
+          ...selectedAtomIds,
+          ...s.selectedBondIds,
+          ...s.selectedArrowIds,
+          ...s.selectedTextBoxIds,
         ]),
-        selectedAtomIds: new Set(s.atoms.map((a) => a.id)),
-        selectedBondIds: new Set(s.bonds.map((b) => b.id)),
-        selectedArrowIds: new Set(s.arrows.map((a) => a.id)),
-        selectedTextBoxIds: new Set(s.textBoxes.map((t) => t.id)),
-      };
-    }),
-
-  deselectAll: () =>
-    set({
-      selectedObjectIds: new Set(),
-      selectedAtomIds: new Set(),
-      selectedBondIds: new Set(),
-      selectedArrowIds: new Set(),
-      selectedTextBoxIds: new Set(),
-    }),
-
-  clearCanvas: () => get().commitDocument(emptyDocument(get().appPreferences)),
-
-  setSelectedObjectIds: (selectedObjectIds) => set({ selectedObjectIds }),
-  setSelectedAtomIds: (selectedAtomIds) =>
-    set((s) => ({
-      selectedAtomIds,
-      selectedObjectIds: new Set([
-        ...selectedAtomIds,
-        ...s.selectedBondIds,
-        ...s.selectedArrowIds,
-        ...s.selectedTextBoxIds,
-      ]),
-    })),
-  setSelectedBondIds: (selectedBondIds) =>
-    set((s) => ({
-      selectedBondIds,
-      selectedObjectIds: new Set([
-        ...s.selectedAtomIds,
-        ...selectedBondIds,
-        ...s.selectedArrowIds,
-        ...s.selectedTextBoxIds,
-      ]),
-    })),
-  setSelectedArrowIds: (selectedArrowIds) =>
-    set((s) => ({
-      selectedArrowIds,
-      selectedObjectIds: new Set([
-        ...s.selectedAtomIds,
-        ...s.selectedBondIds,
-        ...selectedArrowIds,
-        ...s.selectedTextBoxIds,
-      ]),
-    })),
-  setSelectedTextBoxIds: (selectedTextBoxIds) =>
-    set((s) => ({
-      selectedTextBoxIds,
-      selectedObjectIds: new Set([
-        ...s.selectedAtomIds,
-        ...s.selectedBondIds,
-        ...s.selectedArrowIds,
-        ...selectedTextBoxIds,
-      ]),
-    })),
-  setLastInteractedAtomId: (lastInteractedAtomId) => set({ lastInteractedAtomId }),
-  setCanvasSize: (canvasSize) => set({ canvasSize }),
-  setPageSetup: (pageSetup) => {
-    const s = get();
-    get().commitDocument(applyDocumentPageSetup(s.chemDrawDocument ?? emptyDocument(), pageSetup));
-  },
-  setChemDrawDocument: (document) =>
-    get().commitDocument(document ?? emptyDocument(get().appPreferences)),
-  setPreviewChemDrawDocument: (previewChemDrawDocument) =>
-    set({
-      previewChemDrawDocument,
-      selectionPreviewTransform: null,
-      ...describeDocumentState(previewChemDrawDocument ?? get().chemDrawDocument),
-    }),
-  clearPreviewChemDrawDocument: () =>
-    set({
-      previewChemDrawDocument: null,
-      selectionPreviewTransform: null,
-      ...describeDocumentState(get().chemDrawDocument),
-    }),
-  setDocumentFile: (documentFile) => set({ documentFile }),
-  clearDocumentFile: () =>
-    set((s) => ({
-      documentFile: createUntitledDocumentFile(),
-      documentSessionId: crypto.randomUUID(),
-      savedDocument: s.chemDrawDocument,
-      history: s.chemDrawDocument ? [s.chemDrawDocument] : [],
-      historyIndex: 0,
-    })),
-  markDocumentDirty: () =>
-    set((s) => ({
-      documentFile: markDocumentFileDirty(s.documentFile),
-    })),
-  markDocumentSaved: (path, snapshot) =>
-    set((s) => {
-      if (snapshot && snapshot.sessionId !== s.documentSessionId) return {};
-      const document = snapshot ? snapshot.document : s.chemDrawDocument;
-      return {
-        savedDocument: document,
-        documentFile: {
-          ...createSavedDocumentFile(path, snapshot?.revision ?? s.documentRevision),
-          dirty: document !== s.chemDrawDocument,
-        },
-      };
-    }),
-  replaceDocument: (document, warnings = [], path = null) =>
-    set((s) => {
-      const projected = projectDocument(document);
-      const documentStyleSettings = resolveDocumentStyleSettings(document, s.appPreferences);
-      return {
-        ...projected,
-        chemDrawDocument: document,
+      })),
+    setSelectedBondIds: (selectedBondIds) =>
+      set((s) => ({
+        selectedBondIds,
+        selectedObjectIds: new Set([
+          ...s.selectedAtomIds,
+          ...selectedBondIds,
+          ...s.selectedArrowIds,
+          ...s.selectedTextBoxIds,
+        ]),
+      })),
+    setSelectedArrowIds: (selectedArrowIds) =>
+      set((s) => ({
+        selectedArrowIds,
+        selectedObjectIds: new Set([
+          ...s.selectedAtomIds,
+          ...s.selectedBondIds,
+          ...selectedArrowIds,
+          ...s.selectedTextBoxIds,
+        ]),
+      })),
+    setSelectedTextBoxIds: (selectedTextBoxIds) =>
+      set((s) => ({
+        selectedTextBoxIds,
+        selectedObjectIds: new Set([
+          ...s.selectedAtomIds,
+          ...s.selectedBondIds,
+          ...s.selectedArrowIds,
+          ...selectedTextBoxIds,
+        ]),
+      })),
+    setLastInteractedAtomId: (lastInteractedAtomId) => set({ lastInteractedAtomId }),
+    setCanvasSize: (canvasSize) => set({ canvasSize }),
+    setPageSetup: (pageSetup) => {
+      const s = get();
+      get().commitDocument(
+        applyDocumentPageSetup(s.chemDrawDocument ?? emptyDocument(), pageSetup),
+      );
+    },
+    setChemDrawDocument: (document) =>
+      get().commitDocument(document ?? emptyDocument(get().appPreferences)),
+    setPreviewChemDrawDocument: (previewChemDrawDocument) =>
+      set({
+        previewChemDrawDocument,
+        selectionPreviewTransform: null,
+        ...describeDocumentState(previewChemDrawDocument ?? get().chemDrawDocument),
+      }),
+    clearPreviewChemDrawDocument: () =>
+      set({
         previewChemDrawDocument: null,
         selectionPreviewTransform: null,
-        history: [document],
-        historyIndex: 0,
-        documentStyleSettings,
-        documentViewSettings: resolveDocumentViewSettings(document, s.appPreferences),
-        textFormat: buildTextFormatFromDocumentSettings(documentStyleSettings),
-        pageSetup: resolveDocumentPageSetup(document, s.appPreferences),
-        chemDrawWarnings: warnings,
-        selectedObjectIds: new Set<string>(),
-        selectedAtomIds: new Set<string>(),
-        selectedBondIds: new Set<string>(),
-        selectedArrowIds: new Set<string>(),
-        selectedTextBoxIds: new Set<string>(),
+        ...describeDocumentState(get().chemDrawDocument),
+      }),
+    setDocumentFile: (documentFile) => set({ documentFile }),
+    clearDocumentFile: () =>
+      set((s) => ({
+        documentFile: createUntitledDocumentFile(),
         documentSessionId: crypto.randomUUID(),
-        savedDocument: path ? document : null,
-        documentFile: path
-          ? createSavedDocumentFile(path, s.documentRevision + 1)
-          : { ...createUntitledDocumentFile(), dirty: true },
-        documentRevision: s.documentRevision + 1,
-        projectionRevision: s.projectionRevision + 1,
-        ...describeDocumentState(document),
-      };
-    }),
-  addRecentFile: (path) =>
-    set((s) => {
-      const trimmedPath = path.trim();
-      if (!trimmedPath) return {};
-      const entry: RecentFileEntry = {
-        path: trimmedPath,
-        name: getDisplayNameForFilePath(trimmedPath),
-        openedAt: Date.now(),
-      };
-      const recentFiles = [
-        entry,
-        ...s.appPreferences.recentFiles.filter((recent) => recent.path !== trimmedPath),
-      ].slice(0, 10);
-      const appPreferences = { ...s.appPreferences, recentFiles };
-      persistPreferences(appPreferences);
-      return { appPreferences };
-    }),
-  removeRecentFile: (path) =>
-    set((s) => {
-      const recentFiles = s.appPreferences.recentFiles.filter((recent) => recent.path !== path);
-      if (recentFiles.length === s.appPreferences.recentFiles.length) return {};
-      const appPreferences = { ...s.appPreferences, recentFiles };
-      persistPreferences(appPreferences);
-      return { appPreferences };
-    }),
-  setSelectionPreviewTransform: (selectionPreviewTransform) =>
-    set({ selectionPreviewTransform, previewChemDrawDocument: null }),
-  clearSelectionPreviewTransform: () => set({ selectionPreviewTransform: null }),
-  setChemDrawWarnings: (chemDrawWarnings) => set({ chemDrawWarnings }),
+        savedDocument: s.chemDrawDocument,
+        history: s.chemDrawDocument ? [s.chemDrawDocument] : [],
+        historyIndex: 0,
+      })),
+    markDocumentDirty: () =>
+      set((s) => ({
+        documentFile: markDocumentFileDirty(s.documentFile),
+      })),
+    markDocumentSaved: (path, snapshot) =>
+      set((s) => {
+        if (snapshot && snapshot.sessionId !== s.documentSessionId) return {};
+        const document = snapshot ? snapshot.document : s.chemDrawDocument;
+        return {
+          savedDocument: document,
+          documentFile: {
+            ...createSavedDocumentFile(path, snapshot?.revision ?? s.documentRevision),
+            dirty: document !== s.chemDrawDocument,
+          },
+        };
+      }),
+    replaceDocument: (document, warnings = [], path = null) =>
+      set((s) => {
+        const projected = projectDocument(document);
+        const documentStyleSettings = resolveDocumentStyleSettings(document, s.appPreferences);
+        return {
+          ...projected,
+          chemDrawDocument: document,
+          previewChemDrawDocument: null,
+          selectionPreviewTransform: null,
+          history: [document],
+          historyIndex: 0,
+          documentStyleSettings,
+          documentViewSettings: resolveDocumentViewSettings(document, s.appPreferences),
+          textFormat: buildTextFormatFromDocumentSettings(documentStyleSettings),
+          pageSetup: resolveDocumentPageSetup(document, s.appPreferences),
+          chemDrawWarnings: warnings,
+          selectedObjectIds: new Set<string>(),
+          selectedAtomIds: new Set<string>(),
+          selectedBondIds: new Set<string>(),
+          selectedArrowIds: new Set<string>(),
+          selectedTextBoxIds: new Set<string>(),
+          documentSessionId: crypto.randomUUID(),
+          savedDocument: path ? document : null,
+          documentFile: path
+            ? createSavedDocumentFile(path, s.documentRevision + 1)
+            : { ...createUntitledDocumentFile(), dirty: true },
+          documentRevision: s.documentRevision + 1,
+          projectionRevision: s.projectionRevision + 1,
+          ...describeDocumentState(document),
+        };
+      }),
+    addRecentFile: (path) =>
+      set((s) => {
+        const trimmedPath = path.trim();
+        if (!trimmedPath) return {};
+        const entry: RecentFileEntry = {
+          path: trimmedPath,
+          name: getDisplayNameForFilePath(trimmedPath),
+          openedAt: Date.now(),
+        };
+        const recentFiles = [
+          entry,
+          ...s.appPreferences.recentFiles.filter((recent) => recent.path !== trimmedPath),
+        ].slice(0, 10);
+        const appPreferences = { ...s.appPreferences, recentFiles };
+        persistPreferences(appPreferences);
+        return { appPreferences };
+      }),
+    removeRecentFile: (path) =>
+      set((s) => {
+        const recentFiles = s.appPreferences.recentFiles.filter((recent) => recent.path !== path);
+        if (recentFiles.length === s.appPreferences.recentFiles.length) return {};
+        const appPreferences = { ...s.appPreferences, recentFiles };
+        persistPreferences(appPreferences);
+        return { appPreferences };
+      }),
+    setSelectionPreviewTransform: (selectionPreviewTransform) =>
+      set({ selectionPreviewTransform, previewChemDrawDocument: null }),
+    clearSelectionPreviewTransform: () => set({ selectionPreviewTransform: null }),
+    setChemDrawWarnings: (chemDrawWarnings) => set({ chemDrawWarnings }),
 
-  // ── Viewer actions ───────────────────────────────────────────────────────────
-  setViewerSmiles: (viewerSmiles) => set({ viewerSmiles }),
-  setStereoLabels: (stereoLabels) => set({ stereoLabels }),
-  setShowReactionRoles: (showReactionRoles) => set({ showReactionRoles }),
-  setViewerGeometrySmiles: (viewerGeometrySmiles) => set({ viewerGeometrySmiles }),
-  setViewerGeometryMolblock: (viewerGeometryMolblock) => set({ viewerGeometryMolblock }),
-  setViewerMolblock: (viewerMolblock) => set({ viewerMolblock }),
-  setViewerStructureStatus: (viewerStructureStatus) => set({ viewerStructureStatus }),
-  setViewerAtomIndexById: (viewerAtomIndexById) => set({ viewerAtomIndexById }),
-  setViewerAtomIdByMapNumber: (viewerAtomIdByMapNumber) => set({ viewerAtomIdByMapNumber }),
-  setHoveredCanvasAtomId: (hoveredCanvasAtomId) => set({ hoveredCanvasAtomId }),
-  setHoveredCanvasBondId: (hoveredCanvasBondId) => set({ hoveredCanvasBondId }),
-  setEditableSmiles: (editableSmiles) => set({ editableSmiles }),
-  setIsInputFocused: (isInputFocused) => set({ isInputFocused }),
-  setPreviewMode: (previewMode) => set({ previewMode }),
-  setShowViewer: (showViewer) => set({ showViewer }),
-  setViewerMode: (viewerMode) =>
-    set((s) => {
-      const appPreferences = {
-        ...s.appPreferences,
-        viewer: { ...s.appPreferences.viewer, mode: viewerMode },
-      };
-      persistPreferences(appPreferences);
-      return { viewerMode, appPreferences };
-    }),
-  setViewerPos: (viewerPos) => set({ viewerPos }),
-  setViewerSize: (viewerSize) => set({ viewerSize }),
-  setSplitWidth: (splitWidth) => set({ splitWidth }),
-  setMinimizeGeometry: (minimizeGeometry) => set({ minimizeGeometry }),
-  setRawConformer: (rawConformer) => set({ rawConformer }),
-  setViewerHoveredAtomIdx: (viewerHoveredAtomIdx) => set({ viewerHoveredAtomIdx }),
-  setViewerSelectedAtomIdx: (viewerSelectedAtomIdx) => set({ viewerSelectedAtomIdx }),
-  setViewerRepresentation: (viewerRepresentation) =>
-    set((s) => {
-      const appPreferences = {
-        ...s.appPreferences,
-        viewer: { ...s.appPreferences.viewer, representation: viewerRepresentation },
-      };
-      persistPreferences(appPreferences);
-      return { viewerRepresentation, appPreferences };
-    }),
-  setViewerSpin: (viewerSpin) =>
-    set((s) => {
-      const appPreferences = {
-        ...s.appPreferences,
-        viewer: { ...s.appPreferences.viewer, spin: viewerSpin },
-      };
-      persistPreferences(appPreferences);
-      return { viewerSpin, appPreferences };
-    }),
-  setViewerSpinSpeed: (viewerSpinSpeed) =>
-    set((s) => {
-      const appPreferences = {
-        ...s.appPreferences,
-        viewer: { ...s.appPreferences.viewer, spinSpeed: viewerSpinSpeed },
-      };
-      persistPreferences(appPreferences);
-      return { viewerSpinSpeed, appPreferences };
-    }),
-  setViewerForceField: (viewerForceField) =>
-    set((s) => {
-      const appPreferences = {
-        ...s.appPreferences,
-        viewer: { ...s.appPreferences.viewer, forceField: viewerForceField },
-      };
-      persistPreferences(appPreferences);
-      return { viewerForceField, appPreferences };
-    }),
-  setViewerMultiConformer: (viewerMultiConformer) =>
-    set((s) => {
-      const appPreferences = {
-        ...s.appPreferences,
-        viewer: { ...s.appPreferences.viewer, multiConformer: viewerMultiConformer },
-      };
-      persistPreferences(appPreferences);
-      return { viewerMultiConformer, appPreferences };
-    }),
-  setViewerMaxConformers: (viewerMaxConformers) =>
-    set((s) => {
-      const appPreferences = {
-        ...s.appPreferences,
-        viewer: { ...s.appPreferences.viewer, maxConformers: viewerMaxConformers },
-      };
-      persistPreferences(appPreferences);
-      return { viewerMaxConformers, appPreferences };
-    }),
-  setViewerShowAtomNumbers: (viewerShowAtomNumbers) =>
-    set((s) => {
-      const appPreferences = {
-        ...s.appPreferences,
-        viewer: { ...s.appPreferences.viewer, showAtomNumbers: viewerShowAtomNumbers },
-      };
-      persistPreferences(appPreferences);
-      return { viewerShowAtomNumbers, appPreferences };
-    }),
-  setViewerShowAtomLabels: (viewerShowAtomLabels) =>
-    set((s) => {
-      const appPreferences = {
-        ...s.appPreferences,
-        viewer: { ...s.appPreferences.viewer, showAtomLabels: viewerShowAtomLabels },
-      };
-      persistPreferences(appPreferences);
-      return { viewerShowAtomLabels, appPreferences };
-    }),
-  setViewerShowMeasureToolbar: (viewerShowMeasureToolbar) =>
-    set((s) => {
-      const appPreferences = {
-        ...s.appPreferences,
-        viewer: { ...s.appPreferences.viewer, showMeasureToolbar: viewerShowMeasureToolbar },
-      };
-      persistPreferences(appPreferences);
-      return { viewerShowMeasureToolbar, appPreferences };
-    }),
-  setViewerAtomScale: (viewerAtomScale) =>
-    set((s) => {
-      const appPreferences = {
-        ...s.appPreferences,
-        viewer: { ...s.appPreferences.viewer, atomScale: viewerAtomScale },
-      };
-      persistPreferences(appPreferences);
-      return { viewerAtomScale, appPreferences };
-    }),
-  setViewerBondScale: (viewerBondScale) =>
-    set((s) => {
-      const appPreferences = {
-        ...s.appPreferences,
-        viewer: { ...s.appPreferences.viewer, bondScale: viewerBondScale },
-      };
-      persistPreferences(appPreferences);
-      return { viewerBondScale, appPreferences };
-    }),
-  setViewerPerspectiveFov: (viewerPerspectiveFov) =>
-    set((s) => {
-      const appPreferences = {
-        ...s.appPreferences,
-        viewer: { ...s.appPreferences.viewer, perspectiveFov: viewerPerspectiveFov },
-      };
-      persistPreferences(appPreferences);
-      return { viewerPerspectiveFov, appPreferences };
-    }),
-  setViewerBackgroundColor: (viewerBackgroundColor) =>
-    set((s) => {
-      const appPreferences = {
-        ...s.appPreferences,
-        viewer: { ...s.appPreferences.viewer, backgroundColor: viewerBackgroundColor },
-      };
-      persistPreferences(appPreferences);
-      return { viewerBackgroundColor, appPreferences };
-    }),
-  setViewerBondColor: (viewerBondColor) =>
-    set((s) => {
-      const appPreferences = {
-        ...s.appPreferences,
-        viewer: { ...s.appPreferences.viewer, bondColor: viewerBondColor },
-      };
-      persistPreferences(appPreferences);
-      return { viewerBondColor, appPreferences };
-    }),
-  setViewerAmbientLightIntensity: (viewerAmbientLightIntensity) =>
-    set((s) => {
-      const appPreferences = {
-        ...s.appPreferences,
-        viewer: { ...s.appPreferences.viewer, ambientLightIntensity: viewerAmbientLightIntensity },
-      };
-      persistPreferences(appPreferences);
-      return { viewerAmbientLightIntensity, appPreferences };
-    }),
-  setViewerHemiLightIntensity: (viewerHemiLightIntensity) =>
-    set((s) => {
-      const appPreferences = {
-        ...s.appPreferences,
-        viewer: { ...s.appPreferences.viewer, hemiLightIntensity: viewerHemiLightIntensity },
-      };
-      persistPreferences(appPreferences);
-      return { viewerHemiLightIntensity, appPreferences };
-    }),
-  setViewerKeyLightIntensity: (viewerKeyLightIntensity) =>
-    set((s) => {
-      const appPreferences = {
-        ...s.appPreferences,
-        viewer: { ...s.appPreferences.viewer, keyLightIntensity: viewerKeyLightIntensity },
-      };
-      persistPreferences(appPreferences);
-      return { viewerKeyLightIntensity, appPreferences };
-    }),
-  setViewerFillLightIntensity: (viewerFillLightIntensity) =>
-    set((s) => {
-      const appPreferences = {
-        ...s.appPreferences,
-        viewer: { ...s.appPreferences.viewer, fillLightIntensity: viewerFillLightIntensity },
-      };
-      persistPreferences(appPreferences);
-      return { viewerFillLightIntensity, appPreferences };
-    }),
-  setViewerRimLightIntensity: (viewerRimLightIntensity) =>
-    set((s) => {
-      const appPreferences = {
-        ...s.appPreferences,
-        viewer: { ...s.appPreferences.viewer, rimLightIntensity: viewerRimLightIntensity },
-      };
-      persistPreferences(appPreferences);
-      return { viewerRimLightIntensity, appPreferences };
-    }),
-  setViewerOrbitalBasis: (viewerOrbitalBasis) =>
-    set((s) => {
-      const appPreferences = {
-        ...s.appPreferences,
-        viewer: {
-          ...s.appPreferences.viewer,
-          orbitals: { ...s.appPreferences.viewer.orbitals, basis: viewerOrbitalBasis },
-        },
-      };
-      persistPreferences(appPreferences);
-      return { viewerOrbitalBasis, appPreferences };
-    }),
-  setViewerOrbitalOpacity: (viewerOrbitalOpacity) =>
-    set((s) => {
-      const appPreferences = {
-        ...s.appPreferences,
-        viewer: {
-          ...s.appPreferences.viewer,
-          orbitals: { ...s.appPreferences.viewer.orbitals, opacity: viewerOrbitalOpacity },
-        },
-      };
-      persistPreferences(appPreferences);
-      return { viewerOrbitalOpacity, appPreferences };
-    }),
-  setViewerOrbitalPositiveColor: (viewerOrbitalPositiveColor) =>
-    set((s) => {
-      const appPreferences = {
-        ...s.appPreferences,
-        viewer: {
-          ...s.appPreferences.viewer,
-          orbitals: {
-            ...s.appPreferences.viewer.orbitals,
-            positiveColor: viewerOrbitalPositiveColor,
+    // ── Viewer actions ───────────────────────────────────────────────────────────
+    setViewerSmiles: (viewerSmiles) => set({ viewerSmiles }),
+    setStereoLabels: (stereoLabels) => set({ stereoLabels }),
+    setShowReactionRoles: (showReactionRoles) => set({ showReactionRoles }),
+    setViewerGeometrySmiles: (viewerGeometrySmiles) => set({ viewerGeometrySmiles }),
+    setViewerGeometryMolblock: (viewerGeometryMolblock) => set({ viewerGeometryMolblock }),
+    setViewerMolblock: (viewerMolblock) => set({ viewerMolblock }),
+    setViewerStructureStatus: (viewerStructureStatus) => set({ viewerStructureStatus }),
+    setViewerAtomIndexById: (viewerAtomIndexById) => set({ viewerAtomIndexById }),
+    setViewerAtomIdByMapNumber: (viewerAtomIdByMapNumber) => set({ viewerAtomIdByMapNumber }),
+    setHoveredCanvasAtomId: (hoveredCanvasAtomId) => set({ hoveredCanvasAtomId }),
+    setHoveredCanvasBondId: (hoveredCanvasBondId) => set({ hoveredCanvasBondId }),
+    setEditableSmiles: (editableSmiles) => set({ editableSmiles }),
+    setIsInputFocused: (isInputFocused) => set({ isInputFocused }),
+    setPreviewMode: (previewMode) => set({ previewMode }),
+    setShowViewer: (showViewer) => set({ showViewer }),
+    setViewerMode: (viewerMode) =>
+      set((s) => {
+        const appPreferences = {
+          ...s.appPreferences,
+          viewer: { ...s.appPreferences.viewer, mode: viewerMode },
+        };
+        persistPreferences(appPreferences);
+        return { viewerMode, appPreferences };
+      }),
+    setViewerPos: (viewerPos) => set({ viewerPos }),
+    setViewerSize: (viewerSize) => set({ viewerSize }),
+    setSplitWidth: (splitWidth) => set({ splitWidth }),
+    setMinimizeGeometry: (minimizeGeometry) => set({ minimizeGeometry }),
+    setRawConformer: (rawConformer) => set({ rawConformer }),
+    setViewerHoveredAtomIdx: (viewerHoveredAtomIdx) => set({ viewerHoveredAtomIdx }),
+    setViewerSelectedAtomIdx: (viewerSelectedAtomIdx) => set({ viewerSelectedAtomIdx }),
+    setViewerRepresentation: (viewerRepresentation) =>
+      set((s) => {
+        const appPreferences = {
+          ...s.appPreferences,
+          viewer: { ...s.appPreferences.viewer, representation: viewerRepresentation },
+        };
+        persistPreferences(appPreferences);
+        return { viewerRepresentation, appPreferences };
+      }),
+    setViewerSpin: (viewerSpin) =>
+      set((s) => {
+        const appPreferences = {
+          ...s.appPreferences,
+          viewer: { ...s.appPreferences.viewer, spin: viewerSpin },
+        };
+        persistPreferences(appPreferences);
+        return { viewerSpin, appPreferences };
+      }),
+    setViewerSpinSpeed: (viewerSpinSpeed) =>
+      set((s) => {
+        const appPreferences = {
+          ...s.appPreferences,
+          viewer: { ...s.appPreferences.viewer, spinSpeed: viewerSpinSpeed },
+        };
+        persistPreferences(appPreferences);
+        return { viewerSpinSpeed, appPreferences };
+      }),
+    setViewerForceField: (viewerForceField) =>
+      set((s) => {
+        const appPreferences = {
+          ...s.appPreferences,
+          viewer: { ...s.appPreferences.viewer, forceField: viewerForceField },
+        };
+        persistPreferences(appPreferences);
+        return { viewerForceField, appPreferences };
+      }),
+    setViewerMultiConformer: (viewerMultiConformer) =>
+      set((s) => {
+        const appPreferences = {
+          ...s.appPreferences,
+          viewer: { ...s.appPreferences.viewer, multiConformer: viewerMultiConformer },
+        };
+        persistPreferences(appPreferences);
+        return { viewerMultiConformer, appPreferences };
+      }),
+    setViewerMaxConformers: (viewerMaxConformers) =>
+      set((s) => {
+        const appPreferences = {
+          ...s.appPreferences,
+          viewer: { ...s.appPreferences.viewer, maxConformers: viewerMaxConformers },
+        };
+        persistPreferences(appPreferences);
+        return { viewerMaxConformers, appPreferences };
+      }),
+    setViewerShowAtomNumbers: (viewerShowAtomNumbers) =>
+      set((s) => {
+        const appPreferences = {
+          ...s.appPreferences,
+          viewer: { ...s.appPreferences.viewer, showAtomNumbers: viewerShowAtomNumbers },
+        };
+        persistPreferences(appPreferences);
+        return { viewerShowAtomNumbers, appPreferences };
+      }),
+    setViewerShowAtomLabels: (viewerShowAtomLabels) =>
+      set((s) => {
+        const appPreferences = {
+          ...s.appPreferences,
+          viewer: { ...s.appPreferences.viewer, showAtomLabels: viewerShowAtomLabels },
+        };
+        persistPreferences(appPreferences);
+        return { viewerShowAtomLabels, appPreferences };
+      }),
+    setViewerShowMeasureToolbar: (viewerShowMeasureToolbar) =>
+      set((s) => {
+        const appPreferences = {
+          ...s.appPreferences,
+          viewer: { ...s.appPreferences.viewer, showMeasureToolbar: viewerShowMeasureToolbar },
+        };
+        persistPreferences(appPreferences);
+        return { viewerShowMeasureToolbar, appPreferences };
+      }),
+    setViewerAtomScale: (viewerAtomScale) =>
+      set((s) => {
+        const appPreferences = {
+          ...s.appPreferences,
+          viewer: { ...s.appPreferences.viewer, atomScale: viewerAtomScale },
+        };
+        persistPreferences(appPreferences);
+        return { viewerAtomScale, appPreferences };
+      }),
+    setViewerBondScale: (viewerBondScale) =>
+      set((s) => {
+        const appPreferences = {
+          ...s.appPreferences,
+          viewer: { ...s.appPreferences.viewer, bondScale: viewerBondScale },
+        };
+        persistPreferences(appPreferences);
+        return { viewerBondScale, appPreferences };
+      }),
+    setViewerPerspectiveFov: (viewerPerspectiveFov) =>
+      set((s) => {
+        const appPreferences = {
+          ...s.appPreferences,
+          viewer: { ...s.appPreferences.viewer, perspectiveFov: viewerPerspectiveFov },
+        };
+        persistPreferences(appPreferences);
+        return { viewerPerspectiveFov, appPreferences };
+      }),
+    setViewerBackgroundColor: (viewerBackgroundColor) =>
+      set((s) => {
+        const appPreferences = {
+          ...s.appPreferences,
+          viewer: { ...s.appPreferences.viewer, backgroundColor: viewerBackgroundColor },
+        };
+        persistPreferences(appPreferences);
+        return { viewerBackgroundColor, appPreferences };
+      }),
+    setViewerBondColor: (viewerBondColor) =>
+      set((s) => {
+        const appPreferences = {
+          ...s.appPreferences,
+          viewer: { ...s.appPreferences.viewer, bondColor: viewerBondColor },
+        };
+        persistPreferences(appPreferences);
+        return { viewerBondColor, appPreferences };
+      }),
+    setViewerAmbientLightIntensity: (viewerAmbientLightIntensity) =>
+      set((s) => {
+        const appPreferences = {
+          ...s.appPreferences,
+          viewer: {
+            ...s.appPreferences.viewer,
+            ambientLightIntensity: viewerAmbientLightIntensity,
           },
-        },
-      };
-      persistPreferences(appPreferences);
-      return { viewerOrbitalPositiveColor, appPreferences };
-    }),
-  setViewerOrbitalNegativeColor: (viewerOrbitalNegativeColor) =>
-    set((s) => {
-      const appPreferences = {
-        ...s.appPreferences,
-        viewer: {
-          ...s.appPreferences.viewer,
-          orbitals: {
-            ...s.appPreferences.viewer.orbitals,
-            negativeColor: viewerOrbitalNegativeColor,
+        };
+        persistPreferences(appPreferences);
+        return { viewerAmbientLightIntensity, appPreferences };
+      }),
+    setViewerHemiLightIntensity: (viewerHemiLightIntensity) =>
+      set((s) => {
+        const appPreferences = {
+          ...s.appPreferences,
+          viewer: { ...s.appPreferences.viewer, hemiLightIntensity: viewerHemiLightIntensity },
+        };
+        persistPreferences(appPreferences);
+        return { viewerHemiLightIntensity, appPreferences };
+      }),
+    setViewerKeyLightIntensity: (viewerKeyLightIntensity) =>
+      set((s) => {
+        const appPreferences = {
+          ...s.appPreferences,
+          viewer: { ...s.appPreferences.viewer, keyLightIntensity: viewerKeyLightIntensity },
+        };
+        persistPreferences(appPreferences);
+        return { viewerKeyLightIntensity, appPreferences };
+      }),
+    setViewerFillLightIntensity: (viewerFillLightIntensity) =>
+      set((s) => {
+        const appPreferences = {
+          ...s.appPreferences,
+          viewer: { ...s.appPreferences.viewer, fillLightIntensity: viewerFillLightIntensity },
+        };
+        persistPreferences(appPreferences);
+        return { viewerFillLightIntensity, appPreferences };
+      }),
+    setViewerRimLightIntensity: (viewerRimLightIntensity) =>
+      set((s) => {
+        const appPreferences = {
+          ...s.appPreferences,
+          viewer: { ...s.appPreferences.viewer, rimLightIntensity: viewerRimLightIntensity },
+        };
+        persistPreferences(appPreferences);
+        return { viewerRimLightIntensity, appPreferences };
+      }),
+    setViewerOrbitalBasis: (viewerOrbitalBasis) =>
+      set((s) => {
+        const appPreferences = {
+          ...s.appPreferences,
+          viewer: {
+            ...s.appPreferences.viewer,
+            orbitals: { ...s.appPreferences.viewer.orbitals, basis: viewerOrbitalBasis },
           },
-        },
-      };
-      persistPreferences(appPreferences);
-      return { viewerOrbitalNegativeColor, appPreferences };
-    }),
-  setViewerOrbitalMaterial: (viewerOrbitalMaterial) =>
-    set((s) => {
-      const appPreferences = {
-        ...s.appPreferences,
-        viewer: {
-          ...s.appPreferences.viewer,
-          orbitals: { ...s.appPreferences.viewer.orbitals, material: viewerOrbitalMaterial },
-        },
-      };
-      persistPreferences(appPreferences);
-      return { viewerOrbitalMaterial, appPreferences };
-    }),
-  setViewerOrbitalOutline: (viewerOrbitalOutline) =>
-    set((s) => {
-      const appPreferences = {
-        ...s.appPreferences,
-        viewer: {
-          ...s.appPreferences.viewer,
-          orbitals: { ...s.appPreferences.viewer.orbitals, outline: viewerOrbitalOutline },
-        },
-      };
-      persistPreferences(appPreferences);
-      return { viewerOrbitalOutline, appPreferences };
-    }),
-  setViewerOrbitalIsovalue: (viewerOrbitalIsovalue) =>
-    set((s) => {
-      const appPreferences = {
-        ...s.appPreferences,
-        viewer: {
-          ...s.appPreferences.viewer,
-          orbitals: { ...s.appPreferences.viewer.orbitals, isovalue: viewerOrbitalIsovalue },
-        },
-      };
-      persistPreferences(appPreferences);
-      return { viewerOrbitalIsovalue, appPreferences };
-    }),
-  setViewerOrbitalShowPositivePhase: (viewerOrbitalShowPositivePhase) =>
-    set((s) => {
-      const appPreferences = {
-        ...s.appPreferences,
-        viewer: {
-          ...s.appPreferences.viewer,
-          orbitals: {
-            ...s.appPreferences.viewer.orbitals,
-            showPositivePhase: viewerOrbitalShowPositivePhase,
+        };
+        persistPreferences(appPreferences);
+        return { viewerOrbitalBasis, appPreferences };
+      }),
+    setViewerOrbitalOpacity: (viewerOrbitalOpacity) =>
+      set((s) => {
+        const appPreferences = {
+          ...s.appPreferences,
+          viewer: {
+            ...s.appPreferences.viewer,
+            orbitals: { ...s.appPreferences.viewer.orbitals, opacity: viewerOrbitalOpacity },
           },
-        },
-      };
-      persistPreferences(appPreferences);
-      return { viewerOrbitalShowPositivePhase, appPreferences };
-    }),
-  setViewerOrbitalShowNegativePhase: (viewerOrbitalShowNegativePhase) =>
-    set((s) => {
-      const appPreferences = {
-        ...s.appPreferences,
-        viewer: {
-          ...s.appPreferences.viewer,
-          orbitals: {
-            ...s.appPreferences.viewer.orbitals,
-            showNegativePhase: viewerOrbitalShowNegativePhase,
+        };
+        persistPreferences(appPreferences);
+        return { viewerOrbitalOpacity, appPreferences };
+      }),
+    setViewerOrbitalPositiveColor: (viewerOrbitalPositiveColor) =>
+      set((s) => {
+        const appPreferences = {
+          ...s.appPreferences,
+          viewer: {
+            ...s.appPreferences.viewer,
+            orbitals: {
+              ...s.appPreferences.viewer.orbitals,
+              positiveColor: viewerOrbitalPositiveColor,
+            },
           },
-        },
-      };
-      persistPreferences(appPreferences);
-      return { viewerOrbitalShowNegativePhase, appPreferences };
-    }),
+        };
+        persistPreferences(appPreferences);
+        return { viewerOrbitalPositiveColor, appPreferences };
+      }),
+    setViewerOrbitalNegativeColor: (viewerOrbitalNegativeColor) =>
+      set((s) => {
+        const appPreferences = {
+          ...s.appPreferences,
+          viewer: {
+            ...s.appPreferences.viewer,
+            orbitals: {
+              ...s.appPreferences.viewer.orbitals,
+              negativeColor: viewerOrbitalNegativeColor,
+            },
+          },
+        };
+        persistPreferences(appPreferences);
+        return { viewerOrbitalNegativeColor, appPreferences };
+      }),
+    setViewerOrbitalMaterial: (viewerOrbitalMaterial) =>
+      set((s) => {
+        const appPreferences = {
+          ...s.appPreferences,
+          viewer: {
+            ...s.appPreferences.viewer,
+            orbitals: { ...s.appPreferences.viewer.orbitals, material: viewerOrbitalMaterial },
+          },
+        };
+        persistPreferences(appPreferences);
+        return { viewerOrbitalMaterial, appPreferences };
+      }),
+    setViewerOrbitalOutline: (viewerOrbitalOutline) =>
+      set((s) => {
+        const appPreferences = {
+          ...s.appPreferences,
+          viewer: {
+            ...s.appPreferences.viewer,
+            orbitals: { ...s.appPreferences.viewer.orbitals, outline: viewerOrbitalOutline },
+          },
+        };
+        persistPreferences(appPreferences);
+        return { viewerOrbitalOutline, appPreferences };
+      }),
+    setViewerOrbitalIsovalue: (viewerOrbitalIsovalue) =>
+      set((s) => {
+        const appPreferences = {
+          ...s.appPreferences,
+          viewer: {
+            ...s.appPreferences.viewer,
+            orbitals: { ...s.appPreferences.viewer.orbitals, isovalue: viewerOrbitalIsovalue },
+          },
+        };
+        persistPreferences(appPreferences);
+        return { viewerOrbitalIsovalue, appPreferences };
+      }),
+    setViewerOrbitalShowPositivePhase: (viewerOrbitalShowPositivePhase) =>
+      set((s) => {
+        const appPreferences = {
+          ...s.appPreferences,
+          viewer: {
+            ...s.appPreferences.viewer,
+            orbitals: {
+              ...s.appPreferences.viewer.orbitals,
+              showPositivePhase: viewerOrbitalShowPositivePhase,
+            },
+          },
+        };
+        persistPreferences(appPreferences);
+        return { viewerOrbitalShowPositivePhase, appPreferences };
+      }),
+    setViewerOrbitalShowNegativePhase: (viewerOrbitalShowNegativePhase) =>
+      set((s) => {
+        const appPreferences = {
+          ...s.appPreferences,
+          viewer: {
+            ...s.appPreferences.viewer,
+            orbitals: {
+              ...s.appPreferences.viewer.orbitals,
+              showNegativePhase: viewerOrbitalShowNegativePhase,
+            },
+          },
+        };
+        persistPreferences(appPreferences);
+        return { viewerOrbitalShowNegativePhase, appPreferences };
+      }),
 
-  // ── UI actions ───────────────────────────────────────────────────────────────
-  hydrateAppPreferences: (appPreferences) =>
-    set((s) => {
-      const initializeDocument =
-        !s.preferencesHydrated && s.chemDrawDocument === initialDocument && s.history.length === 1;
-      const document = initializeDocument ? emptyDocument(appPreferences) : s.chemDrawDocument;
-      return {
-        ...(initializeDocument && document
-          ? {
-              ...projectDocument(document),
-              chemDrawDocument: document,
-              history: [document],
-              historyIndex: 0,
-              savedDocument: document,
-            }
-          : {}),
-        appPreferences,
-        preferencesHydrated: true,
-        isDarkMode: appPreferences.isDarkMode,
-        showGrid: appPreferences.showGrid,
-        showHydrogens: appPreferences.showHydrogens,
-        pageSetup: resolveDocumentPageSetup(document, appPreferences),
-        viewerMode: appPreferences.viewer.mode,
-        viewerRepresentation: appPreferences.viewer.representation,
-        viewerSpin: appPreferences.viewer.spin,
-        viewerSpinSpeed: appPreferences.viewer.spinSpeed,
-        viewerForceField: appPreferences.viewer.forceField,
-        viewerMultiConformer: appPreferences.viewer.multiConformer,
-        viewerMaxConformers: appPreferences.viewer.maxConformers,
-        viewerShowAtomNumbers: appPreferences.viewer.showAtomNumbers,
-        viewerShowAtomLabels: appPreferences.viewer.showAtomLabels,
-        viewerShowMeasureToolbar: appPreferences.viewer.showMeasureToolbar,
-        viewerAtomScale: appPreferences.viewer.atomScale,
-        viewerBondScale: appPreferences.viewer.bondScale,
-        viewerPerspectiveFov: appPreferences.viewer.perspectiveFov,
-        viewerBackgroundColor: appPreferences.viewer.backgroundColor,
-        viewerBondColor: appPreferences.viewer.bondColor,
-        viewerAmbientLightIntensity: appPreferences.viewer.ambientLightIntensity,
-        viewerHemiLightIntensity: appPreferences.viewer.hemiLightIntensity,
-        viewerKeyLightIntensity: appPreferences.viewer.keyLightIntensity,
-        viewerFillLightIntensity: appPreferences.viewer.fillLightIntensity,
-        viewerRimLightIntensity: appPreferences.viewer.rimLightIntensity,
-        viewerOrbitalBasis: appPreferences.viewer.orbitals.basis,
-        viewerOrbitalOpacity: appPreferences.viewer.orbitals.opacity,
-        viewerOrbitalPositiveColor: appPreferences.viewer.orbitals.positiveColor,
-        viewerOrbitalNegativeColor: appPreferences.viewer.orbitals.negativeColor,
-        viewerOrbitalMaterial: appPreferences.viewer.orbitals.material,
-        viewerOrbitalOutline: appPreferences.viewer.orbitals.outline,
-        viewerOrbitalIsovalue: appPreferences.viewer.orbitals.isovalue,
-        viewerOrbitalShowPositivePhase: appPreferences.viewer.orbitals.showPositivePhase,
-        viewerOrbitalShowNegativePhase: appPreferences.viewer.orbitals.showNegativePhase,
-        documentStyleSettings: resolveDocumentStyleSettings(document, appPreferences),
-        documentViewSettings: resolveDocumentViewSettings(document, appPreferences),
-        textFormat: buildTextFormatFromDocumentSettings(
-          resolveDocumentStyleSettings(document, appPreferences),
-        ),
-      };
-    }),
-  setAppPreferences: (appPreferences) => {
-    persistPreferences(appPreferences);
-    get().hydrateAppPreferences(appPreferences);
-  },
-  setDocumentStyleSettings: (documentStyleSettings) =>
-    set((s) => {
-      const normalizedDocumentStyleSettings = normalizeDocumentStyleSettings(documentStyleSettings);
-      const resolvedTextFormat = buildTextFormatFromDocumentSettings(
-        normalizedDocumentStyleSettings,
+    // ── UI actions ───────────────────────────────────────────────────────────────
+    hydrateAppPreferences: (appPreferences) =>
+      set((s) => {
+        const initializeDocument =
+          !s.preferencesHydrated &&
+          s.chemDrawDocument === initialDocument &&
+          s.history.length === 1;
+        const document = initializeDocument ? emptyDocument(appPreferences) : s.chemDrawDocument;
+        return {
+          ...(initializeDocument && document
+            ? {
+                ...projectDocument(document),
+                chemDrawDocument: document,
+                history: [document],
+                historyIndex: 0,
+                savedDocument: document,
+              }
+            : {}),
+          appPreferences,
+          preferencesHydrated: true,
+          isDarkMode: appPreferences.isDarkMode,
+          showGrid: appPreferences.showGrid,
+          showHydrogens: appPreferences.showHydrogens,
+          pageSetup: resolveDocumentPageSetup(document, appPreferences),
+          viewerMode: appPreferences.viewer.mode,
+          viewerRepresentation: appPreferences.viewer.representation,
+          viewerSpin: appPreferences.viewer.spin,
+          viewerSpinSpeed: appPreferences.viewer.spinSpeed,
+          viewerForceField: appPreferences.viewer.forceField,
+          viewerMultiConformer: appPreferences.viewer.multiConformer,
+          viewerMaxConformers: appPreferences.viewer.maxConformers,
+          viewerShowAtomNumbers: appPreferences.viewer.showAtomNumbers,
+          viewerShowAtomLabels: appPreferences.viewer.showAtomLabels,
+          viewerShowMeasureToolbar: appPreferences.viewer.showMeasureToolbar,
+          viewerAtomScale: appPreferences.viewer.atomScale,
+          viewerBondScale: appPreferences.viewer.bondScale,
+          viewerPerspectiveFov: appPreferences.viewer.perspectiveFov,
+          viewerBackgroundColor: appPreferences.viewer.backgroundColor,
+          viewerBondColor: appPreferences.viewer.bondColor,
+          viewerAmbientLightIntensity: appPreferences.viewer.ambientLightIntensity,
+          viewerHemiLightIntensity: appPreferences.viewer.hemiLightIntensity,
+          viewerKeyLightIntensity: appPreferences.viewer.keyLightIntensity,
+          viewerFillLightIntensity: appPreferences.viewer.fillLightIntensity,
+          viewerRimLightIntensity: appPreferences.viewer.rimLightIntensity,
+          viewerOrbitalBasis: appPreferences.viewer.orbitals.basis,
+          viewerOrbitalOpacity: appPreferences.viewer.orbitals.opacity,
+          viewerOrbitalPositiveColor: appPreferences.viewer.orbitals.positiveColor,
+          viewerOrbitalNegativeColor: appPreferences.viewer.orbitals.negativeColor,
+          viewerOrbitalMaterial: appPreferences.viewer.orbitals.material,
+          viewerOrbitalOutline: appPreferences.viewer.orbitals.outline,
+          viewerOrbitalIsovalue: appPreferences.viewer.orbitals.isovalue,
+          viewerOrbitalShowPositivePhase: appPreferences.viewer.orbitals.showPositivePhase,
+          viewerOrbitalShowNegativePhase: appPreferences.viewer.orbitals.showNegativePhase,
+          documentStyleSettings: resolveDocumentStyleSettings(document, appPreferences),
+          documentViewSettings: resolveDocumentViewSettings(document, appPreferences),
+          textFormat: buildTextFormatFromDocumentSettings(
+            resolveDocumentStyleSettings(document, appPreferences),
+          ),
+        };
+      }),
+    setAppPreferences: (appPreferences) => {
+      persistPreferences(appPreferences);
+      get().hydrateAppPreferences(appPreferences);
+    },
+    setDocumentStyleSettings: (documentStyleSettings) =>
+      set((s) => {
+        const normalizedDocumentStyleSettings =
+          normalizeDocumentStyleSettings(documentStyleSettings);
+        const resolvedTextFormat = buildTextFormatFromDocumentSettings(
+          normalizedDocumentStyleSettings,
+        );
+        const appPreferences = { ...s.appPreferences, drawing: normalizedDocumentStyleSettings };
+        persistPreferences(appPreferences);
+        return {
+          documentStyleSettings: normalizedDocumentStyleSettings,
+          textFormat: {
+            ...s.textFormat,
+            fontFamily: resolvedTextFormat.fontFamily,
+            fontSize: resolvedTextFormat.fontSize,
+            color: resolvedTextFormat.color,
+            textAlign: resolvedTextFormat.textAlign,
+          },
+          appPreferences,
+          ...historyCommitPatch(
+            s,
+            applyDocumentStyleSettings(
+              s.chemDrawDocument ?? emptyDocument(),
+              normalizedDocumentStyleSettings,
+            ),
+          ),
+        };
+      }),
+    setDocumentViewSettings: (documentViewSettings) =>
+      set((s) => {
+        const normalizedDocumentViewSettings = normalizeDocumentViewSettings(documentViewSettings);
+        return {
+          documentViewSettings: normalizedDocumentViewSettings,
+          ...historyCommitPatch(
+            s,
+            applyDocumentViewSettings(
+              s.chemDrawDocument ?? emptyDocument(),
+              normalizedDocumentViewSettings,
+            ),
+          ),
+        };
+      }),
+    applyDefaultsToCurrentDocument: () => {
+      const s = get();
+      const source = s.chemDrawDocument ?? emptyDocument(s.appPreferences);
+      const nextState = applyDocumentStyleSettingsToCanvas(
+        projectDocument(source),
+        s.documentStyleSettings,
+        s.appPreferences.drawing,
       );
-      const appPreferences = { ...s.appPreferences, drawing: normalizedDocumentStyleSettings };
-      persistPreferences(appPreferences);
-      return {
-        documentStyleSettings: normalizedDocumentStyleSettings,
-        textFormat: {
-          ...s.textFormat,
-          fontFamily: resolvedTextFormat.fontFamily,
-          fontSize: resolvedTextFormat.fontSize,
-          color: resolvedTextFormat.color,
-          textAlign: resolvedTextFormat.textAlign,
+      const context = createEditorCommandContext({
+        activePageId: source.pages[0]?.id ?? null,
+        documentStyleSettings: s.documentStyleSettings,
+        pageSetup: s.pageSetup,
+      });
+      const edited = createProjectionEditCommand(source, nextState).apply(source, context).document;
+      s.commitDocument(
+        applyDocumentPageSetup(
+          applyDocumentStyleSettings(edited, s.appPreferences.drawing),
+          s.appPreferences.pageSetup,
+        ),
+      );
+    },
+    setIsDarkMode: (isDarkMode) =>
+      set((s) => {
+        const appPreferences = { ...s.appPreferences, isDarkMode };
+        persistPreferences(appPreferences);
+        return { isDarkMode, appPreferences };
+      }),
+    setShowGrid: (showGrid) =>
+      set((s) => {
+        const appPreferences = { ...s.appPreferences, showGrid };
+        persistPreferences(appPreferences);
+        return { showGrid, appPreferences };
+      }),
+    setSidebarWidth: (sidebarWidth) => set({ sidebarWidth }),
+    setEditMenusHidden: (editMenusHidden) => set({ editMenusHidden }),
+    setShowBondMenu: (showBondMenu) => set({ showBondMenu }),
+    setShowSmilesBar: (showSmilesBar) => set({ showSmilesBar }),
+    setIsFileDropdownOpen: (isFileDropdownOpen) => set({ isFileDropdownOpen }),
+    setIsExportSubmenuOpen: (isExportSubmenuOpen) => set({ isExportSubmenuOpen }),
+    setIsEditDropdownOpen: (isEditDropdownOpen) => set({ isEditDropdownOpen }),
+    setIsAlignSubmenuOpen: (isAlignSubmenuOpen) => set({ isAlignSubmenuOpen }),
+    setIsSettingsDropdownOpen: (isSettingsDropdownOpen) => set({ isSettingsDropdownOpen }),
+    setIsPreferencesPanelOpen: (isPreferencesPanelOpen) => set({ isPreferencesPanelOpen }),
+    setIsPeriodicTableOpen: (isPeriodicTableOpen) => set({ isPeriodicTableOpen }),
+    setIsAboutOpen: (isAboutOpen) => set({ isAboutOpen }),
+    setIsViewerSettingsOpen: (isViewerSettingsOpen) => set({ isViewerSettingsOpen }),
+    setIsCalculateDropdownOpen: (isCalculateDropdownOpen) => set({ isCalculateDropdownOpen }),
+    setShowPropertiesPanel: (showPropertiesPanel) => set({ showPropertiesPanel }),
+    setShowIrPanel: (showIrPanel) => set({ showIrPanel }),
+    setShowNmrPanel: (showNmrPanel) => set({ showNmrPanel }),
+    setShowMsPanel: (showMsPanel) => set({ showMsPanel }),
+    setPropertiesPos: (propertiesPos) => set({ propertiesPos }),
+    setIrPos: (irPos) => set({ irPos }),
+    setNmrPos: (nmrPos) => set({ nmrPos }),
+    setMsPos: (msPos) => set({ msPos }),
+    setPropertiesSize: (propertiesSize) => set({ propertiesSize }),
+    setIrSize: (irSize) => set({ irSize }),
+    setNmrSize: (nmrSize) => set({ nmrSize }),
+    setMsSize: (msSize) => set({ msSize }),
+    setMoleculeProperties: (moleculeProperties) => set({ moleculeProperties }),
+    setIrSpectrum: (irSpectrum) => set({ irSpectrum }),
+    setNmrSpectrum: (nmrSpectrum) => set({ nmrSpectrum }),
+    setMsSpectrum: (msSpectrum) => set({ msSpectrum }),
+    toggleSection: (name) =>
+      set((s) => {
+        const next = new Set(s.collapsedSections);
+        if (next.has(name)) next.delete(name);
+        else next.add(name);
+        return { collapsedSections: next };
+      }),
+    setLicensesText: (licensesText) => set({ licensesText }),
+    setTextFormat: (fmt) =>
+      set((s) => {
+        const textFormat = { ...s.textFormat, ...fmt };
+        const documentStyleSettings = normalizeDocumentStyleSettings({
+          ...s.documentStyleSettings,
+          textFormat: {
+            fontFamily: textFormat.fontFamily,
+            fontSize: textFormat.fontSize,
+            color: textFormat.color,
+            textAlign: textFormat.textAlign,
+          },
+        });
+        const resolvedTextFormat = buildTextFormatFromDocumentSettings(documentStyleSettings);
+        const appPreferences = { ...s.appPreferences, drawing: documentStyleSettings };
+        persistPreferences(appPreferences);
+        return {
+          textFormat: {
+            ...textFormat,
+            fontFamily: resolvedTextFormat.fontFamily,
+            fontSize: resolvedTextFormat.fontSize,
+            color: resolvedTextFormat.color,
+            textAlign: resolvedTextFormat.textAlign,
+          },
+          ...historyCommitPatch(
+            s,
+            applyDocumentStyleSettings(
+              s.chemDrawDocument ?? emptyDocument(),
+              documentStyleSettings,
+            ),
+          ),
+          appPreferences,
+        };
+      }),
+
+    syncTextFormat: (fmt) =>
+      set((s) => {
+        const next = { ...s.textFormat, ...fmt };
+        const same = (Object.keys(next) as Array<keyof TextFormat>).every(
+          (key) => next[key] === s.textFormat[key],
+        );
+        return same ? s : { textFormat: next };
+      }),
+
+    groupSelected: () => {
+      const { chemDrawDocument, selectedObjectIds } = get();
+      if (chemDrawDocument && selectedObjectIds.size >= 2) {
+        const nextDocument = createGroupFromSelection(chemDrawDocument, selectedObjectIds);
+        get().commitDocument(nextDocument);
+        return;
+      }
+      const {
+        atoms,
+        bonds,
+        arrows,
+        groups,
+        textBoxes,
+        selectedAtomIds,
+        selectedArrowIds,
+        selectedTextBoxIds,
+      } = get();
+      const hasAtoms = selectedAtomIds.size > 0;
+      const hasArrows = selectedArrowIds.size > 0;
+      const hasTextBoxes = selectedTextBoxIds.size > 0;
+      const totalItems = selectedAtomIds.size + selectedArrowIds.size + selectedTextBoxIds.size;
+      if (totalItems < 2) return;
+      const childGroups = hasAtoms
+        ? groups.filter((g) => g.atomIds.every((id) => selectedAtomIds.has(id)))
+        : [];
+      const childGroupIds = childGroups.length > 0 ? childGroups.map((g) => g.id) : undefined;
+      const keptGroups = groups.filter(
+        (g) =>
+          !g.atomIds.some((id) => selectedAtomIds.has(id)) ||
+          g.atomIds.every((id) => selectedAtomIds.has(id)),
+      );
+      const newGroup: Group = {
+        id: crypto.randomUUID(),
+        atomIds: [...selectedAtomIds],
+        childGroupIds,
+        arrowIds: hasArrows ? [...selectedArrowIds] : undefined,
+        textBoxIds: hasTextBoxes ? [...selectedTextBoxIds] : undefined,
+      };
+      commitCanvasEdit({ atoms, bonds, arrows, groups: [...keptGroups, newGroup], textBoxes });
+    },
+
+    ungroupSelected: () => {
+      const { chemDrawDocument, selectedObjectIds } = get();
+      if (chemDrawDocument && selectedObjectIds.size > 0) {
+        const nextDocument = removeGroupsFromSelection(chemDrawDocument, selectedObjectIds);
+        get().commitDocument(nextDocument);
+        return;
+      }
+      const { atoms, bonds, arrows, groups, textBoxes, selectedAtomIds } = get();
+      const overlapping = groups
+        .filter((g) => g.atomIds.some((id) => selectedAtomIds.has(id)))
+        .sort((a, b) => b.atomIds.length - a.atomIds.length);
+      if (!overlapping.length) return;
+      const removed = overlapping[0];
+      const newGroups = groups
+        .filter((g) => g.id !== removed.id)
+        .map((g) => ({ ...g, childGroupIds: g.childGroupIds?.filter((id) => id !== removed.id) }));
+      commitCanvasEdit({ atoms, bonds, arrows, groups: newGroups, textBoxes });
+    },
+
+    alignSelection: (op: AlignOp) => {
+      const { chemDrawDocument, selectedObjectIds } = get();
+      if (chemDrawDocument && selectedObjectIds.size > 1) {
+        const nextDocument = alignSelectedObjects(chemDrawDocument, selectedObjectIds, op);
+        get().commitDocument(nextDocument);
+        return;
+      }
+      const {
+        atoms,
+        bonds,
+        arrows,
+        groups,
+        textBoxes,
+        selectedAtomIds,
+        selectedArrowIds,
+        selectedTextBoxIds,
+      } = get();
+      const units = buildAlignmentUnits(
+        atoms,
+        bonds,
+        arrows,
+        selectedAtomIds,
+        selectedArrowIds,
+        groups,
+        textBoxes,
+        selectedTextBoxIds,
+      );
+      if (units.length < 2) return;
+      const {
+        atoms: newAtoms,
+        arrows: newArrows,
+        textBoxes: newTextBoxes,
+      } = applyAlignment(atoms, arrows, units, op, textBoxes);
+      commitCanvasEdit({
+        atoms: newAtoms,
+        bonds,
+        arrows: newArrows,
+        groups,
+        textBoxes: newTextBoxes,
+      });
+    },
+
+    dispatchEditorCommand: (command) => {
+      const {
+        chemDrawDocument,
+        atoms,
+        bonds,
+        arrows,
+        groups,
+        textBoxes,
+        documentStyleSettings,
+        pageSetup,
+        selectedObjectIds,
+        selectedAtomIds,
+        selectedBondIds,
+        selectedArrowIds,
+        selectedTextBoxIds,
+      } = get();
+      const document = createEditorSessionState({
+        document: chemDrawDocument,
+        canvasState: { atoms, bonds, arrows, groups, textBoxes },
+        selection: {
+          objectIds: selectedObjectIds,
+          atomIds: selectedAtomIds,
+          bondIds: selectedBondIds,
+          arrowIds: selectedArrowIds,
+          textBoxIds: selectedTextBoxIds,
         },
-        appPreferences,
-        ...historyCommitPatch(
-          s,
-          applyDocumentStyleSettings(
-            s.chemDrawDocument ?? emptyDocument(),
-            normalizedDocumentStyleSettings,
-          ),
-        ),
-      };
-    }),
-  setDocumentViewSettings: (documentViewSettings) =>
-    set((s) => {
-      const normalizedDocumentViewSettings = normalizeDocumentViewSettings(documentViewSettings);
-      return {
-        documentViewSettings: normalizedDocumentViewSettings,
-        ...historyCommitPatch(
-          s,
-          applyDocumentViewSettings(
-            s.chemDrawDocument ?? emptyDocument(),
-            normalizedDocumentViewSettings,
-          ),
-        ),
-      };
-    }),
-  applyDefaultsToCurrentDocument: () => {
-    const s = get();
-    const source = s.chemDrawDocument ?? emptyDocument(s.appPreferences);
-    const nextState = applyDocumentStyleSettingsToCanvas(
-      projectDocument(source),
-      s.documentStyleSettings,
-      s.appPreferences.drawing,
-    );
-    const context = createEditorCommandContext({
-      activePageId: source.pages[0]?.id ?? null,
-      documentStyleSettings: s.documentStyleSettings,
-      pageSetup: s.pageSetup,
-    });
-    const edited = createProjectionEditCommand(source, nextState).apply(source, context).document;
-    s.commitDocument(
-      applyDocumentPageSetup(
-        applyDocumentStyleSettings(edited, s.appPreferences.drawing),
-        s.appPreferences.pageSetup,
-      ),
-    );
-  },
-  setIsDarkMode: (isDarkMode) =>
-    set((s) => {
-      const appPreferences = { ...s.appPreferences, isDarkMode };
-      persistPreferences(appPreferences);
-      return { isDarkMode, appPreferences };
-    }),
-  setShowGrid: (showGrid) =>
-    set((s) => {
-      const appPreferences = { ...s.appPreferences, showGrid };
-      persistPreferences(appPreferences);
-      return { showGrid, appPreferences };
-    }),
-  setSidebarWidth: (sidebarWidth) => set({ sidebarWidth }),
-  setEditMenusHidden: (editMenusHidden) => set({ editMenusHidden }),
-  setShowBondMenu: (showBondMenu) => set({ showBondMenu }),
-  setShowSmilesBar: (showSmilesBar) => set({ showSmilesBar }),
-  setIsFileDropdownOpen: (isFileDropdownOpen) => set({ isFileDropdownOpen }),
-  setIsExportSubmenuOpen: (isExportSubmenuOpen) => set({ isExportSubmenuOpen }),
-  setIsEditDropdownOpen: (isEditDropdownOpen) => set({ isEditDropdownOpen }),
-  setIsAlignSubmenuOpen: (isAlignSubmenuOpen) => set({ isAlignSubmenuOpen }),
-  setIsSettingsDropdownOpen: (isSettingsDropdownOpen) => set({ isSettingsDropdownOpen }),
-  setIsPreferencesPanelOpen: (isPreferencesPanelOpen) => set({ isPreferencesPanelOpen }),
-  setIsPeriodicTableOpen: (isPeriodicTableOpen) => set({ isPeriodicTableOpen }),
-  setIsAboutOpen: (isAboutOpen) => set({ isAboutOpen }),
-  setIsViewerSettingsOpen: (isViewerSettingsOpen) => set({ isViewerSettingsOpen }),
-  setIsCalculateDropdownOpen: (isCalculateDropdownOpen) => set({ isCalculateDropdownOpen }),
-  setShowPropertiesPanel: (showPropertiesPanel) => set({ showPropertiesPanel }),
-  setShowIrPanel: (showIrPanel) => set({ showIrPanel }),
-  setShowNmrPanel: (showNmrPanel) => set({ showNmrPanel }),
-  setShowMsPanel: (showMsPanel) => set({ showMsPanel }),
-  setPropertiesPos: (propertiesPos) => set({ propertiesPos }),
-  setIrPos: (irPos) => set({ irPos }),
-  setNmrPos: (nmrPos) => set({ nmrPos }),
-  setMsPos: (msPos) => set({ msPos }),
-  setPropertiesSize: (propertiesSize) => set({ propertiesSize }),
-  setIrSize: (irSize) => set({ irSize }),
-  setNmrSize: (nmrSize) => set({ nmrSize }),
-  setMsSize: (msSize) => set({ msSize }),
-  setMoleculeProperties: (moleculeProperties) => set({ moleculeProperties }),
-  setIrSpectrum: (irSpectrum) => set({ irSpectrum }),
-  setNmrSpectrum: (nmrSpectrum) => set({ nmrSpectrum }),
-  setMsSpectrum: (msSpectrum) => set({ msSpectrum }),
-  toggleSection: (name) =>
-    set((s) => {
-      const next = new Set(s.collapsedSections);
-      if (next.has(name)) next.delete(name);
-      else next.add(name);
-      return { collapsedSections: next };
-    }),
-  setLicensesText: (licensesText) => set({ licensesText }),
-  setTextFormat: (fmt) =>
-    set((s) => {
-      const textFormat = { ...s.textFormat, ...fmt };
-      const documentStyleSettings = normalizeDocumentStyleSettings({
-        ...s.documentStyleSettings,
-        textFormat: {
-          fontFamily: textFormat.fontFamily,
-          fontSize: textFormat.fontSize,
-          color: textFormat.color,
-          textAlign: textFormat.textAlign,
+        documentStyleSettings,
+        pageSetup,
+      }).document;
+      if (!document) return;
+      const context = createEditorCommandContext({
+        activePageId: document.pages[0]?.id ?? null,
+        documentStyleSettings,
+        pageSetup,
+        selection: {
+          objectIds: selectedObjectIds,
+          atomIds: selectedAtomIds,
+          bondIds: selectedBondIds,
+          arrowIds: selectedArrowIds,
+          textBoxIds: selectedTextBoxIds,
         },
       });
-      const resolvedTextFormat = buildTextFormatFromDocumentSettings(documentStyleSettings);
-      const appPreferences = { ...s.appPreferences, drawing: documentStyleSettings };
-      persistPreferences(appPreferences);
-      return {
-        textFormat: {
-          ...textFormat,
-          fontFamily: resolvedTextFormat.fontFamily,
-          fontSize: resolvedTextFormat.fontSize,
-          color: resolvedTextFormat.color,
-          textAlign: resolvedTextFormat.textAlign,
+      const result = applyEditorCommand(document, command, context);
+      get().commitDocument(result.document);
+    },
+
+    runEditorTransaction: (transaction) => {
+      const {
+        chemDrawDocument,
+        atoms,
+        bonds,
+        arrows,
+        groups,
+        textBoxes,
+        documentStyleSettings,
+        pageSetup,
+        selectedObjectIds,
+        selectedAtomIds,
+        selectedBondIds,
+        selectedArrowIds,
+        selectedTextBoxIds,
+      } = get();
+      const document = createEditorSessionState({
+        document: chemDrawDocument,
+        canvasState: { atoms, bonds, arrows, groups, textBoxes },
+        selection: {
+          objectIds: selectedObjectIds,
+          atomIds: selectedAtomIds,
+          bondIds: selectedBondIds,
+          arrowIds: selectedArrowIds,
+          textBoxIds: selectedTextBoxIds,
         },
-        ...historyCommitPatch(
-          s,
-          applyDocumentStyleSettings(s.chemDrawDocument ?? emptyDocument(), documentStyleSettings),
-        ),
-        appPreferences,
-      };
-    }),
+        documentStyleSettings,
+        pageSetup,
+      }).document;
+      if (!document) return;
+      const context = createEditorCommandContext({
+        activePageId: document.pages[0]?.id ?? null,
+        documentStyleSettings,
+        pageSetup,
+        selection: {
+          objectIds: selectedObjectIds,
+          atomIds: selectedAtomIds,
+          bondIds: selectedBondIds,
+          arrowIds: selectedArrowIds,
+          textBoxIds: selectedTextBoxIds,
+        },
+      });
+      const result = applyEditorTransaction(document, transaction, context);
+      get().commitDocument(result.document);
+    },
 
-  syncTextFormat: (fmt) =>
-    set((s) => {
-      const next = { ...s.textFormat, ...fmt };
-      const same = (Object.keys(next) as Array<keyof TextFormat>).every(
-        (key) => next[key] === s.textFormat[key],
-      );
-      return same ? s : { textFormat: next };
-    }),
+    closeAllMenus: () =>
+      set({
+        isFileDropdownOpen: false,
+        isExportSubmenuOpen: false,
+        isEditDropdownOpen: false,
+        isAlignSubmenuOpen: false,
+        isSettingsDropdownOpen: false,
+        isPreferencesPanelOpen: false,
+        isCalculateDropdownOpen: false,
+        showBondMenu: false,
+        isPeriodicTableOpen: false,
+        isViewerSettingsOpen: false,
+      }),
 
-  groupSelected: () => {
-    const { chemDrawDocument, selectedObjectIds } = get();
-    if (chemDrawDocument && selectedObjectIds.size >= 2) {
-      const nextDocument = createGroupFromSelection(chemDrawDocument, selectedObjectIds);
-      get().commitDocument(nextDocument);
-      return;
-    }
-    const {
-      atoms,
-      bonds,
-      arrows,
-      groups,
-      textBoxes,
-      selectedAtomIds,
-      selectedArrowIds,
-      selectedTextBoxIds,
-    } = get();
-    const hasAtoms = selectedAtomIds.size > 0;
-    const hasArrows = selectedArrowIds.size > 0;
-    const hasTextBoxes = selectedTextBoxIds.size > 0;
-    const totalItems = selectedAtomIds.size + selectedArrowIds.size + selectedTextBoxIds.size;
-    if (totalItems < 2) return;
-    const childGroups = hasAtoms
-      ? groups.filter((g) => g.atomIds.every((id) => selectedAtomIds.has(id)))
-      : [];
-    const childGroupIds = childGroups.length > 0 ? childGroups.map((g) => g.id) : undefined;
-    const keptGroups = groups.filter(
-      (g) =>
-        !g.atomIds.some((id) => selectedAtomIds.has(id)) ||
-        g.atomIds.every((id) => selectedAtomIds.has(id)),
-    );
-    const newGroup: Group = {
-      id: crypto.randomUUID(),
-      atomIds: [...selectedAtomIds],
-      childGroupIds,
-      arrowIds: hasArrows ? [...selectedArrowIds] : undefined,
-      textBoxIds: hasTextBoxes ? [...selectedTextBoxIds] : undefined,
-    };
-    commitCanvasEdit({ atoms, bonds, arrows, groups: [...keptGroups, newGroup], textBoxes });
-  },
-
-  ungroupSelected: () => {
-    const { chemDrawDocument, selectedObjectIds } = get();
-    if (chemDrawDocument && selectedObjectIds.size > 0) {
-      const nextDocument = removeGroupsFromSelection(chemDrawDocument, selectedObjectIds);
-      get().commitDocument(nextDocument);
-      return;
-    }
-    const { atoms, bonds, arrows, groups, textBoxes, selectedAtomIds } = get();
-    const overlapping = groups
-      .filter((g) => g.atomIds.some((id) => selectedAtomIds.has(id)))
-      .sort((a, b) => b.atomIds.length - a.atomIds.length);
-    if (!overlapping.length) return;
-    const removed = overlapping[0];
-    const newGroups = groups
-      .filter((g) => g.id !== removed.id)
-      .map((g) => ({ ...g, childGroupIds: g.childGroupIds?.filter((id) => id !== removed.id) }));
-    commitCanvasEdit({ atoms, bonds, arrows, groups: newGroups, textBoxes });
-  },
-
-  alignSelection: (op: AlignOp) => {
-    const { chemDrawDocument, selectedObjectIds } = get();
-    if (chemDrawDocument && selectedObjectIds.size > 1) {
-      const nextDocument = alignSelectedObjects(chemDrawDocument, selectedObjectIds, op);
-      get().commitDocument(nextDocument);
-      return;
-    }
-    const {
-      atoms,
-      bonds,
-      arrows,
-      groups,
-      textBoxes,
-      selectedAtomIds,
-      selectedArrowIds,
-      selectedTextBoxIds,
-    } = get();
-    const units = buildAlignmentUnits(
-      atoms,
-      bonds,
-      arrows,
-      selectedAtomIds,
-      selectedArrowIds,
-      groups,
-      textBoxes,
-      selectedTextBoxIds,
-    );
-    if (units.length < 2) return;
-    const {
-      atoms: newAtoms,
-      arrows: newArrows,
-      textBoxes: newTextBoxes,
-    } = applyAlignment(atoms, arrows, units, op, textBoxes);
-    commitCanvasEdit({
-      atoms: newAtoms,
-      bonds,
-      arrows: newArrows,
-      groups,
-      textBoxes: newTextBoxes,
-    });
-  },
-
-  dispatchEditorCommand: (command) => {
-    const {
-      chemDrawDocument,
-      atoms,
-      bonds,
-      arrows,
-      groups,
-      textBoxes,
-      documentStyleSettings,
-      pageSetup,
-      selectedObjectIds,
-      selectedAtomIds,
-      selectedBondIds,
-      selectedArrowIds,
-      selectedTextBoxIds,
-    } = get();
-    const document = createEditorSessionState({
-      document: chemDrawDocument,
-      canvasState: { atoms, bonds, arrows, groups, textBoxes },
-      selection: {
-        objectIds: selectedObjectIds,
-        atomIds: selectedAtomIds,
-        bondIds: selectedBondIds,
-        arrowIds: selectedArrowIds,
-        textBoxIds: selectedTextBoxIds,
-      },
-      documentStyleSettings,
-      pageSetup,
-    }).document;
-    if (!document) return;
-    const context = createEditorCommandContext({
-      activePageId: document.pages[0]?.id ?? null,
-      documentStyleSettings,
-      pageSetup,
-      selection: {
-        objectIds: selectedObjectIds,
-        atomIds: selectedAtomIds,
-        bondIds: selectedBondIds,
-        arrowIds: selectedArrowIds,
-        textBoxIds: selectedTextBoxIds,
-      },
-    });
-    const result = applyEditorCommand(document, command, context);
-    get().commitDocument(result.document);
-  },
-
-  runEditorTransaction: (transaction) => {
-    const {
-      chemDrawDocument,
-      atoms,
-      bonds,
-      arrows,
-      groups,
-      textBoxes,
-      documentStyleSettings,
-      pageSetup,
-      selectedObjectIds,
-      selectedAtomIds,
-      selectedBondIds,
-      selectedArrowIds,
-      selectedTextBoxIds,
-    } = get();
-    const document = createEditorSessionState({
-      document: chemDrawDocument,
-      canvasState: { atoms, bonds, arrows, groups, textBoxes },
-      selection: {
-        objectIds: selectedObjectIds,
-        atomIds: selectedAtomIds,
-        bondIds: selectedBondIds,
-        arrowIds: selectedArrowIds,
-        textBoxIds: selectedTextBoxIds,
-      },
-      documentStyleSettings,
-      pageSetup,
-    }).document;
-    if (!document) return;
-    const context = createEditorCommandContext({
-      activePageId: document.pages[0]?.id ?? null,
-      documentStyleSettings,
-      pageSetup,
-      selection: {
-        objectIds: selectedObjectIds,
-        atomIds: selectedAtomIds,
-        bondIds: selectedBondIds,
-        arrowIds: selectedArrowIds,
-        textBoxIds: selectedTextBoxIds,
-      },
-    });
-    const result = applyEditorTransaction(document, transaction, context);
-    get().commitDocument(result.document);
-  },
-
-  closeAllMenus: () =>
-    set({
-      isFileDropdownOpen: false,
-      isExportSubmenuOpen: false,
-      isEditDropdownOpen: false,
-      isAlignSubmenuOpen: false,
-      isSettingsDropdownOpen: false,
-      isPreferencesPanelOpen: false,
-      isCalculateDropdownOpen: false,
-      showBondMenu: false,
-      isPeriodicTableOpen: false,
-      isViewerSettingsOpen: false,
-    }),
-
-  showToast: (message, type = 'error') => {
-    const id = Date.now() + Math.random();
-    set((s) => ({ toasts: [...s.toasts, { id, message, type }] }));
-    setTimeout(() => get().dismissToast(id), 4000);
-  },
-  dismissToast: (id) => set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) })),
-}));
+    showToast: (message, type = 'error') => {
+      const id = Date.now() + Math.random();
+      set((s) => ({ toasts: [...s.toasts, { id, message, type }] }));
+      setTimeout(() => get().dismissToast(id), 4000);
+    },
+    dismissToast: (id) => set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) })),
+  })),
+);
 
 export function selectEditorSessionState(
   state: AppState,

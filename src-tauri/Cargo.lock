@@ -405,6 +405,7 @@ dependencies = [
  "tauri-plugin-dialog",
  "tauri-plugin-fs",
  "tempfile",
+ "uuid",
 ]
 
 [[package]]

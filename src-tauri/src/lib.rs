@@ -1,5 +1,6 @@
 mod document_files;
 mod process_support;
+mod quit;
 mod templates;
 
 use crate::process_support::{
@@ -926,6 +927,8 @@ pub fn run() {
     let app = tauri::Builder::default()
         .manage(SidecarTracker::new())
         .manage(DftJobState::new())
+        .manage(quit::QuitState::default())
+        .manage(document_files::RecoveryState::default())
         .manage(persistent_nmr_engine)
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_dialog::init())
@@ -942,8 +945,12 @@ pub fn run() {
             templates::load_template_library,
             templates::save_template_library,
             document_files::atomic_write_file,
-            document_files::finish_document_quit,
-            document_files::load_document_recovery,
+            quit::acknowledge_document_quit,
+            quit::receive_document_quit,
+            document_files::list_document_recovery,
+            document_files::claim_document_recovery,
+            document_files::open_recovered_document,
+            document_files::discard_document_recovery,
             document_files::save_document_recovery,
             document_files::startup_document,
             generate_conformers,
@@ -970,15 +977,21 @@ pub fn run() {
         });
 
     app.run(|app_handle, event| {
+        if let tauri::RunEvent::WindowEvent {
+            label,
+            event: tauri::WindowEvent::Destroyed,
+            ..
+        } = &event
+        {
+            quit::window_destroyed(app_handle, label);
+        }
         if let tauri::RunEvent::ExitRequested {
             code: None, api, ..
         } = &event
         {
-            if let Some(window) = app_handle.get_webview_window("main") {
-                api.prevent_exit();
-                let _ = window.emit("document-quit-requested", ());
-                return;
-            }
+            api.prevent_exit();
+            quit::request(app_handle);
+            return;
         }
         if matches!(
             event,

@@ -1,12 +1,16 @@
+import { setDocumentQuitGuard, documentChangesBlocked } from '../store/documentGuard';
 import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
 import { shouldAutosave } from '../lib/autosave';
 import { listen } from '@tauri-apps/api/event';
 import { isTauri } from '@tauri-apps/api/core';
 import type { ChemCanvasRef } from '../components/ChemCanvas';
 import { useStore } from '../store';
-import { getCurrentAppWindow, invokeTauri } from '../lib/tauri';
+import { getCurrentAppWindow, invokeTauri, openDocumentWindow } from '../lib/tauri';
 import {
-  loadDocumentRecovery,
+  listDocumentRecovery,
+  flushRecoveryWrites,
+  claimDocumentRecovery,
+  discardDocumentRecovery,
   saveDocumentRecovery,
   type DocumentRecovery,
 } from '../lib/documentRecovery';
@@ -16,7 +20,9 @@ type Decision = 'save' | 'discard' | 'cancel';
 export function useDocumentLifecycle(canvas: RefObject<ChemCanvasRef | null>) {
   const decisionRef = useRef<((decision: Decision) => void) | null>(null);
   const [action, setAction] = useState<string | null>(null);
-  const [recovery, setRecovery] = useState<DocumentRecovery | null>(null);
+  const [recoveries, setRecoveries] = useState<DocumentRecovery[]>([]);
+  const recovery = recoveries[0] ?? null;
+  const quitToken = useRef<string | null>(null);
   const [recoveryReady, setRecoveryReady] = useState(false);
   const saveInFlight = useRef<Promise<boolean> | null>(null);
   const closeInFlight = useRef(false);
@@ -66,7 +72,8 @@ export function useDocumentLifecycle(canvas: RefObject<ChemCanvasRef | null>) {
   }, [autosaveMinutes, save]);
 
   const confirmReplace = useCallback(
-    async (nextAction: string): Promise<boolean> => {
+    async (nextAction: string, deferDiscard = false): Promise<boolean> => {
+      if (documentChangesBlocked()) return false;
       if (!useStore.getState().documentFile.dirty) return true;
       if (decisionRef.current) return false;
       const decision = await new Promise<Decision>((resolve) => {
@@ -75,7 +82,7 @@ export function useDocumentLifecycle(canvas: RefObject<ChemCanvasRef | null>) {
       });
       if (decision === 'cancel') return false;
       if (decision === 'save') return save();
-      await saveDocumentRecovery(null);
+      if (!deferDiscard) await saveDocumentRecovery(null);
       return true;
     },
     [save],
@@ -90,16 +97,24 @@ export function useDocumentLifecycle(canvas: RefObject<ChemCanvasRef | null>) {
 
   useEffect(() => {
     let mounted = true;
-    void loadDocumentRecovery()
+    const requested = new URLSearchParams(window.location.search).get('recovery');
+    const task =
+      requested && isTauri()
+        ? claimDocumentRecovery(requested).then((value) => {
+            useStore.getState().replaceDocument(value.document);
+            return [];
+          })
+        : listDocumentRecovery((message) => useStore.getState().showToast(message));
+    void task
       .then((value) => {
         if (!mounted) return;
-        setRecovery(value);
-        setRecoveryReady(!value);
+        setRecoveries(value);
+        setRecoveryReady(value.length === 0);
       })
       .catch((error) => {
         if (!mounted) return;
         useStore.getState().showToast(`Could not read recovery data: ${String(error)}`);
-        // An unreadable snapshot must not disable autosave; the next autosave replaces it.
+        // New snapshots have independent IDs; unreadable files remain intact.
         setRecoveryReady(true);
       });
     return () => {
@@ -116,7 +131,8 @@ export function useDocumentLifecycle(canvas: RefObject<ChemCanvasRef | null>) {
       clearTimeout(timer);
       timer = setTimeout(() => {
         const state = useStore.getState();
-        if (!state.documentFile.dirty || !state.chemDrawDocument) return;
+        if (documentChangesBlocked() || !state.documentFile.dirty || !state.chemDrawDocument)
+          return;
         void saveDocumentRecovery({
           version: 1,
           savedAt: new Date().toISOString(),
@@ -154,14 +170,13 @@ export function useDocumentLifecycle(canvas: RefObject<ChemCanvasRef | null>) {
     const register = (promise: Promise<() => void>) => {
       void promise.then((unlisten) => (disposed ? unlisten() : cleanup.push(unlisten)));
     };
-    const requestClose = async (quit: boolean) => {
-      if (closeInFlight.current) return;
+    const requestClose = async () => {
+      if (closeInFlight.current || quitToken.current) return;
       closeInFlight.current = true;
       try {
-        if (!(await confirmReplace(quit ? 'Quit' : 'Close'))) return;
+        if (!(await confirmReplace('Close'))) return;
         await saveDocumentRecovery(null);
-        if (quit) await invokeTauri('finish_document_quit');
-        else await getCurrentAppWindow().destroy();
+        await getCurrentAppWindow().destroy();
       } finally {
         closeInFlight.current = false;
       }
@@ -169,12 +184,41 @@ export function useDocumentLifecycle(canvas: RefObject<ChemCanvasRef | null>) {
     register(
       getCurrentAppWindow().onCloseRequested((event) => {
         event.preventDefault();
-        void requestClose(false);
+        void requestClose();
       }),
     );
     register(
-      listen('document-quit-requested', () => {
-        void requestClose(true);
+      listen<string>('document-quit-requested', ({ payload: token }) => {
+        if (quitToken.current) return;
+        quitToken.current = token;
+        void (async () => {
+          try {
+            // Confirm receipt first: the coordinator only abandons a quit for silent windows.
+            await invokeTauri('receive_document_quit', { token });
+            const ready = !closeInFlight.current && (await confirmReplace('Quit', true));
+            if (quitToken.current !== token) return;
+            if (ready) {
+              setDocumentQuitGuard(token);
+              await flushRecoveryWrites();
+            }
+            await invokeTauri('acknowledge_document_quit', { token, ready });
+          } catch (error) {
+            setDocumentQuitGuard(null);
+            quitToken.current = null;
+            // Withdraw this window's vote, or the coordinator would wait on it forever and every
+            // later quit would be ignored. Aborting an attempt twice is harmless.
+            void invokeTauri('acknowledge_document_quit', { token, ready: false }).catch(() => {});
+            useStore.getState().showToast(`Quit cancelled: ${String(error)}`);
+          }
+        })();
+      }),
+    );
+    register(
+      listen<string>('document-quit-cancelled', ({ payload: token }) => {
+        if (quitToken.current !== token) return;
+        quitToken.current = null;
+        setDocumentQuitGuard(null);
+        resolveDecision('cancel');
       }),
     );
     return () => {
@@ -182,7 +226,7 @@ export function useDocumentLifecycle(canvas: RefObject<ChemCanvasRef | null>) {
       cleanup.forEach((fn) => fn());
       window.removeEventListener('beforeunload', beforeUnload);
     };
-  }, [confirmReplace]);
+  }, [confirmReplace, resolveDecision]);
 
   const dialog =
     action || recovery ? (
@@ -218,7 +262,7 @@ export function useDocumentLifecycle(canvas: RefObject<ChemCanvasRef | null>) {
           <p>
             {action
               ? `${useStore.getState().documentFile.name} has unsaved changes. Save before ${action.toLowerCase()}?`
-              : `A drawing from ${recovery?.savedAt} can be recovered.`}
+              : `${recoveries.length} unsaved drawing(s). Drawing from ${recovery?.savedAt} can be recovered in a new window.`}
           </p>
           {action ? (
             <div style={{ display: 'flex', gap: 12 }}>
@@ -234,22 +278,19 @@ export function useDocumentLifecycle(canvas: RefObject<ChemCanvasRef | null>) {
                 autoFocus
                 onClick={() => {
                   if (!recovery) return;
-                  void confirmReplace('Recover').then((allowed) => {
-                    if (!allowed) return;
-                    useStore.getState().replaceDocument(recovery.document);
-                    // Recovery opens as an unsaved copy; it never overwrites its source automatically.
-                    setRecovery(null);
-                    setRecoveryReady(true);
-                  });
+                  if (isTauri() && recovery.id) openDocumentWindow(recovery.id);
+                  else useStore.getState().replaceDocument(recovery.document);
+                  setRecoveries((items) => items.slice(1));
+                  if (recoveries.length === 1) setRecoveryReady(true);
                 }}
               >
                 Recover
               </button>
               <button
                 onClick={() => {
-                  void saveDocumentRecovery(null).then(() => {
-                    setRecovery(null);
-                    setRecoveryReady(true);
+                  void discardDocumentRecovery(recovery?.id).then(() => {
+                    setRecoveries((items) => items.slice(1));
+                    if (recoveries.length === 1) setRecoveryReady(true);
                   });
                 }}
               >

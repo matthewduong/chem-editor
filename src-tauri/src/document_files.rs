@@ -3,12 +3,6 @@ use std::io::{self, Write};
 use std::path::Path;
 use tauri::Manager;
 
-#[tauri::command]
-#[allow(clippy::needless_pass_by_value)]
-pub(crate) fn finish_document_quit(app: tauri::AppHandle) {
-    app.exit(0);
-}
-
 /// Keep the original destination intact until the complete replacement is durable.
 pub(crate) fn atomic_write(path: &Path, contents: &[u8]) -> io::Result<()> {
     let parent = path
@@ -67,62 +61,262 @@ pub(crate) fn startup_document(window: tauri::Window) -> Result<Option<StartupDo
     Ok(Some(StartupDocument { path, content }))
 }
 
-/// Each window keeps its own recovery snapshot: the main window the original `recovery.json`,
-/// a document window `recovery-<label>.json`, its label reduced to `[a-z0-9-]`.
-pub(crate) fn recovery_file_name(window_label: &str) -> String {
-    if window_label == "main" {
-        return "recovery.json".to_string();
-    }
-    let safe: String = window_label
-        .chars()
-        .map(|c| {
-            if c.is_ascii_alphanumeric() || c == '-' {
-                c.to_ascii_lowercase()
-            } else {
-                '-'
-            }
+#[derive(Default)]
+pub(crate) struct RecoveryState(pub std::sync::Mutex<RecoverySession>);
+#[derive(Default)]
+pub(crate) struct RecoverySession {
+    owners: std::collections::HashMap<String, String>,
+    chooser: Option<String>,
+}
+fn recovery_path(directory: &Path, id: &str) -> Result<std::path::PathBuf, String> {
+    let id = uuid::Uuid::parse_str(id).map_err(|e| e.to_string())?;
+    Ok(directory.join(format!("recovery-{id}.json")))
+}
+fn validate_snapshot(value: &serde_json::Value) -> bool {
+    matches!(value["version"].as_u64(), Some(1 | 2))
+        && value["savedAt"].is_string()
+        && (value["path"].is_null() || value["path"].is_string())
+        && value["document"]["schemaVersion"] == 1
+        && value["document"]["pages"].as_array().is_some_and(|pages| {
+            !pages.is_empty()
+                && pages
+                    .iter()
+                    .all(|p| p["id"].is_string() && p["objects"].is_array())
         })
-        .collect();
-    format!("recovery-{safe}.json")
+}
+#[derive(serde::Serialize)]
+pub(crate) struct RecoveryList {
+    snapshots: Vec<serde_json::Value>,
+    errors: Vec<String>,
+}
+fn enumerate(directory: &Path) -> Result<RecoveryList, String> {
+    fs::create_dir_all(directory).map_err(|e| e.to_string())?;
+    let mut result = RecoveryList {
+        snapshots: vec![],
+        errors: vec![],
+    };
+    for entry in fs::read_dir(directory).map_err(|e| e.to_string())? {
+        let entry = entry.map_err(|e| e.to_string())?;
+        let name = entry.file_name().to_string_lossy().into_owned();
+        if !(name == "recovery.json"
+            || (name.starts_with("recovery-")
+                && Path::new(&name)
+                    .extension()
+                    .is_some_and(|e| e.eq_ignore_ascii_case("json"))))
+        {
+            continue;
+        }
+        let read = || -> Result<serde_json::Value, String> {
+            let mut value: serde_json::Value =
+                serde_json::from_str(&fs::read_to_string(entry.path()).map_err(|e| e.to_string())?)
+                    .map_err(|e| e.to_string())?;
+            if !validate_snapshot(&value) {
+                return Err("Invalid recovery envelope".into());
+            }
+            if value["version"] == 1 {
+                // Write the durable replacement before removing the legacy source.
+                let id = uuid::Uuid::new_v4().to_string();
+                value["version"] = 2.into();
+                value["id"] = id.clone().into();
+                atomic_write(
+                    &entry.path(),
+                    &serde_json::to_vec(&value).map_err(|e| e.to_string())?,
+                )
+                .map_err(|e| e.to_string())?;
+                fs::rename(entry.path(), recovery_path(directory, &id)?)
+                    .map_err(|e| e.to_string())?;
+            } else {
+                let path = recovery_path(
+                    directory,
+                    value["id"].as_str().ok_or("Missing recovery ID")?,
+                )?;
+                if path != entry.path() {
+                    if name == "recovery.json" || name.starts_with("recovery-document-") {
+                        fs::rename(entry.path(), path).map_err(|e| e.to_string())?;
+                    } else {
+                        return Err("Recovery identity does not match filename".into());
+                    }
+                }
+            }
+            Ok(value)
+        };
+        match read() {
+            Ok(value) => result.snapshots.push(value),
+            Err(e) => result.errors.push(format!("{name}: {e}")),
+        }
+    }
+    Ok(result)
+}
+#[tauri::command]
+#[allow(clippy::needless_pass_by_value)]
+pub(crate) fn list_document_recovery(
+    app: tauri::AppHandle,
+    window: tauri::Window,
+) -> Result<RecoveryList, String> {
+    let state = app.state::<RecoveryState>();
+    let mut session = state.0.lock().map_err(|e| e.to_string())?;
+    if session
+        .chooser
+        .as_ref()
+        .is_some_and(|label| label != window.label())
+    {
+        return Ok(RecoveryList {
+            snapshots: vec![],
+            errors: vec![],
+        });
+    }
+    session.chooser = Some(window.label().into());
+    let mut list = enumerate(&app.path().app_data_dir().map_err(|e| e.to_string())?)?;
+    list.snapshots.retain(|s| {
+        !session
+            .owners
+            .contains_key(s["id"].as_str().unwrap_or_default())
+    });
+    Ok(list)
+}
+#[tauri::command]
+#[allow(clippy::needless_pass_by_value)]
+pub(crate) fn open_recovered_document(app: tauri::AppHandle, id: String) -> Result<(), String> {
+    let label = format!("document-{}", uuid::Uuid::new_v4());
+    let state = app.state::<RecoveryState>();
+    {
+        let mut session = state.0.lock().map_err(|e| e.to_string())?;
+        if session.owners.contains_key(&id) {
+            return Err("Recovery already claimed".into());
+        }
+        let path = recovery_path(&app.path().app_data_dir().map_err(|e| e.to_string())?, &id)?;
+        if !path.is_file() {
+            return Err("Recovery file missing".into());
+        }
+        session.owners.insert(id.clone(), label.clone());
+    }
+    let result = tauri::WebviewWindowBuilder::new(
+        &app,
+        &label,
+        tauri::WebviewUrl::App(format!("index.html?recovery={id}").into()),
+    )
+    .title("ChemEditor — Recovered drawing")
+    .inner_size(1000.0, 700.0)
+    .decorations(false)
+    .build();
+    if let Err(error) = result {
+        state
+            .0
+            .lock()
+            .map_err(|e| e.to_string())?
+            .owners
+            .remove(&id);
+        return Err(error.to_string());
+    }
+    Ok(())
 }
 
 #[tauri::command]
 #[allow(clippy::needless_pass_by_value)]
-pub(crate) fn load_document_recovery(
+pub(crate) fn claim_document_recovery(
     app: tauri::AppHandle,
     window: tauri::Window,
-) -> Result<Option<String>, String> {
-    let path = app
-        .path()
-        .app_data_dir()
-        .map_err(|e| e.to_string())?
-        .join(recovery_file_name(window.label()));
-    match fs::read_to_string(path) {
-        Ok(contents) => Ok(Some(contents)),
-        Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(None),
-        Err(error) => Err(error.to_string()),
+    id: String,
+) -> Result<String, String> {
+    let state = app.state::<RecoveryState>();
+    let mut session = state.0.lock().map_err(|e| e.to_string())?;
+    if session
+        .owners
+        .get(&id)
+        .is_some_and(|owner| owner != window.label())
+    {
+        return Err("Recovery already claimed".into());
+    }
+    let contents = fs::read_to_string(recovery_path(
+        &app.path().app_data_dir().map_err(|e| e.to_string())?,
+        &id,
+    )?)
+    .map_err(|e| e.to_string())?;
+    session.owners.insert(id, window.label().into());
+    Ok(contents)
+}
+#[tauri::command]
+#[allow(clippy::needless_pass_by_value)]
+pub(crate) fn discard_document_recovery(
+    app: tauri::AppHandle,
+    window: tauri::Window,
+    id: String,
+) -> Result<(), String> {
+    let state = app.state::<RecoveryState>();
+    let mut session = state.0.lock().map_err(|e| e.to_string())?;
+    if session
+        .owners
+        .get(&id)
+        .is_some_and(|owner| owner != window.label())
+    {
+        return Err("Recovery belongs to another window".into());
+    }
+    remove_snapshot(&app.path().app_data_dir().map_err(|e| e.to_string())?, &id)?;
+    session.owners.remove(&id);
+    Ok(())
+}
+fn remove_snapshot(directory: &Path, id: &str) -> Result<(), String> {
+    match fs::remove_file(recovery_path(directory, id)?) {
+        Ok(()) => Ok(()),
+        Err(e) if e.kind() == io::ErrorKind::NotFound => Ok(()),
+        Err(e) => Err(e.to_string()),
     }
 }
-
+pub(crate) fn clear_quit_recovery(
+    app: &tauri::AppHandle,
+    labels: &std::collections::HashSet<String>,
+) -> Result<(), String> {
+    let state = app.state::<RecoveryState>();
+    let session = state.0.lock().map_err(|e| e.to_string())?;
+    let directory = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    for (id, owner) in &session.owners {
+        if labels.contains(owner) {
+            remove_snapshot(&directory, id)?;
+        }
+    }
+    Ok(())
+}
 #[tauri::command]
 #[allow(clippy::needless_pass_by_value)]
 pub(crate) fn save_document_recovery(
     app: tauri::AppHandle,
     window: tauri::Window,
+    id: String,
     contents: Option<String>,
 ) -> Result<(), String> {
+    let state = app.state::<RecoveryState>();
+    let mut session = state.0.lock().map_err(|e| e.to_string())?;
+    if session
+        .owners
+        .get(&id)
+        .is_some_and(|owner| owner != window.label())
+    {
+        return Err("Recovery belongs to another window".into());
+    }
     let directory = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    let path = recovery_path(&directory, &id)?;
     fs::create_dir_all(&directory).map_err(|e| e.to_string())?;
-    let path = directory.join(recovery_file_name(window.label()));
     if let Some(contents) = contents {
-        atomic_write(&path, contents.as_bytes()).map_err(|e| e.to_string())
+        let value: serde_json::Value =
+            serde_json::from_str(&contents).map_err(|e| e.to_string())?;
+        if !validate_snapshot(&value) || value["id"] != id || value["version"] != 2 {
+            return Err("Invalid recovery snapshot".into());
+        }
+        atomic_write(&path, contents.as_bytes()).map_err(|e| e.to_string())?;
+        session.owners.insert(id, window.label().into());
     } else {
-        match fs::remove_file(path) {
-            Ok(()) => Ok(()),
-            Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(()),
-            Err(error) => Err(error.to_string()),
+        let ids: Vec<_> = session
+            .owners
+            .iter()
+            .filter(|(_, owner)| *owner == window.label())
+            .map(|(id, _)| id.clone())
+            .collect();
+        for id in ids {
+            remove_snapshot(&directory, &id)?;
+            session.owners.remove(&id);
         }
     }
+    Ok(())
 }
 
 #[cfg(test)]
@@ -149,10 +343,21 @@ mod tests {
     }
 
     #[test]
-    fn each_window_has_its_own_recovery_file() {
-        assert_eq!(recovery_file_name("main"), "recovery.json");
-        assert_eq!(recovery_file_name("document-2"), "recovery-document-2.json");
-        assert_eq!(recovery_file_name("../Evil/x"), "recovery----evil-x.json");
+    fn legacy_migration_keeps_corrupt_files_and_persistent_identity() {
+        let directory = tempfile::tempdir().unwrap();
+        fs::write(directory.path().join("recovery.json"), r#"{"version":1,"savedAt":"now","path":null,"document":{"schemaVersion":1,"pages":[{"id":"p","objects":[]}]}}"#).unwrap();
+        fs::write(
+            directory.path().join("recovery-document-old.json"),
+            b"broken",
+        )
+        .unwrap();
+        let first = enumerate(directory.path()).unwrap();
+        assert_eq!(first.snapshots.len(), 1);
+        assert_eq!(first.errors.len(), 1);
+        assert_eq!(first.snapshots[0]["version"], 2);
+        assert!(directory.path().join("recovery-document-old.json").exists());
+        let second = enumerate(directory.path()).unwrap();
+        assert_eq!(first.snapshots, second.snapshots);
     }
 
     #[test]

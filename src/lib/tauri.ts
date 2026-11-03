@@ -25,10 +25,14 @@ export function getCurrentAppWindow() {
  * File > New Window: another document in its own window, configured like the main one. Labels are
  * `document-<n>`, which the default capability covers.
  */
-export function openDocumentWindow(): void {
-  const label = `document-${Date.now().toString(36)}`;
+export function openDocumentWindow(recoveryId?: string): void {
+  if (recoveryId) {
+    void invokeTauri('open_recovered_document', { id: recoveryId });
+    return;
+  }
+  const label = `document-${crypto.randomUUID()}`;
   new WebviewWindow(label, {
-    url: 'index.html',
+    url: recoveryId ? `index.html?recovery=${encodeURIComponent(recoveryId)}` : 'index.html',
     title: 'ChemEditor',
     width: 1000,
     height: 700,

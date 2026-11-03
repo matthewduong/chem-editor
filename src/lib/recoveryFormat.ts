@@ -2,7 +2,8 @@ import { chemDrawDocumentToCanvasState } from './chemdrawModel';
 import type { ChemDrawDocument } from '../types/chemdraw';
 
 export interface DocumentRecovery {
-  version: 1;
+  version: 1 | 2;
+  id?: string;
   savedAt: string;
   path: string | null;
   document: ChemDrawDocument;
@@ -25,7 +26,7 @@ export function parseDocumentRecovery(contents: string): DocumentRecovery {
     throw new Error('The recovery file is not valid JSON.');
   }
   if (!isRecord(parsed)) throw new Error('The recovery file is not a recovery snapshot.');
-  if (parsed.version !== 1) {
+  if (parsed.version !== 1 && parsed.version !== 2) {
     throw new Error(`The recovery file has unsupported version ${String(parsed.version)}.`);
   }
   if (typeof parsed.savedAt !== 'string') {
@@ -61,5 +62,11 @@ export function parseDocumentRecovery(contents: string): DocumentRecovery {
     (wrapped as Error & { cause?: unknown }).cause = error;
     throw wrapped;
   }
-  return { version: 1, savedAt: parsed.savedAt, path: parsed.path, document: typed };
+  return {
+    version: parsed.version,
+    id: typeof parsed.id === 'string' ? parsed.id : undefined,
+    savedAt: parsed.savedAt,
+    path: parsed.path,
+    document: typed,
+  };
 }

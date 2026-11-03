@@ -16,12 +16,20 @@ test('accepts a well-formed recovery snapshot', () => {
   assert.equal(parsed.document.pages[0].id, 'p1');
 });
 
+test('a version 2 snapshot keeps its persistent identity', () => {
+  const id = '6f1c2a5e-8f53-4b8e-9a6b-0f7d1c3e2b11';
+  const parsed = parseDocumentRecovery(JSON.stringify({ ...valid, version: 2, id }));
+  assert.equal(parsed.version, 2);
+  assert.equal(parsed.id, id);
+  assert.equal(parseDocumentRecovery(JSON.stringify(valid)).id, undefined);
+});
+
 const bad = [
   ['truncated JSON', '{"version":1,"savedAt":', /not valid JSON/],
   ['empty string', '', /not valid JSON/],
   ['non-object', '[1,2]', /not a recovery snapshot/],
   ['null', 'null', /not a recovery snapshot/],
-  ['wrong version', JSON.stringify({ ...valid, version: 2 }), /unsupported version 2/],
+  ['wrong version', JSON.stringify({ ...valid, version: 3 }), /unsupported version 3/],
   ['missing savedAt', JSON.stringify({ ...valid, savedAt: undefined }), /save time/],
   ['bad path type', JSON.stringify({ ...valid, path: 7 }), /document path/],
   ['missing document', JSON.stringify({ ...valid, document: undefined }), /unsupported schema/],
