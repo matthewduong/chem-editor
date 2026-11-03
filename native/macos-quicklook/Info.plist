@@ -16,7 +16,7 @@
     <key>NSExtensionAttributes</key>
     <dict>
       <key>QLSupportedContentTypes</key>
-      <array><string>com.perkinelmer.chemdraw.cdxml</string><string>com.mrd.chem-editor.cdxml</string></array>
+      <array><string>com.revvity.cdxml</string><string>com.perkinelmer.chemdraw.cdxml</string><string>com.mrd.chem-editor.cdxml</string></array>
       <key>QLThumbnailMinimumDimension</key><integer>16</integer>
     </dict>
   </dict>
